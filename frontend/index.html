@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemical Engineering API</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-10">
+            <h1 class="text-3xl font-bold text-center text-blue-800">Chemical Engineering Calculator</h1>
+            <p class="text-center text-gray-600 mt-2">Comprehensive toolkit for chemical engineering calculations</p>
+        </header>
+
+        <div class="mb-6">
+            <nav class="bg-white shadow-md rounded-lg">
+                <ul class="flex flex-wrap text-sm font-medium text-center" id="mainTab" role="tablist">
+                    <li class="mr-2" role="presentation">
+                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100 active" id="piping-tab" data-tab="piping-content">Piping</button>
+                    </li>
+                    <li class="mr-2" role="presentation">
+                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="sizing-tab" data-tab="sizing-content">Sizing</button>
+                    </li>
+                    <li class="mr-2" role="presentation">
+                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="flow-tab" data-tab="flow-content">Flow</button>
+                    </li>
+                    <li class="mr-2" role="presentation">
+                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="pump-tab" data-tab="pump-content">Pump</button>
+                    </li>
+                    <li class="mr-2" role="presentation">
+                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="components-tab" data-tab="components-content">Components</button>
+                    </li>
+                    <li class="mr-2" role="presentation">
+                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="reactor-tab" data-tab="reactor-content">Reactor</button>
+                    </li>
+                    <li class="mr-2" role="presentation">
+                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="balance-tab" data-tab="balance-content">Mass Balance</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <div class="tab-content">
+            <!-- Piping Section -->
+            <div id="piping-content" class="bg-white p-6 rounded-lg shadow-md tab-pane active">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Piping Calculations</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Composition Selection</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Composition</label>
+                            <select id="composition-select" class="w-full select2-input"></select>
+                        </div>
+                        <div id="composition-details" class="mt-4 p-3 bg-white rounded border text-sm"></div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Schedule & Diameter</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Schedule</label>
+                            <select id="schedule-select" class="w-full select2-input"></select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Diameter</label>
+                            <select id="diameter-select" class="w-full select2-input" disabled></select>
+                        </div>
+                        <div id="diameter-details" class="mt-4 p-3 bg-white rounded border text-sm"></div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Fittings</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Fitting</label>
+                            <select id="fitting-select" class="w-full select2-input"></select>
+                        </div>
+                        <div id="fitting-details" class="mt-4 p-3 bg-white rounded border text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sizing Section -->
+            <div id="sizing-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Pipe Sizing</h2>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Calculate Diameter</h3>
+                        <form id="calculated-diameter-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Flow Rate (m³/s)</label>
+                                    <input type="number" step="0.0000000001" id="flow-rate" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Velocity (m/s)</label>
+                                    <input type="number" step="0.0000000001" id="velocity" class="w-full p-2 border rounded">
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calculate Diameter</button>
+                        </form>
+                        <div id="calculated-diameter-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Find Real Diameter</h3>
+                        <form id="real-diameter-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Calculated Diameter (mm)</label>
+                                    <input type="number" step="0.0000000001" id="calculated-diameter" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+                                    <select id="real-diameter-schedule" class="w-full select2-input"></select>
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Find Real Diameter</button>
+                        </form>
+                        <div id="real-diameter-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow Section -->
+            <div id="flow-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Flow Calculations</h2>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Reynolds Number</h3>
+                        <form id="reynolds-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Characteristic Diameter (mm)</label>
+                                    <input type="number" step="0.0000000001" id="characteristic-diameter" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Velocity (m/s)</label>
+                                    <input type="number" step="0.0000000001" id="reynolds-velocity" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Density (kg/m³)</label>
+                                    <input type="number" step="0.0000000001" id="density" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Dynamic Viscosity (Pa·s)</label>
+                                    <input type="number" step="0.0000000001" id="dynamic-viscosity" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Kinematic Viscosity (m²/s)</label>
+                                    <input type="number" step="0.0000000001" id="kinematic-viscosity" class="w-full p-2 border rounded">
+                                </div>
+                            </div>
+                            <div class="text-sm text-gray-600 mb-4">Note: Provide either density and dynamic viscosity OR kinematic viscosity.</div>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calculate Reynolds Number</button>
+                        </form>
+                        <div id="reynolds-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Friction Factor</h3>
+                        <form id="friction-factor-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="mb-4 col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Roughness Type</label>
+                                    <div class="flex space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="roughness-type" value="composition" class="form-radio" checked>
+                                            <span class="ml-2">Material Composition</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="roughness-type" value="custom" class="form-radio">
+                                            <span class="ml-2">Custom Value</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div id="flow-composition-container" class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Material Composition</label>
+                                    <select id="flow-composition-select" class="w-full select2-input"></select>
+                                </div>
+                                
+                                <div id="custom-roughness-container" class="mb-4 hidden">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Roughness (mm)</label>
+                                    <input type="number" step="0.0000000001" id="custom-roughness" class="w-full p-2 border rounded">
+                                </div>
+                                
+                                <div class="mb-4 col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Diameter Type</label>
+                                    <div class="flex space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="diameter-type" value="schedule" class="form-radio" checked>
+                                            <span class="ml-2">Pipe Schedule</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="diameter-type" value="custom" class="form-radio">
+                                            <span class="ml-2">Custom Value</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div id="flow-schedule-diameter-container" class="mb-4 col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Pipe Schedule</label>
+                                        <select id="flow-schedule-select" class="w-full select2-input"></select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Diameter (mm)</label>
+                                        <select id="flow-diameter-select" class="w-full select2-input" disabled></select>
+                                    </div>
+                                </div>
+                                
+                                <div id="custom-diameter-container" class="mb-4 hidden">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Diameter (mm)</label>
+                                    <input type="number" step="0.0000000001" id="custom-diameter" class="w-full p-2 border rounded">
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Reynolds Number</label>
+                                    <input type="number" step="0.0000000001" id="reynolds-number" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Method</label>
+                                    <select id="friction-factor-method" class="w-full select2-input"></select>
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calculate Friction Factor</button>
+                        </form>
+                        <div id="friction-factor-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Hydraulic Diameter</h3>
+                        <form id="hydraulic-diameter-form">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Shape</label>
+                                <select id="hydraulic-shape" class="w-full select2-input"></select>
+                            </div>
+                            
+                            <!-- Dynamic fields will be added here based on selected shape -->
+                            <div id="shape-parameters" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                            
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mt-4">Calculate Hydraulic Diameter</button>
+                        </form>
+                        <div id="hydraulic-diameter-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pump Section -->
+            <div id="pump-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Pump Calculations</h2>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Head Loss</h3>
+                        <form id="headloss-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Method</label>
+                                    <select id="headloss-method" class="w-full select2-input"></select>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Pipe Length (m)</label>
+                                    <input type="number" step="0.0000000001" id="pipe-length" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Diameter (mm)</label>
+                                    <input type="number" step="0.0000000001" id="headloss-diameter" class="w-full p-2 border rounded">
+                                </div>
+                                
+                                <!-- Darcy-Weisbach specific fields -->
+                                <div class="darcy-fields hidden">
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Friction Factor</label>
+                                        <input type="number" step="0.0000000001" id="headloss-friction-factor" class="w-full p-2 border rounded">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Velocity (m/s)</label>
+                                        <input type="number" step="0.0000000001" id="headloss-velocity" class="w-full p-2 border rounded">
+                                    </div>
+                                </div>
+                                
+                                <!-- Hazen-Williams specific fields -->
+                                <div class="hazen-fields hidden">
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Flow Rate (m³/s)</label>
+                                        <input type="number" step="0.0000000001" id="headloss-flow-rate" class="w-full p-2 border rounded">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Roughness Coefficient Selection</label>
+                                        <div class="flex space-x-4">
+                                            <label class="inline-flex items-center">
+                                                <input type="radio" name="roughness-coef-type" value="material" class="form-radio" checked>
+                                                <span class="ml-2">Material</span>
+                                            </label>
+                                            <label class="inline-flex items-center">
+                                                <input type="radio" name="roughness-coef-type" value="custom" class="form-radio">
+                                                <span class="ml-2">Custom Value</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div id="material-roughness-container" class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Material</label>
+                                        <select id="material-composition-select" class="w-full select2-input"></select>
+                                    </div>
+                                    <div id="custom-roughness-coef-container" class="mb-4 hidden">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Roughness Coefficient</label>
+                                        <input type="number" step="0.0000000001" id="roughness-coefficient" class="w-full p-2 border rounded">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fittings</label>
+                                <div id="fittings-container">
+                                    <!-- Fittings will be added here -->
+                                </div>
+                                <button type="button" id="add-fitting" class="mt-2 bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600">+ Add Fitting</button>
+                            </div>
+                            
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calculate Head Loss</button>
+                        </form>
+                        <div id="headloss-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">NPSH Available</h3>
+                        <form id="npsh-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Manometric Pressure (kgf/cm²)</label>
+                                    <input type="number" step="0.0000000001" id="manometric-pressure" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Atmospheric Pressure (kgf/cm²)</label>
+                                    <input type="number" step="0.0000000001" id="atmospheric-pressure" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Vapor Pressure (kgf/cm²)</label>
+                                    <input type="number" step="0.0000000001" id="vapor-pressure" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Specific Mass (kg/m³)</label>
+                                    <input type="number" step="0.0000000001" id="specific-mass" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Friction Factor (m)</label>
+                                    <input type="number" step="0.0000000001" id="npsh-friction-factor" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Pump Inlet Velocity (m/s)</label>
+                                    <input type="number" step="0.0000000001" id="pump-inlet-velocity" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Gauge Elevation (m)</label>
+                                    <input type="number" step="0.0000000001" id="gauge-elevation" class="w-full p-2 border rounded">
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calculate NPSH Available</button>
+                        </form>
+                        <div id="npsh-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Head</h3>
+                        <form id="head-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Pressure at Point 1 (Pa)</label>
+                                    <input type="number" step="0.0000000001" id="pressure1" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Pressure at Point 2 (Pa)</label>
+                                    <input type="number" step="0.0000000001" id="pressure2" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Elevation at Point 1 (m)</label>
+                                    <input type="number" step="0.0000000001" id="elevation1" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Elevation at Point 2 (m)</label>
+                                    <input type="number" step="0.0000000001" id="elevation2" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Velocity at Point 1 (m/s)</label>
+                                    <input type="number" step="0.0000000001" id="velocity1" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Velocity at Point 2 (m/s)</label>
+                                    <input type="number" step="0.0000000001" id="velocity2" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Specific Mass (kg/m³)</label>
+                                    <input type="number" step="0.0000000001" id="head-specific-mass" class="w-full p-2 border rounded">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Friction Factor (m)</label>
+                                    <input type="number" step="0.0000000001" id="head-friction-factor" class="w-full p-2 border rounded">
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calculate Head</button>
+                        </form>
+                        <div id="head-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional sections for Reactor, Components, and Balance will be implemented in separate files -->
+            <div id="reactor-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Reactor Calculations</h2>
+                <!-- Content will be loaded dynamically -->
+            </div>
+
+            <div id="components-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Components Properties</h2>
+                <!-- Content will be loaded dynamically -->
+            </div>
+
+            <div id="balance-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Balance Calculations</h2>
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <!-- App JS -->
+    <script src="js/modules/api.js"></script>
+    <script src="js/modules/ui.js"></script>
+    <script src="js/modules/piping.js"></script>
+    <script src="js/modules/sizing.js"></script>
+    <script src="js/modules/flow.js"></script>
+    <script src="js/modules/pump.js"></script>
+    <script src="js/modules/reactor.js"></script>
+    <script src="js/modules/components.js"></script>
+    <script src="js/modules/balance.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 

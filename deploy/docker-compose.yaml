@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  tcc-api:
+    image: tcc-api:latest
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    volumes:
+      - /home/joaobaza/TCC:/app
+    networks:
+      - SistemasJ
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=SistemasJ"
+        - "traefik.http.routers.tcc-api.rule=Host(`tcc.api.sistemasj.com.br`)"
+        - "traefik.http.routers.tcc-api.entrypoints=websecure"
+        - "traefik.http.routers.tcc-api.tls=true"
+        - "traefik.http.routers.tcc-api.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.tcc-api.loadbalancer.server.port=5000"
+
+  tcc-frontend:
+    image: tcc-frontend:latest
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+    volumes:
+      - /home/joaobaza/TCC/frontend:/app
+    networks:
+      - SistemasJ
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=SistemasJ"
+        - "traefik.http.routers.tcc-frontend.rule=Host(`tcc.frontend.sistemasj.com.br`)"
+        - "traefik.http.routers.tcc-frontend.entrypoints=websecure"
+        - "traefik.http.routers.tcc-frontend.tls=true"
+        - "traefik.http.routers.tcc-frontend.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.tcc-frontend.loadbalancer.server.port=80"
+networks:
+  SistemasJ:
+    external: true
