@@ -28,10 +28,10 @@ Final project in Chemical Engineering at UFMS, developed by **João Pedro Baza G
 ## TODO:
 - CAPE-OPEN
 - Removal of hardcoded values
-
-1. Maximum conversion value by Brent method
-
-2. Characteristics, properties, and schedules of piping
+    1. Maximum conversion value by Brent method;
+    2. Characteristics, properties, and schedules of piping;
+    3. Change input types in reactor to accept mass, molar or volumetric concentration;
+    4. Add new unit operations ad infinitum, such as multiphase and heterogeneous reactors, heat exchangers, evaporators etc.
 
 --- 
 
