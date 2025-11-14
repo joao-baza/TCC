@@ -11,14 +11,14 @@ const BalanceModule = {
         this.createBalanceContent();
         this.setupEventListeners();
         
-        // Inicialização do Select2 é importante para elementos dinâmicos
+        // Initialization of Select2 is important for dynamic elements
         setTimeout(() => {
             $('.select2-input').select2({
                 width: '100%',
                 placeholder: 'Select an option'
             });
             
-            // Atualiza a navegação de abas para incluir a nova aba
+            // Update the tab navigation to include the new tab
             UI.setupTabs();
         }, 100);
     },

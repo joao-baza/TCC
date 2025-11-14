@@ -26,26 +26,26 @@ document.addEventListener('DOMContentLoaded', function() {
         UI.showError('Error', event.reason.message || 'An unexpected error occurred');
     });
     
-    // Verificação adicional para garantir que a aba Balance funcione corretamente
+    // Additional verification to ensure that the Balance tab works correctly
     setTimeout(() => {
         const balanceTab = document.getElementById('balance-tab');
         if (balanceTab) {
-            // Adiciona novamente o event listener
+            // Add again the event listener
             balanceTab.addEventListener('click', function() {
-                // Esconde todas as abas
+                // Hide all tabs
                 document.querySelectorAll('.tab-pane').forEach(pane => {
                     pane.classList.add('hidden');
                     pane.classList.remove('active');
                 });
                 
-                // Mostra a aba de balance
+                // Show the balance tab
                 const balanceContent = document.getElementById('balance-content');
                 if (balanceContent) {
                     balanceContent.classList.remove('hidden');
                     balanceContent.classList.add('active');
                 }
                 
-                // Atualiza o estado ativo nas abas
+                // Actualize the active state on tabs
                 document.querySelectorAll('[data-tab]').forEach(tab => {
                     tab.classList.remove('active');
                 });
