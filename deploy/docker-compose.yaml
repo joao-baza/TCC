@@ -14,7 +14,7 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=SistemasJ"
-        - "traefik.http.routers.tcc-api.rule=Host(`tcc.api.sistemasj.com.br`)"
+        - "traefik.http.routers.tcc-api.rule=Host(`tcc.api.homelab.sistemasj.com.br`)"
         - "traefik.http.routers.tcc-api.entrypoints=websecure"
         - "traefik.http.routers.tcc-api.tls=true"
         - "traefik.http.routers.tcc-api.tls.certresolver=letsencryptresolver"
@@ -33,7 +33,7 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=SistemasJ"
-        - "traefik.http.routers.tcc-frontend.rule=Host(`tcc.frontend.sistemasj.com.br`)"
+        - "traefik.http.routers.tcc-frontend.rule=Host(`tcc.homelab.sistemasj.com.br`)"
         - "traefik.http.routers.tcc-frontend.entrypoints=websecure"
         - "traefik.http.routers.tcc-frontend.tls=true"
         - "traefik.http.routers.tcc-frontend.tls.certresolver=letsencryptresolver"
