@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY app.py mass_balance.py base_validator.py components.py hydraulic.py piping.py reactor.py ./
+COPY . ./
 
 # Expose the API port
 EXPOSE 5000
