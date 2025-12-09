@@ -5,7 +5,7 @@
 
 const API = {
     // Base URL for the API
-    baseUrl: 'http://localhost:5000',
+    baseUrl: 'https://tcc.api.homelab.sistemasj.com.br',
 
     /**
      * Generic API call function
@@ -30,7 +30,7 @@ const API = {
             }
 
             const response = await fetch(url, options);
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || 'API request failed');
@@ -46,7 +46,7 @@ const API = {
     // ---------------------------------------------------------------------------
     // Piping Endpoints
     // ---------------------------------------------------------------------------
-    
+
     async getCompositions() {
         return this.call('/piping/compositions');
     },
@@ -78,7 +78,7 @@ const API = {
     // ---------------------------------------------------------------------------
     // Sizing Endpoints
     // ---------------------------------------------------------------------------
-    
+
     async calculateDiameter(flowRate, velocity) {
         return this.call('/sizing/calculated-diameter', 'POST', {
             flow_rate: parseFloat(flowRate),
@@ -96,7 +96,7 @@ const API = {
     // ---------------------------------------------------------------------------
     // Flow Endpoints
     // ---------------------------------------------------------------------------
-    
+
     async calculateReynolds(params) {
         return this.call('/flow/reynolds', 'POST', params);
     },
@@ -125,7 +125,7 @@ const API = {
     // ---------------------------------------------------------------------------
     // Pump Endpoints
     // ---------------------------------------------------------------------------
-    
+
     async getHeadlossMethods() {
         return this.call('/pump/headloss/methods');
     },
@@ -145,7 +145,7 @@ const API = {
     // ---------------------------------------------------------------------------
     // Reactor Endpoints
     // ---------------------------------------------------------------------------
-    
+
     async getCSTRCalculationTypes() {
         return this.call('/reactor/cstr/calculation-types');
     },
@@ -173,7 +173,7 @@ const API = {
     // ---------------------------------------------------------------------------
     // Components Endpoints
     // ---------------------------------------------------------------------------
-    
+
     async listComponents() {
         return this.call('/components/list');
     },
@@ -225,19 +225,19 @@ const API = {
     // ---------------------------------------------------------------------------
     // Mass Balance Endpoints
     // ---------------------------------------------------------------------------
-    
+
     async getMassBalanceExample() {
         return this.call('/mass-balance/example');
     },
-    
+
     async calculateMassBalance(params) {
         return this.call('/mass-balance/calculate', 'POST', params);
     },
-    
+
     async calculateYields(params) {
         return this.call('/mass-balance/yields', 'POST', params);
     },
-    
+
     async plotMassBalance(params) {
         return this.call('/mass-balance/plot', 'POST', params);
     }
