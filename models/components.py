@@ -126,10 +126,13 @@ class Components:
                     # Saturation pressure at given temperature
                     value = CP.PropsSI("P", "T", temperature, "Q", 0, fluid)
             except Exception as e:
-                return None  # Returns None if calculation not possible
+                return None
         else:
             # For other properties, use standard method
-            value = CP.PropsSI(property_name, "T", temperature, "P", pressure, fluid)
+            try:
+                value = CP.PropsSI(property_name, "T", temperature, "P", pressure, fluid)
+            except Exception as e:
+                raise ValueError(f"CoolProp error for property '{property_name}' of fluid '{fluid}' at T={temperature}K, P={pressure}Pa: {str(e)}")
         
         if property_name in units_map:
             return value * units_map[property_name]
@@ -287,6 +290,6 @@ class Components:
                 else:
                     result[property_key_map.get(prop, prop)] = value
             except Exception as e:
-                result[property_key_map.get(prop, prop)] = None
+                 raise ValueError(f"CoolProp mixture error for property '{prop}': {str(e)}")
                 
         return result 

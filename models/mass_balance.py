@@ -226,7 +226,14 @@ class MassBalance:
         sol = sp.solve(eqs, list(symbols), dict=True)
         if not sol:
             raise ValueError("System is underdetermined or has no solution.")
-        return sol[0]
+        
+        # Check if solution contains symbolic expressions
+        solution = sol[0]
+        for val in solution.values():
+            if isinstance(val, sp.Basic) and not val.is_number:
+                raise ValueError("System is underdetermined (infinite solutions or symbolic result). Please check degrees of freedom.")
+                
+        return solution
 
     def get_results(self, solution=None):
         """

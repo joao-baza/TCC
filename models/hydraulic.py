@@ -8,6 +8,12 @@ from scipy.optimize import fsolve
 
 from .piping import Piping
 
+import numpy as np
+from pint import UnitRegistry
+from typing import Dict, List
+from scipy.optimize import root_scalar
+
+from .piping import Piping
 from base_validator import BaseValidator
 
 class Hydraulic(BaseValidator):
@@ -19,6 +25,8 @@ class Hydraulic(BaseValidator):
     def __init__(self) -> None:
         self.ureg = UnitRegistry()
         self.g = 9.80665 * self.ureg.m / self.ureg.s ** 2  # gravity
+        self.piping = Piping()
+
 
     # ------------------------------------------------------------------ #
     #                         PRIVATE HELPERS                            #
@@ -30,10 +38,9 @@ class Hydraulic(BaseValidator):
         if not fittings:
             return 0 * self.ureg.m
 
-        piping = Piping()
         total = 0 * self.ureg.m
         for f in fittings:
-            spec = piping.fitting_specifications(f["fitting"])
+            spec = self.piping.fitting_specifications(f["fitting"])
             total += spec["specifications"]["equivalentLength"].magnitude * diameter_m * f["quantity"]
         return total
 
@@ -216,13 +223,19 @@ class Hydraulic(BaseValidator):
         # ------------------------- Colebrook-White ---------------------- #
         if method == "ColebrookWhite":
 
-            def colebrook(f):
-                return 1 / np.sqrt(f) + 2 * np.log10(
-                    eps_over_D / 3.71 + 2.51 / (Re * np.sqrt(f))
-                )
+            def objective_x(x):
+                # x represents 1/sqrt(f)
+                return x + 2 * np.log10(eps_over_D / 3.71 + 2.51 * x / Re)
 
-            f_solution, = fsolve(colebrook, 0.02)
-            return float(f_solution) * self.ureg.dimensionless
+            try:
+                # f usually 0.008 to 0.1 -> x approx 3 to 12. Bracket covers 0.0001 to 1.0
+                res = root_scalar(objective_x, bracket=[0.1, 100], method='brentq')
+                x_sol = res.root
+                f_solution = 1 / (x_sol ** 2)
+                return float(f_solution) * self.ureg.dimensionless
+            except ValueError:
+                 # Fallback/Error handling
+                raise ValueError("Colebrook equation solver failed to converge.")
 
         # --------------------------- Swamee-Jain ------------------------ #
         if method == "SwameeJain":

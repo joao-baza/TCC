@@ -226,7 +226,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             X_calc = (rate_lim * V / F_A0).to_base_units().magnitude
             return X_calc - X_val
     
-        result = root_scalar(objective, bracket=[1e-6, 0.999], method='brentq')
+        result = root_scalar(objective, bracket=[1e-9, 1.0 - 1e-9], method='brentq')
         if not result.converged:
             raise ValueError("Failed to converge to a valid conversion value.")
     
@@ -304,7 +304,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             X_calc = (rate_lim * V / F_A0).to_base_units().magnitude
             return X_calc - X_val
         
-        result = root_scalar(objective, bracket=[1e-6, 0.999], method='brentq')
+        result = root_scalar(objective, bracket=[1e-9, 1.0 - 1e-9], method='brentq')
         if not result.converged:
             raise ValueError("Failed to converge to a valid conversion value.")
         
@@ -437,7 +437,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             X_calc = (rate_lim * V / F_A0).to_base_units().magnitude
             return X_calc - X_val
 
-        result = root_scalar(objective, bracket=[1e-6, 0.99999], method='brentq')
+        result = root_scalar(objective, bracket=[1e-9, 1.0 - 1e-9], method='brentq')
         if not result.converged:
             raise ValueError("Failed to converge to a valid conversion value.")
 
@@ -507,7 +507,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             X_calc = (rate_lim * V / F_A0).to_base_units().magnitude
             return X_calc - X_val
 
-        result = root_scalar(objective, bracket=[1e-6, 0.999], method='brentq')
+        result = root_scalar(objective, bracket=[1e-9, 1.0 - 1e-9], method='brentq')
         if not result.converged:
             raise ValueError("Failed to converge to a valid conversion value.")
 
