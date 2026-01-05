@@ -82,56 +82,92 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         
         return outlet_concentrations, k, r
 
-    # ------------------------------------------------------------------ #
-    #                         CSTR FUNCTIONS                              #
-    # ------------------------------------------------------------------ #
-    def _conversion_and_kinetics_in_cstr(self, parameters):
-        """Calculates the volume of a CSTR based on conversion and kinetics."""
-        self._require_keys(parameters, ["components", "reaction_rate_params", "conversion", "stoichiometric_coefficients", "operation_conditions"])
-        self._validate_numeric(parameters, ["conversion"])
-    
+    def _initialize_reactor(self, parameters):
+        """Standardizes the initialization of reactor calculations."""
+        # Common keys required for all calculations
+        self._require_keys(parameters, ["components", "stoichiometric_coefficients", "operation_conditions"])
+        
         components = parameters["components"]
         stoichiometric_coefficients = parameters["stoichiometric_coefficients"]
-        reaction_rate_params = parameters["reaction_rate_params"]
         operation_conditions = parameters["operation_conditions"]
-        X = parameters["conversion"] * self.ureg.dimensionless  # dimensionless
-    
+        
+        # Validate component states
         last_component_state = components[0]["state"]
         for component in components:
             if last_component_state != component["state"]:
-                last_component_state = component["state"]
                 raise ValueError("Use only liquid or only gaseous components")
-    
+        
         limiting = self.determine_limiting_reagent(parameters)
-    
+        
         # Initialize variables
         F0_i = []
-        Q_tot = 0 * self.ureg.m**3 / self.ureg.s  # initialize with zero, with unit
+        Q_tot = 0 * self.ureg.m**3 / self.ureg.s
         
         # Calculate inlet molar flow rates and total volumetric flow rate
         for c in components:
             flow_rate = c["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
             conc = (c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
-            F0_i.append(flow_rate * conc)  # mol/s for each component
+            F0_i.append(flow_rate * conc)
             Q_tot += flow_rate
-                
-        F_A0 = F0_i[limiting]  # mol/s for the limiting reagent
-        C0_i = [F0 / Q_tot for F0 in F0_i]  # concentrations after mixing (mol/m³)
+            
+        F_A0 = F0_i[limiting]
+        C0_i = [F0 / Q_tot for F0 in F0_i]
         C_lim0 = C0_i[limiting]
+        y_A0 = F_A0 / sum(F0_i)
         
-        ε = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, X) * F_A0 / sum(F0_i)
+        epsilon = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, y_A0)
         
-        # Operating conditions: temperature and pressure
+        # Operating conditions
         T0 = operation_conditions["initial_temperature"] * self.ureg.K
         P0 = operation_conditions["initial_pressure"] * self.ureg.Pa
         T = operation_conditions["final_temperature"] * self.ureg.K
         P = operation_conditions["final_pressure"] * self.ureg.Pa
         
-        # Correction factor for operating conditions (pressure and temperature)
-        var_operation_conditions = (P0*T/(P*T0)).magnitude  # Dimensionless
+        var_operation_conditions = (P0 * T / (P * T0)).magnitude
+        
+        return {
+            "components": components,
+            "stoichiometric_coefficients": stoichiometric_coefficients,
+            "reaction_rate_params": parameters["reaction_rate_params"],
+            "operation_conditions": operation_conditions,
+            "limiting": limiting,
+            "F_A0": F_A0,
+            "C0_i": C0_i,
+            "C_lim0": C_lim0,
+            "Q_tot": Q_tot,
+            "epsilon": epsilon,
+            "var_operation_conditions": var_operation_conditions,
+            "T": T,
+            "P": P,
+            "T0": T0,
+            "P0": P0
+        }
+
+    # ------------------------------------------------------------------ #
+    #                         CSTR FUNCTIONS                              #
+    # ------------------------------------------------------------------ #
+    def _conversion_and_kinetics_in_cstr(self, parameters):
+        """Calculates the volume of a CSTR based on conversion and kinetics."""
+        self._require_keys(parameters, ["conversion"])
+        self._validate_numeric(parameters, ["conversion"])
+        
+        init_data = self._initialize_reactor(parameters)
+        X = parameters["conversion"] * self.ureg.dimensionless
+        
+        # Unpack needed variables
+        components = init_data["components"]
+        stoichiometric_coefficients = init_data["stoichiometric_coefficients"]
+        reaction_rate_params = init_data["reaction_rate_params"]
+        limiting = init_data["limiting"]
+        F_A0 = init_data["F_A0"]
+        C0_i = init_data["C0_i"]
+        C_lim0 = init_data["C_lim0"]
+        Q_tot = init_data["Q_tot"]
+        epsilon = init_data["epsilon"]
+        var_operation_conditions = init_data["var_operation_conditions"]
         
         # Combined factor: effect of volumetric variation and operating conditions
-        dilution_factor = (1 + (ε * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
         
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
             components, stoichiometric_coefficients, reaction_rate_params, 
@@ -161,7 +197,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "volume": V,
             "reaction_rate": r,
             "outlet_concentrations": outlet_concentrations,
-            "dilution_factor": ε * self.ureg.dimensionless,
+            "dilution_factor": epsilon * self.ureg.dimensionless,
             "molar_rate_inlet_(limitant)": F_A0,
             "flow_rate_outlet": Q_tot,
             "residence_time": residence_time,
@@ -170,49 +206,29 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
 
     def _volume_and_kinetics_in_cstr(self, parameters):
         """Calculates the conversion of a CSTR based on volume and kinetics."""
-        self._require_keys(parameters, ["components", "reaction_rate_params", "volume", "stoichiometric_coefficients", "operation_conditions"])
+        self._require_keys(parameters, ["volume"])
         self._validate_numeric(parameters, ["volume"])
 
-        components = parameters["components"]
-        stoichiometric_coefficients = parameters["stoichiometric_coefficients"]
-        reaction_rate_params = parameters["reaction_rate_params"]
-        operation_conditions = parameters["operation_conditions"]
-        V = parameters["volume"] * self.ureg.m**3  # volume in cubic meters
+        init_data = self._initialize_reactor(parameters)
+        V = parameters["volume"] * self.ureg.m**3
 
-        last_component_state = components[0]["state"]
-        for component in components:
-            if last_component_state != component["state"]:
-                last_component_state = component["state"]
-                raise ValueError("Use only liquid or only gaseous components")
-    
-        limiting = self.determine_limiting_reagent(parameters)
-    
-        F0_i = []
-        Q_tot = 0 * self.ureg.m**3 / self.ureg.s  # initialize with zero, with unit
-        for c in components:
-            flow_rate = c["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
-            conc = (c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
-            F0_i.append(flow_rate * conc)  # mol/s for each component
-            Q_tot += flow_rate
-    
-        F_A0 = F0_i[limiting]  # mol/s for the limiting reagent
-        C0_i = [F0 / Q_tot for F0 in F0_i]  # concentrations after mixing (mol/m³)
-        C_lim0 = C0_i[limiting]
-    
-        ε_base = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, F_A0 / sum(F0_i))
-    
-        T0 = operation_conditions["initial_temperature"] * self.ureg.K
-        P0 = operation_conditions["initial_pressure"] * self.ureg.Pa
-        T = operation_conditions["final_temperature"] * self.ureg.K
-        P = operation_conditions["final_pressure"] * self.ureg.Pa
-    
-        var_operation_conditions = (P0 * T / (P * T0)).magnitude
+        # Unpack needed variables
+        components = init_data["components"]
+        stoichiometric_coefficients = init_data["stoichiometric_coefficients"]
+        reaction_rate_params = init_data["reaction_rate_params"]
+        limiting = init_data["limiting"]
+        F_A0 = init_data["F_A0"]
+        C0_i = init_data["C0_i"]
+        C_lim0 = init_data["C_lim0"]
+        Q_tot = init_data["Q_tot"]
+        epsilon = init_data["epsilon"]
+        var_operation_conditions = init_data["var_operation_conditions"]
     
         def objective(X_val):
             if not (0 < X_val < 1):
                 raise ValueError("Conversion out of bounds")
             
-            dilution_factor = (1 + (ε_base * X_val)) * var_operation_conditions
+            dilution_factor = (1 + (epsilon * X_val)) * var_operation_conditions
             
             outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
@@ -232,7 +248,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
     
         X = result.root * self.ureg.dimensionless
 
-        dilution_factor = (1 + (ε_base * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
             components, stoichiometric_coefficients, reaction_rate_params, 
             limiting, C0_i, C_lim0, X, dilution_factor
@@ -242,7 +258,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "conversion": X,
             "reaction_rate": r,
             "outlet_concentrations": outlet_concentrations,
-            "dilution_factor": ε_base * self.ureg.dimensionless,
+            "dilution_factor": epsilon * self.ureg.dimensionless,
             "molar_rate_inlet_(limitant)": F_A0,
             "flow_rate_outlet": Q_tot,
             "residence_time": V / Q_tot,
@@ -251,46 +267,32 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
 
     def _residence_time_and_kinetics_in_cstr(self, parameters):
         """Calculates the conversion of a CSTR based on residence time and kinetics."""
-        self._require_keys(parameters, ["components", "reaction_rate_params", "residence_time", "stoichiometric_coefficients", "operation_conditions"])
+        self._require_keys(parameters, ["residence_time"])
         self._validate_numeric(parameters, ["residence_time"])
 
-        components = parameters["components"]
-        stoichiometric_coefficients = parameters["stoichiometric_coefficients"]
-        reaction_rate_params = parameters["reaction_rate_params"]
-        operation_conditions = parameters["operation_conditions"]
-        residence_time = parameters["residence_time"] * self.ureg.s  # residence time in seconds
+        init_data = self._initialize_reactor(parameters)
+        residence_time = parameters["residence_time"] * self.ureg.s
 
-        limiting = self.determine_limiting_reagent(parameters)
-
-        F0_i = []
-        Q_tot = 0 * self.ureg.m**3 / self.ureg.s  # initialize with zero, with unit
-        for c in components:
-            flow_rate = c["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
-            conc = (c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
-            F0_i.append(flow_rate * conc)  # mol/s for each component
-            Q_tot += flow_rate
-
-        F_A0 = F0_i[limiting]  # mol/s for the limiting reagent
-        C0_i = [F0 / Q_tot for F0 in F0_i]  # concentrations after mixing (mol/m³)
-        C_lim0 = C0_i[limiting]
+        # Unpack needed variables
+        components = init_data["components"]
+        stoichiometric_coefficients = init_data["stoichiometric_coefficients"]
+        reaction_rate_params = init_data["reaction_rate_params"]
+        limiting = init_data["limiting"]
+        F_A0 = init_data["F_A0"]
+        C0_i = init_data["C0_i"]
+        C_lim0 = init_data["C_lim0"]
+        Q_tot = init_data["Q_tot"]
+        epsilon = init_data["epsilon"]
+        var_operation_conditions = init_data["var_operation_conditions"]
         
         # Reactor volume based on residence time
         V = Q_tot * residence_time  # m³
-        
-        ε_base = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, F_A0 / sum(F0_i))
-        
-        T0 = operation_conditions["initial_temperature"] * self.ureg.K
-        P0 = operation_conditions["initial_pressure"] * self.ureg.Pa
-        T = operation_conditions["final_temperature"] * self.ureg.K
-        P = operation_conditions["final_pressure"] * self.ureg.Pa
-        
-        var_operation_conditions = (P0 * T / (P * T0)).magnitude
         
         def objective(X_val):
             if not (0 < X_val < 1):
                 raise ValueError("Conversion out of bounds")
             
-            dilution_factor = (1 + (ε_base * X_val)) * var_operation_conditions
+            dilution_factor = (1 + (epsilon * X_val)) * var_operation_conditions
             
             outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
@@ -310,7 +312,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         
         X = result.root * self.ureg.dimensionless
         
-        dilution_factor = (1 + (ε_base * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
                 limiting, C0_i, C_lim0, X, dilution_factor
@@ -325,7 +327,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor_(1+e * P0*T/P*T0)": dilution_factor * self.ureg.dimensionless,
             "residence_time": V / Q_tot,
-            "dilution_factor": ε_base * self.ureg.dimensionless
+            "dilution_factor": epsilon * self.ureg.dimensionless
         }
 
     # ------------------------------------------------------------------ #
@@ -333,33 +335,28 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
     # ------------------------------------------------------------------ #
     def _conversion_and_kinetics_in_pfr(self, parameters):
         """Calculates the volume of a PFR based on conversion and kinetics."""
-        self._require_keys(parameters, ["recycling_ratio", "components", "reaction_rate_params", "conversion", "stoichiometric_coefficients", "operation_conditions"])
+        self._require_keys(parameters, ["recycling_ratio", "conversion"])
         self._validate_numeric(parameters, ["conversion", "recycling_ratio"])
 
-        components = parameters["components"]
-        stoichiometric_coefficients = parameters["stoichiometric_coefficients"]
-        reaction_rate_params = parameters["reaction_rate_params"]
-        operation_conditions = parameters["operation_conditions"]
-        X = parameters["conversion"] * self.ureg.dimensionless  # dimensionless
-        R = parameters["recycling_ratio"] * self.ureg.dimensionless  # dimensionless
+        init_data = self._initialize_reactor(parameters)
+        X = parameters["conversion"] * self.ureg.dimensionless
+        R = parameters["recycling_ratio"] * self.ureg.dimensionless
 
-        limiting = self.determine_limiting_reagent(parameters)
-
-        F0_i = []
-        Q_tot = 0 * self.ureg.m**3 / self.ureg.s  # initialize with zero, with unit
-        for c in components:
-            flow_rate = c["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
-            conc = (c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
-            F0_i.append(flow_rate * conc)  # mol/s for each component
-            Q_tot += flow_rate
-
-        F_A0 = F0_i[limiting]  # mol/s for the limiting reagent
-        C0_i = [F0 / Q_tot for F0 in F0_i]  # concentrations after mixing (mol/m³)
-        C_lim0 = C0_i[limiting]
+        # Unpack needed variables
+        components = init_data["components"]
+        stoichiometric_coefficients = init_data["stoichiometric_coefficients"]
+        reaction_rate_params = init_data["reaction_rate_params"]
+        limiting = init_data["limiting"]
+        F_A0 = init_data["F_A0"]
+        C0_i = init_data["C0_i"]
+        C_lim0 = init_data["C_lim0"]
+        Q_tot = init_data["Q_tot"]
+        epsilon = init_data["epsilon"]
+        var_operation_conditions = init_data["var_operation_conditions"]
 
         # Define the rate function for integration
         def rate_function(X_val):
-            dilution_factor = (1 + (self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, X_val))) * (operation_conditions["initial_pressure"] * operation_conditions["final_temperature"] / (operation_conditions["final_pressure"] * operation_conditions["initial_temperature"]))
+            dilution_factor = (1 + (epsilon * X_val)) * var_operation_conditions
             outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
                 limiting, C0_i, C_lim0, X_val, dilution_factor
@@ -372,13 +369,8 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
 
         V = (R+1) * F_A0 * integral * self.ureg.m**3  # m³
         
-        # Calcular o fator de diluição final e as concentrações no reator
-        ε = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, X)
-        T0 = operation_conditions["initial_temperature"] * self.ureg.K
-        P0 = operation_conditions["initial_pressure"] * self.ureg.Pa
-        T = operation_conditions["final_temperature"] * self.ureg.K
-        P = operation_conditions["final_pressure"] * self.ureg.Pa
-        dilution_factor = (1 + ε) * (P0 * T / (P * T0)).magnitude
+        # Calculate the final dilution factor and concentrations
+        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
             components, stoichiometric_coefficients, reaction_rate_params, 
             limiting, C0_i, C_lim0, X, dilution_factor
@@ -393,49 +385,59 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
             "residence_time": V / Q_tot,
-            "dilution_factor": ε * self.ureg.dimensionless
+            "dilution_factor": epsilon * self.ureg.dimensionless
         }
 
     def _volume_and_kinetics_in_pfr(self, parameters):
         """Calculates the conversion of a PFR based on volume and kinetics."""
-        self._require_keys(parameters, ["components", "reaction_rate_params", "volume", "stoichiometric_coefficients", "operation_conditions"])
-        self._validate_numeric(parameters, ["volume"])
+        self._require_keys(parameters, ["volume", "recycling_ratio"])
+        self._validate_numeric(parameters, ["volume", "recycling_ratio"])
 
-        components = parameters["components"]
-        stoichiometric_coefficients = parameters["stoichiometric_coefficients"]
-        reaction_rate_params = parameters["reaction_rate_params"]
-        operation_conditions = parameters["operation_conditions"]
-        V = parameters["volume"] * self.ureg.m**3  # volume in cubic meters
+        init_data = self._initialize_reactor(parameters)
+        V = parameters["volume"] * self.ureg.m**3
+        R = parameters["recycling_ratio"] * self.ureg.dimensionless
 
-        limiting = self.determine_limiting_reagent(parameters)
-
-        F0_i = []
-        Q_tot = 0 * self.ureg.m**3 / self.ureg.s  # initialize with zero, with unit
-        for c in components:
-            flow_rate = c["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
-            conc = (c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
-            F0_i.append(flow_rate * conc)  # mol/s for each component
-            Q_tot += flow_rate
-
-        F_A0 = F0_i[limiting]  # mol/s for the limiting reagent
-        C0_i = [F0 / Q_tot for F0 in F0_i]  # concentrations after mixing (mol/m³)
-        C_lim0 = C0_i[limiting]
-
-        T0 = operation_conditions["initial_temperature"] * self.ureg.K
-        P0 = operation_conditions["initial_pressure"] * self.ureg.Pa
-        T = operation_conditions["final_temperature"] * self.ureg.K
-        P = operation_conditions["final_pressure"] * self.ureg.Pa
+        # Unpack needed variables
+        components = init_data["components"]
+        stoichiometric_coefficients = init_data["stoichiometric_coefficients"]
+        reaction_rate_params = init_data["reaction_rate_params"]
+        limiting = init_data["limiting"]
+        F_A0 = init_data["F_A0"]
+        C0_i = init_data["C0_i"]
+        C_lim0 = init_data["C_lim0"]
+        Q_tot = init_data["Q_tot"]
+        epsilon = init_data["epsilon"]
+        var_operation_conditions = init_data["var_operation_conditions"]
 
         def objective(X_val):
-            ε = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, X_val)
-            dilution_factor = (1 + ε) * (P0 * T / (P * T0)).magnitude
-            outlet_concentrations, k, r = self._calculate_concentration_and_rate(
-                components, stoichiometric_coefficients, reaction_rate_params, 
-                limiting, C0_i, C_lim0, X_val, dilution_factor
-            )
-            rate_lim = abs(stoichiometric_coefficients[limiting]) * r
-            X_calc = (rate_lim * V / F_A0).to_base_units().magnitude
-            return X_calc - X_val
+            # Inner function to calculate rate at a specific conversion x
+            def rate_at_x(x):
+                dilution_factor = (1 + (epsilon * x)) * var_operation_conditions
+                _, _, r = self._calculate_concentration_and_rate(
+                    components, stoichiometric_coefficients, reaction_rate_params, 
+                    limiting, C0_i, C_lim0, x, dilution_factor
+                )
+                return abs(stoichiometric_coefficients[limiting]) * r.to(self.ureg.mol / self.ureg.m**3 / self.ureg.s).magnitude
+
+            # Integrate dX/-rA from Xinlet to X_val
+            # Xinlet for PFR with recycle is (R / (R + 1)) * X_val
+            lower_limit = (R / (R + 1) * X_val).magnitude
+            upper_limit = X_val
+            
+            if upper_limit <= lower_limit:
+                 # Should not happen for valid ranges, but safety check
+                 integral_val = 0
+            else:
+                 integral_val, _ = quad(lambda x: 1 / rate_at_x(x), lower_limit, upper_limit)
+            
+            # V = (R+1) * FA0 * integral
+            # FA0 is in mol/s (magnitude), integral is s * m^3 / mol (magnitude-wise inverse of rate)
+            # Result is m^3
+            F_A0_mag = F_A0.to(self.ureg.mol / self.ureg.s).magnitude
+            V_calc = (R + 1) * F_A0_mag * integral_val * self.ureg.m**3
+            
+            # Return mismatch
+            return (V_calc - V).to_base_units().magnitude
 
         result = root_scalar(objective, bracket=[1e-9, 1.0 - 1e-9], method='brentq')
         if not result.converged:
@@ -443,8 +445,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
 
         X = result.root * self.ureg.dimensionless
 
-        ε = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, X)
-        dilution_factor = (1 + ε) * (P0 * T / (P * T0)).magnitude
+        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
             components, stoichiometric_coefficients, reaction_rate_params, 
             limiting, C0_i, C_lim0, X, dilution_factor
@@ -459,53 +460,57 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
             "residence_time": V / Q_tot,
-            "dilution_factor": ε * self.ureg.dimensionless
+            "dilution_factor": epsilon * self.ureg.dimensionless
         }
 
     def _residence_time_and_kinetics_in_pfr(self, parameters):
         """Calculates the conversion of a PFR based on residence time and kinetics."""
-        self._require_keys(parameters, ["components", "reaction_rate_params", "residence_time", "stoichiometric_coefficients", "operation_conditions"])
-        self._validate_numeric(parameters, ["residence_time"])
+        self._require_keys(parameters, ["residence_time", "recycling_ratio"])
+        self._validate_numeric(parameters, ["residence_time", "recycling_ratio"])
 
-        components = parameters["components"]
-        stoichiometric_coefficients = parameters["stoichiometric_coefficients"]
-        reaction_rate_params = parameters["reaction_rate_params"]
-        operation_conditions = parameters["operation_conditions"]
-        residence_time = parameters["residence_time"] * self.ureg.s  # residence time in seconds
+        init_data = self._initialize_reactor(parameters)
+        residence_time = parameters["residence_time"] * self.ureg.s
+        R = parameters["recycling_ratio"] * self.ureg.dimensionless
 
-        limiting = self.determine_limiting_reagent(parameters)
-
-        F0_i = []
-        Q_tot = 0 * self.ureg.m**3 / self.ureg.s  # initialize with zero, with unit
-        for c in components:
-            flow_rate = c["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
-            conc = (c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
-            F0_i.append(flow_rate * conc)  # mol/s for each component
-            Q_tot += flow_rate
-
-        F_A0 = F0_i[limiting]  # mol/s for the limiting reagent
-        C0_i = [F0 / Q_tot for F0 in F0_i]  # concentrations after mixing (mol/m³)
-        C_lim0 = C0_i[limiting]
+        # Unpack needed variables
+        components = init_data["components"]
+        stoichiometric_coefficients = init_data["stoichiometric_coefficients"]
+        reaction_rate_params = init_data["reaction_rate_params"]
+        limiting = init_data["limiting"]
+        F_A0 = init_data["F_A0"]
+        C0_i = init_data["C0_i"]
+        C_lim0 = init_data["C_lim0"]
+        Q_tot = init_data["Q_tot"]
+        epsilon = init_data["epsilon"]
+        var_operation_conditions = init_data["var_operation_conditions"]
 
         # Reactor volume based on residence time
         V = Q_tot * residence_time  # m³
 
-        T0 = operation_conditions["initial_temperature"] * self.ureg.K
-        P0 = operation_conditions["initial_pressure"] * self.ureg.Pa
-        T = operation_conditions["final_temperature"] * self.ureg.K
-        P = operation_conditions["final_pressure"] * self.ureg.Pa
-
         def objective(X_val):
-            ε = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, X_val)
-            dilution_factor = (1 + ε) * (P0 * T / (P * T0)).magnitude
+            # Inner function to calculate rate at a specific conversion x
+            def rate_at_x(x):
+                dilution_factor = (1 + (epsilon * x)) * var_operation_conditions
+                _, _, r = self._calculate_concentration_and_rate(
+                    components, stoichiometric_coefficients, reaction_rate_params, 
+                    limiting, C0_i, C_lim0, x, dilution_factor
+                )
+                return abs(stoichiometric_coefficients[limiting]) * r.magnitude
+
+            # Integrate dX/-rA from Xinlet to X_val
+            lower_limit = (R / (R + 1) * X_val).magnitude
+            upper_limit = X_val
             
-            outlet_concentrations, k, r = self._calculate_concentration_and_rate(
-                components, stoichiometric_coefficients, reaction_rate_params, 
-                limiting, C0_i, C_lim0, X_val, dilution_factor
-            )
-            rate_lim = abs(stoichiometric_coefficients[limiting]) * r
-            X_calc = (rate_lim * V / F_A0).to_base_units().magnitude
-            return X_calc - X_val
+            if upper_limit <= lower_limit:
+                 integral_val = 0
+            else:
+                 integral_val, _ = quad(lambda x: 1 / rate_at_x(x), lower_limit, upper_limit)
+
+            # V = (R+1) * FA0 * integral
+            F_A0_mag = F_A0.to(self.ureg.mol / self.ureg.s).magnitude
+            V_calc = (R + 1) * F_A0_mag * integral_val * self.ureg.m**3
+
+            return (V_calc - V).to_base_units().magnitude
 
         result = root_scalar(objective, bracket=[1e-9, 1.0 - 1e-9], method='brentq')
         if not result.converged:
@@ -513,8 +518,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
 
         X = result.root * self.ureg.dimensionless
 
-        ε = self._calculate_dilution_factor(components, stoichiometric_coefficients, limiting, X)
-        dilution_factor = (1 + ε) * (P0 * T / (P * T0)).magnitude
+        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
                 limiting, C0_i, C_lim0, X, dilution_factor
@@ -529,7 +533,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
             "residence_time": V / Q_tot,
-            "dilution_factor": ε * self.ureg.dimensionless
+            "dilution_factor": epsilon * self.ureg.dimensionless
         }
 
     # ------------------------------------------------------------------ #
