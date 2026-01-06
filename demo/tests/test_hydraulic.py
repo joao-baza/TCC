@@ -127,7 +127,7 @@ class TestHydraulicComprehensive:
         params = {
             "manometric_pressure": 0, "atmospheric_pressure": 1.033, 
             "vapor_pressure": 0.02, "density": 1000, 
-            "friction_factor": 1, "pump_inlet_velocity": 1, 
+            "head_loss": 1, "pump_inlet_velocity": 1, 
             "gauge_elevation": 2
         }
         npsh = hydraulic.npsh_available(params)

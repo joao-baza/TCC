@@ -114,8 +114,8 @@ class Hydraulic(BaseValidator):
             Leq = self._equivalent_length(parameters.get("fittings"), D_m)
 
             hl = (
-                HAZEN_WILLIAMS_SI_FACTOR * (L + Leq) * Q**1.85 / (C**1.85 * D_m**4.87)
-            ) * self.ureg.s**1.85 / self.ureg.m**0.68
+                HAZEN_WILLIAMS_SI_FACTOR * (L + Leq) * Q**1.852 / (C**1.852 * D_m**4.8704)
+            ) * self.ureg.s**1.852 / self.ureg.m**0.68
             if hl <= 0:
                 raise ValueError(f"Head loss must be positive, got {hl}.")
             return hl
@@ -348,7 +348,7 @@ class Hydraulic(BaseValidator):
             "atmospheric_pressure", 
             "vapor_pressure", 
             "density",
-            "friction_factor",
+            "head_loss",
             "pump_inlet_velocity"
         ]
         self._require_keys(parameters, req)
@@ -359,7 +359,7 @@ class Hydraulic(BaseValidator):
         Patm = parameters["atmospheric_pressure"] * self.ureg.kgf / self.ureg.cm**2
         Pv = parameters["vapor_pressure"] * self.ureg.kgf / self.ureg.cm**2
         density = parameters["density"] * self.ureg.kg / self.ureg.m**3
-        friction_factor = parameters["friction_factor"] * self.ureg.m
+        head_loss = parameters["head_loss"] * self.ureg.m
         pump_inlet_velocity = parameters["pump_inlet_velocity"] * self.ureg.m / self.ureg.s
         height_term = parameters["gauge_elevation"] * self.ureg.m
         
@@ -375,8 +375,8 @@ class Hydraulic(BaseValidator):
         velocity_term = (pump_inlet_velocity**2) / (2 * self.g)
         
         
-        # New equation: (Pmanometric+Patm)/gamma + V²/(2g) + h - friction_factor - Pvap/gamma
-        npsh = pressure_term + height_term + velocity_term - friction_factor - vapor_pressure_term
+        # New equation: (Pmanometric+Patm)/gamma + V²/(2g) + h - head_loss - Pvap/gamma
+        npsh = pressure_term + height_term + velocity_term - head_loss - vapor_pressure_term
         
         # Return in meters
         return npsh.to(self.ureg.m)
@@ -397,11 +397,8 @@ class Hydraulic(BaseValidator):
                "elevation2": <m>,
                "velocity1": <m/s>,
                "velocity2": <m/s>,
-               "velocity1": <m/s>,
-               "velocity2": <m/s>,
                "density": <kg/m³>,
-               "friction_factor": <m>}``
-               "friction_factor": <m>}``
+               "head_loss": <m>}``
                
         Returns
         -------
@@ -416,7 +413,7 @@ class Hydraulic(BaseValidator):
             "velocity1",
             "velocity2",
             "density",
-            "friction_factor"
+            "head_loss"
         ]
         self._require_keys(parameters, req)
         self._validate_numeric(parameters, req)
@@ -429,15 +426,15 @@ class Hydraulic(BaseValidator):
         v1 = parameters["velocity1"] * self.ureg.m / self.ureg.s
         v2 = parameters["velocity2"] * self.ureg.m / self.ureg.s
         density = parameters["density"] * self.ureg.kg / self.ureg.m**3
-        friction_factor = parameters["friction_factor"] * self.ureg.m
+        head_loss = parameters["head_loss"] * self.ureg.m
         
         # Equation terms
         pressure_term = (p2 - p1) / (density * self.g)
         elevation_term = (z2 - z1)
         velocity_term = (v2**2 - v1**2) / (2 * self.g)
         
-        # Head calculation: (p2-p1)/specific_mass*g + (z2-z1) + (v2-v1)/(2g) + friction_factor
-        head = pressure_term + elevation_term + velocity_term + friction_factor
+        # Head calculation: (p2-p1)/specific_mass*g + (z2-z1) + (v2-v1)/(2g) + head_loss
+        head = pressure_term + elevation_term + velocity_term + head_loss
         
         # Return in meters
         return head.to(self.ureg.m)
