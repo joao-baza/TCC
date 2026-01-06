@@ -1,20 +1,14 @@
 import numpy as np
-
-from pint import UnitRegistry
-
-from typing import Dict, List
-
-from scipy.optimize import fsolve
-
-from .piping import Piping
-
-import numpy as np
 from pint import UnitRegistry
 from typing import Dict, List
 from scipy.optimize import root_scalar
 
 from .piping import Piping
 from base_validator import BaseValidator
+
+# SI units conversion factor for Hazen-Williams (valid for SI units)
+HAZEN_WILLIAMS_SI_FACTOR = 10.67
+STANDARD_GRAVITY = 9.80665
 
 class Hydraulic(BaseValidator):
     """Hydraulic utility class"""
@@ -24,7 +18,7 @@ class Hydraulic(BaseValidator):
     # ------------------------------------------------------------------ #
     def __init__(self) -> None:
         self.ureg = UnitRegistry()
-        self.g = 9.80665 * self.ureg.m / self.ureg.s ** 2  # gravity
+        self.g = STANDARD_GRAVITY * self.ureg.m / self.ureg.s ** 2  # gravity
         self.piping = Piping()
 
 
@@ -120,7 +114,7 @@ class Hydraulic(BaseValidator):
             Leq = self._equivalent_length(parameters.get("fittings"), D_m)
 
             hl = (
-                10.67 * (L + Leq) * Q**1.85 / (C**1.85 * D_m**4.87)
+                HAZEN_WILLIAMS_SI_FACTOR * (L + Leq) * Q**1.85 / (C**1.85 * D_m**4.87)
             ) * self.ureg.s**1.85 / self.ureg.m**0.68
             if hl <= 0:
                 raise ValueError(f"Head loss must be positive, got {hl}.")
@@ -333,7 +327,10 @@ class Hydraulic(BaseValidator):
             ``{"manometric_pressure": <kgf/cm²>,
                "atmospheric_pressure": <kgf/cm²>,
                "vapor_pressure": <kgf/cm²>,
-               "specific_mass": <kg/m³>,
+            ``{"manometric_pressure": <kgf/cm²>,
+               "atmospheric_pressure": <kgf/cm²>,
+               "vapor_pressure": <kgf/cm²>,
+               "density": <kg/m³>,
                "friction_factor": <m>,
                "pump_inlet_velocity": <m/s>,
                "gauge_elevation": <m>}``
@@ -347,7 +344,10 @@ class Hydraulic(BaseValidator):
             "manometric_pressure", 
             "atmospheric_pressure", 
             "vapor_pressure", 
-            "specific_mass",
+            "manometric_pressure", 
+            "atmospheric_pressure", 
+            "vapor_pressure", 
+            "density",
             "friction_factor",
             "pump_inlet_velocity"
         ]
@@ -358,7 +358,7 @@ class Hydraulic(BaseValidator):
         Ps = parameters["manometric_pressure"] * self.ureg.kgf / self.ureg.cm**2
         Patm = parameters["atmospheric_pressure"] * self.ureg.kgf / self.ureg.cm**2
         Pv = parameters["vapor_pressure"] * self.ureg.kgf / self.ureg.cm**2
-        specific_mass = parameters["specific_mass"] * self.ureg.kg / self.ureg.m**3
+        density = parameters["density"] * self.ureg.kg / self.ureg.m**3
         friction_factor = parameters["friction_factor"] * self.ureg.m
         pump_inlet_velocity = parameters["pump_inlet_velocity"] * self.ureg.m / self.ureg.s
         height_term = parameters["gauge_elevation"] * self.ureg.m
@@ -370,8 +370,8 @@ class Hydraulic(BaseValidator):
         Pv_Pa = Pv.to(self.ureg.kgf / self.ureg.cm**2).to(self.ureg.Pa)
         
         # Equation terms
-        pressure_term = (Ps_Pa + Patm_Pa) / (specific_mass * self.g)
-        vapor_pressure_term = Pv_Pa / (specific_mass * self.g)
+        pressure_term = (Ps_Pa + Patm_Pa) / (density * self.g)
+        vapor_pressure_term = Pv_Pa / (density * self.g)
         velocity_term = (pump_inlet_velocity**2) / (2 * self.g)
         
         
@@ -397,7 +397,10 @@ class Hydraulic(BaseValidator):
                "elevation2": <m>,
                "velocity1": <m/s>,
                "velocity2": <m/s>,
-               "specific_mass": <kg/m³>,
+               "velocity1": <m/s>,
+               "velocity2": <m/s>,
+               "density": <kg/m³>,
+               "friction_factor": <m>}``
                "friction_factor": <m>}``
                
         Returns
@@ -412,7 +415,7 @@ class Hydraulic(BaseValidator):
             "elevation2",
             "velocity1",
             "velocity2",
-            "specific_mass",
+            "density",
             "friction_factor"
         ]
         self._require_keys(parameters, req)
@@ -425,11 +428,11 @@ class Hydraulic(BaseValidator):
         z2 = parameters["elevation2"] * self.ureg.m
         v1 = parameters["velocity1"] * self.ureg.m / self.ureg.s
         v2 = parameters["velocity2"] * self.ureg.m / self.ureg.s
-        specific_mass = parameters["specific_mass"] * self.ureg.kg / self.ureg.m**3
+        density = parameters["density"] * self.ureg.kg / self.ureg.m**3
         friction_factor = parameters["friction_factor"] * self.ureg.m
         
         # Equation terms
-        pressure_term = (p2 - p1) / (specific_mass * self.g)
+        pressure_term = (p2 - p1) / (density * self.g)
         elevation_term = (z2 - z1)
         velocity_term = (v2**2 - v1**2) / (2 * self.g)
         

@@ -51,7 +51,7 @@ def calculate_npsh_available(payload: NPSHAvailableRequest):
             "manometric_pressure": payload.manometric_pressure,    # kgf/cm²
             "atmospheric_pressure": payload.atmospheric_pressure,  # kgf/cm²
             "vapor_pressure": payload.vapor_pressure,              # kgf/cm²
-            "specific_mass": payload.specific_mass,              # kg/m³
+            "density": payload.density,                          # kg/m³
             "friction_factor": payload.friction_factor,            # m
             "pump_inlet_velocity": payload.pump_inlet_velocity      # m/s
         }
@@ -75,7 +75,7 @@ def calculate_head(payload: HeadRequest):
             "elevation2": payload.elevation2,        # m
             "velocity1": payload.velocity1,          # m/s
             "velocity2": payload.velocity2,          # m/s
-            "specific_mass": payload.specific_mass,  # kg/m³
+            "density": payload.density,              # kg/m³
             "friction_factor": payload.friction_factor  # m
         })
         return serialize(result)

@@ -101,17 +101,17 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         
         # Initialize variables
         F0_i = []
-        Q_tot = 0 * self.ureg.m**3 / self.ureg.s
+        q_vol = 0 * self.ureg.m**3 / self.ureg.s
         
         # Calculate inlet molar flow rates and total volumetric flow rate
         for c in components:
             flow_rate = c["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
             conc = (c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
             F0_i.append(flow_rate * conc)
-            Q_tot += flow_rate
+            q_vol += flow_rate
             
         F_A0 = F0_i[limiting]
-        C0_i = [F0 / Q_tot for F0 in F0_i]
+        C0_i = [F0 / q_vol for F0 in F0_i]
         C_lim0 = C0_i[limiting]
         y_A0 = F_A0 / sum(F0_i)
         
@@ -123,7 +123,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         T = operation_conditions["final_temperature"] * self.ureg.K
         P = operation_conditions["final_pressure"] * self.ureg.Pa
         
-        var_operation_conditions = (P0 * T / (P * T0)).magnitude
+        expansion_factor = (P0 * T / (P * T0)).magnitude
         
         return {
             "components": components,
@@ -134,9 +134,9 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "F_A0": F_A0,
             "C0_i": C0_i,
             "C_lim0": C_lim0,
-            "Q_tot": Q_tot,
+            "q_vol": q_vol,
             "epsilon": epsilon,
-            "var_operation_conditions": var_operation_conditions,
+            "expansion_factor": expansion_factor,
             "T": T,
             "P": P,
             "T0": T0,
@@ -162,12 +162,12 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         F_A0 = init_data["F_A0"]
         C0_i = init_data["C0_i"]
         C_lim0 = init_data["C_lim0"]
-        Q_tot = init_data["Q_tot"]
+        q_vol = init_data["q_vol"]
         epsilon = init_data["epsilon"]
-        var_operation_conditions = init_data["var_operation_conditions"]
+        expansion_factor = init_data["expansion_factor"]
         
         # Combined factor: effect of volumetric variation and operating conditions
-        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * expansion_factor
         
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
             components, stoichiometric_coefficients, reaction_rate_params, 
@@ -175,7 +175,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         )
         
         if any(C.magnitude < 0 for C in outlet_concentrations.values()):
-            raise ValueError("Too high conversion — negative concentration calculated.")
+            raise ValueError(f"Negative concentration calculated. Check conversion or kinetic parameters. Concentrations: {outlet_concentrations}")
         
         # Check if r has the correct units (mol/m³/s)
         if r.units != self.ureg.Unit('mol/m³/s'):
@@ -190,7 +190,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         # Calculate the reactor volume using V/FA0 = X/r
         V = F_A0 * X / rate_lim  # m³
         
-        residence_time = V / Q_tot
+        residence_time = V / q_vol
         
         # Return the volume with the unit in cubic meters
         return {
@@ -199,7 +199,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor": epsilon * self.ureg.dimensionless,
             "molar_rate_inlet_(limitant)": F_A0,
-            "flow_rate_outlet": Q_tot,
+            "flow_rate_outlet": q_vol,
             "residence_time": residence_time,
             "conversion": X,
             }
@@ -220,15 +220,15 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         F_A0 = init_data["F_A0"]
         C0_i = init_data["C0_i"]
         C_lim0 = init_data["C_lim0"]
-        Q_tot = init_data["Q_tot"]
+        q_vol = init_data["q_vol"]
         epsilon = init_data["epsilon"]
-        var_operation_conditions = init_data["var_operation_conditions"]
+        expansion_factor = init_data["expansion_factor"]
     
         def objective(X_val):
             if not (0 < X_val < 1):
                 raise ValueError("Conversion out of bounds")
             
-            dilution_factor = (1 + (epsilon * X_val)) * var_operation_conditions
+            dilution_factor = (1 + (epsilon * X_val)) * expansion_factor
             
             outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
@@ -236,7 +236,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             )
             
             if any(Ci.magnitude < 0 for Ci in outlet_concentrations.values()):
-                raise ValueError("Ci is negative")
+                raise ValueError(f"Negative concentration in optimization loop. Check conditions.")
                 
             rate_lim = abs(stoichiometric_coefficients[limiting]) * r
             X_calc = (rate_lim * V / F_A0).to_base_units().magnitude
@@ -248,7 +248,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
     
         X = result.root * self.ureg.dimensionless
 
-        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * expansion_factor
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
             components, stoichiometric_coefficients, reaction_rate_params, 
             limiting, C0_i, C_lim0, X, dilution_factor
@@ -260,8 +260,8 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor": epsilon * self.ureg.dimensionless,
             "molar_rate_inlet_(limitant)": F_A0,
-            "flow_rate_outlet": Q_tot,
-            "residence_time": V / Q_tot,
+            "flow_rate_outlet": q_vol,
+            "residence_time": V / q_vol,
             "volume": V,
         }
 
@@ -281,18 +281,19 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         F_A0 = init_data["F_A0"]
         C0_i = init_data["C0_i"]
         C_lim0 = init_data["C_lim0"]
-        Q_tot = init_data["Q_tot"]
+        C_lim0 = init_data["C_lim0"]
+        q_vol = init_data["q_vol"]
         epsilon = init_data["epsilon"]
-        var_operation_conditions = init_data["var_operation_conditions"]
+        expansion_factor = init_data["expansion_factor"]
         
         # Reactor volume based on residence time
-        V = Q_tot * residence_time  # m³
+        V = q_vol * residence_time  # m³
         
         def objective(X_val):
             if not (0 < X_val < 1):
                 raise ValueError("Conversion out of bounds")
             
-            dilution_factor = (1 + (epsilon * X_val)) * var_operation_conditions
+            dilution_factor = (1 + (epsilon * X_val)) * expansion_factor
             
             outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
@@ -300,7 +301,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             )
             
             if any(Ci.magnitude < 0 for Ci in outlet_concentrations.values()):
-                raise ValueError("Ci is negative")
+                raise ValueError(f"Negative concentration calculated in residence time loop.")
                 
             rate_lim = abs(stoichiometric_coefficients[limiting]) * r
             X_calc = (rate_lim * V / F_A0).to_base_units().magnitude
@@ -312,7 +313,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         
         X = result.root * self.ureg.dimensionless
         
-        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * expansion_factor
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
                 limiting, C0_i, C_lim0, X, dilution_factor
@@ -321,12 +322,12 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         return {
             "conversion": X,
             "molar_rate_inlet_(limitant)": F_A0,
-            "flow_rate_outlet": Q_tot,
+            "flow_rate_outlet": q_vol,
             "volume": V,
             "reaction_rate": r,
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor_(1+e * P0*T/P*T0)": dilution_factor * self.ureg.dimensionless,
-            "residence_time": V / Q_tot,
+            "residence_time": V / q_vol,
             "dilution_factor": epsilon * self.ureg.dimensionless
         }
 
@@ -350,13 +351,14 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         F_A0 = init_data["F_A0"]
         C0_i = init_data["C0_i"]
         C_lim0 = init_data["C_lim0"]
-        Q_tot = init_data["Q_tot"]
+        C_lim0 = init_data["C_lim0"]
+        q_vol = init_data["q_vol"]
         epsilon = init_data["epsilon"]
-        var_operation_conditions = init_data["var_operation_conditions"]
+        expansion_factor = init_data["expansion_factor"]
 
         # Define the rate function for integration
         def rate_function(X_val):
-            dilution_factor = (1 + (epsilon * X_val)) * var_operation_conditions
+            dilution_factor = (1 + (epsilon * X_val)) * expansion_factor
             outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
                 limiting, C0_i, C_lim0, X_val, dilution_factor
@@ -370,7 +372,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         V = (R+1) * F_A0 * integral * self.ureg.m**3  # m³
         
         # Calculate the final dilution factor and concentrations
-        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * expansion_factor
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
             components, stoichiometric_coefficients, reaction_rate_params, 
             limiting, C0_i, C_lim0, X, dilution_factor
@@ -380,11 +382,11 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "volume": V,
             "conversion": X,
             "molar_rate_inlet_(limitant)": F_A0,
-            "flow_rate_outlet": Q_tot,
+            "flow_rate_outlet": q_vol,
             "reaction_rate": r,
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
-            "residence_time": V / Q_tot,
+            "residence_time": V / q_vol,
             "dilution_factor": epsilon * self.ureg.dimensionless
         }
 
@@ -405,14 +407,15 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         F_A0 = init_data["F_A0"]
         C0_i = init_data["C0_i"]
         C_lim0 = init_data["C_lim0"]
-        Q_tot = init_data["Q_tot"]
+        C_lim0 = init_data["C_lim0"]
+        q_vol = init_data["q_vol"]
         epsilon = init_data["epsilon"]
-        var_operation_conditions = init_data["var_operation_conditions"]
+        expansion_factor = init_data["expansion_factor"]
 
         def objective(X_val):
             # Inner function to calculate rate at a specific conversion x
             def rate_at_x(x):
-                dilution_factor = (1 + (epsilon * x)) * var_operation_conditions
+                dilution_factor = (1 + (epsilon * x)) * expansion_factor
                 _, _, r = self._calculate_concentration_and_rate(
                     components, stoichiometric_coefficients, reaction_rate_params, 
                     limiting, C0_i, C_lim0, x, dilution_factor
@@ -445,7 +448,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
 
         X = result.root * self.ureg.dimensionless
 
-        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * expansion_factor
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
             components, stoichiometric_coefficients, reaction_rate_params, 
             limiting, C0_i, C_lim0, X, dilution_factor
@@ -454,12 +457,12 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         return {
             "conversion": X,
             "molar_rate_inlet_(limitant)": F_A0,
-            "flow_rate_outlet": Q_tot,
+            "flow_rate_outlet": q_vol,
             "volume": V,
             "reaction_rate": r,
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
-            "residence_time": V / Q_tot,
+            "residence_time": V / q_vol,
             "dilution_factor": epsilon * self.ureg.dimensionless
         }
 
@@ -480,17 +483,18 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         F_A0 = init_data["F_A0"]
         C0_i = init_data["C0_i"]
         C_lim0 = init_data["C_lim0"]
-        Q_tot = init_data["Q_tot"]
+        C_lim0 = init_data["C_lim0"]
+        q_vol = init_data["q_vol"]
         epsilon = init_data["epsilon"]
-        var_operation_conditions = init_data["var_operation_conditions"]
+        expansion_factor = init_data["expansion_factor"]
 
         # Reactor volume based on residence time
-        V = Q_tot * residence_time  # m³
+        V = q_vol * residence_time  # m³
 
         def objective(X_val):
             # Inner function to calculate rate at a specific conversion x
             def rate_at_x(x):
-                dilution_factor = (1 + (epsilon * x)) * var_operation_conditions
+                dilution_factor = (1 + (epsilon * x)) * expansion_factor
                 _, _, r = self._calculate_concentration_and_rate(
                     components, stoichiometric_coefficients, reaction_rate_params, 
                     limiting, C0_i, C_lim0, x, dilution_factor
@@ -518,7 +522,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
 
         X = result.root * self.ureg.dimensionless
 
-        dilution_factor = (1 + (epsilon * X)) * var_operation_conditions
+        dilution_factor = (1 + (epsilon * X)) * expansion_factor
         outlet_concentrations, k, r = self._calculate_concentration_and_rate(
                 components, stoichiometric_coefficients, reaction_rate_params, 
                 limiting, C0_i, C_lim0, X, dilution_factor
@@ -527,12 +531,12 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         return {
             "conversion": X,
             "molar_rate_inlet_(limitant)": F_A0,
-            "flow_rate_outlet": Q_tot,
+            "flow_rate_outlet": q_vol,
             "volume": V,
             "reaction_rate": r,
             "outlet_concentrations": outlet_concentrations,
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
-            "residence_time": V / Q_tot,
+            "residence_time": V / q_vol,
             "dilution_factor": epsilon * self.ureg.dimensionless
         }
 

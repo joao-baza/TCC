@@ -20,8 +20,10 @@ class Stream:
         direction : int
             +1 for input, -1 for output
         flow_rate : float, optional
-            Flow rate of the stream in any consistent mass units (kg/h, g/min, etc.) 
-            or molar units (mol/s, kmol/h, etc.). If None, it will be treated as symbolic.
+            Flow rate of the stream.
+            Note: The system supports ANY consistent set of units (e.g. kg/h, mol/s, lb/min).
+            The user is responsible for ensuring that flow rates and composition fractions (mass vs molar) are consistent. 
+            If None, it will be treated as symbolic.
         compositions : dict, optional
             Dictionary of component compositions (mass fractions when using mass flow units,
             molar fractions when using molar flow units). If None, they will be treated as symbolic.
@@ -123,8 +125,9 @@ class MassBalance:
         direction : int
             +1 for input, -1 for output
         flow_rate : float, optional
-            Flow rate of the stream in any consistent mass units (kg/h, g/min, etc.) 
-            or molar units (mol/s, kmol/h, etc.). If None, it will be treated as symbolic.
+            Flow rate of the stream.
+            Note: The system supports ANY consistent set of units.
+            If None, it will be treated as symbolic.
         compositions : dict, optional
             Dictionary of component compositions (mass fractions when using mass flow units,
             molar fractions when using molar flow units). If None, they will be treated as symbolic.
@@ -132,7 +135,7 @@ class MassBalance:
         s = Stream(name, components, direction, flow_rate, compositions)
         self.streams[s.name] = s
 
-    def add_reaction(self, stoichiometry, key_component, conversion=None, X=None, conversao=None):
+    def add_reaction(self, stoichiometry, key_component, conversion=None, X=None):
         """
         Add a reaction to the model
         
@@ -146,18 +149,14 @@ class MassBalance:
             Conversion of the key component (0-1)
         X : float, optional
             Alternative name for conversion (for compatibility)
-        conversao : float, optional
-            Portuguese name for conversion (for compatibility with MB-2.py)
         """
         # For compatibility with different parameter names
         if conversion is not None:
             actual_conversion = conversion
         elif X is not None:
             actual_conversion = X
-        elif conversao is not None:
-            actual_conversion = conversao
         else:
-            raise ValueError("Either 'conversion', 'X', or 'conversao' must be provided")
+            raise ValueError("Either 'conversion' or 'X' must be provided")
         
         self.reactions.append(Reaction(stoichiometry, key_component, actual_conversion))
 

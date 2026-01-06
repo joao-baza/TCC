@@ -1,5 +1,8 @@
 from pint import UnitRegistry
 
+
+DEFAULT_PRESSURE_UNIT = "psi"
+
 class Piping:
     def __init__(self):
         """
@@ -439,7 +442,8 @@ class Piping:
                 specs["thickness"] = specs["thickness"] * self.ureg.mm
                 specs["weight"] = specs["weight"] * (self.ureg.kg / self.ureg.m)
                 if specs["max_pressure"] is not None:
-                    specs["max_pressure"] = specs["max_pressure"] * self.ureg.psi
+                    # Pressure values in the dictionary are in psi (as defined by standard commercial pipe schedules)
+                    specs["max_pressure"] = specs["max_pressure"] * self.ureg(DEFAULT_PRESSURE_UNIT)
                     specs["max_pressure"] = specs["max_pressure"].to(self.ureg.Pa)
                     
         for composition, specs in self.data["composition"].items():
