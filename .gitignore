@@ -11,5 +11,4 @@ build/
 dist/
 *.egg-info/
 Escrita/
-deploy/docker-compose.yaml
-testes.py
+.pytest*
