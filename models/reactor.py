@@ -24,14 +24,14 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
     # ------------------------------------------------------------------ #
     #                         PRIVATE HELPERS                            #
     # ------------------------------------------------------------------ #
-    def _calculate_dilution_factor(self, components, stoichiometric_coefficients, limiting, X):
-        """Calculate the dilution factor based on the stoichiometric coefficients and conversion."""
+    def _calculate_dilution_factor(self, components, stoichiometric_coefficients, limiting, y_A0):
+        """Calculate the dilution factor based on the stoichiometric coefficients and yield."""
         has_gas_phase = any(c["state"] == "gaseous" for c in components)
         
         if has_gas_phase:
             mols_prod = sum(coef for coef in stoichiometric_coefficients if coef > 0)
             mols_reag = sum(abs(coef) for coef in stoichiometric_coefficients if coef < 0)
-            ε = (mols_prod - mols_reag) / abs(stoichiometric_coefficients[limiting]) * X
+            ε = (mols_prod - mols_reag) / abs(stoichiometric_coefficients[limiting]) * y_A0
         else:
             ε = 0.0
         
