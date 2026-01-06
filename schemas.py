@@ -190,7 +190,7 @@ class NPSHAvailableRequest(BaseModel):
     manometric_pressure: float = Field(..., description="Manometric pressure in kgf/cm²")
     atmospheric_pressure: float = Field(..., description="Atmospheric pressure in kgf/cm²")
     vapor_pressure: float = Field(..., description="Vapor pressure in kgf/cm²")
-    specific_mass: float = Field(..., description="Specific mass in kg/m³")
+    density: float = Field(..., description="Density in kg/m³")
     friction_factor: float = Field(..., description="Friction factor in m")
     pump_inlet_velocity: float = Field(..., description="Pump inlet velocity in m/s")
     gauge_elevation: float = Field(..., description="Gauge elevation in m")
@@ -203,7 +203,7 @@ class HeadRequest(BaseModel):
     elevation2: float = Field(..., description="Elevation at point 2 in m")
     velocity1: float = Field(..., description="Velocity at point 1 in m/s")
     velocity2: float = Field(..., description="Velocity at point 2 in m/s")
-    specific_mass: float = Field(..., description="Specific mass of fluid in kg/m³")
+    density: float = Field(..., description="Density of fluid in kg/m³")
     friction_factor: float = Field(..., description="Friction factor in m")
 
 
