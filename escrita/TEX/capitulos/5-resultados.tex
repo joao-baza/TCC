@@ -1,0 +1,15 @@
+\chapter{Resultados e Discussões}
+
+O desenvolvimento do \textit{software} demonstrou que é possível integrar conceitos fundamentais da engenharia química com tecnologias modernas de programação para produzir uma ferramenta acessível, modular e capaz de automatizar cálculos recorrentes da área.
+
+Do ponto de vista funcional, o \textit{backend} em \textit{FastAPI} apresentou desempenho satisfatório, respondendo rapidamente aos cálculos mesmo em operações envolvendo chamadas reiteradas ao módulo de propriedades termodinâmicas (\textit{CoolProp}) ou a rotinas numéricas como métodos iterativos de Brent e integrações do \textit{SciPy}.
+
+A validação de entradas pelo \textit{Pydantic} mostrou-se fundamental para evitar inconsistências numéricas e garantir segurança nos cálculos, reduzindo significativamente erros comuns como unidades incorretas, tipos inválidos ou parâmetros ausentes.
+
+No \textit{frontend}, a utilização de HTML, CSS, \textit{JavaScript} modular e bibliotecas como \textit{Tailwind} e \textit{Select2} resultou em uma interface simples, leve e responsiva, adequada ao propósito educacional e profissional. A modularidade do \textit{JavaScript} permitiu encapsular cada categoria de cálculo em classes específicas, facilitando manutenção e futura expansão para novos módulos, sendo um ponto essencial em um projeto de código aberto.
+
+A comparação dos resultados obtidos com valores de referência da literatura e com \textit{softwares} consolidados evidenciou boa concordância para todos os módulos implementados. Cálculos de \textit{Reynolds}, perdas de carga, seleção de diâmetros e estimativas de \textit{NPSH} apresentaram diferenças mínimas em relação às tabelas clássicas. Para reatores CSTR e PFR, os valores de conversão e volume mostraram-se consistentes com soluções de Fogler e Levenspiel, reforçando a confiabilidade das integrações numéricas.
+
+Embora o \textit{software} esteja plenamente funcional para os módulos desenvolvidos, observou-se que o sistema ainda pode ser expandido significativamente. A ausência de módulos como trocadores de calor, destiladores, absorção, secagem e operações com múltiplas reações limitam sua aplicabilidade em projetos de maior complexidade. Do ponto de vista de usabilidade, futuras melhorias incluem exportação de relatórios, gráficos mais sofisticados e integração com bancos de dados externos de propriedades físicas.
+
+Ainda assim, o objetivo de criar uma ferramenta precisa, acessível, gratuita e colaborativa foi alcançado. O fato de o projeto ser \textit{open-source} torna natural que seu ciclo de evolução dependa da contribuição da comunidade acadêmica e profissional, que poderá incluir novos módulos, otimizar algoritmos e expandir a base de dados.

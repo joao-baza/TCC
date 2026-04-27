@@ -1,0 +1,392 @@
+\subsubsection{Reator do Tipo PFR}
+
+Um reator tubular é caracterizado por escoamento pistonado, sem mistura axial significativa: cada elemento de fluido que entra percorre o reator como se fosse um reator batelada em movimento, evoluindo em conversão conforme o comprimento.
+
+Para uma conversão alvo $X$, o volume requerido de um PFR ideal é dado pela integração da equação de \textit{design} diferencial ao longo da conversão \cite{levenspiel2000}. Matematicamente:
+
+\begin{equation}
+V = {( R + 1 ) \cdot F}_{A 0} \cdot \int_{\frac{R}{R + 1} X \ }^{X} \frac{d X}{- r_{A}}
+\label{eq:pfr_design}
+\end{equation}
+
+Tendo que $R$ representa a razão de reagentes não limitantes inertes em relação ao limitante (se houver variação de vazão volumétrica) e o termo $( R + 1 )$ acomoda a variação de vazão na integração. No código, essa integral é avaliada numericamente (por exemplo, via \textit{scipy.integrate.quad}). Para o caso inverso, em que $V$ é conhecido e se busca $X$, utiliza-se novamente um procedimento iterativo (método de Brent) aplicando a equação de \textit{design} diferencial até encontrar a conversão cujo volume calculado corresponda ao especificado \cite{fogler2009}.
+
+Considerando a similaridade estrutural e semântica com as lógicas de cálculo do CSTR, vale ressaltar no que diferem, sendo o cálculo para volume, retratado na figura abaixo.
+
+\begin{figure}[H]
+    \centering
+    \caption{Código da função objetivo para o PFR}
+    \includegraphics[width=\linewidth]{media/0f102c4b8e2f92dcc8ec13a2c5f8637b.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\subsection{Tubulações}
+
+Para um correto cálculo de perdas de carga e seleção de bombas, o \textit{software} incorpora dados de catálogo de tubulações, rugosidades de materiais e comprimentos equivalentes de acessórios.
+
+Rugosidade de materiais: A rugosidade absoluta do material interno do tubo influencia o fator de atrito em regime turbulento, através da rugosidade relativa $\frac{\varepsilon}{D}$). Materiais metálicos, plásticos ou com incrustações apresentam valores típicos de rugosidade tabelados \cite{white2018}. Com o tempo de operação, depósitos e corrosão podem elevar a rugosidade efetiva, devendo-se considerar fatores de segurança.
+
+Catálogo de diâmetros: São armazenadas dimensões padrão de tubulações (diâmetro externo, espessura e diâmetro interno resultante) para diferentes \textit{schedules} (e.g., SCH 10, 40, 80) e materiais. Também podem ser incluídos dados de pressão máxima de trabalho e peso por metro. Isso permite que, dado um diâmetro calculado, o programa selecione o diâmetro nominal comercial mais próximo disponível.
+
+\begin{figure}[H]
+    \centering
+    \caption{Especificações \textit{hardcoded} para tubulações}
+    \includegraphics[width=\linewidth]{media/34370a290426500a93c76d7227e70afc.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+Coeficientes de perda em acessórios: Curvas, válvulas, expansões, contrações e conexões diversas introduzem perdas de carga locais. No modelo implementado, cada acessório pode ser contabilizado por um comprimento equivalente $L_{e q}$ (ou fator $K$ de perda) adimensional expresso em unidades de diâmetro $L_{e q} D$ ). O comprimento equivalente total da tubulação é dado por $\sum_{}^{} L_{e q}$ de todos os acessórios multiplicado pelo diâmetro da tubulação, e somado ao comprimento linear. Esses dados (fatores $K$ ou $L_{e q}$ típicos para cada acessório padrão) foram compilados de literatura de engenharia de escoamento \cite{perry2007}.
+
+No cálculo de perdas de carga totais, o comprimento $L$ da tubulação reta é acrescido do comprimento equivalente $\sum_{}^{} L_{e q}$ das singularidades presentes. Uma estimativa inadequada da rugosidade ou do efeito de acessórios pode produzir erros significativos na previsão de perda de carga, resultando em superdimensionamento ou subdimensionamento de bombas. Assim, o uso de dados acurados de catálogo e correlações de atrito é fundamental para a confiabilidade do dimensionamento. Exemplificando para o cálculo da perda de carga por Darcy-Weisbach utilizando acessórios na figura abaixo.
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo da perda de carga por Darcy-Weisbach com acessórios}
+    \includegraphics[width=\linewidth]{media/08b6a012c736865037a31a2ca4645fb1.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\subsection{Balanço de Massa}
+
+O balanço de massa aplica o princípio da conservação da massa a sistemas de processo: em regime estacionário, a massa que entra em um sistema deve ser igual à massa que sai, ajustada pela geração ou consumo devido a reações químicas \cite{felder2005}. Para cada componente, a quantidade produzida ou consumida deve ser contabilizada segundo a estequiometria.
+
+\begin{equation}
+Acúmula = Entradas - Saídas + Geração - Consumo
+\label{eq:mass_balance_word}
+\end{equation}
+
+No estado estacionário sem reação, o acúmulo é zero, de modo que:
+
+\begin{equation}
+\sum_{}^{} \dot{m}_{e n t r a d a} = \sum_{}^{} \dot{m}_{s a í d a}
+\label{eq:steady_state_mass_balance}
+\end{equation}
+
+Por componente $i$, incluindo reação química:
+
+\begin{equation}
+\sum_{}^{} {\dot{m}_{e n t r a d a , i} + \dot{m}_{g e r a ç ã o , i}} = \sum_{}^{} {\dot{m}_{s a í d a} + \dot{m}_{c o n s u m o , i}}
+\label{eq:component_mass_balance_rxn}
+\end{equation}
+
+Dos quais.
+\begin{itemize}
+    \item $\dot{m}$, sendo a vazão mássica
+\end{itemize}
+
+Em problemas industriais, frequentemente há reciclo e purgas envolvidos nos balanços. Nesses casos, para divisores de fluxo (\textit{splitters}), define-se por exemplo:
+
+\begin{equation}
+F_{R} = f \cdot F_{P}
+\label{eq:recycle_flow}
+\end{equation}
+
+\begin{equation}
+F_{G} = ( 1 - f ) \cdot F_{P}
+\label{eq:gross_product_flow}
+\end{equation}
+
+Dos quais,
+\begin{itemize}
+    \item $f$, sendo a fração de reciclo
+    \item $F_{G}$, sendo a vazão total do produto bruto
+    \item $F_{R}$, sendo a vazão do reciclo
+    \item $F_{P}$, sendo a vazão da purga
+\end{itemize}
+
+Esses parâmetros permitem fechar balanços em sistemas com recirculação e calcular a acumulação de inertes ou subprodutos. Na Figura \ref{fig:mass_balance_results}, é apresentado o resultado gerado pelo \textit{software} para um balanço de massa contendo reciclo e reação.
+
+\begin{figure}[H]
+    \centering
+    \caption{Resultados do balanço de massa com reciclo e reação}
+    \includegraphics[width=\linewidth]{media/mass_balance_results.png}
+    \fonte{Autoria própria.}
+    \label{fig:mass_balance_results}
+\end{figure}
+
+O balanço de massa fundamenta o dimensionamento de equipamentos como misturadores, separadores, reatores e redes de processo, além de embasar análises econômicas (minimizando perdas de matérias-primas) e de segurança (evitando acúmulo indesejado de compostos). Vale notar que temperatura e pressão influenciam o balanço apenas através de propriedades físicas (densidade, volumes específicos), ou mudanças de fase que afetem as vazões mássicas e molares de cada corrente \cite{felder2005}.
+
+\subsection{Escoamento, Perdas de Carga e Diâmetros Hidráulicos}
+
+O comportamento do escoamento em dutos é governado, principalmente, pelo número de Reynolds, que permite classificar o regime como laminar, de transição ou turbulento. Variáveis-chave incluem o diâmetro hidráulico, a velocidade média, a viscosidade e a densidade do fluido, bem como a rugosidade relativa da parede. Perfis de velocidade, mecanismos de mistura e dissipação de energia por atrito dependem desse regime de escoamento. Para quantificar a perda de carga (queda de pressão) devida ao atrito no escoamento, emprega-se a equação universal de Darcy–Weisbach \cite{white2018}.
+
+No regime turbulento, o fator de atrito $f$ depende de $R e$ e de $\frac{\varepsilon}{D}$ (rugosidade relativa), não possuindo solução analítica explícita – daí o uso de relações empíricas ou aproximadas. Já no regime laminar ($R e \  < \  2 3 0 0$), o perfil de velocidades é parabólico e $f$ admite expressão simples dada pela Equação \ref{eq:laminar_friction}:
+\begin{equation}
+f = \frac{64}{Re}
+\label{eq:laminar_friction}
+\end{equation}.
+
+Em serviços de água a escoamento turbulento, a fórmula empírica de Hazen–Williams é comumente empregada como aproximação prática \cite{perry2007}. Temperatura e pressão afetam densidade e viscosidade do fluido, modificando o valor de $R e$ e, consequentemente, as perdas de carga.
+
+Além disso, o material e condições da tubulação (nova, envelhecida) determinam a rugosidade efetiva. Todos esses efeitos impactam diretamente o balanço de energia em uma linha de fluxo e a potência requerida em bombas ou compressores \cite{perry2007,white2018}.
+
+\subsubsection{Número de Reynolds}
+
+O número de Reynolds ($R e$) é adimensional e relaciona as forças inerciais com as forças viscosas no escoamento dentro de um duto:
+
+Usando viscosidade dinâmica $\mu$: 
+\begin{equation}
+Re = \frac{D \cdot V \cdot \rho}{\mu} 
+\label{eq:reynolds_din}
+\end{equation}
+
+Usando viscosidade cinemática $\nu$: 
+\begin{equation}
+Re = \frac{D \cdot V}{\nu}
+\label{eq:reynolds_cin}
+\end{equation}
+
+Onde $D$ é o diâmetro hidráulico, $\rho$ a densidade do fluido, $V$ é a velocidade média e $\  \mu = \frac{\nu}{\rho}$ é a viscosidade cinemática. Tipicamente, $R e \  < \  2 3 0 0$ indica regime laminar, 2$3 0 0 \  < \  R e \  < \  4 0 0 0$ transição, e$\  R e \  > \  4 0 0 0$regime turbulento plenamente desenvolvido \cite{white2018}.
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do Reynolds – Parte 1/3}
+    \includegraphics[width=\linewidth]{media/507f83f18f871d02aee8b859c588bca4.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do Reynolds – Parte 2/3}
+    \includegraphics[width=\linewidth]{media/b2fab0ac8c50f50ceaf8d7eb59aa2bd7.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do Reynolds – Parte 3/3}
+    \includegraphics[width=\linewidth]{media/4ab895c5eb7e1c0f7e837023d71de467.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\subsubsection{Fator de Atrito}
+
+No regime laminar, o fator de atrito de Darcy pode ser obtido diretamente por $f \  = \frac{64}{R e}$. No regime turbulento, $f$ satisfaz implicitamente a equação de Colebrook–White (1939) \cite{colebrook1939}:
+
+\begin{equation}
+\frac{1}{\sqrt{f}} = - 2 l o g  ( \frac{\varepsilon}{3 , 7 D_{h}} + \frac{2 , 5 1}{R e \sqrt{f}} )
+\label{eq:colebrook}
+\end{equation}
+
+Sendo $\varepsilon$ a rugosidade absoluta. Para evitar a resolução iterativa, existem correlações explícitas aproximadas amplamente usadas, por exemplo:
+
+Swamee–Jain (1976) \cite{swamee1976}:
+
+\begin{equation}
+f = \frac{0 , 2 5}{\left\lbrack \log \left( \frac{\varepsilon}{3 , 7 D} + \frac{5 , 7 4}{{R e}^{0 , 9}} \right) \right\rbrack^{2}} )
+\label{eq:swamee}
+\end{equation}
+
+Haaland (1983) \cite{haaland1983}:
+
+\begin{equation}
+\frac{1}{\sqrt{f}} = - 1 , 8 \  l o g  ( \frac{\varepsilon / D}{3 , 7} + \frac{6 , 9}{R e} )
+\label{eq:haaland}
+\end{equation}
+
+O \textit{software} implementa as equações acima para cálculo de $f$ conforme o regime e dados disponíveis \cite{white2018}. A interface para a obtenção do fator de atrito e as opções disponibilizadas ao usuário estão exibidas na Figura \ref{fig:friction_factor_calc}.
+
+\begin{figure}[H]
+    \centering
+    \caption{Interface de cálculo do fator de atrito}
+    \includegraphics[width=\linewidth]{media/friction_factor.png}
+    \fonte{Autoria própria.}
+    \label{fig:friction_factor_calc}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do fator de atrito – Parte 1/2}
+    \includegraphics[width=\linewidth]{media/20bebd3a490d462f36bcf2d13227ccfc.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do fator de atrito – Parte 2/2}
+    \includegraphics[width=\linewidth]{media/901e5276a48d3bcc375ba2dc257d200c.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\subsubsection{Perda de Carga – Darcy-Weisbach e Hazen-Williams}
+
+A perda de carga distribuída $h_{f}$ em uma tubulação de comprimento $L$ é calculada pela equação de Darcy–Weisbach:
+
+\begin{equation}
+h_{f} = f \cdot \frac{\left( L + \sum_{}^{} L_{e q} \right)}{D} \frac{V^{2}}{2 g}
+\label{eq:darcy}
+\end{equation}
+
+Sendo $\sum_{}^{} L_{e q}$ é o comprimento equivalente total dos acessórios (em unidades de comprimento), e $g$ a aceleração da gravidade. Essa fórmula é universal e independe do fluido, desde que $f$ seja adequadamente determinado \cite{perry2007}.
+
+Para escoamento de água em tubulações de diâmetro moderado (tipicamente $D > 5 0 m m$) e regime turbulento plenamente estabelecido, a fórmula empírica de Hazen–Williams pode ser empregada como simplificação:
+
+\begin{equation}
+h_{f} = \frac{4 , 7 3 L}{C^{1 , 8 5 2} \cdot D^{4 , 8 7}} Q^{1 , 8 5 2}
+\label{eq:hazen}
+\end{equation}
+
+Sendo $Q$é vazão volumétrica e $C$ é o coeficiente de Hazen–Williams do material (adimensional, tabelado para tubulações novas de ferro fundido, aço, PVC etc.). Apesar de não possuir fundamentação teórica geral, essa equação fornece boa precisão para água a 20°C em tubulações de transporte, e é consagrada no projeto de redes de água devido à sua simplicidade \cite{perry2007,white2018}.
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo da perda de carga – Parte 1/3}
+    \includegraphics[width=\linewidth]{media/498a7be307e0917855872529888ed45b.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo da perda de carga – Parte 2/3}
+    \includegraphics[width=\linewidth]{media/07872e0e5717ee0d9dd58ddda2206f48.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo da perda de carga – Parte 3/3}
+    \includegraphics[width=\linewidth]{media/b5d4b152cd6b43b929fdd10a4b166311.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\subsubsection{Altura Manométrica entre Dois Pontos}
+
+A forma estendida da equação de Bernoulli é utilizada para avaliar as variações de carga (energia por unidade de peso do fluido) entre dois pontos de uma linha de escoamento, incluindo perdas:
+
+\begin{equation}
+H = \frac{P_{2} - P_{1}}{\rho g} + \frac{V_{2}^{2} - V_{1}^{2}}{2 g} + z_{2} - z_{1}
+\label{eq:bernoulli}
+\end{equation}
+
+Sendo $H$ a altura manométrica adicionada (se positiva) ou removida (se negativa) entre o ponto 1 e 2. Nessa equação, $\frac{P_{2} - P_{1}}{\rho g}$ representa a variação de pressão estática convertida em altura de coluna de fluido, $z_{2} - z_{1}$ é a variação de cota geométrica, o termo de velocidades representa a variação de energia cinética, e $h_{f}$ engloba todas as perdas de carga (distribuídas e localizadas) entre os pontos \cite{white2018}.
+
+Essa equação é fundamental para avaliar a necessidade de bombeamento: uma bomba deve fornecer uma $H$ suficiente para superar as perdas e elevar o fluido da condição 1 até 2; inversamente, uma turbomáquina geradora extrairá essa energia do fluido.
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do \textit{head} – Parte 1/2}
+    \includegraphics[width=\linewidth]{media/24b13fdeac4c5b7878cf6cfba2d4805c.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do \textit{head} – Parte 2/2}
+    \includegraphics[width=\linewidth]{media/4cc6c306a784da52250bffb8e77d1b8b.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\subsubsection{NPSH Disponível}
+
+Para evitar cavitação em bombas, calcula-se o NPSH disponível na sucção, que deve exceder o NPSH requerido pelo fabricante. A expressão para o NPSH disponível, em termos de altura de líquido, é:
+
+\begin{equation}
+N P S H_{d i s p} = \frac{P_{s u c} + P_{a t m} - p_{v a p}}{\rho g} + \frac{V_{s u c}^{2} \ }{2 g} + \left( z_{s u c} - z_{0} \right) - h_{s u c}
+\label{eq:npsh}
+\end{equation}
+
+Sendo $P_{s u c}$ é a pressão manométrica na linha de sucção da bomba, $P_{a t m}$ a pressão atmosférica, $z_{s u c}$ a elevação do ponto de sucção em relação a um $P a t m$ de referência, $v_{s u c}$ a velocidade do fluido na sucção, $h_{s u c}$ as perdas de carga na linha de sucção, e $p_{v a p}$ a pressão de vapor do líquido na temperatura de bombeamento \cite{perry2007}.
+
+O cálculo de NPSH disponível permite verificar se há margem de segurança sobre o NPSH requerido da bomba (fornecido pelo fabricante para aquela vazão), garantindo que o líquido não vaporize na entrada da bomba – o que causaria cavitação, danos e redução de desempenho.
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do \textit{NPSH} – Parte 1/2}
+    \includegraphics[width=\linewidth]{media/4aa4a8010a04aeec9b3b84be07e30706.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Cálculo do \textit{NPSH} – Parte 2/2}
+    \includegraphics[width=\linewidth]{media/bbb8f4437b88f52ba69246a3f0cdb28b.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\subsubsection{Diâmetro Hidráulico para Geometrias Diversas}
+
+O conceito de diâmetro hidráulico generaliza o cálculo do número de Reynolds e do fator de atrito para seções transversais não circulares. O diâmetro hidráulico é definido como:
+\begin{equation}
+D_{h} = \frac{4 A}{P}
+\label{eq:diametro_hidraulico}
+\end{equation}
+onde $A$ é a área da seção transversal de escoamento e $P$ o perímetro molhado (contorno em contato com o fluido). Assim:
+
+Para dutos circulares, conforme a Equação \ref{eq:dh_circular}:
+\begin{equation}
+D_{h} = D
+\label{eq:dh_circular}
+\end{equation}
+(recupera o diâmetro interno). Para canais ou abertos, conforme a Equação \ref{eq:dh_rect}:
+\begin{equation}
+D_{h} = \frac{4 a b}{2 ( a + b )}
+\label{eq:dh_rect}
+\end{equation}
+onde $a$ e $b$ são os lados do retângulo. Para anulares (espaço entre dois tubos concêntricos), conforme a Equação \ref{eq:dh_annular}:
+\begin{equation}
+D_{h} = D_{o} - D_{i}
+\label{eq:dh_annular}
+\end{equation}
+(diferença entre diâmetro externo interno e diâmetro externo do interno). Para seções triangulares (por ex., condutos abertos triangulares), calcula-se $A$ e $P$ conforme a geometria e aplica-se $4 A / P$. Para geometrias mais complexas (ex.: calhas semicirculares), também se aplica $4 A / P$ considerando o perímetro molhado adequadamente.
+
+\begin{figure}[H]
+    \centering
+    \caption{Tipos de dutos de escoamento}
+    \includegraphics[width=\linewidth]{media/escoamentos.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+O programa permite ao usuário informar $A$ e $P$ para cálculo de $D_{h}$ em situações especiais, garantindo flexibilidade para tratar geometrias arbitrárias \cite{white2018}.
+
+\begin{figure}[H]
+    \centering
+    \caption{Exemplo da identificação e critérios de diâmetro hidráulico}
+    \includegraphics[width=\linewidth]{media/7221cf0271e3a1ab50dca25dd06555c1.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\subsection{Propriedades Termofísicas}
+
+Propriedades termofísicas – como densidade, viscosidade, calor específico, condutividade térmica, entalpia e entropia – são insumos essenciais em praticamente todos os cálculos de processos. Em misturas, a predição de propriedades requer modelos mais complexos do que simples somas ponderadas, considerando interações moleculares e desvios da idealidade. Tais propriedades alimentam balanços de massa e energia, o dimensionamento térmico de trocadores, o cálculo de Reynolds e de fatores de atrito, o desempenho de separações, entre outros. Temperatura e pressão são variáveis determinantes: utilizam-se correlações empíricas (por exemplo, equação de Antoine para pressão de vapor) ou equações de estado (gás ideal, Peng-Robinson, SRK) conforme o sistema. Erros na estimativa de viscosidade ou densidade afetam o cálculo de Reynolds, fator de atrito e potência de bombeamento; imprecisões em calores específicos ou entalpias propagam-se em balanços de energia e projeto de utilidades.
+
+\begin{figure}[H]
+    \centering
+    \caption{Obtenção de propriedades pela biblioteca \textit{CoolProp}}
+    \includegraphics[width=0.9\linewidth]{media/a1499028eef6699f7fb45ecfeb6e97eb.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Obtenção de propriedades críticas pela biblioteca \textit{CoolProp}}
+    \includegraphics[width=\linewidth]{media/7883640dda2e152ff633d7e997113fe7.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+No \textit{software} desenvolvido, um módulo de propriedades utiliza a biblioteca \textit{CoolProp} para recuperar propriedades de fluidos puros (e misturas) a partir de dados de entrada de $T$ e $P$. São obtidas propriedades como densidade, viscosidade, calor específico ($c_{p}$ e $c_{v}$), condutividade térmica, entalpia, entropia, massa molar e tensão superficial, além de propriedades críticas e pontos de saturação (bolha/orvalho) quando aplicável. A visualização desse cálculo de propriedades, com foco no resultado para uma mistura, é apresentada na Figura \ref{fig:mixture_properties}.
+
+\begin{figure}[H]
+    \centering
+    \caption{Interface de cálculo para as propriedades de uma mistura}
+    \includegraphics[width=\linewidth]{media/mixture_properties.png}
+    \fonte{Autoria própria.}
+    \label{fig:mixture_properties}
+\end{figure}
+
+Para misturas, a \textit{API} do \textit{CoolProp} permite montar \textit{strings} do tipo "\textit{HEOS::Componente1[x1]\&Componente2[x2]\&...}" com frações especificadas e retornar as propriedades solicitadas \cite{bell2014}. Todas as grandezas retornam já associadas a unidades do SI (via integração com a biblioteca \textit{Pint}), garantindo consistência nos cálculos.
+
+\begin{figure}[H]
+    \centering
+    \caption{Obtenção de propriedades de misturas pela biblioteca \textit{CoolProp} – Parte 1/2}
+    \includegraphics[width=\linewidth]{media/5b6e77783c7e43dc6c0ad5003873e99d.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Obtenção de propriedades de misturas pela biblioteca \textit{CoolProp} – Parte 2/2}
+    \includegraphics[width=\linewidth]{media/34f1cbe378bd4ee2b3a30b87098a260f.png}
+    \fonte{Autoria própria.}
+\end{figure}
+
+O uso de uma biblioteca de propriedades de qualidade referência como o \textit{CoolProp} assegura que o \textit{software} tenha um \textit{backend} termodinâmico rigoroso e abrangente, reforçando o caráter didático ao permitir explorar diferentes cenários com fidelidade física.

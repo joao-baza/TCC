@@ -1,0 +1,262 @@
+\documentclass[
+	12pt,				% tamanho da fonte
+	openright,			% capítulos começam em pág ímpar (insere página vazia se preciso)
+	twoside,			% para impressão em recto e verso. Oposto a oneside
+	a4paper,			% tamanho do papel. 
+	english,			% idioma adicional para hifenização
+	brazil				% o último idioma é o principal do documento
+	]{abntex2}
+
+% ---
+% PACOTES
+% ---
+\usepackage{lmodern}			% Usa a fonte Latin Modern			
+\usepackage[T1]{fontenc}		% Selecao de codigos de fonte.
+\usepackage[utf8]{inputenc}		% Codificacao do documento (conversão automática dos acentos)
+\usepackage{indentfirst}		% Indenta o primeiro parágrafo de cada seção.
+\usepackage{color}				% Controle das cores
+\usepackage{graphicx}			% Inclusão de gráficos
+\usepackage{microtype} 			% para melhorias de justificação
+\usepackage{amsmath,amssymb}    % Pacotes matemáticos
+\usepackage{pdfpages}           % Incluir PDFs externos se necessário
+\usepackage{float}              % Para posicionamento exato de figuras [H]
+\usepackage{longtable}          % Para tabelas que quebram páginas
+\usepackage[alf]{abntex2cite}	% Citações padrão ABNT (alfabético) -> Mudei para ALF pois é o padrão ouro.
+% Se o usuário realmente quiser numérico, basta mudar para [num]
+
+% ---
+% Configurações do pacote graphicx
+\graphicspath{{./media/}}         % Caminho das imagens
+
+% ---
+% Informações de dados para CAPA e FOLHA DE ROSTO
+% ---
+\titulo{Desenvolvimento de Software para Dimensionamento em Operações Unitárias}
+\autor{João Pedro Baza Garcia Rodrigues}
+\local{Campo Grande -- MS}
+\data{2026}
+\orientador{Prof. Dr. Celso Murilo dos Santos}
+\instituicao{%
+  Universidade Federal de Mato Grosso do Sul -- UFMS
+  \par
+  Instituto de Química -- INQUI
+  \par
+  Engenharia Química}
+\tipotrabalho{Trabalho de Conclusão de Curso (Graduação)}
+\preambulo{Trabalho de Conclusão de Curso apresentado no Instituto de Química como requisito básico para a conclusão do Curso de Engenharia Química.}
+% ---
+
+% ---
+% Configurações de aparência do PDF final
+\definecolor{blue}{RGB}{41,5,195}
+\makeatletter
+	\hypersetup{
+		pdftitle={\@title}, 
+		pdfauthor={\@author},
+    	pdfsubject={Trabalho de Conclusão de Curso},
+	    pdfcreator={LaTeX with abnTeX2},
+		colorlinks=true,       		% false: box links; true: colored links
+    	linkcolor=blue,          	% color of internal links
+    	citecolor=blue,        		% color of links to bibliography
+    	filecolor=magenta,      		% color of file links
+		urlcolor=blue,
+		bookmarksdepth=4
+	}
+\makeatother
+% ---
+
+% --- Esse trecho é responsável por alinhar o texto ao topo. Se preferível que haja espaçamento entre os parágrafos para ocupar todo o espaço disponível, descomente a linha abaixo.
+\raggedbottom
+\raggedbottom
+
+% ---
+% Compilando o índice
+\makeindex
+% ---
+
+% ---
+% Início do documento
+% ---
+\begin{document}
+
+% Seleciona o idioma principal (para separar hifenização)
+\selectlanguage{brazil}
+
+% Retira espaço extra obsoleto entre as frases.
+\frenchspacing 
+
+% ----------------------------------------------------------
+% ELEMENTOS PRÉ-TEXTUAIS
+% ----------------------------------------------------------
+\pretextual
+
+\imprimircapa
+\imprimirfolhaderosto*
+
+% ---
+% Inserir a ficha catalográfica
+% ---
+% \begin{fichacatalografica} ... \end{fichacatalografica}
+% (Opcional por enquanto)
+
+% ---
+% Inserir folha de aprovação
+% ---
+\begin{folhadeaprovacao}
+  \begin{center}
+    {\ABNTEXchapterfont\large\imprimirautor}
+
+    \vspace*{\fill}\vspace*{\fill}
+    \begin{center}
+      \ABNTEXchapterfont\bfseries\Large\imprimirtitulo
+    \end{center}
+    \vspace*{\fill}
+    
+    \hspace{.45\textwidth}
+    \begin{minipage}{.5\textwidth}
+        \imprimirpreambulo
+    \end{minipage}%
+    \vspace*{\fill}
+   
+   \end{center}
+        
+   Trabalho aprovado. \imprimirlocal, XX de novembro de 2026:
+
+   \assinatura{\textbf{\imprimirorientador} \\ Orientador} 
+   \assinatura{\textbf{Prof. Dr. Nome do Professor} \\ Convidado 1}
+   \assinatura{\textbf{Prof. Dr. Nome do Professor} \\ Convidado 2}
+   %\assinatura{\textbf{Professor} \\ Convidado 3}
+   %\assinatura{\textbf{Professor} \\ Convidado 4}
+      
+   \begin{center}
+    \vspace*{0.5cm}
+    {\large\imprimirlocal}
+    \par
+    {\large\imprimirdata}
+    \vspace*{1cm}
+  \end{center}
+  
+\end{folhadeaprovacao}
+% ---
+
+% ---
+% Dedicatória
+% ---
+% \begin{dedicatoria} ... \end{dedicatoria}
+
+% ---
+% Agradecimentos
+% ---
+\begin{agradecimentos}
+Agradeço a Deus, por me conceder forças nos momentos difíceis e iluminar meu caminho ao longo desta jornada acadêmica.
+
+Aos meus pais, Cassiano e Jacquecislene, por me darem não apenas a vida, mas também o dom do estudo e do senso crítico.
+
+À minha namorada, Carolyne, que, com sua paciência, carinho e incentivo, foi essencial para que eu visse propósito no que eu fazia, como a luz que guia a direção da folha.
+\end{agradecimentos}
+% ---
+
+% ---
+% Epígrafe
+% ---
+\begin{epigrafe}
+    \vspace*{\fill}
+	\begin{flushright}
+		\textit{``Não deseje que seja mais fácil, deseje ser melhor.\\
+		Não deseje menos problemas, deseje mais habilidades.\\
+		Não deseje menos desafios, deseje mais sabedoria.''\\
+		(Jim Rohn)}
+	\end{flushright}
+\end{epigrafe}
+% ---
+
+% ---
+% RESUMOS
+% ---
+
+% resumo em português
+\setlength{\absparsep}{18pt} % ajusta o espaçamento dos parágrafos do resumo
+\begin{resumo}
+Este trabalho apresenta o desenvolvimento de um software de código aberto para dimensionamento e disponibilização de dados para materiais e compostos úteis na Engenharia Química. O software automatiza cálculos a partir de dados inseridos pelo usuário, utilizando equações consolidadas. O sistema permite integração via API (\textit{Application Programming Interface}), promovendo flexibilidade, colaboração e apoio técnico no ensino e na prática da engenharia, contando com código aberto para colaboração e aprimoramento contínuo por parte da comunidade acadêmica.
+
+ \textbf{Palavras-chave}: Código aberto. Dimensionamento Industrial. Propriedade de compostos. Características de acessórios em tubulações.
+\end{resumo}
+
+% resumo em inglês
+%\begin{resumo}[Abstract]
+% \begin{otherlanguage*}{english}
+%   This is the english abstract.
+%   \vspace{\onelineskip}
+%   \noindent 
+%   \textbf{Keywords}: latex. abntex. text editoration.
+% \end{otherlanguage*}
+%\end{resumo}
+
+% ---
+% Listas de ilustrações e tabelas
+% ---
+\pdfbookmark[0]{\listfigurename}{lof}
+\listoffigures*
+\cleardoublepage
+
+\pdfbookmark[0]{\listtablename}{lot}
+\listoftables*
+\cleardoublepage
+
+\pdfbookmark[0]{\listadesiglasname}{las}
+\begin{siglas}
+  \item[API] Application Programming Interface
+  \item[HTML] HyperText Markup Language
+  \item[CSS] Cascading Style Sheets
+  \item[EDO] Equação diferencial ordinária
+  \item[UI] User Interface
+  \item[UX] User Experience
+  \item[PFR] Plug Flow Reactor
+  \item[CSTR] Continuous Stirred Tank Reactor
+  \item[T] Temperatura
+  \item[P] Pressão
+  \item[NPSH] Net Positive Suction Head
+\end{siglas}
+\cleardoublepage
+
+% ---
+% Sumário
+% ---
+\pdfbookmark[0]{\contentsname}{toc}
+\tableofcontents*
+\cleardoublepage
+% ---
+
+
+% ----------------------------------------------------------
+% ELEMENTOS TEXTUAIS
+% ----------------------------------------------------------
+\textual
+
+\include{capitulos/1-introducao}
+
+% Desativa a quebra de página para garantir que não haja página em branco
+\let\origcleardoublepage\cleardoublepage
+\let\origcleartorecto\cleartorecto
+\let\cleardoublepage\clearpage
+\let\cleartorecto\clearpage
+\include{capitulos/2-justificativa}
+\let\cleardoublepage\origcleardoublepage
+\let\cleartorecto\origcleartorecto
+\include{capitulos/3-objetivos}
+\include{capitulos/4-metodologia}
+\include{capitulos/5-resultados}
+\include{capitulos/6-conclusoes}
+
+% ----------------------------------------------------------
+% ELEMENTOS PÓS-TEXTUAIS
+% ----------------------------------------------------------
+\postextual
+% ----------------------------------------------------------
+
+% ----------------------------------------------------------
+% Referências bibliográficas
+% ----------------------------------------------------------
+\bibliography{bibliografia}
+
+\end{document}
