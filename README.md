@@ -1,3 +1,6 @@
+pdflatex main;bibtex main; pdflatex main; pdflatex main;
+
+
 # 🌐 Educational Simulator for Unit Operations
 
 Final project in Chemical Engineering at UFMS, developed by **João Pedro Baza Garcia Rodrigues** [[LinkedIn]](https://www.linkedin.com/in/joao-baza/) under the guidance of **Prof. Celso Murilo dos Santos** [[LinkedIn]](https://www.linkedin.com/in/celso-murilo-dos-santos/). The code can be tested online [here](https://tcc.homelab.sistemasj.com.br) - (last update: 2025-11-15)

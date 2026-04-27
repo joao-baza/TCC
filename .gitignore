@@ -7,8 +7,26 @@ __pycache__/
 .env.local
 .venv/
 venv/
+.agent/
 build/
 dist/
 *.egg-info/
-Escrita/
 .pytest*
+
+# Arquivos gerados pela compilação do LaTeX em escrita/TEX
+escrita/TEX/**/*.aux
+escrita/TEX/**/*.bbl
+escrita/TEX/**/*.blg
+escrita/TEX/**/*.log
+escrita/TEX/**/*.out
+escrita/TEX/**/*.toc
+escrita/TEX/**/*.lof
+escrita/TEX/**/*.lot
+escrita/TEX/**/*.fls
+escrita/TEX/**/*.fdb_latexmk
+escrita/TEX/**/*.synctex.gz
+escrita/TEX/**/*.idx
+escrita/TEX/**/*.ilg
+escrita/TEX/**/*.ind
+escrita/TEX/**/*.bcf
+escrita/TEX/**/*.run.xml
