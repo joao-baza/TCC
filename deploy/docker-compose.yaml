@@ -6,14 +6,12 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
-    volumes:
-      - /home/joaobaza/TCC:/app
     networks:
-      - SistemasJ
+      - SJNet
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=SistemasJ"
+        - "traefik.docker.network=SJNet"
         - "traefik.http.routers.tcc-api.rule=Host(`tcc.api.homelab.sistemasj.com.br`)"
         - "traefik.http.routers.tcc-api.entrypoints=websecure"
         - "traefik.http.routers.tcc-api.tls=true"
@@ -25,19 +23,17 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.frontend
-    volumes:
-      - /home/joaobaza/TCC/frontend:/app
     networks:
-      - SistemasJ
+      - SJNet
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=SistemasJ"
+        - "traefik.docker.network=SJNet"
         - "traefik.http.routers.tcc-frontend.rule=Host(`tcc.homelab.sistemasj.com.br`)"
         - "traefik.http.routers.tcc-frontend.entrypoints=websecure"
         - "traefik.http.routers.tcc-frontend.tls=true"
         - "traefik.http.routers.tcc-frontend.tls.certresolver=letsencryptresolver"
         - "traefik.http.services.tcc-frontend.loadbalancer.server.port=80"
 networks:
-  SistemasJ:
+  SJNet:
     external: true
