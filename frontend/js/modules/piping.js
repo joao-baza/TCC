@@ -24,6 +24,7 @@ const PipingModule = {
             if (selectedComposition) {
                 this.loadCompositionDetails(selectedComposition);
             } else {
+                UI.hideResult('#composition-details');
                 document.getElementById('composition-details').innerHTML = '';
             }
         });
@@ -37,6 +38,7 @@ const PipingModule = {
                 const diameterSelect = document.getElementById('diameter-select');
                 diameterSelect.innerHTML = '';
                 diameterSelect.disabled = true;
+                UI.hideResult('#diameter-details');
                 document.getElementById('diameter-details').innerHTML = '';
             }
         });
@@ -49,6 +51,7 @@ const PipingModule = {
             if (selectedDiameter && selectedSchedule) {
                 this.loadDiameterDetails(selectedSchedule, selectedDiameter);
             } else {
+                UI.hideResult('#diameter-details');
                 document.getElementById('diameter-details').innerHTML = '';
             }
         });
@@ -59,6 +62,7 @@ const PipingModule = {
             if (selectedFitting) {
                 this.loadFittingDetails(selectedFitting);
             } else {
+                UI.hideResult('#fitting-details');
                 document.getElementById('fitting-details').innerHTML = '';
             }
         });
@@ -107,9 +111,10 @@ const PipingModule = {
             let html = '<h4 class="font-medium text-gray-700 mb-2">Composition Details</h4>';
             html += UI.generatePropertyTable(details);
             
-            detailsContainer.innerHTML = html;
+            UI.showResult('#composition-details', html);
         } catch (error) {
             UI.showError('Error loading composition details', error);
+            UI.hideResult('#composition-details');
             document.getElementById('composition-details').innerHTML = '';
         } finally {
             UI.hideLoading('#composition-details');
@@ -195,9 +200,10 @@ const PipingModule = {
             let html = '<h4 class="font-medium text-gray-700 mb-2">Diameter Details</h4>';
             html += UI.generatePropertyTable(details);
             
-            detailsContainer.innerHTML = html;
+            UI.showResult('#diameter-details', html);
         } catch (error) {
             UI.showError('Error loading diameter details', error);
+            UI.hideResult('#diameter-details');
             document.getElementById('diameter-details').innerHTML = '';
         } finally {
             UI.hideLoading('#diameter-details');
@@ -247,9 +253,10 @@ const PipingModule = {
             let html = '<h4 class="font-medium text-gray-700 mb-2">Fitting Details</h4>';
             html += UI.generatePropertyTable(details);
             
-            detailsContainer.innerHTML = html;
+            UI.showResult('#fitting-details', html);
         } catch (error) {
             UI.showError('Error loading fitting details', error);
+            UI.hideResult('#fitting-details');
             document.getElementById('fitting-details').innerHTML = '';
         } finally {
             UI.hideLoading('#fitting-details');
