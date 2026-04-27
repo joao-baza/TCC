@@ -30,14 +30,14 @@ class Stream:
         """
         self.name = name
         self.dir = direction  # +1 input; −1 output
-        self.F = sp.symbols(f"F_{name}") if flow_rate is None else float(flow_rate)
+        self.F = sp.Symbol(f"F_{name}") if flow_rate is None else float(flow_rate)
 
         self.z = OrderedDict()
         for c in components:
             if compositions and c in compositions and compositions[c] is not None:
                 self.z[c] = float(compositions[c])
             else:
-                self.z[c] = sp.symbols(f"z_{name}_{c}")
+                self.z[c] = sp.Symbol(f"z_{name}_{c}")
 
 # ----------------------------------------------------------------------
 # 2) Reactions ---------------------------------------------------------
@@ -61,7 +61,7 @@ class Reaction:
         self.nu = stoichiometry  # {comp: ν_i}
         self.key = key_component
         self.X = float(conversion)
-        self.eps = sp.symbols(f"eps_{self.id}")  # reaction extent
+        self.eps = sp.Symbol(f"eps_{self.id}")  # reaction extent
 
 # ----------------------------------------------------------------------
 # 3) Splitters (Recycle) ----------------------------------------------
@@ -88,7 +88,7 @@ class Split:
         self.rec = recycle_stream
         self.purge = purge_stream
         # Recycle fraction f (0-1) - symbolic if not provided
-        self.f = float(fraction) if fraction is not None else sp.symbols(f"f_{self.id}")
+        self.f = float(fraction) if fraction is not None else sp.Symbol(f"f_{self.id}")
 
 # ----------------------------------------------------------------------
 # 4) Mass Balance Model ------------------------------------------------
