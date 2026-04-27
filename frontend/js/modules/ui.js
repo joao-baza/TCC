@@ -167,7 +167,7 @@ const UI = {
      */
     formatValue(value) {
         if (value === null) {
-            return "Not specified";
+            return '<span class="text-gray-400">-</span>';
         }
         if (typeof value === 'number') {
             // Format numbers with appropriate precision
@@ -215,6 +215,12 @@ const UI = {
                 if (targetPane) {
                     targetPane.classList.remove('hidden');
                     targetPane.classList.add('active');
+                    
+                    // Auto-focus no primeiro input disponível
+                    const firstInput = targetPane.querySelector('input:not([disabled])');
+                    if (firstInput) {
+                        setTimeout(() => firstInput.focus(), 100);
+                    }
                 }
             });
         });
