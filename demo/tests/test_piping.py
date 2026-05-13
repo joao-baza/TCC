@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import pytest
 from pint import UnitRegistry
 from models.piping import Piping
@@ -59,3 +63,6 @@ class TestPiping:
         diams = piping.diameters("SCH40")
         assert len(diams) > 0
         assert 50 in diams  # nominal 50 usually exists
+
+if __name__ == "__main__":
+    pytest.main([__file__])

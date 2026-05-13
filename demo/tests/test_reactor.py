@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 import pytest
 import numpy as np
@@ -142,3 +145,6 @@ class TestReactorComprehensive:
         # Plotting uses conversion_and_kinetics internally
         fig, ax = reactor.plot_conversion_vs_volume(params)
         assert fig is not None
+
+if __name__ == "__main__":
+    pytest.main([__file__])

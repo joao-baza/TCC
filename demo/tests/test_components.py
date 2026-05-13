@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import pytest
 from models.components import Components
 
@@ -66,3 +70,6 @@ class TestComponents:
         names = components.get_property_mixture_names()
         assert isinstance(names, dict)
         assert "D" in names
+
+if __name__ == "__main__":
+    pytest.main([__file__])

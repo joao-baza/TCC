@@ -105,3 +105,6 @@ def test_mass_balance_splitter():
     
     assert results["Top"]["flow_rate"] == 20.0  # 0.2 * 100
     assert results["Bottom"]["flow_rate"] == 80.0 # 0.8 * 100
+
+if __name__ == "__main__":
+    pytest.main([__file__])

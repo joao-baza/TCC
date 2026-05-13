@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 import pytest
 from pint import UnitRegistry
@@ -149,3 +152,6 @@ class TestHydraulicComprehensive:
         # Q=0.01, V=1 -> D=sqrt(0.0127) ~= 0.112 m = 112mm
         res = hydraulic.get_calculated_diameter({"flow_rate": 0.01, "velocity": 1})
         assert res.magnitude > 100
+
+if __name__ == "__main__":
+    pytest.main([__file__])

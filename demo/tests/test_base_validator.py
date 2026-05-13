@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import pytest
 from base_validator import BaseValidator
 
@@ -32,3 +36,6 @@ class TestBaseValidator:
         data = {"a": "1", "b": 2}
         with pytest.raises(TypeError, match="numeric"):
             validator._validate_numeric(data, ["a"])
+
+if __name__ == "__main__":
+    pytest.main([__file__])
