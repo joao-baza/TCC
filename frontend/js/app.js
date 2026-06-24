@@ -2,55 +2,23 @@
  * Main Application JS for Chemical Engineering Calculator
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Initialize UI
     UI.setupTabs();
     UI.initializeSelect2();
-    
-    // Initialize all modules
+
+    // Initialize all modules (synchronous; scripts already loaded above)
     if (window.PipingModule) PipingModule.init();
     if (window.SizingModule) SizingModule.init();
     if (window.FlowModule) FlowModule.init();
     if (window.PumpModule) PumpModule.init();
     if (window.ReactorModule) ReactorModule.init();
     if (window.ComponentsModule) ComponentsModule.init();
-    
-    // Initialize Balance module com um pequeno delay para garantir que os outros módulos estejam carregados
-    setTimeout(() => {
-        if (window.BalanceModule) BalanceModule.init();
-    }, 100);
-    
+    if (window.BalanceModule) BalanceModule.init();
+
     // Global error handler for API calls
-    window.addEventListener('unhandledrejection', function(event) {
+    window.addEventListener('unhandledrejection', function (event) {
         console.error('Unhandled promise rejection:', event.reason);
-        UI.showError('Error', event.reason.message || 'An unexpected error occurred');
+        UI.showError('Erro', (event.reason && event.reason.message) || 'Ocorreu um erro inesperado');
     });
-    
-    // Additional verification to ensure that the Balance tab works correctly
-    setTimeout(() => {
-        const balanceTab = document.getElementById('balance-tab');
-        if (balanceTab) {
-            // Add again the event listener
-            balanceTab.addEventListener('click', function() {
-                // Hide all tabs
-                document.querySelectorAll('.tab-pane').forEach(pane => {
-                    pane.classList.add('hidden');
-                    pane.classList.remove('active');
-                });
-                
-                // Show the balance tab
-                const balanceContent = document.getElementById('balance-content');
-                if (balanceContent) {
-                    balanceContent.classList.remove('hidden');
-                    balanceContent.classList.add('active');
-                }
-                
-                // Actualize the active state on tabs
-                document.querySelectorAll('[data-tab]').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                balanceTab.classList.add('active');
-            });
-        }
-    }, 500);
-}); 
+});
