@@ -71,5 +71,47 @@ class TestComponents:
         assert isinstance(names, dict)
         assert "D" in names
 
+
+class TestComponentsEdgeCases:
+
+    def test_invalid_fluid_raises(self, components):
+        with pytest.raises(ValueError, match="Fluid 'NotAFluid' not found"):
+            components.get_property("NotAFluid", "D", 300, 101325)
+
+    def test_get_all_properties_invalid_fluid_raises(self, components):
+        with pytest.raises(ValueError, match="Fluid 'NotAFluid' not found"):
+            components.get_all_properties("NotAFluid", 300, 101325)
+
+    def test_get_critical_properties_invalid_fluid_raises(self, components):
+        with pytest.raises(ValueError, match="Fluid 'NotAFluid' not found"):
+            components.get_critical_properties("NotAFluid")
+
+    def test_mixture_invalid_fluid_raises(self, components):
+        fractions = {"NotAFluid": 1.0}
+        with pytest.raises(ValueError, match="Fluid 'NotAFluid' not found"):
+            components.get_mixture_properties(fractions, 300, 101325)
+
+    def test_mixture_zero_fraction_sum_raises(self, components):
+        fractions = {"Water": 0, "Ethanol": 0}
+        with pytest.raises(ValueError, match="Sum of fluid fractions should be 1.0, got 0"):
+            components.get_mixture_properties(fractions, 300, 101325)
+
+    def test_mixture_negative_fraction_sum_raises(self, components):
+        fractions = {"Water": -0.5, "Ethanol": 1.5}
+        with pytest.raises(ValueError, match="CoolProp mixture error"):
+            components.get_mixture_properties(fractions, 300, 101325)
+
+    def test_mixture_single_component_full_fraction(self, components):
+        props = components.get_mixture_properties({"Water": 1.0}, 300, 101325, ["D"])
+        assert props["density"].magnitude > 0
+
+    def test_get_property_negative_temperature_raises(self, components):
+        with pytest.raises(ValueError, match="CoolProp error"):
+            components.get_property("Water", "D", -50, 101325)
+
+    def test_get_property_zero_pressure_may_fail(self, components):
+        with pytest.raises(ValueError, match="CoolProp error"):
+            components.get_property("Water", "D", 300, 0)
+
 if __name__ == "__main__":
     pytest.main([__file__])

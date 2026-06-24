@@ -146,5 +146,97 @@ class TestReactorComprehensive:
         fig, ax = reactor.plot_conversion_vs_volume(params)
         assert fig is not None
 
+
+class TestReactorEdgeCases:
+
+    def test_conversion_zero_cstr_volume_is_zero(self, reactor, base_params):
+        params = base_params.copy()
+        params["input_type"] = "conversion_and_kinetics"
+        params["conversion"] = 0
+        result = reactor.cstr(params)
+        assert result["volume"].magnitude == 0.0
+
+    def test_negative_conversion_raises_negative_concentration(self, reactor, base_params):
+        params = base_params.copy()
+        params["input_type"] = "conversion_and_kinetics"
+        params["conversion"] = -0.1
+        with pytest.raises(ValueError, match="Negative concentration"):
+            reactor.cstr(params)
+
+    def test_negative_volume_cstr_fails_to_converge(self, reactor, base_params):
+        params = base_params.copy()
+        params["input_type"] = "volume_and_kinetics"
+        params["volume"] = -1
+        with pytest.raises(ValueError):
+            reactor.cstr(params)
+
+    def test_mixed_phase_components_raises(self, reactor, base_params):
+        params = base_params.copy()
+        params["components"] = [
+            {"component_name": "A", "molar_concentration_inlet": 1000, "flow_rate_inlet": 0.01, "state": "liquid"},
+            {"component_name": "B", "molar_concentration_inlet": 0, "flow_rate_inlet": 0, "state": "gaseous"},
+        ]
+        params["input_type"] = "conversion_and_kinetics"
+        params["conversion"] = 0.5
+        with pytest.raises(ValueError, match="only liquid or only gaseous"):
+            reactor.cstr(params)
+
+    def test_zero_stoichiometric_coefficient_raises(self, reactor, base_params):
+        params = {
+            "components": base_params["components"],
+            "stoichiometric_coefficients": [0, 1],
+        }
+        with pytest.raises(ValueError, match="Stoichiometric coefficient"):
+            reactor.determine_limiting_reagent(params)
+
+    def test_no_limiting_reagent_all_products_raises(self, reactor, base_params):
+        params = {
+            "components": base_params["components"],
+            "stoichiometric_coefficients": [1, 1],
+        }
+        with pytest.raises(ValueError, match="No limiting reagent found"):
+            reactor.determine_limiting_reagent(params)
+
+    def test_mismatched_components_and_coefficients_raises(self, reactor, base_params):
+        params = {
+            "components": base_params["components"],
+            "stoichiometric_coefficients": [-1],
+        }
+        with pytest.raises(ValueError, match="same length"):
+            reactor.determine_limiting_reagent(params)
+
+    def test_missing_component_key_raises(self, reactor, base_params):
+        bad_components = [{"component_name": "A", "flow_rate_inlet": 0.01, "state": "liquid"}]
+        with pytest.raises(KeyError, match="molar_concentration_inlet"):
+            reactor.determine_limiting_reagent({
+                "components": bad_components,
+                "stoichiometric_coefficients": [-1],
+            })
+
+    def test_pfr_invalid_input_type_raises(self, reactor, base_params):
+        params = base_params.copy()
+        params["input_type"] = "invalid_mode"
+        with pytest.raises(ValueError, match="Invalid input_type"):
+            reactor.pfr(params)
+
+    def test_pfr_discovery_mode_returns_options(self, reactor):
+        assert isinstance(reactor.pfr({}), list)
+
+    def test_zero_residence_time_cstr_fails_to_converge(self, reactor, base_params):
+        params = base_params.copy()
+        params["input_type"] = "residence_time_and_kinetics"
+        params["residence_time"] = 0
+        with pytest.raises(ValueError):
+            reactor.cstr(params)
+
+    def test_negative_recycling_ratio_pfr(self, reactor, base_params):
+        params = base_params.copy()
+        params["input_type"] = "conversion_and_kinetics"
+        params["conversion"] = 0.5
+        params["recycling_ratio"] = -0.5
+        result = reactor.pfr(params)
+        assert result["volume"].magnitude >= 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

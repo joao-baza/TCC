@@ -64,5 +64,40 @@ class TestPiping:
         assert len(diams) > 0
         assert 50 in diams  # nominal 50 usually exists
 
+
+class TestPipingEdgeCases:
+
+    def test_invalid_composition_raises(self, piping):
+        with pytest.raises(TypeError, match="Composition not found"):
+            piping.composition_specifications("NonExistentMaterial")
+
+    def test_invalid_nominal_diameter_raises(self, piping):
+        with pytest.raises(TypeError, match="Nominal diameter not found"):
+            piping.diameter_specifications("SCH40", 99999)
+
+    def test_diameter_specifications_invalid_schedule_raises(self, piping):
+        with pytest.raises(TypeError, match="Schedule not found"):
+            piping.diameter_specifications("INVALID", 50)
+
+    def test_diameters_invalid_schedule_raises(self, piping):
+        with pytest.raises(TypeError, match="Schedule not found"):
+            piping.diameters("INVALID")
+
+    def test_composition_without_roughness_coefficient(self, piping):
+        """Some compositions have roughness but no Hazen-Williams coefficient."""
+        spec = piping.composition_specifications("Lightly rusted steel")
+        assert spec["specifications"]["roughness"].magnitude > 0
+        assert spec["specifications"].get("roughness_coefficient") is None
+
+    def test_diameter_specifications_max_pressure_none(self, piping):
+        """Small diameters may have no max pressure rating."""
+        spec = piping.diameter_specifications("SCH40", 6)
+        assert spec["max_pressure"] is None
+
+    def test_diameter_specifications_max_pressure_converted_to_pa(self, piping):
+        spec = piping.diameter_specifications("SCH40", 50)
+        assert spec["max_pressure"] is not None
+        assert spec["max_pressure"].magnitude > 0
+
 if __name__ == "__main__":
     pytest.main([__file__])
