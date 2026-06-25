@@ -117,17 +117,25 @@ const ComponentsModule = {
                         </svg>
                     </button>
                     <div class="accordion-content" id="acc-fluid-props" role="region">
-                        <p>Calcula propriedades termodinâmicas e de transporte de fluidos puros em condições de temperatura e pressão especificadas.</p>
+                        <p>Calcula propriedades termodinâmicas e de transporte de <strong>fluidos puros</strong> a temperatura e pressão especificadas. Os dados são fornecidos pela biblioteca <strong>CoolProp</strong> (equações de estado de alta precisão, ≈120 fluidos).</p>
                         <table class="variables-table">
-                            <thead><tr><th>Propriedade</th><th>Descrição</th></tr></thead>
+                            <thead><tr><th>Propriedade</th><th>Símbolo</th><th>Unidade</th></tr></thead>
                             <tbody>
-                                <tr><td>Densidade (D)</td><td>Massa por unidade de volume (kg/m³)</td></tr>
-                                <tr><td>Viscosidade dinâmica (V)</td><td>Resistência ao escoamento (Pa·s)</td></tr>
-                                <tr><td>Condutividade térmica (L)</td><td>Transferência de calor (W/m·K)</td></tr>
-                                <tr><td>Cp (C)</td><td>Calor específico a pressão constante (J/kg·K)</td></tr>
+                                <tr><td>Densidade</td><td>ρ</td><td>kg/m³</td></tr>
+                                <tr><td>Viscosidade dinâmica</td><td>μ</td><td>Pa·s</td></tr>
+                                <tr><td>Viscosidade cinemática</td><td>ν = μ/ρ</td><td>m²/s</td></tr>
+                                <tr><td>Condutividade térmica</td><td>λ</td><td>W/(m·K)</td></tr>
+                                <tr><td>Calor específico (pressão cte.)</td><td>c<sub>p</sub></td><td>J/(kg·K)</td></tr>
+                                <tr><td>Calor específico (volume cte.)</td><td>c<sub>v</sub></td><td>J/(kg·K)</td></tr>
+                                <tr><td>Entalpia específica</td><td>h</td><td>J/kg</td></tr>
+                                <tr><td>Entropia específica</td><td>s</td><td>J/(kg·K)</td></tr>
+                                <tr><td>Pressão de vapor</td><td>p<sub>vap</sub></td><td>Pa</td></tr>
+                                <tr><td>Tensão superficial</td><td>σ</td><td>N/m</td></tr>
+                                <tr><td>Ponto de bolha / orvalho</td><td>T<sub>bolha</sub>, T<sub>orvalho</sub></td><td>K</td></tr>
                             </tbody>
                         </table>
-                        <p class="teoria-ref">Ref.: CoolProp documentation — http://www.coolprop.org/</p>
+                        <p><strong>Uso principal no projeto:</strong> a pressão de vapor (p<sub>vap</sub>) é insumo direto do cálculo de NPSHd no módulo Bombas. Viscosidade e densidade alimentam o cálculo de Reynolds.</p>
+                        <p class="teoria-ref">Ref.: Bell et al., "CoolProp — An Open-Source Thermodynamics Library", 2014 · Smith, Van Ness &amp; Abbott, Introduction to Chemical Engineering Thermodynamics, 8ª ed.</p>
                     </div>
                 </div>
                 <form id="property-form">
@@ -165,9 +173,20 @@ const ComponentsModule = {
                         </svg>
                     </button>
                     <div class="accordion-content" id="acc-mixture" role="region">
-                        <p>Calcula propriedades de misturas de fluidos usando regras de mistura via CoolProp. As frações devem somar 1,0.</p>
-                        <p><strong>Atenção:</strong> nem todos os pares de fluidos têm modelos de mistura implementados no CoolProp. Consulte a documentação para fluidos suportados.</p>
-                        <p class="teoria-ref">Ref.: CoolProp Mixture documentation.</p>
+                        <p>Calcula propriedades termodinâmicas de <strong>misturas</strong> de fluidos usando o backend HEOS do CoolProp. As frações molares devem somar exatamente 1,0.</p>
+                        <p>Internamente, o sistema monta a string de estado no formato:</p>
+                        <div class="formula-block">HEOS::Fluido1[x<sub>1</sub>]&amp;Fluido2[x<sub>2</sub>]&amp;…</div>
+                        <p>Onde x<sub>i</sub> é a fração molar de cada componente. Esta string é enviada ao CoolProp junto com T e P para obter as propriedades da mistura.</p>
+                        <table class="variables-table">
+                            <thead><tr><th>Restrição</th><th>Detalhe</th></tr></thead>
+                            <tbody>
+                                <tr><td>Frações</td><td>∑ x<sub>i</sub> = 1,0 — obrigatório</td></tr>
+                                <tr><td>Pares suportados</td><td>Verificar documentação CoolProp; nem todo par tem modelo de mistura implementado</td></tr>
+                                <tr><td>Fase</td><td>As propriedades retornadas dependem da fase (líquido, vapor, bifásico) na condição T, P informada</td></tr>
+                            </tbody>
+                        </table>
+                        <p><strong>Dica:</strong> para verificar se dois fluidos formam uma mistura suportada, consulte <em>CoolProp Mixture documentation</em>. Misturas não suportadas retornam erro da API.</p>
+                        <p class="teoria-ref">Ref.: Bell et al., "CoolProp — An Open-Source Thermodynamics Library", 2014.</p>
                     </div>
                 </div>
                 <form id="mixture-properties-form">
