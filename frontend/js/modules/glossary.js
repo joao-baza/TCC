@@ -268,14 +268,6 @@ const GlossaryModule = (function () {
                + 'Gás ideal: \\\(PV = nRT\\\). '
                + 'Para sistemas reais, equações cúbicas (Peng-Robinson, SRK) adicionam termos de atração/repulsão molecular.',
         },
-        {
-            term: 'Entalpia específica (h)',
-            cat: 'Componentes',
-            def: '\\\[h = u + Pv\\\] '
-               + 'Soma da energia interna \\\(u\\\) e do trabalho de fluxo \\\(Pv\\\). '
-               + 'Base de balanços de energia em escoamento aberto. '
-               + 'Para líquidos ideais: \\\(\\Delta h = c_p\\,\\Delta T\\\).',
-        },
 
         // ── Balanço ─────────────────────────────────────────────────────────────
         {
