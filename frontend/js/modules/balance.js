@@ -47,7 +47,7 @@ const BalanceModule = {
                 <span class="sep" aria-hidden="true">›</span>
                 <span>Balanço de Massa</span>
             </nav>
-            <h2 class="module-heading">Balanço de Massa <span class="level-chip level-chip-purple">Avançado</span></h2>
+            <h2 class="module-heading">Balanço de Massa</h2>
         </div>
     </div>
 
