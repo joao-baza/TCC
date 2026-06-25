@@ -833,11 +833,19 @@ const BalanceModule = {
             streams.forEach(s => { dirMap[s.name] = s.direction; });
 
             const plotEl = document.getElementById('plot-result-mass-balance');
+            if (!plotEl) {
+                console.error('plot-result-mass-balance não encontrado');
+                return;
+            }
+
+            if (this._balanceChart) {
+                this._balanceChart.destroy();
+                this._balanceChart = null;
+            }
             plotEl.innerHTML = '<canvas id="balance-chart" aria-label="Gráfico de Balanço de Massa por Corrente"></canvas>';
             plotEl.classList.remove('hidden');
 
             const ctx = document.getElementById('balance-chart').getContext('2d');
-            if (this._balanceChart) this._balanceChart.destroy();
 
             this._balanceChart = new Chart(ctx, {
                 type: 'bar',
