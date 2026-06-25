@@ -15,6 +15,8 @@ const ExercisesModule = {
     },
 
     _fluidList: [],
+    _scheduleList: [],
+    _compositionList: [],
 
     /** Render a Select2-ready fluid select. `disabled` = read-only (step 2+). */
     _fluidSelect(id, selectedValue, disabled = false) {
@@ -216,84 +218,168 @@ const ExercisesModule = {
                 },
                 {
                     title: 'Etapa 2 — Número de Reynolds',
-                    desc: 'Calcule Re para determinar o regime de escoamento.',
+                    desc: 'Selecione o schedule e o diâmetro nominal para obter o diâmetro interno real; em seguida calcule Re.',
                     render(state) {
                         return `
                         <form id="ex-step-form" class="space-y-3">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">ρ (kg/m³)</label>
-                                    <input id="ex-rho" type="number" value="${ExercisesModule.fmt(state.results.rho,3)}" step="any" class="p-2 border rounded w-full text-sm bg-blue-50">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">μ (Pa·s)</label>
-                                    <input id="ex-mu" type="number" value="${ExercisesModule.fmt(state.results.mu,7)}" step="any" class="p-2 border rounded w-full text-sm bg-blue-50">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Diâmetro (mm)</label>
-                                    <input id="ex-D-mm" type="number" value="50" step="1" class="p-2 border rounded w-full text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Velocidade (m/s)</label>
-                                    <input id="ex-v" type="number" value="2.0" step="0.1" class="p-2 border rounded w-full text-sm">
-                                </div>
+                            <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs grid grid-cols-2 gap-1">
+                                <span>ρ = ${ExercisesModule.fmt(state.results.rho,2)} kg/m³</span>
+                                <span>μ = ${ExercisesModule.fmt(state.results.mu,7)} Pa·s</span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+                                <select id="ex-schedule" class="p-2 border rounded w-full text-sm" data-placeholder="Selecione o schedule">
+                                    <option value=""></option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Diâmetro nominal (DN)</label>
+                                <select id="ex-nps" class="p-2 border rounded w-full text-sm" data-placeholder="Selecione o DN">
+                                    <option value=""></option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Diâmetro interno (mm)</label>
+                                <input id="ex-D-mm" type="number" step="any" placeholder="calculado automaticamente"
+                                    class="p-2 border rounded w-full text-sm bg-blue-50" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Velocidade (m/s)</label>
+                                <input id="ex-v" type="number" value="2.0" step="0.1" class="p-2 border rounded w-full text-sm">
                             </div>
                             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-sm">Calcular Reynolds</button>
                         </form>`;
                     },
+                    afterRender(state) {
+                        const schedSel = document.getElementById('ex-schedule');
+                        // Populate schedule options
+                        (ExercisesModule._scheduleList || []).forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s.name;
+                            opt.textContent = s.name;
+                            schedSel.appendChild(opt);
+                        });
+                        $('#ex-schedule').select2({ placeholder: 'Selecione o schedule', allowClear: true, width: '100%' });
+                        $('#ex-nps').select2({ placeholder: 'Selecione o DN', allowClear: true, width: '100%' });
+
+                        // On schedule change → load DN options
+                        $('#ex-schedule').on('change', async function () {
+                            const schedule = $(this).val();
+                            const npsSel = document.getElementById('ex-nps');
+                            npsSel.innerHTML = '<option value=""></option>';
+                            $('#ex-nps').trigger('change');
+                            document.getElementById('ex-D-mm').value = '';
+                            if (!schedule) return;
+                            try {
+                                const diams = await API.getScheduleDiameters(schedule);
+                                Object.keys(diams)
+                                    .sort((a, b) => parseFloat(a) - parseFloat(b))
+                                    .forEach(k => {
+                                        const opt = document.createElement('option');
+                                        opt.value = k;
+                                        opt.textContent = `DN ${k} mm`;
+                                        npsSel.appendChild(opt);
+                                    });
+                                $('#ex-nps').trigger('change');
+                            } catch (e) { /* ignore */ }
+                        });
+
+                        // On DN change → compute internal diameter (ext − 2×thk)
+                        $('#ex-nps').on('change', async function () {
+                            const schedule = $('#ex-schedule').val();
+                            const nps = $(this).val();
+                            document.getElementById('ex-D-mm').value = '';
+                            if (!schedule || !nps) return;
+                            try {
+                                const d = await API.getScheduleDiameterDetails(schedule, parseFloat(nps));
+                                const ext = d.external_diameter?.value ?? d.external_diameter;
+                                const thk = d.thickness?.value ?? d.thickness;
+                                const id = ext - 2 * thk;
+                                document.getElementById('ex-D-mm').value = ExercisesModule.fmt(id, 3);
+                            } catch (e) { /* ignore */ }
+                        });
+                    },
                     async run(vals, state) {
-                        const rho = parseFloat(document.getElementById('ex-rho').value);
-                        const mu = parseFloat(document.getElementById('ex-mu').value);
+                        const rho = state.results.rho;
+                        const mu  = state.results.mu;
                         const Dmm = parseFloat(document.getElementById('ex-D-mm').value);
-                        const v = parseFloat(document.getElementById('ex-v').value);
+                        const v   = parseFloat(document.getElementById('ex-v').value);
+                        const schedule = $('#ex-schedule').val() || '';
+                        const nps      = $('#ex-nps').val() || '';
+                        if (!Dmm || isNaN(Dmm)) throw new Error('Selecione o schedule e o diâmetro nominal para obter o diâmetro interno.');
                         const r = await API.calculateReynolds({ characteristic_diameter: Dmm, velocity: v, density: rho, dynamic_viscosity: mu });
                         const Re = r.value;
                         const regime = ExercisesModule.flowRegime(Re);
-                        return { Re, regime, Dmm, v, display: `Re = ${ExercisesModule.fmt(Re, 0)} (${regime})` };
+                        return { Re, regime, Dmm, v, schedule, nps, display: `Re = ${ExercisesModule.fmt(Re, 0)} (${regime}) · Di = ${ExercisesModule.fmt(Dmm,2)} mm` };
                     },
                     resultKey: 'Re',
                     contextText: 'Regime de escoamento determinado. Com Re e a rugosidade da tubulação, calculamos o fator de atrito e a perda de carga.'
                 },
                 {
                     title: 'Etapa 3 — Perda de carga (Darcy-Weisbach)',
-                    desc: 'Calcule a perda de carga na linha de alimentação.',
+                    desc: 'Selecione o material da tubulação para obter a rugosidade absoluta e calcule a perda de carga.',
                     render(state) {
                         return `
                         <form id="ex-step-form" class="space-y-3">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Diâmetro (mm)</label>
-                                    <input id="ex-D-mm2" type="number" value="${state.results.Dmm||50}" step="1" class="p-2 border rounded w-full text-sm bg-blue-50">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Velocidade (m/s)</label>
-                                    <input id="ex-v2" type="number" value="${state.results.v||2.0}" step="0.1" class="p-2 border rounded w-full text-sm bg-blue-50">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Comprimento L (m)</label>
-                                    <input id="ex-L" type="number" value="50" step="1" class="p-2 border rounded w-full text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Rugosidade ε (mm)</label>
-                                    <input id="ex-eps" type="number" value="0.046" step="0.001" class="p-2 border rounded w-full text-sm">
-                                </div>
+                            <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs grid grid-cols-2 gap-1">
+                                <span>Di = ${ExercisesModule.fmt(state.results.Dmm,2)} mm · ${state.results.schedule||''} DN${state.results.nps||''}</span>
+                                <span>v = ${ExercisesModule.fmt(state.results.v,2)} m/s · Re = ${ExercisesModule.fmt(state.results.Re,0)}</span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Material da tubulação</label>
+                                <select id="ex-material" class="p-2 border rounded w-full text-sm" data-placeholder="Selecione o material">
+                                    <option value=""></option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Rugosidade absoluta ε (mm)</label>
+                                <input id="ex-eps" type="number" step="0.0001" placeholder="preenchido ao selecionar material"
+                                    class="p-2 border rounded w-full text-sm bg-blue-50" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Comprimento L (m)</label>
+                                <input id="ex-L" type="number" value="50" step="1" class="p-2 border rounded w-full text-sm">
                             </div>
                             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-sm">Calcular Perda de Carga</button>
                         </form>`;
                     },
+                    afterRender(state) {
+                        const matSel = document.getElementById('ex-material');
+                        (ExercisesModule._compositionList || []).forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m;
+                            opt.textContent = m;
+                            matSel.appendChild(opt);
+                        });
+                        $('#ex-material').select2({ placeholder: 'Selecione o material', allowClear: true, width: '100%' });
+
+                        // On material change → fetch roughness
+                        $('#ex-material').on('change', async function () {
+                            const mat = $(this).val();
+                            document.getElementById('ex-eps').value = '';
+                            if (!mat) return;
+                            try {
+                                const details = await API.getCompositionDetails(mat);
+                                const r = details.specifications?.roughness;
+                                const roughness = (r && typeof r === 'object') ? r.value : r;
+                                if (roughness != null) {
+                                    document.getElementById('ex-eps').value = ExercisesModule.fmt(roughness, 4);
+                                }
+                            } catch (e) { /* ignore */ }
+                        });
+                    },
                     async run(vals, state) {
-                        const Dmm = parseFloat(document.getElementById('ex-D-mm2').value);
-                        const v = parseFloat(document.getElementById('ex-v2').value);
-                        const L = parseFloat(document.getElementById('ex-L').value);
+                        const Dmm = state.results.Dmm;
+                        const v   = state.results.v;
+                        const L   = parseFloat(document.getElementById('ex-L').value);
                         const eps = parseFloat(document.getElementById('ex-eps').value);
-                        const Re = state.results.Re;
-                        // 1) friction factor
+                        const Re  = state.results.Re;
+                        if (!eps || isNaN(eps)) throw new Error('Selecione o material da tubulação para obter a rugosidade.');
                         const fr = await API.calculateFrictionFactor(eps, Dmm, Re, 'ColebrookWhite');
-                        const f = fr.value;
-                        // 2) headloss
+                        const f  = fr.value;
                         const hl = await API.calculateHeadloss({ method: 'Darcy-Weisbach', pipe_length: L, diameter: Dmm, friction_factor: f, velocity: v });
                         const headloss_m = hl.value;
-                        return { headloss_m, f, Dmm2: Dmm, v2: v, L, display: `ΔP = ${ExercisesModule.fmt(headloss_m, 3)} m.c.l. · f = ${ExercisesModule.fmt(f, 5)}` };
+                        return { headloss_m, f, L, display: `ΔP = ${ExercisesModule.fmt(headloss_m, 3)} m.c.l. · f = ${ExercisesModule.fmt(f, 5)}` };
                     },
                     resultKey: 'headloss_m',
                     contextText: 'Perda de carga obtida. Esse valor (em metros de coluna de líquido) define a energia que a bomba precisa fornecer ao fluido.'
@@ -1027,13 +1113,15 @@ const ExercisesModule = {
     // Init
     // -----------------------------------------------------------------------
     async init() {
-        // Pre-load CoolProp fluid list for Select2 selects
-        try {
-            const fluids = await API.listComponents();
-            this._fluidList = Array.isArray(fluids) ? fluids.sort() : [];
-        } catch (_) {
-            this._fluidList = [];
-        }
+        // Pre-load lookup data for Select2 selects
+        const [fluids, schedules, compositions] = await Promise.allSettled([
+            API.listComponents(),
+            API.getSchedules(),
+            API.getCompositions(),
+        ]);
+        this._fluidList      = fluids.status === 'fulfilled'       && Array.isArray(fluids.value)       ? fluids.value.sort()  : [];
+        this._scheduleList   = schedules.status === 'fulfilled'    && Array.isArray(schedules.value)    ? schedules.value      : [];
+        this._compositionList = compositions.status === 'fulfilled' && Array.isArray(compositions.value) ? compositions.value   : [];
         this.renderSelector();
         this.setupBackBtn();
     },
@@ -1134,6 +1222,11 @@ const ExercisesModule = {
         // Initialize Select2 on any fluid selects rendered in this step
         if (typeof UI !== 'undefined' && UI.refreshSelect2) {
             UI.refreshSelect2('.ex-fluid-select');
+        }
+
+        // Optional per-step post-render hook (cascading selects, etc.)
+        if (typeof step.afterRender === 'function') {
+            step.afterRender(this.state);
         }
 
         const form = document.getElementById('ex-step-form');
