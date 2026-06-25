@@ -52,7 +52,7 @@ def calculate_npsh_available(payload: NPSHAvailableRequest):
             "atmospheric_pressure": payload.atmospheric_pressure,  # kgf/cm²
             "vapor_pressure": payload.vapor_pressure,              # kgf/cm²
             "density": payload.density,                          # kg/m³
-            "friction_factor": payload.friction_factor,            # m
+            "head_loss": payload.friction_factor,                # m (perdas de carga)
             "pump_inlet_velocity": payload.pump_inlet_velocity      # m/s
         }
         
@@ -76,7 +76,7 @@ def calculate_head(payload: HeadRequest):
             "velocity1": payload.velocity1,          # m/s
             "velocity2": payload.velocity2,          # m/s
             "density": payload.density,              # kg/m³
-            "friction_factor": payload.friction_factor  # m
+            "head_loss": payload.friction_factor  # m (perdas de carga)
         })
         return serialize(result)
     except Exception as exc:
