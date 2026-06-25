@@ -215,7 +215,7 @@ const FlowModule = {
             const methods = await API.getFrictionFactorMethods();
             const select = document.getElementById('friction-factor-method');
             
-            select.innerHTML = '<option value="">Select a method</option>';
+            select.innerHTML = '<option value="">Selecione um método</option>';
             
             methods.forEach(method => {
                 const option = document.createElement('option');
@@ -243,7 +243,7 @@ const FlowModule = {
             const compositions = await API.getCompositions();
             const select = document.getElementById('flow-composition-select');
             
-            select.innerHTML = '<option value="">Select a composition</option>';
+            select.innerHTML = '<option value="">Selecione uma composição</option>';
             
             compositions.forEach(composition => {
                 const option = document.createElement('option');
@@ -271,7 +271,7 @@ const FlowModule = {
             const schedules = await API.getSchedules();
             const select = document.getElementById('flow-schedule-select');
             
-            select.innerHTML = '<option value="">Select a schedule</option>';
+            select.innerHTML = '<option value="">Selecione um schedule</option>';
             
             // Check if schedules is an array or object and handle accordingly
             if (schedules) {
@@ -314,7 +314,7 @@ const FlowModule = {
             const diameters = await API.getScheduleDiameters(schedule);
             const select = document.getElementById('flow-diameter-select');
             
-            select.innerHTML = '<option value="">Select a diameter</option>';
+            select.innerHTML = '<option value="">Selecione um diâmetro</option>';
             
             // Check if diameters is an array or object and handle accordingly
             if (diameters) {
@@ -357,7 +357,7 @@ const FlowModule = {
             const shapes = await API.getHydraulicDiameterShapes();
             const select = document.getElementById('hydraulic-shape');
             
-            select.innerHTML = '<option value="">Select a shape</option>';
+            select.innerHTML = '<option value="">Selecione uma forma</option>';
             
             shapes.forEach(shape => {
                 const option = document.createElement('option');
@@ -471,21 +471,52 @@ const FlowModule = {
         try {
             UI.showLoading('#reynolds-form');
             UI.hideResult('#reynolds-result');
-            
+
             const result = await API.calculateReynolds(params);
-            
-            // Display the result
-            let html = '<h4 class="font-medium text-gray-700 mb-2">Reynolds Number</h4>';
+
+            let html = '<h4 class="font-medium text-gray-700 mb-2">Número de Reynolds</h4>';
             html += UI.generatePropertyTable(result);
-            
+
+            // Faixa de interpretação didática
+            const re = result && result.value;
+            if (re != null) {
+                let regime, chipClass, nextStep;
+                if (re < 2300) {
+                    regime = 'Laminar';
+                    chipClass = 'regime-laminar';
+                    nextStep = 'No regime laminar o fator de atrito é determinado analiticamente: <strong>f = 64 / Re</strong>. Não é necessário usar Colebrook-White.';
+                } else if (re < 4000) {
+                    regime = 'Transição';
+                    chipClass = 'regime-transicao';
+                    nextStep = 'O regime de transição é instável. Considere alterar velocidade ou diâmetro para sair dessa faixa.';
+                } else {
+                    regime = 'Turbulento';
+                    chipClass = 'regime-turbulento';
+                    nextStep = 'Use o módulo <strong>Escoamento → Fator de atrito</strong> para calcular <em>f</em> pela correlação de Colebrook-White (ou Swamee-Jain).';
+                }
+                html += `
+                    <div class="interpretation-strip">
+                        <span class="regime-chip ${chipClass}">${regime}</span>
+                        <strong>Re = ${re.toFixed(0)}</strong> — ${nextStep}
+                    </div>`;
+            }
+
             UI.showResult('#reynolds-result', html);
-            
-            // Optionally update the reynolds input in the friction factor form
-            if (result.value) {
-                document.getElementById('reynolds-number').value = result.value.toFixed(2);
+
+            const reVal = result && result.value != null ? Number(result.value).toFixed(0) : '—';
+            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
+                module: 'Escoamento',
+                operation: 'Número de Reynolds',
+                inputs: `D = ${params.characteristic_diameter || '—'} · V = ${params.velocity || '—'}`,
+                summary: `Re = ${reVal}`,
+            }}));
+
+            // Preenche o campo Reynolds no formulário de Fator de atrito
+            if (re != null) {
+                document.getElementById('reynolds-number').value = re.toFixed(2);
             }
         } catch (error) {
-            UI.showError('Error calculating Reynolds number', error);
+            UI.showError('Erro ao calcular Reynolds', error);
         } finally {
             UI.hideLoading('#reynolds-form');
         }

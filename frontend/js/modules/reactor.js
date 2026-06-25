@@ -864,6 +864,13 @@ const ReactorModule = {
             html += UI.generatePropertyTable(result);
             
             UI.showResult(`#${reactorType}-result`, html);
+
+            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
+                module: 'Reatores',
+                operation: `${reactorType.toUpperCase()} — ${inputType}`,
+                inputs: `k = ${rateConstant}`,
+                summary: 'Ver resultado acima',
+            }}));
         } catch (error) {
             UI.showError(`Error calculating ${reactorType.toUpperCase()}`, error);
         } finally {

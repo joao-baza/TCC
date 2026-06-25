@@ -4,14 +4,53 @@
  */
 
 const UI = {
-    /**
-     * Initialize Select2 for all select elements with the select2-input class
-     */
-    initializeSelect2() {
-        $('.select2-input').select2({
+    SELECT2_DEFAULT_PLACEHOLDER: 'Selecione uma opção',
+
+    getSelect2Language() {
+        return {
+            noResults: () => 'Nenhum resultado encontrado',
+            searching: () => 'Buscando…',
+            inputTooShort: (args) => `Digite ${args.minimum - args.input.length} ou mais caracteres`,
+            loadingMore: () => 'Carregando mais resultados…',
+            maximumSelected: (args) => `Você só pode selecionar ${args.maximum} item(ns)`,
+            removeAllItems: () => 'Remover todos os itens',
+            errorLoading: () => 'Não foi possível carregar os resultados'
+        };
+    },
+
+    getSelect2Options(placeholder = this.SELECT2_DEFAULT_PLACEHOLDER) {
+        return {
             width: '100%',
-            placeholder: 'Select an option'
+            placeholder,
+            language: this.getSelect2Language()
+        };
+    },
+
+    /**
+     * Initialize Select2 for select elements with the select2-input class.
+     * Destroys existing instances first to avoid duplicate wrappers and stale config.
+     */
+    initializeSelect2(selector = '.select2-input') {
+        $(selector).each(function initSelect2Element() {
+            const el = this;
+            const $el = $(el);
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                $el.select2('destroy');
+            }
+
+            const placeholder = el.dataset.placeholder || UI.SELECT2_DEFAULT_PLACEHOLDER;
+
+            $el.select2({
+                ...UI.getSelect2Options(placeholder),
+                allowClear: !el.multiple
+            });
         });
+    },
+
+    /** Re-apply Select2 after options are loaded dynamically. */
+    refreshSelect2(selector) {
+        this.initializeSelect2(selector);
     },
 
     /**
@@ -181,56 +220,125 @@ const UI = {
     },
 
     /**
-     * Set up tab navigation
+     * Map de tab-id para função de inicialização do módulo (lazy-load)
+     */
+    _moduleInitMap: {
+        'piping-content':     () => window.PipingModule     && window.PipingModule.init(),
+        'sizing-content':     () => window.SizingModule     && window.SizingModule.init(),
+        'flow-content':       () => window.FlowModule       && window.FlowModule.init(),
+        'pump-content':       () => window.PumpModule       && window.PumpModule.init(),
+        'reactor-content':    () => window.ReactorModule    && window.ReactorModule.init(),
+        'components-content': () => window.ComponentsModule && window.ComponentsModule.init(),
+        'balance-content':    () => window.BalanceModule    && window.BalanceModule.init(),
+        'history-content':   () => window.HistoryModule  && window.HistoryModule.render(),
+        'glossary-content':  () => window.GlossaryModule && window.GlossaryModule.render(),
+    },
+
+    _initialized: new Set(),
+
+    /**
+     * Ativa um tab/painel pelo id, faz lazy-init do módulo e atualiza o hash.
+     */
+    activateTab(tabId) {
+        // Esconde todos os painéis
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.add('hidden');
+            pane.classList.remove('active');
+        });
+
+        // Atualiza estado ativo na sidebar
+        document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
+            const isActive = item.getAttribute('data-tab') === tabId;
+            item.classList.toggle('active', isActive);
+            if (isActive) {
+                item.setAttribute('aria-current', 'page');
+            } else {
+                item.removeAttribute('aria-current');
+            }
+        });
+
+        // Exibe o painel alvo
+        const pane = document.getElementById(tabId);
+        if (pane) {
+            pane.classList.remove('hidden');
+            pane.classList.add('active');
+        }
+
+        // Lazy-init do módulo (apenas uma vez por módulo)
+        if (!this._initialized.has(tabId) && this._moduleInitMap[tabId]) {
+            this._moduleInitMap[tabId]();
+            this._initialized.add(tabId);
+            // Re-inicializa Select2 nos novos selects do módulo
+            this.initializeSelect2();
+        }
+
+        // Atualiza o hash sem rolar a página
+        if (tabId !== 'home-content') {
+            history.replaceState(null, '', '#' + tabId);
+        } else {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+
+        // Fecha o drawer mobile se estiver aberto
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+            overlay && overlay.classList.remove('visible');
+            const toggle = document.getElementById('sidebarToggle');
+            toggle && toggle.setAttribute('aria-expanded', 'false');
+        }
+    },
+
+    /**
+     * Configura a sidebar de navegação com lazy-load por módulo e hash routing.
+     */
+    setupSidebar() {
+        const self = this;
+
+        // Delegate em todos os elementos [data-tab] (sidebar + home cards)
+        document.addEventListener('click', function (e) {
+            const trigger = e.target.closest('[data-tab]');
+            if (!trigger) return;
+            e.preventDefault();
+            const tabId = trigger.getAttribute('data-tab');
+            if (tabId) self.activateTab(tabId);
+        });
+
+        // Drawer mobile — botão hambúrguer
+        const toggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (toggle && sidebar && overlay) {
+            toggle.addEventListener('click', function () {
+                const isOpen = sidebar.classList.toggle('open');
+                overlay.classList.toggle('visible', isOpen);
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+                toggle.setAttribute('aria-expanded', 'false');
+            });
+        }
+
+        // Hash routing: abre o módulo indicado pela URL (ex: #piping-content)
+        const hash = window.location.hash.replace('#', '');
+        const validTabs = ['home-content', 'piping-content', 'sizing-content', 'flow-content',
+                           'pump-content', 'reactor-content', 'components-content', 'balance-content',
+                           'history-content', 'glossary-content'];
+        if (hash && validTabs.includes(hash)) {
+            self.activateTab(hash);
+        }
+        // Caso contrário, o HTML já tem home-content como active — não faz nada
+    },
+
+    /**
+     * @deprecated Use setupSidebar() — mantido para compatibilidade.
      */
     setupTabs() {
-        // Remover os event listeners existentes para evitar duplicações
-        document.querySelectorAll('[data-tab]').forEach(button => {
-            const newButton = button.cloneNode(true);
-            if (button.parentNode) {
-                button.parentNode.replaceChild(newButton, button);
-            }
-        });
-        
-        // Adicionar os event listeners novamente
-        const tabButtons = document.querySelectorAll('[data-tab]');
-        
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove active class from all tab buttons
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                
-                // Add active class to clicked button
-                button.classList.add('active');
-                
-                // Hide all tab panes
-                document.querySelectorAll('.tab-pane').forEach(pane => {
-                    pane.classList.add('hidden');
-                    pane.classList.remove('active');
-                });
-                
-                // Show the target tab pane
-                const targetId = button.getAttribute('data-tab');
-                const targetPane = document.getElementById(targetId);
-                if (targetPane) {
-                    targetPane.classList.remove('hidden');
-                    targetPane.classList.add('active');
-                    
-                    // Auto-focus no primeiro input disponível
-                    const firstInput = targetPane.querySelector('input:not([disabled])');
-                    if (firstInput) {
-                        setTimeout(() => firstInput.focus(), 100);
-                    }
-                }
-            });
-        });
-        
-        if (!document.querySelector('.tab-pane.active')) {
-            const firstTab = document.querySelector('[data-tab]');
-            if (firstTab) {
-                firstTab.click();
-            }
-        }
+        this.setupSidebar();
     },
 
     /**
@@ -274,8 +382,7 @@ const UI = {
         
         // Initialize Select2 for the new select element
         $(fittingSelect).select2({
-            width: '100%',
-            placeholder: 'Select a fitting'
+            ...UI.getSelect2Options('Selecione uma conexão')
         });
         
         return fittingRow;
@@ -409,8 +516,7 @@ const UI = {
         
         // Initialize Select2 for the new select element
         $(componentSelect).select2({
-            width: '100%',
-            placeholder: 'Select a component'
+            ...UI.getSelect2Options('Selecione um componente')
         });
         
         return componentRow;

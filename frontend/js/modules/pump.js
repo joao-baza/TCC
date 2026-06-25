@@ -175,7 +175,7 @@ const PumpModule = {
                 manometric_pressure: parseFloat(manometricPressure),
                 atmospheric_pressure: parseFloat(atmosphericPressure),
                 vapor_pressure: parseFloat(vaporPressure),
-                specific_mass: parseFloat(specificMass),
+                density: parseFloat(specificMass),
                 friction_factor: parseFloat(frictionFactor),
                 pump_inlet_velocity: parseFloat(pumpInletVelocity)
             };
@@ -212,7 +212,7 @@ const PumpModule = {
                 elevation2: parseFloat(elevation2),
                 velocity1: parseFloat(velocity1),
                 velocity2: parseFloat(velocity2),
-                specific_mass: parseFloat(specificMass),
+                density: parseFloat(specificMass),
                 friction_factor: parseFloat(frictionFactor)
             };
             
@@ -230,7 +230,7 @@ const PumpModule = {
             const methods = await API.getHeadlossMethods();
             const select = document.getElementById('headloss-method');
             
-            select.innerHTML = '<option value="">Select a method</option>';
+            select.innerHTML = '<option value="">Selecione um método</option>';
             
             methods.forEach(method => {
                 const option = document.createElement('option');
@@ -258,7 +258,7 @@ const PumpModule = {
             const compositions = await API.getCompositions();
             const select = document.getElementById('material-composition-select');
             
-            select.innerHTML = '<option value="">Select a material</option>';
+            select.innerHTML = '<option value="">Selecione um material</option>';
             
             compositions.forEach(composition => {
                 const option = document.createElement('option');
@@ -269,7 +269,7 @@ const PumpModule = {
             
             // Initialize Select2
             $('#material-composition-select').select2({
-                placeholder: "Select a material",
+                ...UI.getSelect2Options('Selecione um material'),
                 allowClear: true
             });
         } catch (error) {
@@ -307,7 +307,14 @@ const PumpModule = {
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#headloss-result', html);
-            
+
+            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
+                module: 'Bombas',
+                operation: 'Perda de Carga',
+                inputs: `L = ${params.pipe_length} m · D = ${params.diameter} mm · método = ${params.method}`,
+                summary: 'Ver resultado acima',
+            }}));
+
             // Optionally update the friction factor input in the head form
             if (result.head_loss && result.head_loss.value) {
                 const headFrictionInput = document.getElementById('head-friction-factor');
@@ -338,6 +345,13 @@ const PumpModule = {
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#npsh-result', html);
+
+            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
+                module: 'Bombas',
+                operation: 'NPSH Disponível',
+                inputs: `P_atm = ${params.atmospheric_pressure} · ρ = ${params.specific_mass} kg/m³`,
+                summary: 'Ver resultado acima',
+            }}));
         } catch (error) {
             UI.showError('Error calculating NPSH available', error);
         } finally {
@@ -361,6 +375,13 @@ const PumpModule = {
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#head-result', html);
+
+            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
+                module: 'Bombas',
+                operation: 'Head da Bomba',
+                inputs: `ρ = ${params.specific_mass} kg/m³ · hf = ${params.friction_factor} m`,
+                summary: 'Ver resultado acima',
+            }}));
         } catch (error) {
             UI.showError('Error calculating head', error);
         } finally {

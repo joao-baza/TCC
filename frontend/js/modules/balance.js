@@ -716,6 +716,13 @@ const BalanceModule = {
             
             UI.hideLoading('#balance-content');
             UI.showResult('#balance-result', resultHtml);
+
+            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
+                module: 'Balanço de Massa',
+                operation: 'Balanço de Massa',
+                inputs: `${components.length} componentes · ${streams.length} correntes`,
+                summary: `${Object.keys(result.results).length} correntes calculadas`,
+            }}));
         } catch (error) {
             UI.hideLoading('#balance-content');
             UI.showError('Error', error);

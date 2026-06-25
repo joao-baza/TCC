@@ -64,7 +64,16 @@ const SizingModule = {
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#calculated-diameter-result', html);
-            
+
+            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
+                module: 'Dimensionamento',
+                operation: 'Diâmetro Calculado',
+                inputs: `Q = ${flowRate} m³/s · V = ${velocity} m/s`,
+                summary: result && result.value != null
+                    ? `D = ${Number(result.value).toFixed(4)} m`
+                    : 'Ver resultado acima',
+            }}));
+
             // Update the calculated diameter input in the Real Diameter form
             if (result && result.value) {
                 // Get the diameter value, ensuring we handle both object format and direct value
@@ -95,7 +104,7 @@ const SizingModule = {
             const schedules = await API.getSchedules();
             const select = document.getElementById('real-diameter-schedule');
             
-            select.innerHTML = '<option value="">Select a schedule</option>';
+            select.innerHTML = '<option value="">Selecione um schedule</option>';
             
             schedules.forEach(schedule => {
                 const option = document.createElement('option');
@@ -130,6 +139,13 @@ const SizingModule = {
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#real-diameter-result', html);
+
+            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
+                module: 'Dimensionamento',
+                operation: 'Diâmetro Real',
+                inputs: `D_calc = ${calculatedDiameter} mm · Schedule = ${schedule}`,
+                summary: result ? 'Ver resultado acima' : '—',
+            }}));
         } catch (error) {
             UI.showError('Error getting real diameter', error);
         } finally {

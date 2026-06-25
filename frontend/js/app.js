@@ -1,22 +1,17 @@
-/**
- * Main Application JS for Chemical Engineering Calculator
- */
-
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize UI
-    UI.setupTabs();
+    // Configura sidebar com navegação, lazy-load por módulo e hash routing
+    UI.setupSidebar();
+
+    // Select2 nos selects já visíveis (home screen não tem selects)
     UI.initializeSelect2();
 
-    // Initialize all modules (synchronous; scripts already loaded above)
-    if (window.PipingModule) PipingModule.init();
-    if (window.SizingModule) SizingModule.init();
-    if (window.FlowModule) FlowModule.init();
-    if (window.PumpModule) PumpModule.init();
-    if (window.ReactorModule) ReactorModule.init();
-    if (window.ComponentsModule) ComponentsModule.init();
-    if (window.BalanceModule) BalanceModule.init();
+    // Modo aula: acordeões, "Carregar exemplo" e validação inline
+    if (window.DidaticModule) DidaticModule.init();
 
-    // Global error handler for API calls
+    // Histórico de cálculos (localStorage)
+    if (window.HistoryModule) HistoryModule.init();
+
+    // Handler global de erros de API
     window.addEventListener('unhandledrejection', function (event) {
         console.error('Unhandled promise rejection:', event.reason);
         UI.showError('Erro', (event.reason && event.reason.message) || 'Ocorreu um erro inesperado');
