@@ -215,6 +215,12 @@ const API = {
         });
     },
 
+    async getPropertyByState(fluid, input1, value1, input2, value2, output) {
+        return this.call('/components/props-by-state', 'POST', {
+            fluid, input1, value1: parseFloat(value1), input2, value2: parseFloat(value2), output
+        });
+    },
+
     async getMixtureProperties(fluidFractions, temperature, pressure, properties = null) {
         return this.call('/components/mixture-properties', 'POST', {
             fluid_fractions: fluidFractions,

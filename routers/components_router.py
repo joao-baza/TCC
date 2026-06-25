@@ -1,6 +1,7 @@
+import CoolProp.CoolProp as CP
 from fastapi import APIRouter, HTTPException
 from models import Components
-from schemas import FluidRequest, PropertyRequest, MixturePropertiesRequest
+from schemas import FluidRequest, PropertyRequest, MixturePropertiesRequest, PropsStateRequest
 
 router = APIRouter(prefix="/components", tags=["Components"])
 components_obj = Components()
@@ -63,6 +64,28 @@ def get_property(payload: PropertyRequest):
                 "value": prop,
                 "units": "dimensionless"
             }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+PROPS_UNITS_MAP = {
+    "H": "J/kg", "S": "J/(kg·K)", "D": "kg/m³", "T": "K", "P": "Pa",
+    "C": "J/(kg·K)", "V": "Pa·s", "L": "W/(m·K)", "Q": "dimensionless",
+    "U": "J/kg", "A": "m/s", "Z": "dimensionless",
+}
+
+
+@router.post("/props-by-state")
+def get_props_by_state(payload: PropsStateRequest):
+    try:
+        value = CP.PropsSI(
+            payload.output,
+            payload.input1, payload.value1,
+            payload.input2, payload.value2,
+            payload.fluid,
+        )
+        units = PROPS_UNITS_MAP.get(payload.output, "SI")
+        return {"value": value, "units": units}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

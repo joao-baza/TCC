@@ -316,3 +316,12 @@ class MixturePropertiesRequest(BaseModel):
 class FluidRequest(BaseModel):
     fluid: str = Field(..., description="Name of the fluid")
 
+
+class PropsStateRequest(BaseModel):
+    fluid: str = Field(..., description="Name of the fluid")
+    input1: str = Field(..., description="First state variable key (CoolProp format, e.g. 'P', 'T', 'S', 'Q')")
+    value1: float = Field(..., description="Value of the first state variable (SI units)")
+    input2: str = Field(..., description="Second state variable key (CoolProp format)")
+    value2: float = Field(..., description="Value of the second state variable (SI units)")
+    output: str = Field(..., description="Output property key (CoolProp format, e.g. 'H', 'S', 'T', 'D')")
+
