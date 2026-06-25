@@ -17,6 +17,16 @@ const ExercisesModule = {
     _fluidList: [],
     _scheduleList: [],
     _compositionList: [],
+    _waterCritProps: null,
+
+    /** Retorna rótulo de fase a partir do valor de Q (qualidade de vapor CoolProp). */
+    _phaseLabel(Q) {
+        if (Q == null || isNaN(Q) || Q < -10) return 'fase única';
+        if (Q < 0 || Q > 1) return 'fase única';
+        if (Q <= 0.01) return 'líquido saturado';
+        if (Q >= 0.99) return 'vapor saturado';
+        return `bifásico (X = ${ExercisesModule.fmt(Q, 3)})`;
+    },
 
     /** Render a Select2-ready fluid select. `disabled` = read-only (step 2+). */
     _fluidSelect(id, selectedValue, disabled = false) {
@@ -91,8 +101,15 @@ const ExercisesModule = {
                         const fluid = document.getElementById('ex-fluid').value.trim();
                         const t1 = parseFloat(document.getElementById('ex-t1').value);
                         const p1 = parseFloat(document.getElementById('ex-p1').value);
-                        const r = await API.getProperty(fluid, 'H', t1, p1);
-                        return { fluid, t1, p1, h1: r.value, display: `h₁ = ${ExercisesModule.fmt(r.value, 1)} J/kg` };
+                        const [rH, rQ, rCp] = await Promise.all([
+                            API.getProperty(fluid, 'H', t1, p1),
+                            API.getProperty(fluid, 'Q', t1, p1).catch(() => ({ value: null })),
+                            API.getProperty(fluid, 'C', t1, p1).catch(() => ({ value: null })),
+                        ]);
+                        const phase1 = ExercisesModule._phaseLabel(rQ.value);
+                        const cpStr = rCp.value != null ? ` · cp = ${ExercisesModule.fmt(rCp.value, 1)} J/kg·K` : '';
+                        return { fluid, t1, p1, h1: rH.value, q1: rQ.value, cp1: rCp.value,
+                            display: `h₁ = ${ExercisesModule.fmt(rH.value, 1)} J/kg · Fase: ${phase1}${cpStr}` };
                     },
                     resultKey: 'h1',
                     contextText: 'Entalpia de entrada obtida. Agora precisamos da entalpia na saída para calcular a variação de energia.'
@@ -124,8 +141,16 @@ const ExercisesModule = {
                         const fluid = state.results.fluid || 'n-Propane';
                         const t2 = parseFloat(document.getElementById('ex-t2').value);
                         const p2 = parseFloat(document.getElementById('ex-p2').value);
-                        const r = await API.getProperty(fluid, 'H', t2, p2);
-                        return { h2: r.value, display: `h₂ = ${ExercisesModule.fmt(r.value, 1)} J/kg` };
+                        const [rH, rQ] = await Promise.all([
+                            API.getProperty(fluid, 'H', t2, p2),
+                            API.getProperty(fluid, 'Q', t2, p2).catch(() => ({ value: null })),
+                        ]);
+                        const phase2 = ExercisesModule._phaseLabel(rQ.value);
+                        const phase1 = ExercisesModule._phaseLabel(state.results.q1);
+                        const mudou = phase1 !== phase2;
+                        const aviso = mudou ? ` ⚠️ Mudança de fase: ${phase1} → ${phase2}` : '';
+                        return { h2: rH.value, q2: rQ.value,
+                            display: `h₂ = ${ExercisesModule.fmt(rH.value, 1)} J/kg · Fase: ${phase2}${aviso}` };
                     },
                     resultKey: 'h2',
                     contextText: 'Entalpia de saída obtida. Com Δh = h₂ − h₁ e a vazão mássica, calculamos a potência do trocador.'
@@ -196,21 +221,22 @@ const ExercisesModule = {
                         const fluid = document.getElementById('ex-fluid').value.trim();
                         const T = parseFloat(document.getElementById('ex-T').value);
                         const P = parseFloat(document.getElementById('ex-P').value);
-                        const [rho, mu, pv] = await Promise.all([
+                        const [rho, mu, rCp, rL] = await Promise.all([
                             API.getProperty(fluid, 'D', T, P),
                             API.getProperty(fluid, 'V', T, P),
-                            API.getProperty(fluid, 'P', T, 0).catch(() => ({ value: null }))
+                            API.getProperty(fluid, 'C', T, P).catch(() => ({ value: null })),
+                            API.getProperty(fluid, 'L', T, P).catch(() => ({ value: null })),
                         ]);
-                        // get vapor pressure via Q=0 saturation
-                        let pvapVal = 47400; // default for water at 80C
+                        let pvapVal = 47400;
                         try {
                             const pvr = await API.getPropertyByState(fluid, 'T', T, 'Q', 0, 'P');
                             pvapVal = pvr.value;
                         } catch (e) { /* use default */ }
+                        const cpVal = rCp.value, kVal = rL.value;
                         return {
                             fluid, T, P,
-                            rho: rho.value, mu: mu.value, pvap: pvapVal,
-                            display: `ρ = ${ExercisesModule.fmt(rho.value, 2)} kg/m³ · μ = ${ExercisesModule.fmt(mu.value, 6)} Pa·s`
+                            rho: rho.value, mu: mu.value, pvap: pvapVal, cp: cpVal, k_cond: kVal,
+                            display: `ρ = ${ExercisesModule.fmt(rho.value, 2)} kg/m³ · μ = ${ExercisesModule.fmt(mu.value, 6)} Pa·s · cp = ${ExercisesModule.fmt(cpVal, 1)} J/kg·K`
                         };
                     },
                     resultKey: 'rho',
@@ -225,6 +251,12 @@ const ExercisesModule = {
                             <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs grid grid-cols-2 gap-1">
                                 <span>ρ = ${ExercisesModule.fmt(state.results.rho,2)} kg/m³</span>
                                 <span>μ = ${ExercisesModule.fmt(state.results.mu,7)} Pa·s</span>
+                                ${state.results.cp != null ? `<span>cp = ${ExercisesModule.fmt(state.results.cp,1)} J/kg·K</span>` : ''}
+                                ${state.results.k_cond != null ? `<span>k = ${ExercisesModule.fmt(state.results.k_cond,4)} W/m·K</span>` : ''}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Vazão volumétrica Q (m³/s)</label>
+                                <input id="ex-flowrate" type="number" value="0.002" step="0.0001" min="0.0001" class="p-2 border rounded w-full text-sm">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
@@ -304,13 +336,20 @@ const ExercisesModule = {
                         const mu  = state.results.mu;
                         const Dmm = parseFloat(document.getElementById('ex-D-mm').value);
                         const v   = parseFloat(document.getElementById('ex-v').value);
+                        const flowrate = parseFloat(document.getElementById('ex-flowrate').value);
                         const schedule = $('#ex-schedule').val() || '';
                         const nps      = $('#ex-nps').val() || '';
                         if (!Dmm || isNaN(Dmm)) throw new Error('Selecione o schedule e o diâmetro nominal para obter o diâmetro interno.');
-                        const r = await API.calculateReynolds({ characteristic_diameter: Dmm, velocity: v, density: rho, dynamic_viscosity: mu });
-                        const Re = r.value;
+                        const [rRe, rDcalc] = await Promise.all([
+                            API.calculateReynolds({ characteristic_diameter: Dmm, velocity: v, density: rho, dynamic_viscosity: mu }),
+                            flowrate > 0 ? API.calculateDiameter(flowrate, v) : Promise.resolve(null),
+                        ]);
+                        const Re = rRe.value;
                         const regime = ExercisesModule.flowRegime(Re);
-                        return { Re, regime, Dmm, v, schedule, nps, display: `Re = ${ExercisesModule.fmt(Re, 0)} (${regime}) · Di = ${ExercisesModule.fmt(Dmm,2)} mm` };
+                        const Di_calc = rDcalc ? rDcalc.value * 1000 : null;
+                        const calcStr = Di_calc != null ? ` · Di_calc = ${ExercisesModule.fmt(Di_calc,1)} mm` : '';
+                        return { Re, regime, Dmm, v, flowrate, schedule, nps, Di_calc,
+                            display: `Re = ${ExercisesModule.fmt(Re, 0)} (${regime}) · Di_real = ${ExercisesModule.fmt(Dmm,2)} mm${calcStr}` };
                     },
                     resultKey: 'Re',
                     contextText: 'Regime de escoamento determinado. Com Re e a rugosidade da tubulação, calculamos o fator de atrito e a perda de carga.'
@@ -516,6 +555,10 @@ const ExercisesModule = {
                     render(state) {
                         return `
                         <form id="ex-step-form" class="space-y-3">
+                            ${ExercisesModule._waterCritProps ? `
+                            <div class="bg-gray-50 border border-gray-200 rounded p-2 text-xs mb-2">
+                                <strong>Água — Ponto crítico:</strong> Tc = ${ExercisesModule.fmt(ExercisesModule._waterCritProps.critical_temperature - 273.15, 1)} °C · Pc = ${ExercisesModule.fmt(ExercisesModule._waterCritProps.critical_pressure / 1e6, 2)} MPa
+                            </div>` : ''}
                             <div class="bg-yellow-50 border border-yellow-200 rounded p-3 text-xs mb-2">
                                 <strong>Estado 1</strong>: vapor superaquecido saindo da caldeira e entrando na turbina.
                             </div>
@@ -570,11 +613,21 @@ const ExercisesModule = {
                     async run(vals, state) {
                         const P2 = parseFloat(document.getElementById('ex-P2').value);
                         const s1 = state.results.s1;
-                        const r = await API.getPropertyByState('Water', 'P', P2, 'S', s1, 'H');
-                        return { P2, h2: r.value, display: `h₂ = ${ExercisesModule.fmt(r.value,1)} J/kg` };
+                        const [rH, rQ] = await Promise.all([
+                            API.getPropertyByState('Water', 'P', P2, 'S', s1, 'H'),
+                            API.getPropertyByState('Water', 'P', P2, 'S', s1, 'Q').catch(() => ({ value: null })),
+                        ]);
+                        const X2 = rQ.value;
+                        let qualStr = '';
+                        if (X2 != null && X2 >= 0 && X2 <= 1) {
+                            qualStr = ` · X₂ = ${ExercisesModule.fmt(X2, 3)}`;
+                            if (X2 < 0.85) qualStr += ' ⚠️ Erosão de pás (X < 0,85)';
+                        }
+                        return { P2, h2: rH.value, x2: X2,
+                            display: `h₂ = ${ExercisesModule.fmt(rH.value,1)} J/kg${qualStr}` };
                     },
                     resultKey: 'h2',
-                    contextText: 'Saída da turbina calculada. O vapor úmido entra no condensador e perde calor até virar líquido saturado (Q=0).'
+                    contextText: 'Saída da turbina calculada. Qualidade X₂ < 0,85 indica risco de erosão de pás — em projetos reais exige reaquecimento. O vapor úmido entra no condensador.'
                 },
                 {
                     title: 'Etapa 3 — Estado 3: Saída do condensador (líquido saturado)',
@@ -598,14 +651,18 @@ const ExercisesModule = {
                     },
                     async run(vals, state) {
                         const P3 = state.results.P2 || 10000;
-                        const [rH, rS] = await Promise.all([
+                        const [rH, rS, rT] = await Promise.all([
                             API.getPropertyByState('Water', 'P', P3, 'Q', 0, 'H'),
-                            API.getPropertyByState('Water', 'P', P3, 'Q', 0, 'S')
+                            API.getPropertyByState('Water', 'P', P3, 'Q', 0, 'S'),
+                            API.getPropertyByState('Water', 'P', P3, 'Q', 0, 'T').catch(() => ({ value: null })),
                         ]);
-                        return { h3: rH.value, s3: rS.value, P3, display: `h₃ = ${ExercisesModule.fmt(rH.value,1)} J/kg · s₃ = ${ExercisesModule.fmt(rS.value,2)} J/kg/K` };
+                        const T_sat_C = rT.value != null ? rT.value - 273.15 : null;
+                        const satStr = T_sat_C != null ? ` · T_cond = ${ExercisesModule.fmt(T_sat_C, 1)} °C` : '';
+                        return { h3: rH.value, s3: rS.value, P3, T_sat: rT.value,
+                            display: `h₃ = ${ExercisesModule.fmt(rH.value,1)} J/kg · s₃ = ${ExercisesModule.fmt(rS.value,2)} J/kg/K${satStr}` };
                     },
                     resultKey: 'h3',
-                    contextText: 'Estado 3 calculado. A bomba comprime o líquido isentropicamente de P₂ para P₁ (s₄ = s₃).'
+                    contextText: 'Estado 3 calculado. A temperatura de condensação mostrada é a temperatura de saturação do vapor à pressão P₂. A bomba comprime o líquido isentropicamente de P₂ para P₁.'
                 },
                 {
                     title: 'Etapa 4 — Estado 4: Saída da bomba (compressão isentrópica)',
@@ -657,23 +714,22 @@ const ExercisesModule = {
                         </form>`;
                     },
                     async run(vals, state) {
-                        const { h1, h2, h3, h4 } = state.results;
+                        const { h1, h2, h3, h4, T1, T_sat } = state.results;
                         const W_turb = h1 - h2;
                         const W_bomb = h4 - h3;
-                        const W_liq = W_turb - W_bomb;
-                        const Q_in = h1 - h4;
-                        const eta = (W_liq / Q_in) * 100;
-                        const lines = [
-                            `W_turbina = ${ExercisesModule.fmt(W_turb/1000,2)} kJ/kg`,
-                            `W_bomba = ${ExercisesModule.fmt(W_bomb/1000,2)} kJ/kg`,
-                            `W_líquido = ${ExercisesModule.fmt(W_liq/1000,2)} kJ/kg`,
-                            `Q_caldeira = ${ExercisesModule.fmt(Q_in/1000,2)} kJ/kg`,
-                            `η = ${ExercisesModule.fmt(eta,1)} %`
-                        ];
-                        return { eta, display: `η = ${ExercisesModule.fmt(eta,1)} %` };
+                        const W_liq  = W_turb - W_bomb;
+                        const Q_in   = h1 - h4;
+                        const eta    = (W_liq / Q_in) * 100;
+                        let eta_carnot = null;
+                        if (T1 && T_sat) eta_carnot = (1 - T_sat / T1) * 100;
+                        const carnotStr = eta_carnot != null
+                            ? ` · η_Carnot = ${ExercisesModule.fmt(eta_carnot,1)} %`
+                            : '';
+                        return { eta, eta_carnot,
+                            display: `η = ${ExercisesModule.fmt(eta,1)} %${carnotStr}` };
                     },
                     resultKey: 'eta',
-                    contextText: 'Ciclo de Rankine concluído! A eficiência típica está entre 30–45%. Experimente alterar P₁ (pressão da caldeira) ou T₁ para ver o impacto na eficiência.'
+                    contextText: 'Ciclo de Rankine concluído! η_Carnot é o limite teórico de Carnot operando entre as mesmas temperaturas. A razão η/η_Carnot mede a qualidade do ciclo real.'
                 }
             ]
         },
@@ -729,8 +785,10 @@ const ExercisesModule = {
                         const Xint = parseFloat(document.getElementById('ex-Xint').value);
                         const Xfin = parseFloat(document.getElementById('ex-Xfin').value);
                         const r = await API.calculatePFR({ ...ExercisesModule._reactorBase(), input_type: 'conversion_and_kinetics', conversion: Xint, recycling_ratio: 0 });
-                        const V_PFR1 = r.volume.value;
-                        return { V_PFR1, Xint, Xfin, display: `V_PFR₁ = ${ExercisesModule.fmt(V_PFR1,5)} m³` };
+                        const V_PFR1   = r.volume.value;
+                        const tau_PFR1 = r.residence_time?.value ?? null;
+                        const tauStr   = tau_PFR1 != null ? ` · τ = ${ExercisesModule.fmt(tau_PFR1,1)} s` : '';
+                        return { V_PFR1, Xint, Xfin, tau_PFR1, display: `V_PFR₁ = ${ExercisesModule.fmt(V_PFR1,5)} m³${tauStr}` };
                     },
                     resultKey: 'V_PFR1',
                     contextText: 'Volume do primeiro PFR calculado. Agora calculamos o CSTR que finaliza de X_int até X_final (configuração PFR→CSTR).'
@@ -751,10 +809,14 @@ const ExercisesModule = {
                     async run(vals, state) {
                         const { Xint, Xfin, V_PFR1 } = state.results;
                         const r = await API.calculateCSTR({ ...ExercisesModule._reactorBase(), input_type: 'conversion_and_kinetics', conversion: Xfin });
-                        const V_cstr_total = r.volume.value;
-                        const V_CSTR2 = V_cstr_total * (Xfin - Xint) / Xfin;
-                        const V_total_1 = V_PFR1 + V_CSTR2;
-                        return { V_CSTR2, V_total_PFR_CSTR: V_total_1, display: `V_CSTR₂ = ${ExercisesModule.fmt(V_CSTR2,5)} m³ · V_total = ${ExercisesModule.fmt(V_total_1,5)} m³` };
+                        const V_cstr_total  = r.volume.value;
+                        const tau_cstr_full = r.residence_time?.value ?? null;
+                        const V_CSTR2       = V_cstr_total * (Xfin - Xint) / Xfin;
+                        const tau_CSTR2     = tau_cstr_full != null ? tau_cstr_full * (Xfin - Xint) / Xfin : null;
+                        const V_total_1     = V_PFR1 + V_CSTR2;
+                        const tauStr        = tau_CSTR2 != null ? ` · τ_CSTR₂ = ${ExercisesModule.fmt(tau_CSTR2,1)} s` : '';
+                        return { V_CSTR2, V_total_PFR_CSTR: V_total_1, tau_CSTR2,
+                            display: `V_CSTR₂ = ${ExercisesModule.fmt(V_CSTR2,5)} m³ · V_total = ${ExercisesModule.fmt(V_total_1,5)} m³${tauStr}` };
                     },
                     resultKey: 'V_total_PFR_CSTR',
                     contextText: 'Configuração PFR→CSTR calculada. Agora calculamos a configuração inversa (CSTR→PFR) para comparar.'
@@ -774,8 +836,10 @@ const ExercisesModule = {
                     async run(vals, state) {
                         const Xint = state.results.Xint;
                         const r = await API.calculateCSTR({ ...ExercisesModule._reactorBase(), input_type: 'conversion_and_kinetics', conversion: Xint });
-                        const V_CSTR1 = r.volume.value;
-                        return { V_CSTR1, display: `V_CSTR₁ = ${ExercisesModule.fmt(V_CSTR1,5)} m³` };
+                        const V_CSTR1   = r.volume.value;
+                        const tau_CSTR1 = r.residence_time?.value ?? null;
+                        const tauStr    = tau_CSTR1 != null ? ` · τ = ${ExercisesModule.fmt(tau_CSTR1,1)} s` : '';
+                        return { V_CSTR1, tau_CSTR1, display: `V_CSTR₁ = ${ExercisesModule.fmt(V_CSTR1,5)} m³${tauStr}` };
                     },
                     resultKey: 'V_CSTR1',
                     contextText: 'Primeiro CSTR calculado. Agora calculamos o PFR que completa a reação de X_int até X_final.'
@@ -800,9 +864,13 @@ const ExercisesModule = {
                             API.calculatePFR({ ...base, input_type: 'conversion_and_kinetics', conversion: Xfin, recycling_ratio: 0 }),
                             API.calculatePFR({ ...base, input_type: 'conversion_and_kinetics', conversion: Xint, recycling_ratio: 0 })
                         ]);
-                        const V_PFR2 = r1.volume.value - r2.volume.value;
+                        const V_PFR2   = r1.volume.value - r2.volume.value;
+                        const tau_PFR2 = (r1.residence_time?.value != null && r2.residence_time?.value != null)
+                            ? r1.residence_time.value - r2.residence_time.value : null;
                         const V_total_2 = V_CSTR1 + V_PFR2;
-                        return { V_PFR2, V_total_CSTR_PFR: V_total_2, display: `V_PFR₂ = ${ExercisesModule.fmt(V_PFR2,5)} m³ · V_total = ${ExercisesModule.fmt(V_total_2,5)} m³` };
+                        const tauStr    = tau_PFR2 != null ? ` · τ_PFR₂ = ${ExercisesModule.fmt(tau_PFR2,1)} s` : '';
+                        return { V_PFR2, V_total_CSTR_PFR: V_total_2, tau_PFR2,
+                            display: `V_PFR₂ = ${ExercisesModule.fmt(V_PFR2,5)} m³ · V_total = ${ExercisesModule.fmt(V_total_2,5)} m³${tauStr}` };
                     },
                     resultKey: 'V_total_CSTR_PFR',
                     contextText: 'Configuração CSTR→PFR calculada. Agora comparamos as duas configurações para escolher a mais eficiente.'
@@ -814,13 +882,16 @@ const ExercisesModule = {
                         return `<form id="ex-step-form"><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-sm">Ver comparação</button></form>`;
                     },
                     async run(vals, state) {
-                        const { V_PFR1, V_CSTR2, V_total_PFR_CSTR, V_CSTR1, V_PFR2, V_total_CSTR_PFR, Xint, Xfin } = state.results;
-                        const melhor = V_total_PFR_CSTR < V_total_CSTR_PFR ? 'PFR→CSTR' : 'CSTR→PFR';
+                        const { V_PFR1, V_CSTR2, V_total_PFR_CSTR, V_CSTR1, V_PFR2, V_total_CSTR_PFR,
+                                tau_PFR1, tau_CSTR2, tau_CSTR1, tau_PFR2, Xint, Xfin } = state.results;
+                        const melhor   = V_total_PFR_CSTR < V_total_CSTR_PFR ? 'PFR→CSTR' : 'CSTR→PFR';
                         const economia = Math.abs(V_total_PFR_CSTR - V_total_CSTR_PFR);
+                        const tau_PFR_CSTR  = (tau_PFR1  != null && tau_CSTR2 != null) ? tau_PFR1  + tau_CSTR2 : null;
+                        const tau_CSTR_PFR  = (tau_CSTR1 != null && tau_PFR2  != null) ? tau_CSTR1 + tau_PFR2  : null;
                         return {
                             melhor,
                             display: `Melhor: ${melhor} (economia de ${ExercisesModule.fmt(economia,5)} m³)`,
-                            comparison: { V_total_PFR_CSTR, V_total_CSTR_PFR, Xint, Xfin }
+                            comparison: { V_total_PFR_CSTR, V_total_CSTR_PFR, Xint, Xfin, tau_PFR_CSTR, tau_CSTR_PFR }
                         };
                     },
                     resultKey: 'melhor',
@@ -868,9 +939,10 @@ const ExercisesModule = {
                             splits: null
                         };
                         const r = await API.calculateMassBalance(payload);
-                        const prod = r.results['Produto'];
+                        const prod    = r.results['Produto'];
+                        const metrics = r.metrics || {};
                         return {
-                            X, balance_payload: payload, balance_results: r.results,
+                            X, balance_payload: payload, balance_results: r.results, balance_metrics: metrics,
                             display: `Produto: ${ExercisesModule.fmt(prod.flow_rate,2)} kg/h · zA = ${ExercisesModule.fmt(prod.compositions.A,4)} · zB = ${ExercisesModule.fmt(prod.compositions.B,4)}`
                         };
                     },
@@ -884,9 +956,14 @@ const ExercisesModule = {
                         return `<form id="ex-step-form"><div class="text-sm text-gray-600 mb-3">Calcularemos o yield de B a partir de A para este sistema sem reciclo.</div><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-sm">Calcular Rendimentos</button></form>`;
                     },
                     async run(vals, state) {
-                        const r = await API.calculateYields(state.results.balance_payload);
-                        const yieldBA = r.yields['B_from_A'];
-                        return { yield_BA: yieldBA, display: `Rendimento B←A = ${ExercisesModule.fmt(yieldBA,1)} %` };
+                        const [rY, rPlot] = await Promise.all([
+                            API.calculateYields(state.results.balance_payload),
+                            API.plotMassBalance(state.results.balance_payload).catch(() => null),
+                        ]);
+                        const yieldBA = rY.yields['B_from_A'];
+                        return { yield_BA: yieldBA,
+                            balance_plot_img: rPlot?.image_base64 ?? null,
+                            display: `Rendimento B←A = ${ExercisesModule.fmt(yieldBA,1)} %` };
                     },
                     resultKey: 'yield_BA',
                     contextText: 'Exercício concluído! No balanço simples, o rendimento de B é igual à conversão. Compare com o balanço com reciclo para ver a diferença.'
@@ -938,11 +1015,13 @@ const ExercisesModule = {
                             splits: [{ parent_stream: 'Reactor_Out', recycle_stream: 'Recycle', purge_stream: 'Produto', fraction: f }]
                         };
                         const r = await API.calculateMassBalance(payload);
-                        const prod = r.results['Produto'];
+                        const prod    = r.results['Produto'];
+                        const metrics = r.metrics || {};
+                        const rrStr   = metrics.recycle_ratio != null ? ` · R = ${ExercisesModule.fmt(metrics.recycle_ratio,3)}` : '';
                         return {
-                            Xpass, f, balance_payload_rec: payload, balance_results_rec: r.results,
+                            Xpass, f, balance_payload_rec: payload, balance_results_rec: r.results, balance_metrics_rec: metrics,
                             zA_prod: prod.compositions.A, zB_prod: prod.compositions.B,
-                            display: `Produto: zA = ${ExercisesModule.fmt(prod.compositions.A,4)} · zB = ${ExercisesModule.fmt(prod.compositions.B,4)}`
+                            display: `Produto: zA = ${ExercisesModule.fmt(prod.compositions.A,4)} · zB = ${ExercisesModule.fmt(prod.compositions.B,4)}${rrStr}`
                         };
                     },
                     resultKey: 'balance_results_rec',
@@ -984,9 +1063,14 @@ const ExercisesModule = {
                         return `<form id="ex-step-form"><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-sm">Calcular Rendimentos</button></form>`;
                     },
                     async run(vals, state) {
-                        const r = await API.calculateYields(state.results.balance_payload_rec);
-                        const y = r.yields['B_from_A'];
-                        return { yield_rec: y, display: `Rendimento B←A (com reciclo) = ${ExercisesModule.fmt(y,1)} %` };
+                        const [rY, rPlot] = await Promise.all([
+                            API.calculateYields(state.results.balance_payload_rec),
+                            API.plotMassBalance(state.results.balance_payload_rec).catch(() => null),
+                        ]);
+                        const y = rY.yields['B_from_A'];
+                        return { yield_rec: y,
+                            balance_plot_img: rPlot?.image_base64 ?? null,
+                            display: `Rendimento B←A (com reciclo) = ${ExercisesModule.fmt(y,1)} %` };
                     },
                     resultKey: 'yield_rec',
                     contextText: 'Exercício concluído! O reciclo aumenta o rendimento global sem alterar as condições do reator. O trade-off é maior custo de bombeamento e equipamentos maiores.'
@@ -1049,12 +1133,14 @@ const ExercisesModule = {
                         const f = parseFloat(document.getElementById('ex-f-purge').value);
                         const payload = ExercisesModule._purgePayload(f);
                         const r = await API.calculateMassBalance(payload);
-                        const rec = r.results['Recycle'];
-                        const purge = r.results['Purga_Produto'];
+                        const rec     = r.results['Recycle'];
+                        const purge   = r.results['Purga_Produto'];
+                        const metrics = r.metrics || {};
+                        const rrStr   = metrics.recycle_ratio != null ? ` · R = ${ExercisesModule.fmt(metrics.recycle_ratio,3)}` : '';
                         return {
-                            f, purge_payload: payload, purge_results: r.results,
+                            f, purge_payload: payload, purge_results: r.results, purge_metrics: metrics,
                             zI_rec: rec.compositions.I, zI_purge: purge.compositions.I,
-                            display: `I no reciclo = ${ExercisesModule.fmt(rec.compositions.I,4)} · I na purga = ${ExercisesModule.fmt(purge.compositions.I,4)}`
+                            display: `I no reciclo = ${ExercisesModule.fmt(rec.compositions.I,4)} · I na purga = ${ExercisesModule.fmt(purge.compositions.I,4)}${rrStr}`
                         };
                     },
                     resultKey: 'zI_rec',
@@ -1067,9 +1153,14 @@ const ExercisesModule = {
                         return `<form id="ex-step-form"><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-sm">Calcular Rendimentos</button></form>`;
                     },
                     async run(vals, state) {
-                        const r = await API.calculateYields(state.results.purge_payload);
-                        const y = r.yields['B_from_A'];
-                        return { yield_purge: y, display: `Rendimento B←A = ${ExercisesModule.fmt(y,1)} %` };
+                        const [rY, rPlot] = await Promise.all([
+                            API.calculateYields(state.results.purge_payload),
+                            API.plotMassBalance(state.results.purge_payload).catch(() => null),
+                        ]);
+                        const y = rY.yields['B_from_A'];
+                        return { yield_purge: y,
+                            balance_plot_img: rPlot?.image_base64 ?? null,
+                            display: `Rendimento B←A = ${ExercisesModule.fmt(y,1)} %` };
                     },
                     resultKey: 'yield_purge',
                     contextText: 'Exercício concluído! A purga é essencial quando há inertes. O projeto ótimo balanceia controle de acúmulo vs perda de reagente pela purga.'
@@ -1114,14 +1205,16 @@ const ExercisesModule = {
     // -----------------------------------------------------------------------
     async init() {
         // Pre-load lookup data for Select2 selects
-        const [fluids, schedules, compositions] = await Promise.allSettled([
+        const [fluids, schedules, compositions, waterCrit] = await Promise.allSettled([
             API.listComponents(),
             API.getSchedules(),
             API.getCompositions(),
+            API.getCriticalProperties('Water'),
         ]);
-        this._fluidList      = fluids.status === 'fulfilled'       && Array.isArray(fluids.value)       ? fluids.value.sort()  : [];
-        this._scheduleList   = schedules.status === 'fulfilled'    && Array.isArray(schedules.value)    ? schedules.value      : [];
+        this._fluidList       = fluids.status === 'fulfilled'       && Array.isArray(fluids.value)       ? fluids.value.sort()  : [];
+        this._scheduleList    = schedules.status === 'fulfilled'    && Array.isArray(schedules.value)    ? schedules.value      : [];
         this._compositionList = compositions.status === 'fulfilled' && Array.isArray(compositions.value) ? compositions.value   : [];
+        this._waterCritProps  = waterCrit.status === 'fulfilled'    ? waterCrit.value                   : null;
         this.renderSelector();
         this.setupBackBtn();
     },
@@ -1273,14 +1366,18 @@ const ExercisesModule = {
             if (data.levenspiel_img) {
                 html += `<img src="data:image/png;base64,${data.levenspiel_img}" class="mt-3 w-full rounded border" alt="Levenspiel plot">`;
             }
+            // Special: mass balance diagram
+            if (data.balance_plot_img) {
+                html += `<img src="data:image/png;base64,${data.balance_plot_img}" class="mt-3 w-full rounded border" alt="Diagrama de correntes de massa">`;
+            }
             // Special: series reactor comparison
             if (data.comparison) {
                 const c = data.comparison;
                 const winner = c.V_total_PFR_CSTR < c.V_total_CSTR_PFR ? 'PFR→CSTR' : 'CSTR→PFR';
                 html += `<table class="mt-3 w-full text-xs border-collapse">
-                    <tr class="bg-gray-100"><th class="p-1 border text-left">Configuração</th><th class="p-1 border">V_total (m³)</th></tr>
-                    <tr class="${winner==='PFR→CSTR'?'bg-green-50':''}"><td class="p-1 border">PFR→CSTR</td><td class="p-1 border font-mono">${this.fmt(c.V_total_PFR_CSTR,5)}</td></tr>
-                    <tr class="${winner==='CSTR→PFR'?'bg-green-50':''}"><td class="p-1 border">CSTR→PFR</td><td class="p-1 border font-mono">${this.fmt(c.V_total_CSTR_PFR,5)}</td></tr>
+                    <tr class="bg-gray-100"><th class="p-1 border text-left">Configuração</th><th class="p-1 border">V_total (m³)</th>${c.tau_PFR_CSTR != null ? '<th class="p-1 border">τ_total (s)</th>' : ''}</tr>
+                    <tr class="${winner==='PFR→CSTR'?'bg-green-50':''}"><td class="p-1 border">PFR→CSTR</td><td class="p-1 border font-mono">${this.fmt(c.V_total_PFR_CSTR,5)}</td>${c.tau_PFR_CSTR != null ? `<td class="p-1 border font-mono">${this.fmt(c.tau_PFR_CSTR,1)}</td>` : ''}</tr>
+                    <tr class="${winner==='CSTR→PFR'?'bg-green-50':''}"><td class="p-1 border">CSTR→PFR</td><td class="p-1 border font-mono">${this.fmt(c.V_total_CSTR_PFR,5)}</td>${c.tau_CSTR_PFR != null ? `<td class="p-1 border font-mono">${this.fmt(c.tau_CSTR_PFR,1)}</td>` : ''}</tr>
                 </table>
                 <div class="mt-2 text-green-700 text-xs font-semibold">✓ Recomendado: ${winner}</div>`;
             }
@@ -1295,6 +1392,8 @@ const ExercisesModule = {
                     <tr><td class="p-1 border">W_líquido</td><td class="p-1 border font-mono">${this.fmt(Wl,2)} kJ/kg</td></tr>
                     <tr><td class="p-1 border">Q_caldeira</td><td class="p-1 border font-mono">${this.fmt(Qi,2)} kJ/kg</td></tr>
                     <tr class="bg-green-50 font-semibold"><td class="p-1 border">η</td><td class="p-1 border font-mono">${this.fmt(data.eta,1)} %</td></tr>
+                    ${data.eta_carnot != null ? `<tr class="bg-yellow-50"><td class="p-1 border">η_Carnot</td><td class="p-1 border font-mono">${this.fmt(data.eta_carnot,1)} %</td></tr>
+                    <tr class="text-xs text-gray-500"><td class="p-1 border" colspan="2">η/η_Carnot = ${this.fmt(data.eta / data.eta_carnot * 100, 1)} %</td></tr>` : ''}
                 </table>`;
             }
             // Special: mass balance table
