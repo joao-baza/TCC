@@ -15,45 +15,139 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <header class="mb-10">
-            <h1 class="text-3xl font-bold text-center text-blue-800">Simulador de Operações Unitárias</h1>
-            <p class="text-center text-gray-600 mt-2">Ferramenta didática de cálculo e dimensionamento de operações unitárias</p>
-        </header>
+<body>
+    <!-- Botão hambúrguer (mobile) -->
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu de navegação" aria-expanded="false" aria-controls="sidebar">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+            <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+            <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+        </svg>
+    </button>
+    <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
 
-        <div class="mb-6">
-            <nav class="bg-white shadow-md rounded-lg">
-                <ul class="flex flex-wrap text-sm font-medium text-center" id="mainTab" role="tablist">
-                    <li class="mr-2" role="presentation">
-                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100 active" id="piping-tab" data-tab="piping-content">Tubulações</button>
-                    </li>
-                    <li class="mr-2" role="presentation">
-                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="sizing-tab" data-tab="sizing-content">Dimensionamento</button>
-                    </li>
-                    <li class="mr-2" role="presentation">
-                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="flow-tab" data-tab="flow-content">Escoamento</button>
-                    </li>
-                    <li class="mr-2" role="presentation">
-                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="pump-tab" data-tab="pump-content">Bomba</button>
-                    </li>
-                    <li class="mr-2" role="presentation">
-                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="components-tab" data-tab="components-content">Componentes</button>
-                    </li>
-                    <li class="mr-2" role="presentation">
-                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="reactor-tab" data-tab="reactor-content">Reator</button>
-                    </li>
-                    <li class="mr-2" role="presentation">
-                        <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="balance-tab" data-tab="balance-content">Balanço de Massa</button>
-                    </li>
-                </ul>
+    <div class="app-layout">
+        <!-- Barra lateral de navegação -->
+        <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+            <div class="sidebar-header">
+                <div class="sidebar-title">Simulador de<br>Operações Unitárias</div>
+                <div class="sidebar-subtitle">Engenharia Química — UFMS</div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-group">
+                    <a class="nav-item active" data-tab="home-content" href="#home-content" aria-current="page">Início</a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-group-label">Hidráulica &amp; Escoamento</div>
+                    <a class="nav-item" data-tab="piping-content" href="#piping-content">Tubulações</a>
+                    <a class="nav-item" data-tab="sizing-content" href="#sizing-content">Dimensionamento</a>
+                    <a class="nav-item" data-tab="flow-content" href="#flow-content">Escoamento</a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-group-label">Bombas</div>
+                    <a class="nav-item" data-tab="pump-content" href="#pump-content">Perda de Carga &amp; NPSH</a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-group-label">Propriedades</div>
+                    <a class="nav-item" data-tab="components-content" href="#components-content">Componentes</a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-group-label">Reatores</div>
+                    <a class="nav-item" data-tab="reactor-content" href="#reactor-content">CSTR / PFR</a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-group-label">Balanço de Massa</div>
+                    <a class="nav-item" data-tab="balance-content" href="#balance-content">Balanço</a>
+                </div>
             </nav>
-        </div>
+        </aside>
 
+        <!-- Área de conteúdo principal -->
+        <main class="main-content" id="mainContent">
         <div class="tab-content">
+            <!-- Tela inicial -->
+            <div id="home-content" class="tab-pane active">
+                <div class="home-hero">
+                    <h1>Simulador de Operações Unitárias</h1>
+                    <p></p>Selecione um módulo na barra lateral, siga uma trilha de aprendizagem ou explore diretamente pelo acesso rápido.</p>
+                </div>
+
+                <div class="home-section">
+                    <div class="home-section-title">Trilhas de Aprendizagem</div>
+                    <div class="trail-grid">
+                        <a class="trail-card" href="#piping-content" data-tab="piping-content">
+                            <div class="trail-badge trail-badge-blue">1</div>
+                            <div>
+                                <div class="trail-title">Transporte de Fluidos</div>
+                                <div class="trail-desc">Tubulações → Dimensionamento → Escoamento → Bombas</div>
+                            </div>
+                        </a>
+                        <a class="trail-card" href="#reactor-content" data-tab="reactor-content">
+                            <div class="trail-badge trail-badge-purple">2</div>
+                            <div>
+                                <div class="trail-title">Reatores Ideais</div>
+                                <div class="trail-desc">Propriedades de Componentes → Reator CSTR / PFR</div>
+                            </div>
+                        </a>
+                        <a class="trail-card" href="#balance-content" data-tab="balance-content">
+                            <div class="trail-badge trail-badge-green">3</div>
+                            <div>
+                                <div class="trail-title">Balanço de Massa</div>
+                                <div class="trail-desc">Componentes → Balanço de Massa</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="home-section">
+                    <div class="home-section-title">Acesso Rápido</div>
+                    <div class="module-grid">
+                        <button class="module-card" data-tab="piping-content">
+                            <div class="module-card-group">Hidráulica</div>
+                            <div class="module-card-name">Tubulações</div>
+                        </button>
+                        <button class="module-card" data-tab="sizing-content">
+                            <div class="module-card-group">Hidráulica</div>
+                            <div class="module-card-name">Dimensionamento</div>
+                        </button>
+                        <button class="module-card" data-tab="flow-content">
+                            <div class="module-card-group">Hidráulica</div>
+                            <div class="module-card-name">Escoamento</div>
+                        </button>
+                        <button class="module-card" data-tab="pump-content">
+                            <div class="module-card-group">Bombas</div>
+                            <div class="module-card-name">Perda de Carga &amp; NPSH</div>
+                        </button>
+                        <button class="module-card" data-tab="components-content">
+                            <div class="module-card-group">Propriedades</div>
+                            <div class="module-card-name">Componentes</div>
+                        </button>
+                        <button class="module-card" data-tab="reactor-content">
+                            <div class="module-card-group">Reatores</div>
+                            <div class="module-card-name">CSTR / PFR</div>
+                        </button>
+                        <button class="module-card" data-tab="balance-content">
+                            <div class="module-card-group">Balanço</div>
+                            <div class="module-card-name">Balanço de Massa</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Piping Section -->
-            <div id="piping-content" class="bg-white p-6 rounded-lg shadow-md tab-pane active">
-                <h2 class="text-xl font-semibold mb-4 text-blue-700">Cálculos de Tubulação</h2>
+            <div id="piping-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
+                <div class="module-header">
+                    <div class="module-header-left">
+                        <nav class="module-breadcrumb" aria-label="Localização">
+                            <a href="#home-content" data-tab="home-content">Início</a>
+                            <span class="sep" aria-hidden="true">›</span>
+                            <span>Hidráulica &amp; Escoamento</span>
+                            <span class="sep" aria-hidden="true">›</span>
+                            <span>Tubulações</span>
+                        </nav>
+                        <h2 class="module-heading">Cálculos de Tubulação <span class="level-chip">Referência</span></h2>
+                    </div>
+                </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-gray-50 p-4 rounded-md">
@@ -91,11 +185,45 @@
 
             <!-- Sizing Section -->
             <div id="sizing-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
-                <h2 class="text-xl font-semibold mb-4 text-blue-700">Dimensionamento de Tubo</h2>
+                <div class="module-header">
+                    <div class="module-header-left">
+                        <nav class="module-breadcrumb" aria-label="Localização">
+                            <a href="#home-content" data-tab="home-content">Início</a>
+                            <span class="sep" aria-hidden="true">›</span>
+                            <span>Hidráulica &amp; Escoamento</span>
+                            <span class="sep" aria-hidden="true">›</span>
+                            <span>Dimensionamento</span>
+                        </nav>
+                        <h2 class="module-heading">Dimensionamento de Tubo <span class="level-chip">Básico</span></h2>
+                    </div>
+                    <button class="btn-example" data-example="sizing" type="button" title="Preenche o formulário com valores de exemplo realistas">▶ Carregar exemplo</button>
+                </div>
                 
                 <div class="grid grid-cols-1 gap-6">
                     <div class="bg-gray-50 p-4 rounded-md">
                         <h3 class="text-lg font-medium mb-3 text-gray-800">Calcular Diâmetro</h3>
+                        <div class="accordion">
+                            <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-sizing-diameter">
+                                <span>Como funciona — Cálculo de Diâmetro</span>
+                                <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="accordion-content" id="acc-sizing-diameter" role="region">
+                                <p>Para escoamento em seção circular, a equação da continuidade relaciona a <strong>vazão volumétrica</strong>, a <strong>velocidade média</strong> e a <strong>área transversal</strong> do tubo:</p>
+                                <div class="formula-block">D = √( 4Q / πV )</div>
+                                <table class="variables-table">
+                                    <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th><th>Faixa típica</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>D</td><td>Diâmetro interno</td><td>m</td><td>—</td></tr>
+                                        <tr><td>Q</td><td>Vazão volumétrica</td><td>m³/s</td><td>—</td></tr>
+                                        <tr><td>V</td><td>Velocidade média do fluido</td><td>m/s</td><td>líquidos: 0,5–3 · gases: 10–30</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Dica:</strong> velocidades muito altas causam erosão e ruído; muito baixas favorecem deposição de sólidos e crescimento biológico.</p>
+                                <p class="teoria-ref">Ref.: Streeter &amp; Wylie, Mecânica dos Fluidos, McGraw-Hill.</p>
+                            </div>
+                        </div>
                         <form id="calculated-diameter-form">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="mb-4">
@@ -136,11 +264,49 @@
 
             <!-- Flow Section -->
             <div id="flow-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
-                <h2 class="text-xl font-semibold mb-4 text-blue-700">Cálculos de Escoamento</h2>
+                <div class="module-header">
+                    <div class="module-header-left">
+                        <nav class="module-breadcrumb" aria-label="Localização">
+                            <a href="#home-content" data-tab="home-content">Início</a>
+                            <span class="sep" aria-hidden="true">›</span>
+                            <span>Hidráulica &amp; Escoamento</span>
+                            <span class="sep" aria-hidden="true">›</span>
+                            <span>Escoamento</span>
+                        </nav>
+                        <h2 class="module-heading">Cálculos de Escoamento <span class="level-chip">Intermediário</span></h2>
+                    </div>
+                    <button class="btn-example" data-example="flow" type="button" title="Preenche o formulário com valores de exemplo realistas">▶ Carregar exemplo</button>
+                </div>
                 
                 <div class="grid grid-cols-1 gap-6">
                     <div class="bg-gray-50 p-4 rounded-md">
                         <h3 class="text-lg font-medium mb-3 text-gray-800">Número de Reynolds</h3>
+                        <div class="accordion">
+                            <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-reynolds">
+                                <span>Como funciona — Número de Reynolds</span>
+                                <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="accordion-content" id="acc-reynolds" role="region">
+                                <p>O número de Reynolds é um parâmetro adimensional que mede a razão entre as forças inerciais e as forças viscosas no escoamento:</p>
+                                <div class="formula-block">Re = ρVD / μ = VD / ν</div>
+                                <table class="variables-table">
+                                    <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>Re</td><td>Número de Reynolds</td><td>adimensional</td></tr>
+                                        <tr><td>ρ</td><td>Densidade do fluido</td><td>kg/m³</td></tr>
+                                        <tr><td>V</td><td>Velocidade média</td><td>m/s</td></tr>
+                                        <tr><td>D</td><td>Diâmetro característico</td><td>m</td></tr>
+                                        <tr><td>μ</td><td>Viscosidade dinâmica</td><td>Pa·s</td></tr>
+                                        <tr><td>ν</td><td>Viscosidade cinemática (ν = μ/ρ)</td><td>m²/s</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Regimes de escoamento:</strong> Re &lt; 2 300 → laminar · 2 300 &lt; Re &lt; 4 000 → transição · Re &gt; 4 000 → turbulento.</p>
+                                <p><strong>Dica:</strong> informe <em>densidade + viscosidade dinâmica</em> OU somente a <em>viscosidade cinemática</em> (ν = μ/ρ).</p>
+                                <p class="teoria-ref">Ref.: White, Mecânica dos Fluidos, 8ª ed., McGraw-Hill.</p>
+                            </div>
+                        </div>
                         <form id="reynolds-form">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="mb-4">
@@ -265,11 +431,48 @@
 
             <!-- Pump Section -->
             <div id="pump-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
-                <h2 class="text-xl font-semibold mb-4 text-blue-700">Cálculos de Bomba</h2>
+                <div class="module-header">
+                    <div class="module-header-left">
+                        <nav class="module-breadcrumb" aria-label="Localização">
+                            <a href="#home-content" data-tab="home-content">Início</a>
+                            <span class="sep" aria-hidden="true">›</span>
+                            <span>Bombas</span>
+                            <span class="sep" aria-hidden="true">›</span>
+                            <span>Perda de Carga &amp; NPSH</span>
+                        </nav>
+                        <h2 class="module-heading">Cálculos de Bomba <span class="level-chip">Intermediário</span></h2>
+                    </div>
+                    <button class="btn-example" data-example="pump" type="button" title="Preenche o formulário com valores de exemplo realistas">▶ Carregar exemplo</button>
+                </div>
                 
                 <div class="grid grid-cols-1 gap-6">
                     <div class="bg-gray-50 p-4 rounded-md">
                         <h3 class="text-lg font-medium mb-3 text-gray-800">Perda de Carga</h3>
+                        <div class="accordion">
+                            <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-headloss">
+                                <span>Como funciona — Perda de Carga (Darcy-Weisbach)</span>
+                                <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="accordion-content" id="acc-headloss" role="region">
+                                <p>A equação de Darcy-Weisbach calcula a perda de energia por atrito em tubulações de comprimento <strong>L</strong> e diâmetro <strong>D</strong>:</p>
+                                <div class="formula-block">h<sub>L</sub> = f · (L/D) · V² / (2g)</div>
+                                <table class="variables-table">
+                                    <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>h<sub>L</sub></td><td>Perda de carga</td><td>m</td></tr>
+                                        <tr><td>f</td><td>Fator de atrito de Darcy (adimensional)</td><td>—</td></tr>
+                                        <tr><td>L</td><td>Comprimento do trecho</td><td>m</td></tr>
+                                        <tr><td>D</td><td>Diâmetro interno</td><td>m</td></tr>
+                                        <tr><td>V</td><td>Velocidade média</td><td>m/s</td></tr>
+                                        <tr><td>g</td><td>Aceleração da gravidade (9,81)</td><td>m/s²</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Dica:</strong> o fator <em>f</em> é calculado pelo módulo Escoamento → Fator de atrito (Colebrook-White, Swamee-Jain ou Haaland).</p>
+                                <p class="teoria-ref">Ref.: Streeter &amp; Wylie, Mecânica dos Fluidos, McGraw-Hill.</p>
+                            </div>
+                        </div>
                         <form id="headloss-form">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="mb-4">
@@ -441,12 +644,15 @@
                 <!-- Content will be loaded dynamically -->
             </div>
         </div>
-    </div>
+        </main>
+    </div><!-- /.app-layout -->
 
     <!-- Scripts -->
     <script src="vendor/jquery-3.6.0.min.js"></script>
     <script src="vendor/select2.min.js"></script>
     <script src="vendor/sweetalert2.all.min.js"></script>
+    <!-- Chart.js (self-hosted) -->
+    <script src="vendor/chart.umd.min.js"></script>
     <!-- App JS -->
     <script src="js/modules/api.js"></script>
     <script src="js/modules/ui.js"></script>
@@ -457,6 +663,7 @@
     <script src="js/modules/reactor.js"></script>
     <script src="js/modules/components.js"></script>
     <script src="js/modules/balance.js"></script>
+    <script src="js/modules/didatic.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html> 
