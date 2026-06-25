@@ -59,20 +59,30 @@ const BalanceModule = {
             </svg>
         </button>
         <div class="accordion-content" id="acc-balance" role="region">
-            <p>O balanço de massa aplica o princípio da conservação da massa a um sistema em regime permanente:</p>
-            <div class="formula-block">∑ Entradas − ∑ Saídas + ∑ Gerado = 0</div>
+            <p>O balanço de massa aplica o princípio da conservação da massa a um sistema em <strong>regime estacionário</strong> (sem acúmulo). A forma geral para o sistema global é:</p>
+            <div class="formula-block">∑ ṁ<sub>entrada</sub> = ∑ ṁ<sub>saída</sub></div>
+            <p>Com reação química, o balanço <em>por componente i</em> inclui termos de geração/consumo estequiométricos:</p>
+            <div class="formula-block">∑ ṁ<sub>entrada,i</sub> + ṁ<sub>gerado,i</sub> = ∑ ṁ<sub>saída,i</sub> + ṁ<sub>consumido,i</sub></div>
             <table class="variables-table">
                 <thead><tr><th>Conceito</th><th>Descrição</th></tr></thead>
                 <tbody>
-                    <tr><td>Corrente (direction=1)</td><td>Entrada no sistema</td></tr>
-                    <tr><td>Corrente (direction=−1)</td><td>Saída do sistema</td></tr>
-                    <tr><td>Coef. estequiométrico</td><td>Negativo para reagentes, positivo para produtos</td></tr>
-                    <tr><td>Reciclo (split)</td><td>Fração da corrente retornada à entrada</td></tr>
-                    <tr><td>Conversão (X)</td><td>Fração do componente-chave consumido na reação</td></tr>
+                    <tr><td>Corrente (direction = 1)</td><td>Entrada no sistema</td></tr>
+                    <tr><td>Corrente (direction = −1)</td><td>Saída do sistema</td></tr>
+                    <tr><td>Coef. estequiométrico</td><td>Negativo para reagentes, positivo para produtos; escala o quanto de cada componente é gerado/consumido por mol reagido</td></tr>
+                    <tr><td>Conversão X</td><td>Fração molar do componente-chave consumido na reação</td></tr>
                 </tbody>
             </table>
-            <p><strong>Dica:</strong> use "Carregar Exemplo" para ver um sistema de reação com reciclo pré-configurado.</p>
-            <p class="teoria-ref">Ref.: Reklaitis et al., Introduction to Material and Energy Balances, Wiley.</p>
+            <p><strong>Reciclo e purga</strong> — em sistemas com recirculação, define-se um <em>splitter</em> com fração de reciclo \\(f\\):</p>
+            <table class="variables-table">
+                <thead><tr><th>Corrente</th><th>Equação</th><th>Descrição</th></tr></thead>
+                <tbody>
+                    <tr><td>Reciclo</td><td>\\(F_R = f \\cdot F_P\\)</td><td>Fração retornada ao processo</td></tr>
+                    <tr><td>Purga</td><td>\\(F_G = (1 - f) \\cdot F_P\\)</td><td>Fração retirada para evitar acúmulo de inertes</td></tr>
+                </tbody>
+            </table>
+            <p>Onde \\(F_P\\) é a vazão total do produto bruto antes do split. O reciclo aumenta a conversão global mas exige mais energia de bombeamento e aumenta o tamanho dos equipamentos.</p>
+            <p><strong>Dica:</strong> use "Carregar Exemplo" para ver um sistema de reação A → B com reciclo pré-configurado.</p>
+            <p class="teoria-ref">Ref.: Felder &amp; Rousseau, Elementary Principles of Chemical Processes, 4ª ed. · Reklaitis et al., Introduction to Material and Energy Balances.</p>
         </div>
     </div>
 
@@ -717,12 +727,6 @@ const BalanceModule = {
             UI.hideLoading('#balance-content');
             UI.showResult('#balance-result', resultHtml);
 
-            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
-                module: 'Balanço de Massa',
-                operation: 'Balanço de Massa',
-                inputs: `${components.length} componentes · ${streams.length} correntes`,
-                summary: `${Object.keys(result.results).length} correntes calculadas`,
-            }}));
         } catch (error) {
             UI.hideLoading('#balance-content');
             UI.showError('Erro', error);
