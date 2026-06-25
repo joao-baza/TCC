@@ -223,13 +223,14 @@
                                 <table class="variables-table">
                                     <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th><th>Faixa típica</th></tr></thead>
                                     <tbody>
-                                        <tr><td>D</td><td>Diâmetro interno</td><td>m</td><td>—</td></tr>
+                                        <tr><td>D</td><td>Diâmetro calculado</td><td>m</td><td>—</td></tr>
                                         <tr><td>Q</td><td>Vazão volumétrica</td><td>m³/s</td><td>—</td></tr>
                                         <tr><td>V</td><td>Velocidade média do fluido</td><td>m/s</td><td>líquidos: 0,5–3 · gases: 10–30</td></tr>
                                     </tbody>
                                 </table>
-                                <p><strong>Dica:</strong> velocidades muito altas causam erosão e ruído; muito baixas favorecem deposição de sólidos e crescimento biológico.</p>
-                                <p class="teoria-ref">Ref.: Streeter &amp; Wylie, Mecânica dos Fluidos, McGraw-Hill.</p>
+                                <p><strong>Diâmetro comercial:</strong> o valor calculado é um mínimo teórico. Na prática, seleciona-se o <em>diâmetro nominal (DN) imediatamente superior</em> disponível no catálogo para o schedule desejado (SCH 40, SCH 80 etc.). Após a seleção, recalcula-se a perda de carga com o diâmetro interno real.</p>
+                                <p><strong>Dica:</strong> velocidades muito altas causam erosão e ruído; muito baixas favorecem deposição de sólidos e crescimento biológico em linhas de processo.</p>
+                                <p class="teoria-ref">Ref.: White, Mecânica dos Fluidos, 8ª ed., McGraw-Hill, 2018.</p>
                             </div>
                         </div>
                         <form id="calculated-diameter-form">
@@ -347,6 +348,40 @@
 
                     <div class="bg-gray-50 p-4 rounded-md">
                         <h3 class="text-lg font-medium mb-3 text-gray-800">Fator de Atrito</h3>
+                        <div class="accordion">
+                            <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-friction">
+                                <span>Como funciona — Fator de Atrito de Darcy</span>
+                                <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="accordion-content" id="acc-friction" role="region">
+                                <p>O fator de atrito de Darcy <strong>f</strong> depende do regime de escoamento e da rugosidade relativa ε/D:</p>
+                                <p><strong>Regime laminar</strong> (Re &lt; 2300) — solução analítica exata:</p>
+                                <div class="formula-block">f = 64 / Re</div>
+                                <p><strong>Regime turbulento</strong> (Re &gt; 4000) — equação implícita de Colebrook-White (1939):</p>
+                                <div class="formula-block">1/√f = −2 log( ε/(3,7D) + 2,51/(Re·√f) )</div>
+                                <p>Por ser implícita, usa-se uma das aproximações explícitas equivalentes:</p>
+                                <table class="variables-table">
+                                    <thead><tr><th>Correlação</th><th>Fórmula</th><th>Erro máx.</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>Swamee-Jain (1976)</td><td>f = 0,25 / [log(ε/3,7D + 5,74/Re<sup>0,9</sup>)]²</td><td>~3 %</td></tr>
+                                        <tr><td>Haaland (1983)</td><td>1/√f = −1,8 log[(ε/D/3,7)<sup>1,11</sup> + 6,9/Re]</td><td>~2 %</td></tr>
+                                    </tbody>
+                                </table>
+                                <table class="variables-table mt-2">
+                                    <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>f</td><td>Fator de atrito de Darcy</td><td>adimensional</td></tr>
+                                        <tr><td>Re</td><td>Número de Reynolds</td><td>adimensional</td></tr>
+                                        <tr><td>ε</td><td>Rugosidade absoluta do material</td><td>m</td></tr>
+                                        <tr><td>D</td><td>Diâmetro interno</td><td>m</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Dica:</strong> no regime de transição (2300 &lt; Re &lt; 4000) não há correlação universal; o software usa interpolação conservadora.</p>
+                                <p class="teoria-ref">Ref.: White, Mecânica dos Fluidos, 8ª ed., McGraw-Hill, 2018 · Colebrook (1939) · Swamee &amp; Jain (1976) · Haaland (1983).</p>
+                            </div>
+                        </div>
                         <form id="friction-factor-form">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="mb-4 col-span-2">
@@ -420,6 +455,38 @@
 
                     <div class="bg-gray-50 p-4 rounded-md">
                         <h3 class="text-lg font-medium mb-3 text-gray-800">Diâmetro Hidráulico</h3>
+                        <div class="accordion">
+                            <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-hydraulic-diam">
+                                <span>Como funciona — Diâmetro Hidráulico</span>
+                                <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="accordion-content" id="acc-hydraulic-diam" role="region">
+                                <p>O diâmetro hidráulico generaliza o cálculo de Reynolds e do fator de atrito para seções <strong>não circulares</strong>. É definido como:</p>
+                                <div class="formula-block">D<sub>h</sub> = 4A / P</div>
+                                <table class="variables-table">
+                                    <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>D<sub>h</sub></td><td>Diâmetro hidráulico</td><td>m</td></tr>
+                                        <tr><td>A</td><td>Área da seção transversal de escoamento</td><td>m²</td></tr>
+                                        <tr><td>P</td><td>Perímetro molhado (contato com o fluido)</td><td>m</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Geometrias suportadas:</strong></p>
+                                <table class="variables-table">
+                                    <thead><tr><th>Seção</th><th>Expressão simplificada</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>Circular (duto padrão)</td><td>D<sub>h</sub> = D</td></tr>
+                                        <tr><td>Retangular (a × b)</td><td>D<sub>h</sub> = 4ab / [2(a + b)] = 2ab/(a+b)</td></tr>
+                                        <tr><td>Anular (D<sub>o</sub> − D<sub>i</sub>)</td><td>D<sub>h</sub> = D<sub>o</sub> − D<sub>i</sub></td></tr>
+                                        <tr><td>Forma arbitrária</td><td>D<sub>h</sub> = 4A / P (informar A e P)</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Uso:</strong> substitui D nas equações de Reynolds (Re = ρV D<sub>h</sub>/μ) e de Darcy-Weisbach para obter o regime e a perda de carga em qualquer geometria de duto.</p>
+                                <p class="teoria-ref">Ref.: White, Mecânica dos Fluidos, 8ª ed., McGraw-Hill, 2018.</p>
+                            </div>
+                        </div>
                         <form id="hydraulic-diameter-form">
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Forma</label>
@@ -464,21 +531,24 @@
                                 </svg>
                             </button>
                             <div class="accordion-content" id="acc-headloss" role="region">
-                                <p>A equação de Darcy-Weisbach calcula a perda de energia por atrito em tubulações de comprimento <strong>L</strong> e diâmetro <strong>D</strong>:</p>
-                                <div class="formula-block">h<sub>L</sub> = f · (L/D) · V² / (2g)</div>
+                                <p>A equação de Darcy-Weisbach calcula a perda de energia por atrito distribuído ao longo da tubulação, incluindo as perdas localizadas dos acessórios representadas pelo comprimento equivalente:</p>
+                                <div class="formula-block">h<sub>f</sub> = f · (L + ΣL<sub>eq</sub>) / D · V² / (2g)</div>
                                 <table class="variables-table">
                                     <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
                                     <tbody>
-                                        <tr><td>h<sub>L</sub></td><td>Perda de carga</td><td>m</td></tr>
+                                        <tr><td>h<sub>f</sub></td><td>Perda de carga total</td><td>m</td></tr>
                                         <tr><td>f</td><td>Fator de atrito de Darcy (adimensional)</td><td>—</td></tr>
-                                        <tr><td>L</td><td>Comprimento do trecho</td><td>m</td></tr>
+                                        <tr><td>L</td><td>Comprimento reto da tubulação</td><td>m</td></tr>
+                                        <tr><td>ΣL<sub>eq</sub></td><td>Soma dos comprimentos equivalentes dos acessórios</td><td>m</td></tr>
                                         <tr><td>D</td><td>Diâmetro interno</td><td>m</td></tr>
                                         <tr><td>V</td><td>Velocidade média</td><td>m/s</td></tr>
                                         <tr><td>g</td><td>Aceleração da gravidade (9,81)</td><td>m/s²</td></tr>
                                     </tbody>
                                 </table>
-                                <p><strong>Dica:</strong> o fator <em>f</em> é calculado pelo módulo Escoamento → Fator de atrito (Colebrook-White, Swamee-Jain ou Haaland).</p>
-                                <p class="teoria-ref">Ref.: Streeter &amp; Wylie, Mecânica dos Fluidos, McGraw-Hill.</p>
+                                <p><strong>Acessórios:</strong> curvas, válvulas, expansões e contrações introduzem perdas localizadas. Cada acessório contribui com um L<sub>eq</sub>/D tabelado; multiplicado por D, obtém-se o comprimento equivalente em metros a somar ao trecho reto.</p>
+                                <p><strong>Hazen-Williams</strong> (método alternativo para água, D &gt; 50 mm): h<sub>f</sub> = 4,73 L / (C<sup>1,852</sup> · D<sup>4,87</sup>) · Q<sup>1,852</sup>, onde C é o coeficiente de rugosidade do material.</p>
+                                <p><strong>Dica:</strong> obtenha <em>f</em> no módulo Escoamento → Fator de atrito (Colebrook-White, Swamee-Jain ou Haaland) antes de calcular a perda de carga.</p>
+                                <p class="teoria-ref">Ref.: White, Mecânica dos Fluidos, 8ª ed., McGraw-Hill, 2018 · Perry's Chemical Engineers' Handbook, 9ª ed.</p>
                             </div>
                         </div>
                         <form id="headloss-form">
@@ -554,6 +624,33 @@
 
                     <div class="bg-gray-50 p-4 rounded-md">
                         <h3 class="text-lg font-medium mb-3 text-gray-800">NPSH Disponível</h3>
+                        <div class="accordion">
+                            <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-npsh">
+                                <span>Como funciona — NPSH Disponível</span>
+                                <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="accordion-content" id="acc-npsh" role="region">
+                                <p>O NPSH Disponível (NPSHd) é a altura de pressão de sucção disponível na entrada da bomba. Para evitar <strong>cavitação</strong>, deve ser maior que o NPSH Requerido (NPSHr) fornecido pelo fabricante:</p>
+                                <div class="formula-block">NPSHd = (P<sub>suc</sub> + P<sub>atm</sub> − p<sub>vap</sub>) / (ρg) + V<sub>suc</sub>² / (2g) + (z<sub>suc</sub> − z<sub>0</sub>) − h<sub>suc</sub></div>
+                                <table class="variables-table">
+                                    <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>P<sub>suc</sub></td><td>Pressão manométrica na sucção</td><td>Pa</td></tr>
+                                        <tr><td>P<sub>atm</sub></td><td>Pressão atmosférica local</td><td>Pa</td></tr>
+                                        <tr><td>p<sub>vap</sub></td><td>Pressão de vapor do líquido na temperatura de operação</td><td>Pa</td></tr>
+                                        <tr><td>ρ</td><td>Massa específica do líquido</td><td>kg/m³</td></tr>
+                                        <tr><td>V<sub>suc</sub></td><td>Velocidade do fluido na sucção</td><td>m/s</td></tr>
+                                        <tr><td>z<sub>suc</sub> − z<sub>0</sub></td><td>Diferença de cota entre sucção e referência</td><td>m</td></tr>
+                                        <tr><td>h<sub>suc</sub></td><td>Perda de carga na linha de sucção</td><td>m</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Cavitação:</strong> quando a pressão local cai abaixo de p<sub>vap</sub>, o líquido vaporiza formando bolhas que implodem na bomba, causando erosão, vibração e queda de desempenho.</p>
+                                <p><strong>Dica:</strong> obtenha p<sub>vap</sub> pelo módulo Componentes. Mantenha NPSHd ≥ NPSHr + 0,5 m de margem de segurança.</p>
+                                <p class="teoria-ref">Ref.: Perry's Chemical Engineers' Handbook, 9ª ed., McGraw-Hill, 2019.</p>
+                            </div>
+                        </div>
                         <form id="npsh-form">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="mb-4">
@@ -592,7 +689,33 @@
                     </div>
 
                     <div class="bg-gray-50 p-4 rounded-md">
-                        <h3 class="text-lg font-medium mb-3 text-gray-800">Head</h3>
+                        <h3 class="text-lg font-medium mb-3 text-gray-800">Altura Manométrica (Head)</h3>
+                        <div class="accordion">
+                            <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-head">
+                                <span>Como funciona — Altura Manométrica (Bernoulli Estendida)</span>
+                                <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="accordion-content" id="acc-head" role="region">
+                                <p>A equação de Bernoulli estendida avalia a variação de carga entre dois pontos de uma linha de escoamento, incluindo perdas por atrito:</p>
+                                <div class="formula-block">H = (P₂ − P₁)/(ρg) + (V₂² − V₁²)/(2g) + (z₂ − z₁) + h<sub>f</sub></div>
+                                <table class="variables-table">
+                                    <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>H</td><td>Altura manométrica total</td><td>m</td></tr>
+                                        <tr><td>P₁, P₂</td><td>Pressões estáticas nos pontos 1 e 2</td><td>Pa</td></tr>
+                                        <tr><td>V₁, V₂</td><td>Velocidades médias nos pontos 1 e 2</td><td>m/s</td></tr>
+                                        <tr><td>z₁, z₂</td><td>Cotas geométricas dos pontos 1 e 2</td><td>m</td></tr>
+                                        <tr><td>ρ</td><td>Massa específica do fluido</td><td>kg/m³</td></tr>
+                                        <tr><td>h<sub>f</sub></td><td>Perdas de carga distribuídas e localizadas entre 1 e 2</td><td>m</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Interpretação:</strong> H &gt; 0 → uma bomba deve fornecer essa energia ao fluido · H &lt; 0 → energia pode ser extraída (turbina ou válvula de controle).</p>
+                                <p><strong>Dica:</strong> calcule primeiro h<sub>f</sub> no módulo Perda de Carga e insira o resultado aqui para obter H total da linha.</p>
+                                <p class="teoria-ref">Ref.: White, Mecânica dos Fluidos, 8ª ed., McGraw-Hill, 2018.</p>
+                            </div>
+                        </div>
                         <form id="head-form">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="mb-4">
