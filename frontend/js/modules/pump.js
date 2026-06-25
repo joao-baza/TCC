@@ -64,11 +64,11 @@ const PumpModule = {
                         if (materialDetails.specifications.roughness_coefficient.value) {
                             this.selectedMaterialRoughnessCoefficient = materialDetails.specifications.roughness_coefficient.value;
                         }else{
-                            UI.showError('Missing Data', 'No roughness coefficient found for this material');
+                            UI.showError('Dados incompletos', 'Coeficiente de rugosidade não encontrado para este material');
                             return;
                         }
                     }else{
-                        UI.showError('Missing Data', 'No roughness coefficient found for this material');
+                        UI.showError('Dados incompletos', 'Coeficiente de rugosidade não encontrado para este material');
                         return;
                     }
                 } catch (error) {
@@ -92,7 +92,7 @@ const PumpModule = {
             const diameter = document.getElementById('headloss-diameter').value;
             
             if (!method || !pipeLength || !diameter) {
-                UI.showError('Missing Data', 'Please enter pipe length, diameter, and select a method');
+                UI.showError('Dados incompletos', 'Informe comprimento, diâmetro e selecione um método');
                 return;
             }
             
@@ -108,7 +108,7 @@ const PumpModule = {
                 const velocity = document.getElementById('headloss-velocity').value;
                 
                 if (!frictionFactor || !velocity) {
-                    UI.showError('Missing Data', 'For Darcy-Weisbach, please enter friction factor and velocity');
+                    UI.showError('Dados incompletos', 'Para Darcy-Weisbach, informe fator de atrito e velocidade');
                     return;
                 }
                 
@@ -123,21 +123,21 @@ const PumpModule = {
                 
                 if (roughnessType === 'material') {
                     if (!this.selectedMaterialRoughnessCoefficient) {
-                        UI.showError('Missing Data', 'Please select a material');
+                        UI.showError('Dados incompletos', 'Selecione um material');
                         return;
                     }
                     roughnessCoefficient = this.selectedMaterialRoughnessCoefficient;
                 } else {
                     roughnessCoefficient = document.getElementById('roughness-coefficient').value;
                     if (!roughnessCoefficient) {
-                        UI.showError('Missing Data', 'Please enter a roughness coefficient');
+                        UI.showError('Dados incompletos', 'Informe um coeficiente de rugosidade');
                         return;
                     }
                     roughnessCoefficient = parseFloat(roughnessCoefficient);
                 }
                 
                 if (!flowRate) {
-                    UI.showError('Missing Data', 'For Hazen-Williams, please enter flow rate');
+                    UI.showError('Dados incompletos', 'Para Hazen-Williams, informe a vazão');
                     return;
                 }
                 
@@ -167,7 +167,7 @@ const PumpModule = {
             const gaugeElevation = document.getElementById('gauge-elevation').value;
             
             if (!manometricPressure || !atmosphericPressure || !vaporPressure || !specificMass || !frictionFactor || !pumpInletVelocity) {
-                UI.showError('Missing Data', 'Please fill all required fields');
+                UI.showError('Dados incompletos', 'Preencha todos os campos obrigatórios');
                 return;
             }
             
@@ -201,7 +201,7 @@ const PumpModule = {
             const frictionFactor = document.getElementById('head-friction-factor').value;
             
             if (!pressure1 || !pressure2 || !elevation1 || !elevation2 || !velocity1 || !velocity2 || !specificMass || !frictionFactor) {
-                UI.showError('Missing Data', 'Please fill all required fields');
+                UI.showError('Dados incompletos', 'Preencha todos os campos obrigatórios');
                 return;
             }
             
@@ -242,7 +242,7 @@ const PumpModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading headloss methods', error);
+            UI.showError('Erro ao carregar métodos de perda de carga', error);
         } finally {
             UI.hideLoading('#headloss-method');
         }
@@ -303,10 +303,13 @@ const PumpModule = {
             const result = await API.calculateHeadloss(params);
             
             // Display the result
-            let html = '<h4 class="font-medium text-gray-700 mb-2">Head Loss</h4>';
+            let html = '<h4 class="font-medium text-gray-700 mb-2">Perda de Carga</h4>';
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#headloss-result', html);
+
+            const hfValue = result.head_loss && result.head_loss.value != null ? result.head_loss.value : null;
+            if (hfValue != null) this._renderHeadlossChart(params, hfValue);
 
             document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
                 module: 'Bombas',
@@ -323,7 +326,7 @@ const PumpModule = {
                 }
             }
         } catch (error) {
-            UI.showError('Error calculating head loss', error);
+            UI.showError('Erro ao calcular perda de carga', error);
         } finally {
             UI.hideLoading('#headloss-form');
         }
@@ -341,10 +344,15 @@ const PumpModule = {
             const result = await API.calculateNPSHAvailable(params);
             
             // Display the result
-            let html = '<h4 class="font-medium text-gray-700 mb-2">NPSH Available</h4>';
+            let html = '<h4 class="font-medium text-gray-700 mb-2">NPSH Disponível</h4>';
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#npsh-result', html);
+
+            const npshd = result.npsh_available && result.npsh_available.value != null ? result.npsh_available.value : null;
+            const npshRInput = document.getElementById('npsh-required');
+            const npshR = npshRInput && npshRInput.value ? parseFloat(npshRInput.value) : null;
+            this._renderNPSHGauge(npshd, npshR);
 
             document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
                 module: 'Bombas',
@@ -353,7 +361,7 @@ const PumpModule = {
                 summary: 'Ver resultado acima',
             }}));
         } catch (error) {
-            UI.showError('Error calculating NPSH available', error);
+            UI.showError('Erro ao calcular NPSH disponível', error);
         } finally {
             UI.hideLoading('#npsh-form');
         }
@@ -371,10 +379,13 @@ const PumpModule = {
             const result = await API.calculateHead(params);
             
             // Display the result
-            let html = '<h4 class="font-medium text-gray-700 mb-2">Head</h4>';
+            let html = '<h4 class="font-medium text-gray-700 mb-2">Altura Manométrica</h4>';
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#head-result', html);
+
+            const H = result.head && result.head.value != null ? result.head.value : null;
+            if (H != null) this._renderHeadBreakdown(params, H);
 
             document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
                 module: 'Bombas',
@@ -383,11 +394,118 @@ const PumpModule = {
                 summary: 'Ver resultado acima',
             }}));
         } catch (error) {
-            UI.showError('Error calculating head', error);
+            UI.showError('Erro ao calcular altura manométrica', error);
         } finally {
             UI.hideLoading('#head-form');
         }
-    }
+    },
+
+    _renderHeadlossChart(params, hfValue) {
+        const method = params.method;
+        const D_m = params.diameter / 1000;
+        const L = params.pipe_length;
+        let Q_op, hfFn;
+
+        if (method === 'Darcy-Weisbach') {
+            const f = params.friction_factor, V = params.velocity;
+            Q_op = V * Math.PI * D_m * D_m / 4;
+            hfFn = Q => 8 * f * L * Q * Q / (Math.PI * Math.PI * 9.81 * Math.pow(D_m, 5));
+        } else if (method === 'Hazen-Williams') {
+            Q_op = params.flow_rate;
+            const C = params.roughness_coefficient;
+            hfFn = Q => 4.73 * L / (Math.pow(C, 1.852) * Math.pow(D_m, 4.87)) * Math.pow(Q, 1.852);
+        } else return;
+
+        const NUM = 50;
+        const points = Array.from({length: NUM}, (_, i) => {
+            const Q = (2 * Q_op * (i + 1)) / NUM;
+            const y = hfFn(Q);
+            return isFinite(y) && y >= 0 ? { x: parseFloat(Q.toPrecision(5)), y: parseFloat(y.toPrecision(5)) } : null;
+        }).filter(Boolean);
+
+        if (this._headlossChart) { this._headlossChart.destroy(); this._headlossChart = null; }
+        const wrap = document.createElement('div');
+        wrap.className = 'viz-container mt-3';
+        wrap.innerHTML = `<div class="viz-title">Perda de Carga × Vazão (${method})</div><div class="viz-chart-wrap"><canvas id="headloss-chart"></canvas></div>`;
+        document.getElementById('headloss-result').appendChild(wrap);
+
+        const ctx = document.getElementById('headloss-chart').getContext('2d');
+        this._headlossChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: [
+                { label: 'h_f vs Q', data: points, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, pointRadius: 0, tension: 0.3 },
+                { label: 'Ponto operacional', data: [{ x: Q_op, y: hfValue }], borderColor: '#EF4444', backgroundColor: '#EF4444', pointRadius: 6, showLine: false },
+            ]},
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', title: { display: true, text: 'Vazão Q (m³/s)' } },
+                    y: { title: { display: true, text: 'Perda de carga h_f (m)' }, beginAtZero: true },
+                },
+                plugins: { legend: { labels: { font: { size: 11 } } } },
+            },
+        });
+    },
+
+    _renderNPSHGauge(npshd, npshR) {
+        if (npshd == null) return;
+        const safe = npshR != null ? npshd >= npshR + 0.5 : null;
+        const color = safe === null ? '#6B7280' : (safe ? '#22C55E' : '#EF4444');
+        const label = safe === null ? 'Informe NPSHr para checar margem' : (safe ? 'Margem segura (NPSHd ≥ NPSHr + 0,5 m) ✓' : 'Risco de cavitação — NPSHd insuficiente ✗');
+        const maxVal = npshR != null ? Math.max(npshd, npshR) * 1.3 : npshd * 1.5;
+        const W = 300;
+        const xNpshd = (npshd / maxVal) * W;
+        let markers = `<rect x="0" y="14" width="${xNpshd}" height="20" fill="${color}80" rx="2"/>` +
+            `<rect x="0" y="14" width="${xNpshd}" height="20" fill="none" stroke="${color}" stroke-width="1.5" rx="2"/>` +
+            `<text x="${Math.min(xNpshd + 4, W - 80)}" y="28" font-size="10" fill="${color}" font-weight="bold">NPSHd=${npshd.toFixed(2)} m</text>`;
+        if (npshR != null) {
+            const xR = (npshR / maxVal) * W;
+            const xSafe = ((npshR + 0.5) / maxVal) * W;
+            markers += `<line x1="${xR}" y1="10" x2="${xR}" y2="38" stroke="#374151" stroke-width="2" stroke-dasharray="4,2"/>` +
+                `<text x="${xR - 2}" y="8" font-size="9" fill="#374151" text-anchor="end">NPSHr=${npshR.toFixed(1)}</text>` +
+                `<line x1="${xSafe}" y1="10" x2="${xSafe}" y2="38" stroke="#F59E0B" stroke-width="1" stroke-dasharray="3,2"/>` +
+                `<text x="${xSafe + 2}" y="8" font-size="8" fill="#92400E">+0,5m</text>`;
+        }
+        const svg = `<svg viewBox="0 0 340 52" class="viz-svg w-full" style="max-height:52px">` +
+            `<rect x="0" y="14" width="${W}" height="20" fill="#F1F5F9" rx="2" stroke="#CBD5E1"/>` +
+            markers +
+            `<text x="${W + 4}" y="28" font-size="9" fill="#374151">${maxVal.toFixed(1)} m</text></svg>`;
+        const wrap = document.createElement('div');
+        wrap.className = 'viz-container mt-3';
+        wrap.innerHTML = `<div class="viz-title">Margem de NPSH</div>${svg}` +
+            `<div class="viz-meta"><span class="viz-chip" style="background:${color}20;color:${color};border:1px solid ${color}50">${label}</span></div>`;
+        document.getElementById('npsh-result').appendChild(wrap);
+    },
+
+    _renderHeadBreakdown(params, H) {
+        const g = 9.81, rho = params.density;
+        const dp  = (params.pressure2 - params.pressure1) / (rho * g);
+        const dz  = params.elevation2 - params.elevation1;
+        const dv  = (params.velocity2 ** 2 - params.velocity1 ** 2) / (2 * g);
+        const hf  = -params.friction_factor;
+
+        if (this._headChart) { this._headChart.destroy(); this._headChart = null; }
+        const wrap = document.createElement('div');
+        wrap.className = 'viz-container mt-3';
+        wrap.innerHTML = `<div class="viz-title">Decomposição — H = ${H.toFixed(3)} m</div><div class="viz-chart-wrap" style="height:180px"><canvas id="head-chart"></canvas></div>`;
+        document.getElementById('head-result').appendChild(wrap);
+
+        const ctx = document.getElementById('head-chart').getContext('2d');
+        this._headChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['ΔP/(ρg)', 'Δz', 'ΔV²/(2g)', '−h_f (perdas)'],
+                datasets: [{ label: 'metros (m)', data: [dp, dz, dv, hf].map(v => parseFloat(v.toFixed(4))),
+                    backgroundColor: [dp>=0?'rgba(59,130,246,0.7)':'rgba(239,68,68,0.7)', dz>=0?'rgba(34,197,94,0.7)':'rgba(239,68,68,0.7)', dv>=0?'rgba(168,85,247,0.7)':'rgba(239,68,68,0.7)', 'rgba(239,68,68,0.7)'],
+                    borderWidth: 0 }],
+            },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                scales: { x: { title: { display: true, text: 'm de coluna de fluido' } }, y: { ticks: { font: { size: 11 } } } },
+                plugins: { legend: { display: false } },
+            },
+        });
+    },
 };
 
 // Export the Pump module

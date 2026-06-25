@@ -829,6 +829,59 @@ input.field-valid {
 .regime-transicao { background: #FEF9C3; color: #854D0E; }
 .regime-turbulento{ background: #DBEAFE; color: #1E40AF; }
 
+/* ── Visualizações didáticas ─────────────────────────────── */
+.viz-container {
+    margin-top: 0.875rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #FAFAFA;
+}
+.viz-title {
+    padding: 0.375rem 0.875rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--color-text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: #F9FAFB;
+    border-bottom: 1px solid var(--color-border);
+}
+.viz-svg {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    background: white;
+}
+.viz-chart-wrap {
+    position: relative;
+    height: 220px;
+    padding: 0.625rem 0.875rem;
+    background: white;
+}
+.viz-meta {
+    padding: 0.375rem 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    background: #F9FAFB;
+    border-top: 1px solid var(--color-border);
+    font-size: 0.75rem;
+}
+.viz-chip {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.viz-note {
+    color: var(--color-text-2);
+    font-style: italic;
+    font-size: 0.7rem;
+}
+
 /* ── Histórico de Cálculos ─────────────────────────────── */
 .history-entry {
     border: 1px solid var(--color-border);

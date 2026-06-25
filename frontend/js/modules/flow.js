@@ -30,12 +30,12 @@ const FlowModule = {
             const kinematicViscosity = document.getElementById('kinematic-viscosity').value;
             
             if (!characteristicDiameter || !velocity) {
-                UI.showError('Missing Data', 'Please enter characteristic diameter and velocity');
+                UI.showError('Dados incompletos', 'Informe o diâmetro característico e a velocidade');
                 return;
             }
             
             if ((!density || !dynamicViscosity) && !kinematicViscosity) {
-                UI.showError('Missing Data', 'Please enter either density and dynamic viscosity OR kinematic viscosity');
+                UI.showError('Dados incompletos', 'Informe densidade e viscosidade dinâmica, ou viscosidade cinemática');
                 return;
             }
             
@@ -67,13 +67,13 @@ const FlowModule = {
             if (roughnessType === 'custom') {
                 roughness = document.getElementById('custom-roughness').value;
                 if (!roughness) {
-                    UI.showError('Missing Data', 'Please enter a custom roughness value');
+                    UI.showError('Dados incompletos', 'Informe um valor de rugosidade personalizado');
                     return;
                 }
             } else {
                 const composition = document.getElementById('flow-composition-select').value;
                 if (!composition) {
-                    UI.showError('Missing Data', 'Please select a material composition');
+                    UI.showError('Dados incompletos', 'Selecione uma composição de material');
                     return;
                 }
                 
@@ -82,7 +82,7 @@ const FlowModule = {
                     const compositionDetails = await API.getCompositionDetails(composition);
                     roughness = compositionDetails.specifications.roughness.value;
                 } catch (error) {
-                    UI.showError('Error', 'Failed to get roughness from composition');
+                    UI.showError('Erro', 'Não foi possível obter a rugosidade da composição');
                     return;
                 }
             }
@@ -91,7 +91,7 @@ const FlowModule = {
             if (diameterType === 'custom') {
                 diameter = document.getElementById('custom-diameter').value;
                 if (!diameter) {
-                    UI.showError('Missing Data', 'Please enter a custom diameter value');
+                    UI.showError('Dados incompletos', 'Informe um valor de diâmetro personalizado');
                     return;
                 }
             } else {
@@ -99,7 +99,7 @@ const FlowModule = {
                 const selectedDiameter = document.getElementById('flow-diameter-select').value;
                 
                 if (!schedule || !selectedDiameter) {
-                    UI.showError('Missing Data', 'Please select both schedule and diameter');
+                    UI.showError('Dados incompletos', 'Selecione schedule e diâmetro');
                     return;
                 }
                 
@@ -107,7 +107,7 @@ const FlowModule = {
             }
             
             if (!reynolds || !method) {
-                UI.showError('Missing Data', 'Please fill all required fields');
+                UI.showError('Dados incompletos', 'Preencha todos os campos obrigatórios');
                 return;
             }
             
@@ -120,7 +120,7 @@ const FlowModule = {
             
             const shape = document.getElementById('hydraulic-shape').value;
             if (!shape) {
-                UI.showError('Missing Data', 'Please select a shape');
+                UI.showError('Dados incompletos', 'Selecione uma forma');
                 return;
             }
             
@@ -139,7 +139,7 @@ const FlowModule = {
             });
             
             if (missingParams) {
-                UI.showError('Missing Data', 'Please fill all parameters for the selected shape');
+                UI.showError('Dados incompletos', 'Preencha todos os parâmetros da forma selecionada');
                 return;
             }
             
@@ -227,7 +227,7 @@ const FlowModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading friction factor methods', error);
+            UI.showError('Erro ao carregar métodos de fator de atrito', error);
         } finally {
             UI.hideLoading('#friction-factor-method');
         }
@@ -255,7 +255,7 @@ const FlowModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading compositions', error);
+            UI.showError('Erro ao carregar composições', error);
         } finally {
             UI.hideLoading('#flow-composition-select');
         }
@@ -295,7 +295,7 @@ const FlowModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading schedules', error);
+            UI.showError('Erro ao carregar schedules', error);
         } finally {
             UI.hideLoading('#flow-schedule-select');
         }
@@ -341,7 +341,7 @@ const FlowModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading diameters', error);
+            UI.showError('Erro ao carregar diâmetros', error);
         } finally {
             UI.hideLoading('#flow-diameter-select');
         }
@@ -369,7 +369,7 @@ const FlowModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading hydraulic diameter shapes', error);
+            UI.showError('Erro ao carregar formas de diâmetro hidráulico', error);
         } finally {
             UI.hideLoading('#hydraulic-shape');
         }
@@ -503,6 +503,8 @@ const FlowModule = {
 
             UI.showResult('#reynolds-result', html);
 
+            if (re != null) this._renderReynoldsGauge(re);
+
             const reVal = result && result.value != null ? Number(result.value).toFixed(0) : '—';
             document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
                 module: 'Escoamento',
@@ -537,11 +539,15 @@ const FlowModule = {
             const result = await API.calculateFrictionFactor(roughness, diameter, reynolds, method);
             
             // Display the result
-            let html = '<h4 class="font-medium text-gray-700 mb-2">Friction Factor</h4>';
+            let html = '<h4 class="font-medium text-gray-700 mb-2">Fator de Atrito</h4>';
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#friction-factor-result', html);
-            
+
+            // Moody diagram
+            const fVal = result && result.friction_factor && result.friction_factor.value != null ? result.friction_factor.value : null;
+            if (fVal != null) this._renderMoodyChart(parseFloat(reynolds), fVal, parseFloat(roughness), parseFloat(diameter));
+
             // Optionally update the friction factor input in the headloss form
             if (result.friction_factor && result.friction_factor.value) {
                 const headlossFrictionInput = document.getElementById('headloss-friction-factor');
@@ -550,7 +556,7 @@ const FlowModule = {
                 }
             }
         } catch (error) {
-            UI.showError('Error calculating friction factor', error);
+            UI.showError('Erro ao calcular fator de atrito', error);
         } finally {
             UI.hideLoading('#friction-factor-form');
         }
@@ -571,7 +577,7 @@ const FlowModule = {
                 const innerDiameter = parseFloat(params.inner_diameter);
                 
                 if (innerDiameter >= outerDiameter) {
-                    UI.showError('Validation Error', 'Inner diameter must be smaller than outer diameter');
+                    UI.showError('Erro de validação', 'O diâmetro interno deve ser menor que o externo');
                     return;
                 }
             }
@@ -583,7 +589,7 @@ const FlowModule = {
                 
                 // Check triangle inequality
                 if (sideA + sideB <= sideC || sideA + sideC <= sideB || sideB + sideC <= sideA) {
-                    UI.showError('Validation Error', 'The sides do not form a valid triangle (must satisfy triangle inequality)');
+                    UI.showError('Erro de validação', 'Os lados não formam um triângulo válido (desigualdade triangular)');
                     return;
                 }
             }
@@ -593,7 +599,7 @@ const FlowModule = {
                 const height = parseFloat(params.height);
                 
                 if (height > diameter) {
-                    UI.showError('Validation Error', 'Height cannot be greater than diameter');
+                    UI.showError('Erro de validação', 'A altura não pode ser maior que o diâmetro');
                     return;
                 }
             }
@@ -601,16 +607,110 @@ const FlowModule = {
             const result = await API.calculateHydraulicDiameter(params);
             
             // Display the result
-            let html = '<h4 class="font-medium text-gray-700 mb-2">Hydraulic Diameter</h4>';
+            let html = '<h4 class="font-medium text-gray-700 mb-2">Diâmetro Hidráulico</h4>';
             html += UI.generatePropertyTable(result);
             
             UI.showResult('#hydraulic-diameter-result', html);
         } catch (error) {
-            UI.showError('Error calculating hydraulic diameter', error);
+            UI.showError('Erro ao calcular diâmetro hidráulico', error);
         } finally {
             UI.hideLoading('#hydraulic-diameter-form');
         }
-    }
+    },
+
+    _renderReynoldsGauge(re) {
+        const W = 340, H = 40;
+        const logMin = Math.log10(100), logMax = Math.log10(1e7);
+        const toX = v => ((Math.log10(Math.max(100, Math.min(v, 1e7))) - logMin) / (logMax - logMin)) * W;
+        const xLam = toX(2300), xTurb = toX(4000), xRe = toX(re);
+        const clr = re < 2300 ? '#3B82F6' : (re < 4000 ? '#F59E0B' : '#EF4444');
+        const svg = `<svg viewBox="0 0 360 60" class="viz-svg w-full" style="max-height:60px">` +
+            `<rect x="10" y="10" width="${xLam}" height="${H}" fill="#DBEAFE" rx="2"/>` +
+            `<rect x="${10+xLam}" y="10" width="${xTurb-xLam}" height="${H}" fill="#FEF9C3" rx="0"/>` +
+            `<rect x="${10+xTurb}" y="10" width="${W-xTurb}" height="${H}" fill="#FEE2E2" rx="2"/>` +
+            `<polygon points="${10+xRe},8 ${10+xRe-6},2 ${10+xRe+6},2" fill="${clr}"/>` +
+            `<line x1="${10+xRe}" y1="8" x2="${10+xRe}" y2="${10+H}" stroke="${clr}" stroke-width="2" stroke-dasharray="3,2"/>` +
+            `<text x="12" y="${10+H+14}" font-size="9" fill="#1D4ED8">Laminar</text>` +
+            `<text x="${10+xLam+2}" y="${10+H+14}" font-size="9" fill="#92400E">Trans.</text>` +
+            `<text x="${10+xTurb+2}" y="${10+H+14}" font-size="9" fill="#991B1B">Turbulento</text>` +
+            `<text x="${10+xRe}" y="${10+H/2+4}" text-anchor="middle" font-size="10" fill="${clr}" font-weight="bold">Re=${re.toFixed(0)}</text>` +
+            `</svg>`;
+        const wrap = document.createElement('div');
+        wrap.className = 'viz-container mt-3';
+        wrap.innerHTML = `<div class="viz-title">Régua de Regime de Escoamento</div>${svg}`;
+        document.getElementById('reynolds-result').appendChild(wrap);
+    },
+
+    _swameeJain(epsD, Re) {
+        if (Re < 1) return null;
+        if (Re < 2300) return 64 / Re;
+        if (Re < 4000) {
+            const fLam = 64 / 2300;
+            const arg = epsD / 3.7 + 5.74 / Math.pow(4000, 0.9);
+            const fTurb = arg > 0 ? 0.25 / (Math.log10(arg) ** 2) : null;
+            if (fTurb == null) return fLam;
+            const t = (Re - 2300) / 1700;
+            return fLam * (1 - t) + fTurb * t;
+        }
+        const arg = epsD / 3.7 + 5.74 / Math.pow(Re, 0.9);
+        return arg > 0 ? 0.25 / (Math.log10(arg) ** 2) : null;
+    },
+
+    _renderMoodyChart(re, f, roughnessMm, diameterMm) {
+        const epsDs = [0, 0.00005, 0.0001, 0.001, 0.005, 0.01, 0.05];
+        const colors = ['#94A3B8','#60A5FA','#34D399','#FBBF24','#F87171','#A78BFA','#EC4899'];
+        const labelsEps = ['liso (ε/D=0)','ε/D=5×10⁻⁵','ε/D=10⁻⁴','ε/D=10⁻³','ε/D=5×10⁻³','ε/D=10⁻²','ε/D=5×10⁻²'];
+        const NUM = 60;
+        const rePoints = Array.from({length: NUM}, (_, i) =>
+            Math.pow(10, Math.log10(100) + i * (Math.log10(1e8) - Math.log10(100)) / (NUM - 1)));
+
+        const datasets = epsDs.map((epsD, i) => ({
+            label: labelsEps[i],
+            data: rePoints.map(r => ({ x: r, y: this._swameeJain(epsD, r) })).filter(p => p.y != null),
+            borderColor: colors[i],
+            backgroundColor: 'transparent',
+            borderWidth: i === 0 ? 2 : 1.5,
+            pointRadius: 0,
+            tension: 0.1,
+            showLine: true,
+        }));
+
+        const epsD = diameterMm > 0 ? roughnessMm / diameterMm : 0;
+        datasets.push({
+            label: 'Ponto operacional',
+            data: [{ x: re, y: f }],
+            borderColor: '#EF4444',
+            backgroundColor: '#EF4444',
+            pointRadius: 7,
+            pointStyle: 'circle',
+            showLine: false,
+        });
+
+        const container = document.getElementById('friction-factor-result');
+        if (this._moodyChart) { this._moodyChart.destroy(); this._moodyChart = null; }
+        const wrap = document.createElement('div');
+        wrap.className = 'viz-container mt-3';
+        wrap.innerHTML = `<div class="viz-title">Diagrama de Moody</div><div class="viz-chart-wrap"><canvas id="moody-chart"></canvas></div>`;
+        container.appendChild(wrap);
+
+        const ctx = document.getElementById('moody-chart').getContext('2d');
+        this._moodyChart = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'logarithmic', title: { display: true, text: 'Número de Reynolds (Re)' }, min: 100, max: 1e8 },
+                    y: { type: 'logarithmic', title: { display: true, text: 'Fator de atrito de Darcy (f)' }, min: 0.005, max: 0.2 },
+                },
+                plugins: {
+                    legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12 } },
+                    tooltip: { callbacks: { label: c => `Re=${c.parsed.x.toExponential(2)}, f=${c.parsed.y != null ? c.parsed.y.toFixed(5) : '—'}` } },
+                },
+            },
+        });
+    },
 };
 
 // Export the Flow module

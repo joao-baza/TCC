@@ -523,7 +523,7 @@ const ReactorModule = {
             this.updateReactionOrders('plot');
         } catch (error) {
             console.error('Error loading components:', error);
-            UI.showError('Error', 'Failed to load components');
+            UI.showError('Erro', 'Não foi possível carregar os componentes');
         }
     },
 
@@ -626,7 +626,7 @@ const ReactorModule = {
         const componentRows = componentsContainer.querySelectorAll('.component-row');
         
         if (componentRows.length === 0) {
-            stoichiometricContainer.innerHTML = '<p class="text-gray-500 text-sm">Add components first</p>';
+            stoichiometricContainer.innerHTML = '<p class="text-gray-500 text-sm">Adicione componentes primeiro</p>';
             return;
         }
         
@@ -664,7 +664,7 @@ const ReactorModule = {
         const componentRows = componentsContainer.querySelectorAll('.component-row');
         
         if (componentRows.length === 0) {
-            reactionOrdersContainer.innerHTML = '<p class="text-gray-500 text-sm">Add components first</p>';
+            reactionOrdersContainer.innerHTML = '<p class="text-gray-500 text-sm">Adicione componentes primeiro</p>';
             return;
         }
         
@@ -712,7 +712,7 @@ const ReactorModule = {
             // Set initial field visibility
             this.updateFieldsVisibility('cstr', select.value);
         } catch (error) {
-            UI.showError('Error loading CSTR calculation types', error);
+            UI.showError('Erro ao carregar tipos de cálculo CSTR', error);
         } finally {
             UI.hideLoading('#cstr-input-type');
         }
@@ -756,7 +756,7 @@ const ReactorModule = {
             // Set initial field visibility
             this.updateFieldsVisibility('pfr', select.value);
         } catch (error) {
-            UI.showError('Error loading PFR calculation types', error);
+            UI.showError('Erro ao carregar tipos de cálculo PFR', error);
         } finally {
             UI.hideLoading('#pfr-input-type');
         }
@@ -856,7 +856,7 @@ const ReactorModule = {
             const inputType = document.getElementById(`${reactorType}-input-type`).value;
             
             if (!inputType) {
-                UI.showError('Missing Data', 'Please select an input type');
+                UI.showError('Dados incompletos', 'Selecione um tipo de entrada');
                 return;
             }
             
@@ -871,7 +871,7 @@ const ReactorModule = {
             
             // Validate required fields
             if (!rateConstant || !initialTemperature || !initialPressure || !finalTemperature || !finalPressure) {
-                UI.showError('Missing Data', 'Please fill in all required fields');
+                UI.showError('Dados incompletos', 'Preencha todos os campos obrigatórios');
                 return;
             }
             
@@ -881,19 +881,19 @@ const ReactorModule = {
             if (inputType === 'conversion_and_kinetics') {
                 conversion = parseFloat(document.getElementById(`${reactorType}-conversion`).value);
                 if (!conversion && conversion !== 0) {
-                    UI.showError('Missing Data', 'Please enter conversion value');
+                    UI.showError('Dados incompletos', 'Informe o valor da conversão');
                     return;
                 }
             } else if (inputType === 'volume_and_kinetics') {
                 volume = parseFloat(document.getElementById(`${reactorType}-volume`).value);
                 if (!volume && volume !== 0) {
-                    UI.showError('Missing Data', 'Please enter volume value');
+                    UI.showError('Dados incompletos', 'Informe o valor do volume');
                     return;
                 }
             } else if (inputType === 'residence_time_and_kinetics') {
                 residenceTime = parseFloat(document.getElementById(`${reactorType}-residence-time`).value);
                 if (!residenceTime && residenceTime !== 0) {
-                    UI.showError('Missing Data', 'Please enter residence time value');
+                    UI.showError('Dados incompletos', 'Informe o tempo de residência');
                     return;
                 }
             }
@@ -904,7 +904,7 @@ const ReactorModule = {
             const reactionOrders = this.collectReactionOrders(reactorType);
             
             if (components.length === 0) {
-                UI.showError('Missing Data', 'Please add at least one component');
+                UI.showError('Dados incompletos', 'Adicione pelo menos um componente');
                 return;
             }
             
@@ -947,10 +947,24 @@ const ReactorModule = {
             }
             
             // Display result
-            let html = `<h4 class="font-medium text-gray-700 mb-2">${reactorType.toUpperCase()} Calculation Results</h4>`;
+            const reactorLabel = reactorType === 'cstr' ? 'CSTR' : 'PFR';
+            let html = `<h4 class="font-medium text-gray-700 mb-2">Resultados do ${reactorLabel}</h4>`;
             html += UI.generatePropertyTable(result);
             
             UI.showResult(`#${reactorType}-result`, html);
+
+            // Auto Levenspiel plot
+            try {
+                const orders = this.collectReactionOrders(reactorType);
+                const nVal = (orders[0] > 0) ? orders[0] : 1;
+                const comps = this.collectComponentData(`${reactorType}-components-container`);
+                const C_A0v = comps.length > 0 ? (comps[0].molar_concentration_inlet || 1) : 1;
+                const Qv = comps.length > 0 && comps[0].flow_rate_inlet > 0 ? comps[0].flow_rate_inlet : 1;
+                const F_A0v = Qv * C_A0v;
+                const xTarget = conversion != null ? conversion :
+                    (result && result.conversion && result.conversion.value != null ? result.conversion.value : null);
+                if (xTarget != null) this._renderLevenspielInline(reactorType, rateConstant, nVal, C_A0v, F_A0v, xTarget);
+            } catch (_) {}
 
             document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
                 module: 'Reatores',
@@ -959,7 +973,8 @@ const ReactorModule = {
                 summary: 'Ver resultado acima',
             }}));
         } catch (error) {
-            UI.showError(`Error calculating ${reactorType.toUpperCase()}`, error);
+            const reactorLabel = reactorType === 'cstr' ? 'CSTR' : 'PFR';
+            UI.showError(`Erro ao calcular ${reactorLabel}`, error);
         } finally {
             UI.hideLoading(`#${reactorType}-form`);
         }
@@ -1098,7 +1113,43 @@ const ReactorModule = {
         } finally {
             UI.hideLoading('#plot-conversion-form');
         }
-    }
+    },
+
+    _renderLevenspielInline(reactorType, k, n, C_A0, F_A0, xTarget) {
+        if (!k || k <= 0 || !xTarget || xTarget <= 0) return;
+        xTarget = Math.min(xTarget, 0.995);
+        const { conversions, cstrVols, pfrVols } = this._computeReactorCurves(F_A0, C_A0, k, n, xTarget);
+
+        const instKey = `_levenspielChart_${reactorType}`;
+        if (this[instKey]) { this[instKey].destroy(); this[instKey] = null; }
+
+        const canvasId = `levenspiel-${reactorType}-chart`;
+        const wrap = document.createElement('div');
+        wrap.className = 'viz-container mt-3';
+        wrap.innerHTML = `<div class="viz-title">Diagrama de Levenspiel — CSTR vs PFR (n=${n}, k=${k})</div>` +
+            `<div class="viz-chart-wrap"><canvas id="${canvasId}"></canvas></div>`;
+        document.getElementById(`${reactorType}-result`).appendChild(wrap);
+
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        this[instKey] = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: [
+                { label: 'CSTR (V)', data: cstrVols, borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.10)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+                { label: 'PFR (V)',  data: pfrVols,  borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.10)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+            ]},
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { font: { size: 11 } } },
+                    tooltip: { mode: 'index', intersect: false },
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Conversão X (%)' }, ticks: { maxTicksLimit: 10 } },
+                    y: { title: { display: true, text: 'Volume (m³)' }, beginAtZero: true },
+                },
+            },
+        });
+    },
 };
 
 // Export the Reactor module
