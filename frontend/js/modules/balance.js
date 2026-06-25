@@ -72,15 +72,15 @@ const BalanceModule = {
                     <tr><td>Conversão X</td><td>Fração molar do componente-chave consumido na reação</td></tr>
                 </tbody>
             </table>
-            <p><strong>Reciclo e purga</strong> — em sistemas com recirculação, define-se um <em>splitter</em> com fração de reciclo \\(f\\):</p>
+            <p><strong>Reciclo e purga</strong> — em sistemas com recirculação, define-se um <em>splitter</em> com fração de reciclo <em>f</em>:</p>
             <table class="variables-table">
                 <thead><tr><th>Corrente</th><th>Equação</th><th>Descrição</th></tr></thead>
                 <tbody>
-                    <tr><td>Reciclo</td><td>\\(F_R = f \\cdot F_P\\)</td><td>Fração retornada ao processo</td></tr>
-                    <tr><td>Purga</td><td>\\(F_G = (1 - f) \\cdot F_P\\)</td><td>Fração retirada para evitar acúmulo de inertes</td></tr>
+                    <tr><td>Reciclo</td><td>F<sub>R</sub> = f · F<sub>P</sub></td><td>Fração retornada ao processo</td></tr>
+                    <tr><td>Purga</td><td>F<sub>G</sub> = (1 − f) · F<sub>P</sub></td><td>Fração retirada para evitar acúmulo de inertes</td></tr>
                 </tbody>
             </table>
-            <p>Onde \\(F_P\\) é a vazão total do produto bruto antes do split. O reciclo aumenta a conversão global mas exige mais energia de bombeamento e aumenta o tamanho dos equipamentos.</p>
+            <p>Onde F<sub>P</sub> é a vazão total do produto bruto antes do split. O reciclo aumenta a conversão global mas exige mais energia de bombeamento e aumenta o tamanho dos equipamentos.</p>
             <p><strong>Dica:</strong> use "Carregar Exemplo" para ver um sistema de reação A → B com reciclo pré-configurado.</p>
             <p class="teoria-ref">Ref.: Felder &amp; Rousseau, Elementary Principles of Chemical Processes, 4ª ed. · Reklaitis et al., Introduction to Material and Energy Balances.</p>
         </div>
