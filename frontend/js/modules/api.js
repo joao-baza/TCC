@@ -35,7 +35,7 @@ const API = {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || 'API request failed');
+                throw new Error(errorData.detail || 'Falha na requisição à API');
             }
 
             return await response.json();

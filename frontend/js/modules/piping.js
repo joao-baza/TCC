@@ -90,7 +90,7 @@ const PipingModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading compositions', error);
+            UI.showError('Erro ao carregar composições', error);
         } finally {
             UI.hideLoading('#composition-select');
         }
@@ -108,12 +108,12 @@ const PipingModule = {
             const detailsContainer = document.getElementById('composition-details');
             
             // Generate HTML for composition details
-            let html = '<h4 class="font-medium text-gray-700 mb-2">Composition Details</h4>';
+            let html = '<h4 class="font-medium text-gray-700 mb-2">Detalhes da Composição</h4>';
             html += UI.generatePropertyTable(details);
             
             UI.showResult('#composition-details', html);
         } catch (error) {
-            UI.showError('Error loading composition details', error);
+            UI.showError('Erro ao carregar detalhes da composição', error);
             UI.hideResult('#composition-details');
             document.getElementById('composition-details').innerHTML = '';
         } finally {
@@ -143,7 +143,7 @@ const PipingModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading schedules', error);
+            UI.showError('Erro ao carregar schedules', error);
         } finally {
             UI.hideLoading('#schedule-select');
         }
@@ -178,7 +178,7 @@ const PipingModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading diameters', error);
+            UI.showError('Erro ao carregar diâmetros', error);
         } finally {
             UI.hideLoading('#diameter-select');
         }
@@ -197,12 +197,12 @@ const PipingModule = {
             const detailsContainer = document.getElementById('diameter-details');
             
             // Generate HTML for diameter details
-            let html = '<h4 class="font-medium text-gray-700 mb-2">Diameter Details</h4>';
+            let html = '<h4 class="font-medium text-gray-700 mb-2">Detalhes do Diâmetro</h4>';
             html += UI.generatePropertyTable(details);
             
             UI.showResult('#diameter-details', html);
         } catch (error) {
-            UI.showError('Error loading diameter details', error);
+            UI.showError('Erro ao carregar detalhes do diâmetro', error);
             UI.hideResult('#diameter-details');
             document.getElementById('diameter-details').innerHTML = '';
         } finally {
@@ -232,7 +232,7 @@ const PipingModule = {
             // Refresh Select2
             $(select).trigger('change');
         } catch (error) {
-            UI.showError('Error loading fittings', error);
+            UI.showError('Erro ao carregar conexões', error);
         } finally {
             UI.hideLoading('#fitting-select');
         }
@@ -250,12 +250,12 @@ const PipingModule = {
             const detailsContainer = document.getElementById('fitting-details');
             
             // Generate HTML for fitting details
-            let html = '<h4 class="font-medium text-gray-700 mb-2">Fitting Details</h4>';
+            let html = '<h4 class="font-medium text-gray-700 mb-2">Detalhes da Conexão</h4>';
             html += UI.generatePropertyTable(details);
             
             UI.showResult('#fitting-details', html);
         } catch (error) {
-            UI.showError('Error loading fitting details', error);
+            UI.showError('Erro ao carregar detalhes da conexão', error);
             UI.hideResult('#fitting-details');
             document.getElementById('fitting-details').innerHTML = '';
         } finally {

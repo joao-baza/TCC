@@ -135,13 +135,13 @@ const UI = {
      */
     generatePropertyTable(data) {
         let html = '<table class="property-table">';
-        html += '<thead><tr><th>Property</th><th>Value</th><th>Units</th></tr></thead>';
+        html += '<thead><tr><th>Propriedade</th><th>Valor</th><th>Unidade</th></tr></thead>';
         html += '<tbody>';
         
         if (data.value !== undefined && data.units !== undefined) {
             html += `
                 <tr>
-                    <td>Diameter</td>
+                    <td>Diâmetro</td>
                     <td>${this.formatValue(data.value)}</td>
                     <td>${data.units}</td>
                 </tr>

@@ -137,7 +137,7 @@ const BalanceModule = {
                 this.addComponent(componentName);
                 document.getElementById('component-name').value = '';
             } else {
-                UI.showError('Error', 'Please enter a component name');
+                UI.showError('Erro', 'Informe o nome do componente');
             }
         });
 
@@ -186,7 +186,7 @@ const BalanceModule = {
         
         // Check if component already exists
         if (document.querySelector(`#components-list .component-tag[data-name="${name}"]`)) {
-            UI.showError('Error', `Component ${name} already exists`);
+            UI.showError('Erro', `O componente ${name} já existe`);
             return;
         }
         
@@ -646,13 +646,13 @@ const BalanceModule = {
         try {
             const components = this.getComponents();
             if (components.length === 0) {
-                UI.showError('Error', 'Please add at least one component');
+                UI.showError('Erro', 'Adicione pelo menos um componente');
                 return;
             }
             
             const streams = this.collectStreamData();
             if (streams.length === 0) {
-                UI.showError('Error', 'Please add at least one stream');
+                UI.showError('Erro', 'Adicione pelo menos uma corrente');
                 return;
             }
             
@@ -672,23 +672,23 @@ const BalanceModule = {
             
             const result = await API.calculateMassBalance(data);
             
-            let resultHtml = '<h3 class="text-lg font-semibold mb-3">Mass Balance Results</h3>';
-            resultHtml += '<p class="text-sm text-gray-600 mb-3">Flow rates are in consistent units throughout. Compositions are mass fractions (when using mass flow units) or molar fractions (when using molar flow units).</p>';
+            let resultHtml = '<h3 class="text-lg font-semibold mb-3">Resultados do Balanço de Massa</h3>';
+            resultHtml += '<p class="text-sm text-gray-600 mb-3">As vazões estão em unidades consistentes. Composições são frações mássicas (vazão em massa) ou molares (vazão molar).</p>';
             
             // Add process metrics if available
             if (result.metrics && Object.keys(result.metrics).length > 0) {
                 resultHtml += '<div class="mb-4 p-3 bg-gray-50 rounded border">';
-                resultHtml += '<h4 class="font-medium mb-2">Process Metrics</h4>';
+                resultHtml += '<h4 class="font-medium mb-2">Métricas do Processo</h4>';
                 resultHtml += '<ul class="list-disc pl-5">';
                 
                 if (result.metrics.fresh_feed) {
-                    resultHtml += `<li>Fresh Feed: ${result.metrics.fresh_feed.toFixed(2)} (mass or mol)/time</li>`;
+                    resultHtml += `<li>Alimentação fresca: ${result.metrics.fresh_feed.toFixed(2)} (massa ou mol)/tempo</li>`;
                 }
                 if (result.metrics.product_flow) {
-                    resultHtml += `<li>Product Flow: ${result.metrics.product_flow.toFixed(2)} (mass or mol)/time</li>`;
+                    resultHtml += `<li>Vazão de produto: ${result.metrics.product_flow.toFixed(2)} (massa ou mol)/tempo</li>`;
                 }
                 if (result.metrics.recycle_ratio) {
-                    resultHtml += `<li>Recycle Ratio: ${result.metrics.recycle_ratio.toFixed(2)}</li>`;
+                    resultHtml += `<li>Taxa de reciclo: ${result.metrics.recycle_ratio.toFixed(2)}</li>`;
                 }
                 
                 resultHtml += '</ul>';
@@ -699,10 +699,10 @@ const BalanceModule = {
             for (const [streamName, streamData] of Object.entries(result.results)) {
                 resultHtml += `<div class="mb-4 p-3 bg-gray-50 rounded border">`;
                 resultHtml += `<h4 class="font-medium mb-2">${streamName}</h4>`;
-                resultHtml += `<p>Flow Rate: ${streamData.flow_rate.toFixed(2)} (mass or mol)/time</p>`;
+                resultHtml += `<p>Vazão: ${streamData.flow_rate.toFixed(2)} (massa ou mol)/tempo</p>`;
                 
                 resultHtml += `<div class="mt-2">`;
-                resultHtml += `<p class="font-medium">Compositions (mass or molar fractions):</p>`;
+                resultHtml += `<p class="font-medium">Composições (frações mássicas ou molares):</p>`;
                 resultHtml += `<ul class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-1">`;
                 
                 for (const [comp, value] of Object.entries(streamData.compositions)) {
@@ -725,7 +725,7 @@ const BalanceModule = {
             }}));
         } catch (error) {
             UI.hideLoading('#balance-content');
-            UI.showError('Error', error);
+            UI.showError('Erro', error);
         }
     },
 
@@ -736,13 +736,13 @@ const BalanceModule = {
         try {
             const components = this.getComponents();
             if (components.length === 0) {
-                UI.showError('Error', 'Please add at least one component');
+                UI.showError('Erro', 'Adicione pelo menos um componente');
                 return;
             }
             
             const streams = this.collectStreamData();
             if (streams.length === 0) {
-                UI.showError('Error', 'Please add at least one stream');
+                UI.showError('Erro', 'Adicione pelo menos uma corrente');
                 return;
             }
             
@@ -762,17 +762,17 @@ const BalanceModule = {
             
             const result = await API.calculateYields(data);
             
-            let resultHtml = '<h3 class="text-lg font-semibold mb-3">Yield Results</h3>';
+            let resultHtml = '<h3 class="text-lg font-semibold mb-3">Resultados de Rendimento</h3>';
             
             // Add yields
             if (result.yields && Object.keys(result.yields).length > 0) {
                 resultHtml += '<div class="mb-4 p-3 bg-gray-50 rounded border">';
-                resultHtml += '<h4 class="font-medium mb-2">Yields</h4>';
+                resultHtml += '<h4 class="font-medium mb-2">Rendimentos</h4>';
                 resultHtml += '<ul class="list-disc pl-5">';
                 
                 for (const [yieldName, yieldValue] of Object.entries(result.yields)) {
                     const [output, input] = yieldName.split('_from_');
-                    resultHtml += `<li>Yield of ${output} from ${input}: ${yieldValue.toFixed(2)}%</li>`;
+                    resultHtml += `<li>Rendimento de ${output} a partir de ${input}: ${yieldValue.toFixed(2)}%</li>`;
                 }
                 
                 resultHtml += '</ul>';
@@ -780,13 +780,13 @@ const BalanceModule = {
             }
             
             // Stream results (simplified)
-            resultHtml += '<h4 class="font-medium mb-2">Stream Results</h4>';
+            resultHtml += '<h4 class="font-medium mb-2">Resultados por Corrente</h4>';
             resultHtml += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">';
             
             for (const [streamName, streamData] of Object.entries(result.results)) {
                 resultHtml += `<div class="p-3 bg-gray-50 rounded border">`;
                 resultHtml += `<h5 class="font-medium">${streamName}</h5>`;
-                resultHtml += `<p>Flow: ${streamData.flow_rate.toFixed(2)} kg/h</p>`;
+                resultHtml += `<p>Vazão: ${streamData.flow_rate.toFixed(2)} kg/h</p>`;
                 resultHtml += `</div>`;
             }
             
@@ -796,7 +796,7 @@ const BalanceModule = {
             UI.showResult('#balance-result', resultHtml);
         } catch (error) {
             UI.hideLoading('#balance-content');
-            UI.showError('Error', error);
+            UI.showError('Erro', error);
         }
     },
 

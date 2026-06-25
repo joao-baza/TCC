@@ -64,7 +64,7 @@ const ComponentsModule = {
                     <span class="sep" aria-hidden="true">›</span>
                     <span>Componentes</span>
                 </nav>
-                <h2 class="module-heading">Propriedades de Componentes <span class="level-chip">Referência</span></h2>
+                <h2 class="module-heading">Propriedades de Componentes</h2>
             </div>
         `;
         componentsContent.appendChild(headerEl);
@@ -216,7 +216,7 @@ const ComponentsModule = {
             const fluid = document.getElementById('critical-fluid-select').value;
             
             if (!fluid) {
-                UI.showError('Missing Data', 'Please select a fluid');
+                UI.showError('Dados incompletos', 'Selecione um fluido');
                 return;
             }
             
@@ -233,7 +233,7 @@ const ComponentsModule = {
             const pressure = document.getElementById('property-pressure').value;
 
             if (!fluid || !propertyNames || propertyNames.length === 0 || !temperature || !pressure) {
-                UI.showError('Missing Data', 'Please fill all required fields');
+                UI.showError('Dados incompletos', 'Preencha todos os campos obrigatórios');
                 return;
             }
             
@@ -253,14 +253,14 @@ const ComponentsModule = {
             const pressure = document.getElementById('mixture-pressure').value;
             
             if (!temperature || !pressure) {
-                UI.showError('Missing Data', 'Please enter temperature and pressure');
+                UI.showError('Dados incompletos', 'Informe temperatura e pressão');
                 return;
             }
             
             const fluidFractions = this.collectFluidFractions();
             
             if (Object.keys(fluidFractions).length === 0) {
-                UI.showError('Missing Data', 'Please add at least one fluid fraction');
+                UI.showError('Dados incompletos', 'Adicione pelo menos uma fração de fluido');
                 return;
             }
             
@@ -292,7 +292,7 @@ const ComponentsModule = {
             this.addFluidFractionRow();
         } catch (error) {
             console.error('Error loading components:', error);
-            UI.showError('Error', 'Failed to load components');
+            UI.showError('Erro', 'Não foi possível carregar os componentes');
         }
     },
 
@@ -357,7 +357,7 @@ const ComponentsModule = {
             
             UI.refreshSelect2('#property-name-select');
         } catch (error) {
-            UI.showError('Error loading property names', error);
+            UI.showError('Erro ao carregar nomes de propriedades', error);
         } finally {
             UI.hideLoading('#property-name-select');
         }
@@ -397,7 +397,7 @@ const ComponentsModule = {
             
             UI.refreshSelect2('#mixture-properties-select');
         } catch (error) {
-            UI.showError('Error loading mixture property names', error);
+            UI.showError('Erro ao carregar propriedades de mistura', error);
         } finally {
             UI.hideLoading('#mixture-properties-select');
         }
@@ -485,7 +485,7 @@ const ComponentsModule = {
             const result = await API.getCriticalProperties(fluid);
             
             // Display the result
-            let html = `<h4 class="font-medium text-gray-700 mb-2">Critical Properties for ${fluid}</h4>`;
+            let html = `<h4 class="font-medium text-gray-700 mb-2">Propriedades Críticas de ${fluid}</h4>`;
             
             // Format the result as a table
             html += '<table class="property-table">';
@@ -541,7 +541,7 @@ const ComponentsModule = {
             
             UI.showResult('#critical-properties-result', html);
         } catch (error) {
-            UI.showError('Error getting critical properties', error);
+            UI.showError('Erro ao obter propriedades críticas', error);
         } finally {
             UI.hideLoading('#critical-properties-form');
         }
@@ -583,7 +583,7 @@ const ComponentsModule = {
             
             UI.showResult('#property-result', html);
         } catch (error) {
-            UI.showError('Error getting property', error);
+            UI.showError('Erro ao obter propriedade', error);
         } finally {
             UI.hideLoading('#property-form');
         }
@@ -624,7 +624,7 @@ const ComponentsModule = {
             }
             
             // Display the results
-            let html = `<h4 class="font-medium text-gray-700 mb-2">Properties for ${fluid}</h4>`;
+            let html = `<h4 class="font-medium text-gray-700 mb-2">Propriedades de ${fluid}</h4>`;
             
             // Format the result as a table
             html += '<table class="property-table">';
@@ -646,7 +646,7 @@ const ComponentsModule = {
             
             UI.showResult('#property-result', html);
         } catch (error) {
-            UI.showError('Error getting properties', error);
+            UI.showError('Erro ao obter propriedades', error);
         } finally {
             UI.hideLoading('#property-form');
         }
@@ -667,7 +667,7 @@ const ComponentsModule = {
             const result = await API.getMixtureProperties(fluidFractions, temperature, pressure, properties);
             
             // Display the result
-            let html = `<h4 class="font-medium text-gray-700 mb-2">Mixture Properties</h4>`;
+            let html = `<h4 class="font-medium text-gray-700 mb-2">Propriedades da Mistura</h4>`;
             
             // Format the fluid composition
             html += '<div class="mb-3">';
@@ -708,7 +708,7 @@ const ComponentsModule = {
             
             UI.showResult('#mixture-properties-result', html);
         } catch (error) {
-            UI.showError('Error calculating mixture properties', error);
+            UI.showError('Erro ao calcular propriedades da mistura', error);
         } finally {
             UI.hideLoading('#mixture-properties-form');
         }
