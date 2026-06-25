@@ -13,6 +13,8 @@ const ReactorModule = {
         this.loadCSTRCalculationTypes();
         this.loadPFRCalculationTypes();
         this.setupEventListeners();
+        // Ativar acordeões criados dinamicamente
+        if (window.DidaticModule) DidaticModule.setupAccordions();
     },
 
     /**
@@ -20,15 +22,53 @@ const ReactorModule = {
      */
     createReactorContent() {
         const reactorContent = document.getElementById('reactor-content');
-        
         if (!reactorContent) return;
-        
-        // CSTR Reactor content
+
+        // Module header (mesmo padrão dos módulos estáticos)
+        const headerEl = document.createElement('div');
+        headerEl.className = 'module-header';
+        headerEl.innerHTML = `
+            <div class="module-header-left">
+                <nav class="module-breadcrumb" aria-label="Localização">
+                    <a href="#home-content" data-tab="home-content">Início</a>
+                    <span class="sep" aria-hidden="true">›</span>
+                    <span>Reatores</span>
+                    <span class="sep" aria-hidden="true">›</span>
+                    <span>CSTR / PFR</span>
+                </nav>
+                <h2 class="module-heading">Cálculos de Reator <span class="level-chip level-chip-purple">Avançado</span></h2>
+            </div>
+        `;
+        reactorContent.appendChild(headerEl);
+
         const cstrContent = document.createElement('div');
         cstrContent.className = 'grid grid-cols-1 gap-6';
         cstrContent.innerHTML = `
             <div class="bg-gray-50 p-4 rounded-md">
-                <h3 class="text-lg font-medium mb-3 text-gray-800">CSTR Reactor</h3>
+                <h3 class="text-lg font-medium mb-3 text-gray-800">Reator CSTR</h3>
+                <div class="accordion">
+                    <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-cstr">
+                        <span>Como funciona — Reator CSTR</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="accordion-content" id="acc-cstr" role="region">
+                        <p>O <strong>CSTR</strong> (Continuous Stirred-Tank Reactor) opera em regime permanente com mistura perfeita — a composição no interior é uniforme e igual à saída.</p>
+                        <div class="formula-block">V = F<sub>A0</sub> · X / (−r<sub>A</sub>)<sub>saída</sub></div>
+                        <table class="variables-table">
+                            <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                            <tbody>
+                                <tr><td>V</td><td>Volume do reator</td><td>m³</td></tr>
+                                <tr><td>F<sub>A0</sub></td><td>Vazão molar de A na entrada</td><td>mol/s</td></tr>
+                                <tr><td>X</td><td>Conversão do reagente limitante</td><td>0–1</td></tr>
+                                <tr><td>−r<sub>A</sub></td><td>Taxa de consumo de A <em>na saída</em></td><td>mol/(m³·s)</td></tr>
+                            </tbody>
+                        </table>
+                        <p><strong>Dica:</strong> para uma reação de 1ª ordem (−r<sub>A</sub> = k·C<sub>A0</sub>·(1−X)), V<sub>CSTR</sub> cresce mais rápido que V<sub>PFR</sub> para a mesma conversão.</p>
+                        <p class="teoria-ref">Ref.: Fogler, Elements of Chemical Reaction Engineering, 5ª ed.</p>
+                    </div>
+                </div>
                 <form id="cstr-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="mb-4">
@@ -113,7 +153,30 @@ const ReactorModule = {
             </div>
             
             <div class="bg-gray-50 p-4 rounded-md">
-                <h3 class="text-lg font-medium mb-3 text-gray-800">PFR Reactor</h3>
+                <h3 class="text-lg font-medium mb-3 text-gray-800">Reator PFR</h3>
+                <div class="accordion">
+                    <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-pfr">
+                        <span>Como funciona — Reator PFR</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="accordion-content" id="acc-pfr" role="region">
+                        <p>O <strong>PFR</strong> (Plug Flow Reactor) opera com escoamento pistonado — concentrações variam continuamente ao longo do comprimento, sem mistura axial.</p>
+                        <div class="formula-block">V = F<sub>A0</sub> · ∫₀ˣ dX / (−r<sub>A</sub>)</div>
+                        <table class="variables-table">
+                            <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                            <tbody>
+                                <tr><td>V</td><td>Volume do reator</td><td>m³</td></tr>
+                                <tr><td>F<sub>A0</sub></td><td>Vazão molar de A na entrada</td><td>mol/s</td></tr>
+                                <tr><td>X</td><td>Conversão desejada</td><td>0–1</td></tr>
+                                <tr><td>−r<sub>A</sub>(X)</td><td>Taxa de reação como função da conversão</td><td>mol/(m³·s)</td></tr>
+                            </tbody>
+                        </table>
+                        <p><strong>Comparação:</strong> para reações de ordem > 0, V<sub>PFR</sub> &lt; V<sub>CSTR</sub> para a mesma conversão, pois o PFR opera com concentração mais alta durante a maior parte do percurso.</p>
+                        <p class="teoria-ref">Ref.: Fogler, Elements of Chemical Reaction Engineering, 5ª ed.</p>
+                    </div>
+                </div>
                 <form id="pfr-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <div class="mb-4">
@@ -203,7 +266,21 @@ const ReactorModule = {
             
             <!-- Conversion vs Volume Plot Card -->
             <div class="bg-gray-50 p-4 rounded-md">
-                <h3 class="text-lg font-medium mb-3 text-gray-800">Conversion vs Volume Plot</h3>
+                <h3 class="text-lg font-medium mb-3 text-gray-800">Conversão × Volume (Gráfico)</h3>
+                <div class="accordion">
+                    <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-reactor-plot">
+                        <span>Como funciona — Gráfico Conversão × Volume</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="accordion-content" id="acc-reactor-plot" role="region">
+                        <p>O gráfico compara visualmente o volume necessário em CSTR e PFR em função da conversão X, usando a lei de velocidade de potência:</p>
+                        <div class="formula-block">−r<sub>A</sub> = k · C<sub>A0</sub><sup>n</sup> · (1−X)<sup>n</sup></div>
+                        <p>O gráfico é calculado analiticamente no browser. Para conversões próximas a 1 (100%), o volume cresce assintoticamente — insira X<sub>max</sub> ≤ 0,99.</p>
+                        <p class="teoria-ref">Ref.: Levenspiel, Chemical Reaction Engineering, 3ª ed.</p>
+                    </div>
+                </div>
                 <form id="plot-conversion-form">
                     <div class="mb-4 p-4 bg-gray-100 rounded-md border">
                         <h4 class="font-medium text-gray-700 mb-2">Operation Conditions</h4>
@@ -426,7 +503,7 @@ const ReactorModule = {
             // Add placeholder option
             const placeholderOption = document.createElement('option');
             placeholderOption.value = '';
-            placeholderOption.textContent = 'Select or enter component name';
+            placeholderOption.textContent = 'Selecione ou digite o nome do componente';
             componentNameSelect.appendChild(placeholderOption);
             
             // Add existing components
@@ -441,7 +518,7 @@ const ReactorModule = {
         // Initialize Select2 with tags support for custom input
         $(componentNameSelect).select2({
             tags: true,
-            placeholder: 'Select or enter component name',
+            placeholder: 'Selecione ou digite o nome do componente',
             allowClear: true,
             width: '100%'
         });
@@ -533,7 +610,7 @@ const ReactorModule = {
             const types = await API.getCSTRCalculationTypes();
             const select = document.getElementById('cstr-input-type');
             
-            select.innerHTML = '<option value="">Select input type</option>';
+            select.innerHTML = '<option value="">Selecione o tipo de entrada</option>';
             
             types.forEach(type => {
                 const option = document.createElement('option');
@@ -577,7 +654,7 @@ const ReactorModule = {
             const types = await API.getPFRCalculationTypes();
             const select = document.getElementById('pfr-input-type');
             
-            select.innerHTML = '<option value="">Select input type</option>';
+            select.innerHTML = '<option value="">Selecione o tipo de entrada</option>';
             
             types.forEach(type => {
                 const option = document.createElement('option');
