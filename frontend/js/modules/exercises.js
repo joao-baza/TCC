@@ -14,6 +14,19 @@ const ExercisesModule = {
         results: {}
     },
 
+    _fluidList: [],
+
+    /** Render a Select2-ready fluid select. `disabled` = read-only (step 2+). */
+    _fluidSelect(id, selectedValue, disabled = false) {
+        const opts = (ExercisesModule._fluidList || []).map(f =>
+            `<option value="${f}"${f === selectedValue ? ' selected' : ''}>${f}</option>`
+        ).join('');
+        return `<select id="${id}" class="p-2 border rounded w-full text-sm ex-fluid-select"
+                    data-placeholder="Selecione um fluido"${disabled ? ' disabled' : ''}>
+                    <option value=""></option>${opts}
+                </select>`;
+    },
+
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
@@ -58,8 +71,8 @@ const ExercisesModule = {
                         return `
                         <form id="ex-step-form" class="space-y-3">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Fluido (nome CoolProp, ex: n-Propane, Water)</label>
-                                <input id="ex-fluid" type="text" value="${fluid}" class="p-2 border rounded w-full text-sm">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fluido</label>
+                                ${ExercisesModule._fluidSelect('ex-fluid', fluid)}
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Temperatura de entrada T₁ (K)</label>
@@ -90,8 +103,9 @@ const ExercisesModule = {
                         return `
                         <form id="ex-step-form" class="space-y-3">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Fluido</label>
-                                <input id="ex-fluid2" type="text" value="${fluid}" class="p-2 border rounded w-full text-sm" readonly>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fluido (da etapa anterior)</label>
+                                ${ExercisesModule._fluidSelect('ex-fluid2', fluid, true)}
+                            </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Temperatura de saída T₂ (K)</label>
@@ -163,7 +177,7 @@ const ExercisesModule = {
                         <form id="ex-step-form" class="space-y-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Fluido</label>
-                                <input id="ex-fluid" type="text" value="Water" class="p-2 border rounded w-full text-sm">
+                                ${ExercisesModule._fluidSelect('ex-fluid', 'Water')}
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Temperatura (K)</label>
@@ -751,7 +765,7 @@ const ExercisesModule = {
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Conversão X (0–1)</label>
-                                <input id="ex-X-simple" type="number" value="0.8" step="0.05" min="0.01" max="0.99" class="p-2 border rounded w-full text-sm">
+                                <input id="ex-X-simple" type="number" value="0.8" step="0.01" min="0.01" max="0.99" class="p-2 border rounded w-full text-sm">
                             </div>
                             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-sm">Calcular Balanço</button>
                         </form>`;
@@ -1012,7 +1026,14 @@ const ExercisesModule = {
     // -----------------------------------------------------------------------
     // Init
     // -----------------------------------------------------------------------
-    init() {
+    async init() {
+        // Pre-load CoolProp fluid list for Select2 selects
+        try {
+            const fluids = await API.listComponents();
+            this._fluidList = Array.isArray(fluids) ? fluids.sort() : [];
+        } catch (_) {
+            this._fluidList = [];
+        }
         this.renderSelector();
         this.setupBackBtn();
     },
@@ -1109,6 +1130,11 @@ const ExercisesModule = {
             <button id="ex-next-btn" class="hidden mt-3 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full text-sm">
                 ${n + 1 < ex.steps.length ? 'Próxima Etapa →' : 'Concluir Exercício ✓'}
             </button>`;
+
+        // Initialize Select2 on any fluid selects rendered in this step
+        if (typeof UI !== 'undefined' && UI.refreshSelect2) {
+            UI.refreshSelect2('.ex-fluid-select');
+        }
 
         const form = document.getElementById('ex-step-form');
         if (form) {
