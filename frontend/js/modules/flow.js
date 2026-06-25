@@ -505,14 +505,6 @@ const FlowModule = {
 
             if (re != null) this._renderReynoldsGauge(re);
 
-            const reVal = result && result.value != null ? Number(result.value).toFixed(0) : '—';
-            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
-                module: 'Escoamento',
-                operation: 'Número de Reynolds',
-                inputs: `D = ${params.characteristic_diameter || '—'} · V = ${params.velocity || '—'}`,
-                summary: `Re = ${reVal}`,
-            }}));
-
             // Preenche o campo Reynolds no formulário de Fator de atrito
             if (re != null) {
                 document.getElementById('reynolds-number').value = re.toFixed(2);
@@ -545,14 +537,14 @@ const FlowModule = {
             UI.showResult('#friction-factor-result', html);
 
             // Moody diagram
-            const fVal = result && result.friction_factor && result.friction_factor.value != null ? result.friction_factor.value : null;
+            const fVal = result && result.value != null ? result.value : null;
             if (fVal != null) this._renderMoodyChart(parseFloat(reynolds), fVal, parseFloat(roughness), parseFloat(diameter));
 
             // Optionally update the friction factor input in the headloss form
-            if (result.friction_factor && result.friction_factor.value) {
+            if (result && result.value) {
                 const headlossFrictionInput = document.getElementById('headloss-friction-factor');
                 if (headlossFrictionInput) {
-                    headlossFrictionInput.value = result.friction_factor.value;
+                    headlossFrictionInput.value = result.value;
                 }
             }
         } catch (error) {
@@ -619,21 +611,22 @@ const FlowModule = {
     },
 
     _renderReynoldsGauge(re) {
-        const W = 340, H = 40;
+        const W = 340, H = 52;
         const logMin = Math.log10(100), logMax = Math.log10(1e7);
         const toX = v => ((Math.log10(Math.max(100, Math.min(v, 1e7))) - logMin) / (logMax - logMin)) * W;
         const xLam = toX(2300), xTurb = toX(4000), xRe = toX(re);
         const clr = re < 2300 ? '#3B82F6' : (re < 4000 ? '#F59E0B' : '#EF4444');
-        const svg = `<svg viewBox="0 0 360 60" class="viz-svg w-full" style="max-height:60px">` +
-            `<rect x="10" y="10" width="${xLam}" height="${H}" fill="#DBEAFE" rx="2"/>` +
-            `<rect x="${10+xLam}" y="10" width="${xTurb-xLam}" height="${H}" fill="#FEF9C3" rx="0"/>` +
-            `<rect x="${10+xTurb}" y="10" width="${W-xTurb}" height="${H}" fill="#FEE2E2" rx="2"/>` +
-            `<polygon points="${10+xRe},8 ${10+xRe-6},2 ${10+xRe+6},2" fill="${clr}"/>` +
-            `<line x1="${10+xRe}" y1="8" x2="${10+xRe}" y2="${10+H}" stroke="${clr}" stroke-width="2" stroke-dasharray="3,2"/>` +
-            `<text x="12" y="${10+H+14}" font-size="9" fill="#1D4ED8">Laminar</text>` +
-            `<text x="${10+xLam+2}" y="${10+H+14}" font-size="9" fill="#92400E">Trans.</text>` +
-            `<text x="${10+xTurb+2}" y="${10+H+14}" font-size="9" fill="#991B1B">Turbulento</text>` +
-            `<text x="${10+xRe}" y="${10+H/2+4}" text-anchor="middle" font-size="10" fill="${clr}" font-weight="bold">Re=${re.toFixed(0)}</text>` +
+        const barY = 16;
+        const svg = `<svg viewBox="0 0 360 100" class="viz-svg w-full" style="max-height:100px">` +
+            `<rect x="10" y="${barY}" width="${xLam}" height="${H}" fill="#DBEAFE" rx="2"/>` +
+            `<rect x="${10+xLam}" y="${barY}" width="${xTurb-xLam}" height="${H}" fill="#FEF9C3" rx="0"/>` +
+            `<rect x="${10+xTurb}" y="${barY}" width="${W-xTurb}" height="${H}" fill="#FEE2E2" rx="2"/>` +
+            `<polygon points="${10+xRe},${barY-2} ${10+xRe-7},4 ${10+xRe+7},4" fill="${clr}"/>` +
+            `<line x1="${10+xRe}" y1="${barY-2}" x2="${10+xRe}" y2="${barY+H}" stroke="${clr}" stroke-width="2" stroke-dasharray="3,2"/>` +
+            `<text x="12" y="${barY+H+18}" font-size="11" fill="#1D4ED8">Laminar</text>` +
+            `<text x="${10+xLam+2}" y="${barY+H+18}" font-size="11" fill="#92400E">Trans.</text>` +
+            `<text x="${10+xTurb+2}" y="${barY+H+18}" font-size="11" fill="#991B1B">Turbulento</text>` +
+            `<text x="${10+xRe}" y="${barY+H/2+5}" text-anchor="middle" font-size="12" fill="${clr}" font-weight="bold">Re=${re.toFixed(0)}</text>` +
             `</svg>`;
         const wrap = document.createElement('div');
         wrap.className = 'viz-container mt-3';
