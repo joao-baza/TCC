@@ -78,7 +78,7 @@ const PipingModule = {
             const compositions = await API.getCompositions();
             const select = document.getElementById('composition-select');
             
-            select.innerHTML = '<option value="">Select a composition</option>';
+            select.innerHTML = '<option value="">Selecione uma composição</option>';
             
             compositions.forEach(composition => {
                 const option = document.createElement('option');
@@ -131,7 +131,7 @@ const PipingModule = {
             const schedules = await API.getSchedules();
             const select = document.getElementById('schedule-select');
             
-            select.innerHTML = '<option value="">Select a schedule</option>';
+            select.innerHTML = '<option value="">Selecione um schedule</option>';
             
             schedules.forEach(schedule => {
                 const option = document.createElement('option');
@@ -161,7 +161,7 @@ const PipingModule = {
 
             const select = document.getElementById('diameter-select');
             
-            select.innerHTML = '<option value="">Select a diameter</option>';
+            select.innerHTML = '<option value="">Selecione um diâmetro</option>';
             
             // Handle diameters as an object instead of an array
             if (diameters && typeof diameters === 'object') {
@@ -220,7 +220,7 @@ const PipingModule = {
             const fittings = await API.getFittings();
             const select = document.getElementById('fitting-select');
             
-            select.innerHTML = '<option value="">Select a fitting</option>';
+            select.innerHTML = '<option value="">Selecione uma conexão</option>';
             
             fittings.forEach(fitting => {
                 const option = document.createElement('option');
