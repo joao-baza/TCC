@@ -288,6 +288,16 @@ const UI = {
             const toggle = document.getElementById('sidebarToggle');
             toggle && toggle.setAttribute('aria-expanded', 'false');
         }
+
+        // Move o foco para o heading do pane ativado (a11y)
+        const target = document.getElementById(tabId);
+        if (target) {
+            const heading = target.querySelector('h1, h2, h3, [tabindex="-1"]');
+            if (heading) {
+                heading.setAttribute('tabindex', '-1');
+                heading.focus({ preventScroll: false });
+            }
+        }
     },
 
     /**

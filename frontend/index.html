@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <a href="#mainContent" class="skip-link">Pular para o conteúdo principal</a>
     <!-- Botão hambúrguer (mobile) -->
     <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu de navegação" aria-expanded="false" aria-controls="sidebar">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -28,12 +29,12 @@
 
     <div class="app-layout">
         <!-- Barra lateral de navegação -->
-        <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+        <aside class="sidebar" id="sidebar" role="navigation" aria-label="Navegação principal">
             <div class="sidebar-header">
                 <div class="sidebar-title">Simulador de<br>Operações Unitárias</div>
                 <div class="sidebar-subtitle">Engenharia Química — UFMS</div>
             </div>
-            <nav class="sidebar-nav">
+            <nav class="sidebar-nav" aria-label="Menu principal">
                 <div class="nav-group">
                     <a class="nav-item active" data-tab="home-content" href="#home-content" aria-current="page">Início</a>
                 </div>
