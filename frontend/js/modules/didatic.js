@@ -48,7 +48,8 @@ const DidaticModule = {
     // Acordeões "Como funciona"
     // -----------------------------------------------------------------------
     setupAccordions() {
-        document.querySelectorAll('.accordion-trigger').forEach(trigger => {
+        document.querySelectorAll('.accordion-trigger:not([data-acc-bound])').forEach(trigger => {
+            trigger.dataset.accBound = '1';
             trigger.addEventListener('click', function () {
                 const expanded = this.getAttribute('aria-expanded') === 'true';
                 this.setAttribute('aria-expanded', String(!expanded));
