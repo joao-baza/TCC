@@ -48,17 +48,17 @@ const ExercisesModule = {
             title: 'Trocador de Calor',
             icon: '♨',
             desc: 'Use propriedades termodinâmicas reais (CoolProp) para calcular o calor trocado por unidade de massa entre dois estados de um fluido.',
-            problem: 'Um trocador de calor opera com <strong>Propano</strong> (editável). Determine a potência do trocador para aquecer o fluido da temperatura de entrada até a de saída.',
+            problem: 'Um trocador de calor opera com <strong>Propano</strong> (<code>n-Propane</code> no CoolProp — editável). Determine a potência do trocador para aquecer o fluido da temperatura de entrada até a de saída.',
             steps: [
                 {
                     title: 'Etapa 1 — Entalpia de entrada (h₁)',
                     desc: 'Obtenha a entalpia do fluido nas condições de <strong>entrada</strong> do trocador via CoolProp.',
                     render(state) {
-                        const fluid = state.results.fluid || 'Propane';
+                        const fluid = state.results.fluid || 'n-Propane';
                         return `
                         <form id="ex-step-form" class="space-y-3">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Fluido</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fluido (nome CoolProp, ex: n-Propane, Water)</label>
                                 <input id="ex-fluid" type="text" value="${fluid}" class="p-2 border rounded w-full text-sm">
                             </div>
                             <div>
@@ -86,7 +86,7 @@ const ExercisesModule = {
                     title: 'Etapa 2 — Entalpia de saída (h₂)',
                     desc: 'Obtenha a entalpia do fluido nas condições de <strong>saída</strong> do trocador.',
                     render(state) {
-                        const fluid = state.results.fluid || 'Propane';
+                        const fluid = state.results.fluid || 'n-Propane';
                         return `
                         <form id="ex-step-form" class="space-y-3">
                             <div>
@@ -105,7 +105,7 @@ const ExercisesModule = {
                         </form>`;
                     },
                     async run(vals, state) {
-                        const fluid = state.results.fluid || 'Propane';
+                        const fluid = state.results.fluid || 'n-Propane';
                         const t2 = parseFloat(document.getElementById('ex-t2').value);
                         const p2 = parseFloat(document.getElementById('ex-p2').value);
                         const r = await API.getProperty(fluid, 'H', t2, p2);
