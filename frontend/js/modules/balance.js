@@ -800,64 +800,96 @@ const BalanceModule = {
         try {
             const components = this.getComponents();
             if (components.length === 0) {
-                UI.showError('Error', 'Please add at least one component');
+                UI.showError('Erro', 'Adicione pelo menos um componente');
                 return;
             }
-            
+
             const streams = this.collectStreamData();
             if (streams.length === 0) {
-                UI.showError('Error', 'Please add at least one stream');
+                UI.showError('Erro', 'Adicione pelo menos uma corrente');
                 return;
             }
-            
+
             const reactions = this.collectReactionData();
             const splits = this.collectSplitData();
-            
             const data = {
                 components,
                 streams,
                 reactions: reactions.length > 0 ? reactions : null,
-                splits: splits.length > 0 ? splits : null
+                splits:    splits.length > 0    ? splits    : null,
             };
-            
+
             UI.showLoading('#balance-content');
             UI.hideResult('#balance-result');
             UI.hideResult('#plot-result-mass-balance');
-            
-            const result = await API.plotMassBalance(data);
 
-            if (result.image_base64) {
-                
-                // Create a placeholder first with fixed dimensions
-                const plotResultElement = document.getElementById('plot-result-mass-balance');
-                if (!plotResultElement) {
-                    console.error('Plot result element not found');
-                    return;
-                }
-                
-                // Set placeholder HTML
-                plotResultElement.innerHTML = `
-                    <div class="plot-container">
-                        <img src="data:image/png;base64,${result.image_base64}" 
-                             alt="Mass Balance Plot" 
-                             style="max-width:100%; height:auto; display:block;"
-                        >
-                    </div>
-                `;
-                
-                // Show the plot result container
-                plotResultElement.classList.remove('hidden');
-                
-            } else {
-                console.error('No image data received from server');
-                UI.showError('Error', 'No plot image was received from the server');
-            }
-            
+            const result = await API.calculateMassBalance(data);
+
+            const streamNames = Object.keys(result.results);
+            const flowRates   = streamNames.map(name => result.results[name].flow_rate);
+
+            // Mapa de direção por nome de corrente
+            const dirMap = {};
+            streams.forEach(s => { dirMap[s.name] = s.direction; });
+
+            const plotEl = document.getElementById('plot-result-mass-balance');
+            plotEl.innerHTML = '<canvas id="balance-chart" aria-label="Gráfico de Balanço de Massa por Corrente"></canvas>';
+            plotEl.classList.remove('hidden');
+
+            const ctx = document.getElementById('balance-chart').getContext('2d');
+            if (this._balanceChart) this._balanceChart.destroy();
+
+            this._balanceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: streamNames,
+                    datasets: [{
+                        label: 'Vazão da Corrente',
+                        data: flowRates,
+                        backgroundColor: streamNames.map(name =>
+                            dirMap[name] === 1
+                                ? 'rgba(37,99,235,0.75)'
+                                : 'rgba(220,38,38,0.75)'
+                        ),
+                        borderColor: streamNames.map(name =>
+                            dirMap[name] === 1 ? '#2563EB' : '#DC2626'
+                        ),
+                        borderWidth: 1,
+                    }],
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Balanço de Massa — Vazões por Corrente',
+                            font: { size: 14 },
+                        },
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const dir = dirMap[ctx.label] === 1 ? 'Entrada' : 'Saída';
+                                    return `${ctx.raw.toFixed(3)}  (${dir})`;
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Vazão (unidades consistentes)' },
+                            beginAtZero: true,
+                        },
+                    },
+                },
+            });
+
             UI.hideLoading('#balance-content');
         } catch (error) {
-            console.error('Plot generation error:', error);
+            console.error('Erro ao gerar gráfico:', error);
             UI.hideLoading('#balance-content');
-            UI.showError('Error', error);
+            UI.showError('Erro', error);
         }
     }
 };
