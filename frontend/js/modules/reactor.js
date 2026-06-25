@@ -922,6 +922,11 @@ const ReactorModule = {
                 return;
             }
 
+            if (!maxConversion || maxConversion <= 0 || maxConversion >= 1) {
+                UI.showError('Dado inválido', 'Conversão máxima deve ser entre 0 e 1 (ex: 0.95)');
+                return;
+            }
+
             const components = this.collectComponentData('plot-components-container');
             if (components.length === 0) {
                 UI.showError('Dado faltando', 'Adicione pelo menos um componente');
@@ -931,7 +936,8 @@ const ReactorModule = {
             const reactionOrders = this.collectReactionOrders('plot');
             const n = (reactionOrders[0] != null && reactionOrders[0] > 0) ? reactionOrders[0] : 1;
             const C_A0 = components[0].molar_concentration_inlet || 1;
-            const F_A0 = (components[0].flow_rate_inlet || 1) * C_A0;
+            const flowRate = components[0].flow_rate_inlet > 0 ? components[0].flow_rate_inlet : 1;
+            const F_A0 = flowRate * C_A0;
 
             UI.showLoading('#plot-conversion-form');
 
