@@ -4,6 +4,35 @@
  */
 
 const ComponentsModule = {
+    /** Traduções dos nomes de propriedades retornados pela API (inglês → pt-BR). */
+    _propertyLabelsPt: {
+        'Density': 'Densidade',
+        'Specific heat': 'Calor específico',
+        'Viscosity': 'Viscosidade',
+        'Thermal conductivity': 'Condutividade térmica',
+        'Enthalpy': 'Entalpia',
+        'Entropy': 'Entropia',
+        'Molar mass': 'Massa molar',
+        'Surface tension': 'Tensão superficial',
+        'Pressure': 'Pressão',
+        'Temperature': 'Temperatura',
+        'Quality (vapor fraction)': 'Titulo (fração de vapor)',
+        'Internal energy': 'Energia interna',
+        'Speed of sound': 'Velocidade do som',
+        'Compressibility factor': 'Fator de compressibilidade',
+        'Bubble point temperature': 'Temperatura do ponto de bolha',
+        'Dew point temperature': 'Temperatura do ponto de orvalho',
+        'Bubble point pressure': 'Pressão do ponto de bolha',
+        'Dew point pressure': 'Pressão do ponto de orvalho'
+    },
+
+    _translatePropertyLabel(description) {
+        const bracketIndex = description.indexOf('[');
+        const name = (bracketIndex >= 0 ? description.slice(0, bracketIndex) : description).trim();
+        const units = bracketIndex >= 0 ? description.slice(bracketIndex) : '';
+        const translated = this._propertyLabelsPt[name] || name;
+        return units ? `${translated} ${units}` : translated;
+    },
     /**
      * Initialize the Components module
      */
@@ -13,6 +42,7 @@ const ComponentsModule = {
         this.loadPropertyNames();
         this.loadPropertyMixtureNames();
         this.setupEventListeners();
+        if (window.DidaticModule) DidaticModule.setupAccordions();
     },
 
     /**
@@ -22,88 +52,157 @@ const ComponentsModule = {
         const componentsContent = document.getElementById('components-content');
         
         if (!componentsContent) return;
-        
+
+        const headerEl = document.createElement('div');
+        headerEl.className = 'module-header';
+        headerEl.innerHTML = `
+            <div class="module-header-left">
+                <nav class="module-breadcrumb" aria-label="Localização">
+                    <a href="#home-content" data-tab="home-content">Início</a>
+                    <span class="sep" aria-hidden="true">›</span>
+                    <span>Propriedades</span>
+                    <span class="sep" aria-hidden="true">›</span>
+                    <span>Componentes</span>
+                </nav>
+                <h2 class="module-heading">Propriedades de Componentes <span class="level-chip">Referência</span></h2>
+            </div>
+        `;
+        componentsContent.appendChild(headerEl);
+
         // Components content
         const content = document.createElement('div');
         content.className = 'grid grid-cols-1 gap-6';
         content.innerHTML = `
             <div class="bg-gray-50 p-4 rounded-md">
-                <h3 class="text-lg font-medium mb-3 text-gray-800">Critical Properties</h3>
+                <h3 class="text-lg font-medium mb-3 text-gray-800">Propriedades Críticas</h3>
+                <div class="accordion">
+                    <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-critical">
+                        <span>Como funciona — Propriedades Críticas</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="accordion-content" id="acc-critical" role="region">
+                        <p>Propriedades críticas descrevem o ponto acima do qual a distinção entre fase líquida e vapor desaparece (ponto crítico).</p>
+                        <table class="variables-table">
+                            <thead><tr><th>Propriedade</th><th>Símbolo</th><th>Unidade típica</th></tr></thead>
+                            <tbody>
+                                <tr><td>Temperatura crítica</td><td>T<sub>c</sub></td><td>K</td></tr>
+                                <tr><td>Pressão crítica</td><td>P<sub>c</sub></td><td>Pa</td></tr>
+                                <tr><td>Densidade crítica</td><td>ρ<sub>c</sub></td><td>kg/m³</td></tr>
+                                <tr><td>Temp. ponto triplo</td><td>T<sub>tp</sub></td><td>K</td></tr>
+                            </tbody>
+                        </table>
+                        <p>Os dados são fornecidos pelo <strong>CoolProp</strong>, biblioteca termodinâmica open-source com modelos de equação de estado de alta precisão.</p>
+                        <p class="teoria-ref">Ref.: Bell et al., CoolProp — An Open-Source Thermodynamics Library, 2014.</p>
+                    </div>
+                </div>
                 <form id="critical-properties-form">
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Fluid</label>
-                        <select id="critical-fluid-select" class="w-full select2-input"></select>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Selecionar Fluido</label>
+                        <select id="critical-fluid-select" class="w-full select2-input" data-placeholder="Selecione um fluido"></select>
                     </div>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Get Critical Properties</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Obter Propriedades Críticas</button>
                 </form>
                 <div id="critical-properties-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
             </div>
             
             <div class="bg-gray-50 p-4 rounded-md">
-                <h3 class="text-lg font-medium mb-3 text-gray-800">Fluid Properties</h3>
+                <h3 class="text-lg font-medium mb-3 text-gray-800">Propriedades de Fluidos</h3>
+                <div class="accordion">
+                    <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-fluid-props">
+                        <span>Como funciona — Propriedades do Fluido</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="accordion-content" id="acc-fluid-props" role="region">
+                        <p>Calcula propriedades termodinâmicas e de transporte de fluidos puros em condições de temperatura e pressão especificadas.</p>
+                        <table class="variables-table">
+                            <thead><tr><th>Propriedade</th><th>Descrição</th></tr></thead>
+                            <tbody>
+                                <tr><td>Densidade (D)</td><td>Massa por unidade de volume (kg/m³)</td></tr>
+                                <tr><td>Viscosidade dinâmica (V)</td><td>Resistência ao escoamento (Pa·s)</td></tr>
+                                <tr><td>Condutividade térmica (L)</td><td>Transferência de calor (W/m·K)</td></tr>
+                                <tr><td>Cp (C)</td><td>Calor específico a pressão constante (J/kg·K)</td></tr>
+                            </tbody>
+                        </table>
+                        <p class="teoria-ref">Ref.: CoolProp documentation — http://www.coolprop.org/</p>
+                    </div>
+                </div>
                 <form id="property-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Fluid</label>
-                            <select id="property-fluid-select" class="w-full select2-input"></select>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Selecionar Fluido</label>
+                            <select id="property-fluid-select" class="w-full select2-input" data-placeholder="Selecione um fluido"></select>
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-                            <select multiple id="property-name-select" class="w-full select2-input"></select>
-                            <div class="text-xs text-gray-500 mt-1">Select one or more properties to calculate</div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Selecionar Propriedade</label>
+                            <select multiple id="property-name-select" class="w-full select2-input" data-placeholder="Selecione uma ou mais propriedades"><option></option></select>
+                            <div class="text-xs text-gray-500 mt-1">Selecione uma ou mais propriedades para calcular</div>
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Temperature (K)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Temperatura (K)</label>
                             <input type="number" step="0.0000000001" id="property-temperature" class="w-full p-2 border rounded">
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Pressure (Pa)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Pressão (Pa)</label>
                             <input type="number" step="0.0000000001" id="property-pressure" class="w-full p-2 border rounded">
                         </div>
                     </div>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Get Property</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Obter Propriedade</button>
                 </form>
                 <div id="property-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
             </div>
             
             <div class="bg-gray-50 p-4 rounded-md">
-                <h3 class="text-lg font-medium mb-3 text-gray-800">Mixture Properties</h3>
+                <h3 class="text-lg font-medium mb-3 text-gray-800">Propriedades de Misturas</h3>
+                <div class="accordion">
+                    <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-mixture">
+                        <span>Como funciona — Propriedades de Mistura</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="accordion-content" id="acc-mixture" role="region">
+                        <p>Calcula propriedades de misturas de fluidos usando regras de mistura via CoolProp. As frações devem somar 1,0.</p>
+                        <p><strong>Atenção:</strong> nem todos os pares de fluidos têm modelos de mistura implementados no CoolProp. Consulte a documentação para fluidos suportados.</p>
+                        <p class="teoria-ref">Ref.: CoolProp Mixture documentation.</p>
+                    </div>
+                </div>
                 <form id="mixture-properties-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Temperature (K)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Temperatura (K)</label>
                             <input type="number" step="0.0000000001" id="mixture-temperature" class="w-full p-2 border rounded">
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Pressure (Pa)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Pressão (Pa)</label>
                             <input type="number" step="0.0000000001" id="mixture-pressure" class="w-full p-2 border rounded">
                         </div>
                     </div>
                     
                     <div class="mb-4">
                         <div class="flex justify-between items-center mb-2">
-                            <label class="block text-sm font-medium text-gray-700">Fluid Fractions</label>
-                            <button type="button" id="add-fluid-fraction" class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600">+ Add Fluid</button>
+                            <label class="block text-sm font-medium text-gray-700">Frações dos Fluidos</label>
+                            <button type="button" id="add-fluid-fraction" class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600">+ Adicionar Fluido</button>
                         </div>
                         <div id="fluid-fractions-container"></div>
                     </div>
                     
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Properties to Calculate</label>
-                        <select id="mixture-properties-select" class="w-full select2-input" multiple></select>
-                        <div class="text-xs text-gray-500 mt-1">Leave empty to calculate all available properties</div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Propriedades a Calcular</label>
+                        <select id="mixture-properties-select" class="w-full select2-input" multiple data-placeholder="Selecione as propriedades (opcional)"><option></option></select>
+                        <div class="text-xs text-gray-500 mt-1">Deixe vazio para calcular todas as propriedades disponíveis</div>
                     </div>
                     
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calculate Mixture Properties</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calcular Propriedades da Mistura</button>
                 </form>
                 <div id="mixture-properties-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
             </div>
         `;
         
         componentsContent.appendChild(content);
-        
-        // Initialize Select2 for the new selects
-        UI.initializeSelect2();
     },
 
     /**
@@ -207,7 +306,7 @@ const ComponentsModule = {
         
         if (!select) return;
         
-        select.innerHTML = '<option value="">Select a fluid</option>';
+        select.innerHTML = '<option value="">Selecione um fluido</option>';
         
         // Ensure components is an array
         const componentList = Array.isArray(components) ? components :
@@ -221,7 +320,7 @@ const ComponentsModule = {
         });
         
         // Refresh Select2
-        $(select).trigger('change');
+        UI.refreshSelect2(`#${selectId}`);
     },
 
     /**
@@ -234,7 +333,7 @@ const ComponentsModule = {
             const properties = await API.getPropertyNames();
             const select = document.getElementById('property-name-select');
             
-            select.innerHTML = '<option value="">Select a property</option>';
+            select.innerHTML = '<option></option>';
             
             // Check if properties is an object with key-value pairs
             if (typeof properties === 'object' && properties !== null && !Array.isArray(properties)) {
@@ -242,7 +341,7 @@ const ComponentsModule = {
                 Object.entries(properties).forEach(([key, description]) => {
                     const option = document.createElement('option');
                     option.value = key; // Keep the key as the value
-                    option.textContent = description.split('[')[0].trim(); // Show the description without units
+                    option.textContent = this._translatePropertyLabel(description);
                     select.appendChild(option);
                 });
             } else {
@@ -256,8 +355,7 @@ const ComponentsModule = {
                 });
             }
             
-            // Refresh Select2
-            $(select).trigger('change');
+            UI.refreshSelect2('#property-name-select');
         } catch (error) {
             UI.showError('Error loading property names', error);
         } finally {
@@ -275,7 +373,7 @@ const ComponentsModule = {
             const properties = await API.getPropertyMixtureNames();
             const select = document.getElementById('mixture-properties-select');
             
-            select.innerHTML = '';
+            select.innerHTML = '<option></option>';
             
             // Check if properties is an object with key-value pairs
             if (typeof properties === 'object' && properties !== null && !Array.isArray(properties)) {
@@ -283,7 +381,7 @@ const ComponentsModule = {
                 Object.entries(properties).forEach(([key, description]) => {
                     const option = document.createElement('option');
                     option.value = key; // Keep the key as the value
-                    option.textContent = description.split('[')[0].trim(); // Show the description without units
+                    option.textContent = this._translatePropertyLabel(description);
                     select.appendChild(option);
                 });
             } else {
@@ -297,8 +395,7 @@ const ComponentsModule = {
                 });
             }
             
-            // Refresh Select2
-            $(select).trigger('change');
+            UI.refreshSelect2('#mixture-properties-select');
         } catch (error) {
             UI.showError('Error loading mixture property names', error);
         } finally {
@@ -316,9 +413,10 @@ const ComponentsModule = {
         
         const fluidSelect = document.createElement('select');
         fluidSelect.className = 'fluid-name select2-input flex-1';
+        fluidSelect.dataset.placeholder = 'Selecione um fluido';
         
         if (this.componentsList) {
-            fluidSelect.innerHTML = '<option value="">Select a fluid</option>';
+            fluidSelect.innerHTML = '<option value="">Selecione um fluido</option>';
             
             this.componentsList.forEach(component => {
                 const option = document.createElement('option');
@@ -333,7 +431,7 @@ const ComponentsModule = {
         fractionInput.step = '0.01';
         fractionInput.min = '0';
         fractionInput.max = '1';
-        fractionInput.placeholder = 'Fraction';
+        fractionInput.placeholder = 'Fração';
         fractionInput.className = 'fluid-fraction w-24 p-2 border rounded';
         
         const removeButton = document.createElement('span');
@@ -351,8 +449,7 @@ const ComponentsModule = {
         
         // Initialize Select2 for the new select element
         $(fluidSelect).select2({
-            width: '100%',
-            placeholder: 'Select a fluid'
+            ...UI.getSelect2Options('Selecione um fluido')
         });
     },
 
