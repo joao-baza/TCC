@@ -2,12 +2,24 @@ const HistoryModule = (function () {
     const KEY = 'tcc-calc-history';
     const MAX = 50;
 
+    function esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function getAll() {
         try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
     }
 
     function save(list) {
-        localStorage.setItem(KEY, JSON.stringify(list));
+        try {
+            localStorage.setItem(KEY, JSON.stringify(list));
+        } catch {
+            // storage cheio ou modo privado
+        }
     }
 
     function formatDate(iso) {
@@ -55,12 +67,12 @@ const HistoryModule = (function () {
             container.innerHTML = entries.map(e => `
                 <div class="history-entry">
                     <div class="history-entry-header">
-                        <span class="history-module-badge">${e.module}</span>
+                        <span class="history-module-badge">${esc(e.module)}</span>
                         <span class="history-ts">${formatDate(e.ts)}</span>
                     </div>
-                    <div class="history-operation">${e.operation}</div>
-                    ${e.inputs ? `<div class="history-inputs">${e.inputs}</div>` : ''}
-                    <div class="history-summary">${e.summary}</div>
+                    <div class="history-operation">${esc(e.operation)}</div>
+                    ${e.inputs ? `<div class="history-inputs">${esc(e.inputs)}</div>` : ''}
+                    <div class="history-summary">${esc(e.summary)}</div>
                 </div>
             `).join('');
         },
