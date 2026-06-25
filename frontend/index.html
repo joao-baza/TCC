@@ -64,7 +64,6 @@
                 </div>
                 <div class="nav-group">
                     <div class="nav-group-label">Ferramentas</div>
-                    <a class="nav-item" data-tab="history-content" href="#history-content">Histórico</a>
                     <a class="nav-item" data-tab="glossary-content" href="#glossary-content">Glossário</a>
                 </div>
             </nav>
@@ -252,6 +251,29 @@
 
                     <div class="bg-gray-50 p-4 rounded-md">
                         <h3 class="text-lg font-medium mb-3 text-gray-800">Encontrar Diâmetro Real</h3>
+                        <div class="accordion">
+                            <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-real-diameter">
+                                <span>Como funciona — Diâmetro Nominal Comercial</span>
+                                <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="accordion-content" id="acc-real-diameter" role="region">
+                                <p>O diâmetro calculado (\(D = \sqrt{4Q/\pi V}\)) é um valor contínuo. Na prática, tubos são fabricados em <strong>diâmetros nominais padronizados (DN)</strong> por <em>schedule</em> (espessura de parede): SCH 10, SCH 40, SCH 80, etc.</p>
+                                <p>A lógica de seleção é: encontrar o <em>diâmetro interno real</em> imediatamente superior ao diâmetro calculado no catálogo para o schedule escolhido.</p>
+                                <table class="variables-table">
+                                    <thead><tr><th>Conceito</th><th>Descrição</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>DN (Diâmetro Nominal)</td><td>Designador comercial em mm — NÃO é o diâmetro interno real</td></tr>
+                                        <tr><td>Schedule (SCH)</td><td>Indica a espessura da parede; quanto maior o número, menor o diâmetro interno</td></tr>
+                                        <tr><td>Diâmetro interno real</td><td>= Diâmetro externo − 2 × espessura de parede</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Fluxo de uso:</strong> (1) calcule D no card anterior → (2) selecione o schedule → (3) o sistema retorna o menor DN comercial cujo diâmetro interno ≥ D calculado.</p>
+                                <p><strong>Dica:</strong> após selecionar o diâmetro real, recalcule a perda de carga com o diâmetro interno efetivo — a velocidade real será menor que a de projeto.</p>
+                                <p class="teoria-ref">Ref.: ASME B36.10M — Welded and Seamless Wrought Steel Pipe · White, Mecânica dos Fluidos, 8ª ed.</p>
+                            </div>
+                        </div>
                         <form id="real-diameter-form">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="mb-4">
@@ -779,18 +801,7 @@
                 <!-- Content will be loaded dynamically -->
             </div>
 
-            <!-- Histórico de Cálculos -->
-            <div id="history-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
-                <div class="module-header">
-                    <div class="module-header-left">
-                        <h2 class="module-heading">Histórico de Cálculos</h2>
-                    </div>
-                    <button id="clear-history-btn" class="btn-example" type="button">✕ Limpar</button>
-                </div>
-                <div id="history-list" class="mt-4"></div>
-            </div>
-
-            <!-- Glossário -->
+<!-- Glossário -->
             <div id="glossary-content" class="bg-white p-6 rounded-lg shadow-md tab-pane hidden">
                 <div class="module-header">
                     <div class="module-header-left">
@@ -820,8 +831,7 @@
     <script src="js/modules/components.js"></script>
     <script src="js/modules/balance.js"></script>
     <script src="js/modules/didatic.js"></script>
-    <script src="js/modules/history.js"></script>
-    <script src="js/modules/glossary.js"></script>
+<script src="js/modules/glossary.js"></script>
     <script src="js/app.js"></script>
     <!-- KaTeX JS (defer para não bloquear render) -->
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
