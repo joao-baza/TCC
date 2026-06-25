@@ -308,21 +308,14 @@ const PumpModule = {
             
             UI.showResult('#headloss-result', html);
 
-            const hfValue = result.head_loss && result.head_loss.value != null ? result.head_loss.value : null;
+            const hfValue = result && result.value != null ? result.value : null;
             if (hfValue != null) this._renderHeadlossChart(params, hfValue);
 
-            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
-                module: 'Bombas',
-                operation: 'Perda de Carga',
-                inputs: `L = ${params.pipe_length} m · D = ${params.diameter} mm · método = ${params.method}`,
-                summary: 'Ver resultado acima',
-            }}));
-
             // Optionally update the friction factor input in the head form
-            if (result.head_loss && result.head_loss.value) {
+            if (result && result.value) {
                 const headFrictionInput = document.getElementById('head-friction-factor');
                 if (headFrictionInput) {
-                    headFrictionInput.value = result.head_loss.value;
+                    headFrictionInput.value = result.value;
                 }
             }
         } catch (error) {
@@ -349,17 +342,11 @@ const PumpModule = {
             
             UI.showResult('#npsh-result', html);
 
-            const npshd = result.npsh_available && result.npsh_available.value != null ? result.npsh_available.value : null;
+            const npshd = result.head_loss && result.head_loss.value != null ? result.head_loss.value : null;
             const npshRInput = document.getElementById('npsh-required');
             const npshR = npshRInput && npshRInput.value ? parseFloat(npshRInput.value) : null;
             this._renderNPSHGauge(npshd, npshR);
 
-            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
-                module: 'Bombas',
-                operation: 'NPSH Disponível',
-                inputs: `P_atm = ${params.atmospheric_pressure} · ρ = ${params.specific_mass} kg/m³`,
-                summary: 'Ver resultado acima',
-            }}));
         } catch (error) {
             UI.showError('Erro ao calcular NPSH disponível', error);
         } finally {
@@ -384,15 +371,9 @@ const PumpModule = {
             
             UI.showResult('#head-result', html);
 
-            const H = result.head && result.head.value != null ? result.head.value : null;
+            const H = result && result.value != null ? result.value : null;
             if (H != null) this._renderHeadBreakdown(params, H);
 
-            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
-                module: 'Bombas',
-                operation: 'Head da Bomba',
-                inputs: `ρ = ${params.specific_mass} kg/m³ · hf = ${params.friction_factor} m`,
-                summary: 'Ver resultado acima',
-            }}));
         } catch (error) {
             UI.showError('Erro ao calcular altura manométrica', error);
         } finally {
@@ -453,23 +434,26 @@ const PumpModule = {
         const color = safe === null ? '#6B7280' : (safe ? '#22C55E' : '#EF4444');
         const label = safe === null ? 'Informe NPSHr para checar margem' : (safe ? 'Margem segura (NPSHd ≥ NPSHr + 0,5 m) ✓' : 'Risco de cavitação — NPSHd insuficiente ✗');
         const maxVal = npshR != null ? Math.max(npshd, npshR) * 1.3 : npshd * 1.5;
-        const W = 300;
+        const W = 460;
+        const barY = 18, barH = 30;
+        const midY = barY + barH / 2 + 4;
         const xNpshd = (npshd / maxVal) * W;
-        let markers = `<rect x="0" y="14" width="${xNpshd}" height="20" fill="${color}80" rx="2"/>` +
-            `<rect x="0" y="14" width="${xNpshd}" height="20" fill="none" stroke="${color}" stroke-width="1.5" rx="2"/>` +
-            `<text x="${Math.min(xNpshd + 4, W - 80)}" y="28" font-size="10" fill="${color}" font-weight="bold">NPSHd=${npshd.toFixed(2)} m</text>`;
+        let markers = `<rect x="0" y="${barY}" width="${xNpshd}" height="${barH}" fill="${color}80" rx="3"/>` +
+            `<rect x="0" y="${barY}" width="${xNpshd}" height="${barH}" fill="none" stroke="${color}" stroke-width="1.5" rx="3"/>` +
+            `<text x="${Math.min(xNpshd + 5, W - 110)}" y="${midY}" font-size="11" fill="${color}" font-weight="bold">NPSHd = ${npshd.toFixed(2)} m</text>`;
         if (npshR != null) {
             const xR = (npshR / maxVal) * W;
             const xSafe = ((npshR + 0.5) / maxVal) * W;
-            markers += `<line x1="${xR}" y1="10" x2="${xR}" y2="38" stroke="#374151" stroke-width="2" stroke-dasharray="4,2"/>` +
-                `<text x="${xR - 2}" y="8" font-size="9" fill="#374151" text-anchor="end">NPSHr=${npshR.toFixed(1)}</text>` +
-                `<line x1="${xSafe}" y1="10" x2="${xSafe}" y2="38" stroke="#F59E0B" stroke-width="1" stroke-dasharray="3,2"/>` +
-                `<text x="${xSafe + 2}" y="8" font-size="8" fill="#92400E">+0,5m</text>`;
+            markers += `<line x1="${xR}" y1="${barY - 6}" x2="${xR}" y2="${barY + barH + 4}" stroke="#374151" stroke-width="2" stroke-dasharray="4,2"/>` +
+                `<text x="${xR - 3}" y="${barY - 8}" font-size="10" fill="#374151" text-anchor="end">NPSHr = ${npshR.toFixed(1)} m</text>` +
+                `<line x1="${xSafe}" y1="${barY - 6}" x2="${xSafe}" y2="${barY + barH + 4}" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="3,2"/>` +
+                `<text x="${xSafe + 3}" y="${barY - 8}" font-size="9" fill="#92400E">+0,5 m</text>`;
         }
-        const svg = `<svg viewBox="0 0 340 52" class="viz-svg w-full" style="max-height:52px">` +
-            `<rect x="0" y="14" width="${W}" height="20" fill="#F1F5F9" rx="2" stroke="#CBD5E1"/>` +
+        const svgH = barY + barH + 16;
+        const svg = `<svg viewBox="0 0 ${W + 80} ${svgH}" class="viz-svg w-full" style="max-height:${svgH}px">` +
+            `<rect x="0" y="${barY}" width="${W}" height="${barH}" fill="#F1F5F9" rx="3" stroke="#CBD5E1"/>` +
             markers +
-            `<text x="${W + 4}" y="28" font-size="9" fill="#374151">${maxVal.toFixed(1)} m</text></svg>`;
+            `<text x="${W + 6}" y="${midY}" font-size="10" fill="#374151">${maxVal.toFixed(1)} m</text></svg>`;
         const wrap = document.createElement('div');
         wrap.className = 'viz-container mt-3';
         wrap.innerHTML = `<div class="viz-title">Margem de NPSH</div>${svg}` +
