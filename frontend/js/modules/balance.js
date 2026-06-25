@@ -13,7 +13,6 @@ const BalanceModule = {
         UI.initializeSelect2();
         if (window.DidaticModule) {
             DidaticModule.setupAccordions();
-            DidaticModule.setupExampleButtons();
         }
     },
 
@@ -631,6 +630,8 @@ const BalanceModule = {
             example.splits.forEach(split => {
                 this.addSplit(split);
             });
+
+            UI.showSuccess('Sucesso', 'Exemplo carregado com sucesso.');
         } catch (error) {
             UI.showError('Erro', error.message || 'Não foi possível carregar o exemplo');
         } finally {
