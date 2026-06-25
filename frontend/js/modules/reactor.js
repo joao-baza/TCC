@@ -36,7 +36,7 @@ const ReactorModule = {
                     <span class="sep" aria-hidden="true">›</span>
                     <span>CSTR / PFR</span>
                 </nav>
-                <h2 class="module-heading">Cálculos de Reator <span class="level-chip level-chip-purple">Avançado</span></h2>
+                <h2 class="module-heading">Cálculos de Reator</h2>
             </div>
         `;
         reactorContent.appendChild(headerEl);
@@ -349,8 +349,8 @@ const ReactorModule = {
                     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate Plot</button>
                 </form>
                 <div id="plot-result-reactor" class="mt-4 p-3 bg-white rounded border hidden">
-                    <div id="conversion-plot-container" class="flex justify-center">
-                        <img id="conversion-plot-image" class="max-w-full h-auto" />
+                    <div id="conversion-plot-container" style="position:relative; height:400px;">
+                        <canvas id="conversion-chart" aria-label="Gráfico Conversão × Volume — CSTR e PFR"></canvas>
                     </div>
                 </div>
             </div>
@@ -872,79 +872,129 @@ const ReactorModule = {
     },
 
     /**
-     * Generate conversion vs volume plot
+     * Compute CSTR and PFR volume curves for a power-law reaction
+     * @param {number} F_A0 - Molar flow rate of A at inlet (mol/s)
+     * @param {number} C_A0 - Inlet concentration of A (mol/L or mol/m³ — consistent with k units)
+     * @param {number} k - Rate constant
+     * @param {number} n - Reaction order
+     * @param {number} maxConversion - Maximum conversion to plot (0–1)
+     * @returns {{ conversions: number[], cstrVols: (number|null)[], pfrVols: number[] }}
+     */
+    _computeReactorCurves(F_A0, C_A0, k, n, maxConversion) {
+        const NUM = 100;
+        const conversions = [];
+        const cstrVols = [];
+        const pfrVols = [];
+
+        for (let i = 1; i <= NUM; i++) {
+            const X = Math.min((i / NUM) * maxConversion, 0.9999);
+            conversions.push(parseFloat((X * 100).toFixed(2)));
+
+            // CSTR: V = F_A0 * X / (-r_A) onde -r_A = k * C_A0^n * (1-X)^n
+            const rateOut = k * Math.pow(C_A0, n) * Math.pow(1 - X, n);
+            cstrVols.push(rateOut > 1e-12 ? parseFloat((F_A0 * X / rateOut).toFixed(6)) : null);
+
+            // PFR: integração trapezoidal de F_A0 / (-r_A) dX
+            const STEPS = 200;
+            const dX = X / STEPS;
+            let integral = 0;
+            for (let j = 0; j < STEPS; j++) {
+                const Xj = (j + 0.5) * dX;
+                const rateJ = k * Math.pow(C_A0, n) * Math.pow(1 - Xj, n);
+                if (rateJ > 1e-12) integral += (F_A0 / rateJ) * dX;
+            }
+            pfrVols.push(parseFloat(integral.toFixed(6)));
+        }
+
+        return { conversions, cstrVols, pfrVols };
+    },
+
+    /**
+     * Generate conversion vs volume plot using Chart.js (local computation)
      */
     async generateConversionVolumePlot() {
         try {
-            // Get common parameters
             const rateConstant = parseFloat(document.getElementById('plot-rate-constant').value);
-            
-            // Get operation conditions
-            const initialTemperature = parseFloat(document.getElementById('plot-initial-temperature').value);
-            const initialPressure = parseFloat(document.getElementById('plot-initial-pressure').value);
-            const finalTemperature = parseFloat(document.getElementById('plot-final-temperature').value);
-            const finalPressure = parseFloat(document.getElementById('plot-final-pressure').value);
-            const recyclingRatio = parseFloat(document.getElementById('plot-recycling-ratio').value) || 0;
             const maxConversion = parseFloat(document.getElementById('plot-max-conversion').value) || 0.99;
-            
-            // Validate required fields
-            if (!rateConstant || !initialTemperature || !initialPressure || !finalTemperature || !finalPressure) {
-                UI.showError('Missing Data', 'Please fill in all required fields');
+
+            if (!rateConstant || rateConstant <= 0) {
+                UI.showError('Dado faltando', 'Informe a constante de velocidade k > 0');
                 return;
             }
-            
-            // Collect components, stoichiometric coefficients and reaction orders
+
             const components = this.collectComponentData('plot-components-container');
-            const stoichiometricCoefficients = this.collectStoichiometricCoefficients('plot');
-            const reactionOrders = this.collectReactionOrders('plot');
-            
             if (components.length === 0) {
-                UI.showError('Missing Data', 'Please add at least one component');
+                UI.showError('Dado faltando', 'Adicione pelo menos um componente');
                 return;
             }
-            
-            // Build request payload
-            const payload = {
-                components: components,
-                stoichiometric_coefficients: stoichiometricCoefficients,
-                reaction_rate_params: {
-                    k: rateConstant,
-                    reaction_orders: reactionOrders
-                },
-                recycling_ratio: recyclingRatio,
-                max_conversion: maxConversion,
-                operation_conditions: {
-                    initial_temperature: initialTemperature,
-                    initial_pressure: initialPressure,
-                    final_temperature: finalTemperature,
-                    final_pressure: finalPressure
-                }
-            };
-            
-            // Send request to API
+
+            const reactionOrders = this.collectReactionOrders('plot');
+            const n = (reactionOrders[0] != null && reactionOrders[0] > 0) ? reactionOrders[0] : 1;
+            const C_A0 = components[0].molar_concentration_inlet || 1;
+            const F_A0 = (components[0].flow_rate_inlet || 1) * C_A0;
+
             UI.showLoading('#plot-conversion-form');
-            
-            const result = await API.plotConversionVsVolume(payload);
-            
-            // Display the plot
-            if (result && result.image_base64) {
-                // Get the result container and make it visible
-                const plotResultContainer = document.getElementById('plot-result-reactor');
-                plotResultContainer.classList.remove('hidden');
-                
-                // Set the image source
-                const plotImage = document.getElementById('conversion-plot-image');
-                plotImage.src = `data:image/png;base64,${result.image_base64}`;
-                
-                // Make sure the image is visible
-                plotImage.style.display = 'block';
-                plotImage.style.maxWidth = '100%';
-            } else {
-                UI.showError('Error', 'Failed to generate plot');
-            }
+
+            const { conversions, cstrVols, pfrVols } = this._computeReactorCurves(F_A0, C_A0, rateConstant, n, maxConversion);
+
+            const plotContainer = document.getElementById('plot-result-reactor');
+            plotContainer.classList.remove('hidden');
+
+            const ctx = document.getElementById('conversion-chart').getContext('2d');
+            if (this._reactorChart) this._reactorChart.destroy();
+
+            this._reactorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: conversions.map(x => x.toFixed(1) + '%'),
+                    datasets: [
+                        {
+                            label: 'CSTR',
+                            data: cstrVols,
+                            borderColor: '#2563EB',
+                            backgroundColor: 'rgba(37,99,235,0.08)',
+                            tension: 0.3,
+                            pointRadius: 0,
+                            borderWidth: 2,
+                        },
+                        {
+                            label: 'PFR',
+                            data: pfrVols,
+                            borderColor: '#7C3AED',
+                            backgroundColor: 'rgba(124,58,237,0.08)',
+                            tension: 0.3,
+                            pointRadius: 0,
+                            borderWidth: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Conversão × Volume  (n=${n}, k=${rateConstant})`,
+                            font: { size: 14 },
+                        },
+                        tooltip: { mode: 'index', intersect: false },
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Conversão X (%)' },
+                            ticks: { maxTicksLimit: 10 },
+                        },
+                        y: {
+                            title: { display: true, text: 'Volume (m³)' },
+                            beginAtZero: true,
+                        },
+                    },
+                },
+            });
+
         } catch (error) {
-            console.error('Error generating plot:', error);
-            UI.showError('Error generating plot', error.message || 'Unknown error');
+            console.error('Erro ao gerar gráfico:', error);
+            UI.showError('Erro ao gerar gráfico', error.message || 'Erro desconhecido');
         } finally {
             UI.hideLoading('#plot-conversion-form');
         }
