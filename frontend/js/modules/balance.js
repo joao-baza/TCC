@@ -10,35 +10,14 @@ const BalanceModule = {
     init() {
         this.createBalanceContent();
         this.setupEventListeners();
-        
-        // Initialization of Select2 is important for dynamic elements
-        setTimeout(() => {
-            $('.select2-input').select2({
-                width: '100%',
-                placeholder: 'Select an option'
-            });
-            
-            // Update the tab navigation to include the new tab
-            UI.setupTabs();
-        }, 100);
+        // Select2 nos elementos dinâmicos criados por createBalanceContent()
+        UI.initializeSelect2();
     },
 
     /**
      * Create balance content dynamically
      */
     createBalanceContent() {
-        // Add tab button if it doesn't exist yet
-        const tabsContainer = document.getElementById('mainTab');
-        if (tabsContainer && !document.getElementById('balance-tab')) {
-            const balanceTabItem = document.createElement('li');
-            balanceTabItem.className = 'mr-2';
-            balanceTabItem.setAttribute('role', 'presentation');
-            balanceTabItem.innerHTML = `
-                <button class="inline-block p-4 rounded-t-lg hover:bg-gray-100" id="balance-tab" data-tab="balance-content">Mass Balance</button>
-            `;
-            tabsContainer.appendChild(balanceTabItem);
-        }
-
         // Create the tab content if it doesn't exist or is empty
         const existingContent = document.getElementById('balance-content');
         if (existingContent && existingContent.children.length > 1) {
@@ -116,31 +95,6 @@ const BalanceModule = {
      * Set up event listeners
      */
     setupEventListeners() {
-        // Add event listener to the tab button itself to ensure it works
-        const balanceTab = document.getElementById('balance-tab');
-        if (balanceTab) {
-            balanceTab.addEventListener('click', () => {
-                // Hide all tab panes
-                document.querySelectorAll('.tab-pane').forEach(pane => {
-                    pane.classList.add('hidden');
-                    pane.classList.remove('active');
-                });
-                
-                // Show balance tab pane
-                const balanceContent = document.getElementById('balance-content');
-                if (balanceContent) {
-                    balanceContent.classList.remove('hidden');
-                    balanceContent.classList.add('active');
-                }
-                
-                // Update active state on tabs
-                document.querySelectorAll('[data-tab]').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                balanceTab.classList.add('active');
-            });
-        }
-
         // Add component
         document.getElementById('add-component')?.addEventListener('click', () => {
             const componentName = document.getElementById('component-name').value.trim();
