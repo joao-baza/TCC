@@ -4,8 +4,10 @@
  */
 
 const API = {
-    // Base URL for the API
-    baseUrl: 'https://tcc.api.homelab.sistemasj.com.br',
+    // Produção: proxy same-origin (/api → backend). Dev local: API pública com CORS.
+    baseUrl: ['localhost', '127.0.0.1'].includes(window.location.hostname)
+        ? 'https://tcc.api.homelab.sistemasj.com.br'
+        : '/api',
 
     /**
      * Generic API call function
@@ -20,12 +22,12 @@ const API = {
             const options = {
                 method,
                 headers: {
-                    'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 }
             };
 
             if (data && method === 'POST') {
+                options.headers['Content-Type'] = 'application/json';
                 options.body = JSON.stringify(data);
             }
 

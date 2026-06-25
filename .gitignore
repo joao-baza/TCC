@@ -30,3 +30,5 @@ escrita/TEX/**/*.ilg
 escrita/TEX/**/*.ind
 escrita/TEX/**/*.bcf
 escrita/TEX/**/*.run.xml
+
+deploy_app.sh
