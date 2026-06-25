@@ -10,8 +10,11 @@ const BalanceModule = {
     init() {
         this.createBalanceContent();
         this.setupEventListeners();
-        // Select2 nos elementos dinâmicos criados por createBalanceContent()
         UI.initializeSelect2();
+        if (window.DidaticModule) {
+            DidaticModule.setupAccordions();
+            DidaticModule.setupExampleButtons();
+        }
     },
 
     /**
@@ -24,70 +27,103 @@ const BalanceModule = {
             // Content already exists and has children, no need to recreate
             return;
         }
-        
+
         // Get or create the tab content element
         let balanceContent = existingContent;
         const tabContentContainer = document.querySelector('.tab-content');
-        
+
         if (!balanceContent && tabContentContainer) {
             balanceContent = document.createElement('div');
             balanceContent.id = 'balance-content';
             balanceContent.className = 'bg-white p-6 rounded-lg shadow-md tab-pane hidden';
             tabContentContainer.appendChild(balanceContent);
         }
-        
+
         if (balanceContent) {
             balanceContent.innerHTML = `
-                <h2 class="text-xl font-semibold mb-4 text-blue-700">Mass Balance Calculations</h2>
-                
-                <div class="grid grid-cols-1 gap-6">
-                    <div class="bg-gray-50 p-4 rounded-md">
-                        <h3 class="text-lg font-medium mb-3 text-gray-800">Components</h3>
-                        <div class="flex mb-4 justify-between items-center">
-                            <div class="flex items-center">
-                                <input type="text" id="component-name" class="p-2 border rounded" placeholder="Component name">
-                                <button type="button" id="add-component" class="ml-2 bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600">Add</button>
-                            </div>
-                            <button type="button" id="load-example" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600">Load Example</button>
-                        </div>
-                        <div id="components-list" class="flex flex-wrap gap-2 mb-4"></div>
-                    </div>
+    <div class="module-header">
+        <div class="module-header-left">
+            <nav class="module-breadcrumb" aria-label="Localização">
+                <a href="#home-content" data-tab="home-content">Início</a>
+                <span class="sep" aria-hidden="true">›</span>
+                <span>Balanço de Massa</span>
+            </nav>
+            <h2 class="module-heading">Balanço de Massa <span class="level-chip level-chip-purple">Avançado</span></h2>
+        </div>
+    </div>
 
-                    <div class="bg-gray-50 p-4 rounded-md">
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-lg font-medium text-gray-800">Streams</h3>
-                            <button type="button" id="add-stream" class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600">Add Stream</button>
-                        </div>
-                        <div id="streams-container" class="space-y-4"></div>
-                    </div>
+    <div class="accordion mb-6">
+        <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-balance">
+            <span>Como funciona — Balanço de Massa</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+        <div class="accordion-content" id="acc-balance" role="region">
+            <p>O balanço de massa aplica o princípio da conservação da massa a um sistema em regime permanente:</p>
+            <div class="formula-block">∑ Entradas − ∑ Saídas + ∑ Gerado = 0</div>
+            <table class="variables-table">
+                <thead><tr><th>Conceito</th><th>Descrição</th></tr></thead>
+                <tbody>
+                    <tr><td>Corrente (direction=1)</td><td>Entrada no sistema</td></tr>
+                    <tr><td>Corrente (direction=−1)</td><td>Saída do sistema</td></tr>
+                    <tr><td>Coef. estequiométrico</td><td>Negativo para reagentes, positivo para produtos</td></tr>
+                    <tr><td>Reciclo (split)</td><td>Fração da corrente retornada à entrada</td></tr>
+                    <tr><td>Conversão (X)</td><td>Fração do componente-chave consumido na reação</td></tr>
+                </tbody>
+            </table>
+            <p><strong>Dica:</strong> use "Carregar Exemplo" para ver um sistema de reação com reciclo pré-configurado.</p>
+            <p class="teoria-ref">Ref.: Reklaitis et al., Introduction to Material and Energy Balances, Wiley.</p>
+        </div>
+    </div>
 
-                    <div class="bg-gray-50 p-4 rounded-md">
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-lg font-medium text-gray-800">Reactions</h3>
-                            <button type="button" id="add-reaction" class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600">Add Reaction</button>
-                        </div>
-                        <div id="reactions-container" class="space-y-4"></div>
-                    </div>
-
-                    <div class="bg-gray-50 p-4 rounded-md">
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-lg font-medium text-gray-800">Splits (Recycle)</h3>
-                            <button type="button" id="add-split" class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600">Add Split</button>
-                        </div>
-                        <div id="splits-container" class="space-y-4"></div>
-                    </div>
-
-                    <div class="flex space-x-4">
-                        <button type="button" id="calculate-button" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">Calculate Mass Balance</button>
-                        <button type="button" id="calculate-yields-button" class="bg-purple-600 text-white px-6 py-3 rounded hover:bg-purple-700">Calculate Yields</button>
-                        <button type="button" id="plot-button" class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700">Generate Plot</button>
-                    </div>
-                    Note: Flow rates use consistent units throughout. Compositions are mass fractions (when using mass flow units) or molar fractions (when using molar flow units).
-
-                    <div id="balance-result" class="mt-4 p-4 bg-white rounded border hidden"></div>
-                    <div id="plot-result-mass-balance" class="mt-4 p-4 bg-white rounded border hidden text-center"></div>
+    <div class="grid grid-cols-1 gap-6">
+        <div class="bg-gray-50 p-4 rounded-md">
+            <h3 class="text-lg font-medium mb-3 text-gray-800">Componentes</h3>
+            <div class="flex mb-4 justify-between items-center">
+                <div class="flex items-center">
+                    <input type="text" id="component-name" class="p-2 border rounded" placeholder="Nome do componente">
+                    <button type="button" id="add-component" class="ml-2 bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600">Adicionar</button>
                 </div>
-            `;
+                <button type="button" id="load-example" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600">Carregar Exemplo</button>
+            </div>
+            <div id="components-list" class="flex flex-wrap gap-2 mb-4"></div>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-md">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-medium text-gray-800">Correntes</h3>
+                <button type="button" id="add-stream" class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600">Adicionar Corrente</button>
+            </div>
+            <div id="streams-container" class="space-y-4"></div>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-md">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-medium text-gray-800">Reações</h3>
+                <button type="button" id="add-reaction" class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600">Adicionar Reação</button>
+            </div>
+            <div id="reactions-container" class="space-y-4"></div>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-md">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-medium text-gray-800">Correntes de Reciclo (Splits)</h3>
+                <button type="button" id="add-split" class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600">Adicionar Split</button>
+            </div>
+            <div id="splits-container" class="space-y-4"></div>
+        </div>
+
+        <div class="flex space-x-4 flex-wrap gap-y-2">
+            <button type="button" id="calculate-button" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">Calcular Balanço de Massa</button>
+            <button type="button" id="calculate-yields-button" class="bg-purple-600 text-white px-6 py-3 rounded hover:bg-purple-700">Calcular Rendimentos</button>
+            <button type="button" id="plot-button" class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700">Gerar Gráfico de Correntes</button>
+        </div>
+
+        <div id="balance-result" class="mt-4 p-4 bg-white rounded border hidden"></div>
+        <div id="plot-result-mass-balance" class="mt-4 p-4 bg-white rounded border hidden text-center"></div>
+    </div>
+`;
         }
     },
 
@@ -568,44 +604,37 @@ const BalanceModule = {
     },
 
     /**
-     * Load example data from the API
+     * Carrega dados de exemplo da API (mesmo fluxo das demais telas via btn-example)
      */
     async loadExampleData() {
         try {
             UI.showLoading('#balance-content');
             const example = await API.getMassBalanceExample();
-            
-            // Clear existing data
+
             document.getElementById('components-list').innerHTML = '';
             document.getElementById('streams-container').innerHTML = '';
             document.getElementById('reactions-container').innerHTML = '';
             document.getElementById('splits-container').innerHTML = '';
-            
-            // Add components
+
             example.components.forEach(component => {
                 this.addComponent(component);
             });
-            
-            // Add streams
+
             example.streams.forEach(stream => {
                 this.addStream(stream);
             });
-            
-            // Add reactions
+
             example.reactions.forEach(reaction => {
                 this.addReaction(reaction);
             });
-            
-            // Add splits
+
             example.splits.forEach(split => {
                 this.addSplit(split);
             });
-            
-            UI.hideLoading('#balance-content');
-            UI.showSuccess('Success', 'Example data loaded');
         } catch (error) {
+            UI.showError('Erro', error.message || 'Não foi possível carregar o exemplo');
+        } finally {
             UI.hideLoading('#balance-content');
-            UI.showError('Error', error);
         }
     },
 
