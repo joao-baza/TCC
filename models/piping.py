@@ -4,7 +4,7 @@ import copy
 DEFAULT_PRESSURE_UNIT = "psi"
 
 # ------------------------------------------------------------------ #
-#                         STATIC DATA                                #
+#                         DADOS ESTÁTICOS                            #
 # ------------------------------------------------------------------ #
 _PIPING_DATA = {
     "dimensions":{
@@ -257,169 +257,169 @@ _PIPING_DATA = {
         }
     },
     "composition":{
-        "Commercial steel":{
+        "Aço comercial":{
             "roughness":0.06,
             "roughness_coefficient": 135
         },
-        "Galvanized steel":{
+        "Aço galvanizado":{
             "roughness":0.16,
             "roughness_coefficient": 125
         },
-        "Lightly rusted steel":{
+        "Aço levemente enferrujado":{
             "roughness":0.25,
             "roughness_coefficient": None
         },
-        "Asphalt-coated steel":{
+        "Aço revestido com asfalto":{
             "roughness":0.6,
             "roughness_coefficient": None
         },
-        "Steel coated with enamel, vinyl, epoxy":{
+        "Aço revestido com esmalte, vinil ou epóxi":{
             "roughness":0.06,
             "roughness_coefficient": None
         },
-        "Aluminum":{
+        "Alumínio":{
             "roughness":0.004,
             "roughness_coefficient": None
         },
-        "Very rough concrete":{
+        "Concreto muito rugoso":{
             "roughness":2000,
             "roughness_coefficient": 120                
         },
-        "Rough concrete":{
+        "Concreto rugoso":{
             "roughness":0.5,
             "roughness_coefficient": 120                
         },
-        "Smooth concrete":{
+        "Concreto liso":{
             "roughness":0.1,
             "roughness_coefficient": 120                
         },
-        "Very smooth concrete":{
+        "Concreto muito liso":{
             "roughness":0.06,
             "roughness_coefficient": 120                
         },
-        "Troweled, centrifuged concrete":{
+        "Concreto alisado ou centrifugado":{
             "roughness":0.3,
             "roughness_coefficient": 120                
         },
-        "Asphalted cast iron":{
+        "Ferro fundido asfaltado":{
             "roughness":0.122,
             "roughness_coefficient": 130
         },
-        "New uncoated cast iron":{
+        "Ferro fundido novo sem revestimento":{
             "roughness":0.5,
             "roughness_coefficient": 125
         },
-        "Lightly rusted cast iron":{
+        "Ferro fundido levemente enferrujado":{
             "roughness":1.5,
             "roughness_coefficient": 90
         },
-        "Centrifuged cement-lined cast iron":{
+        "Ferro fundido revestido com cimento centrifugado":{
             "roughness":0.1,
             "roughness_coefficient": None
         },
-        "Fiber cement":{
+        "Fibrocimento":{
             "roughness":0.1,
             "roughness_coefficient": None
         },
-        "Ceramic pipe":{
+        "Tubo cerâmico":{
             "roughness":0.6,
             "roughness_coefficient": None
         },
-        "Brass, copper":{
+        "Latão e cobre":{
             "roughness":0.007,
             "roughness_coefficient": 130
         },
-        "Plastics":{
+        "Plásticos":{
             "roughness":0.06,
             "roughness_coefficient": 140
         }
     },
         "fittings": {
-        "180 degrees Return": {
+        "Retorno 180°": {
             "equivalentLength": 28
             },
-        "90 degrees Elbow long radius": {
+        "Cotovelo 90° raio longo": {
             "equivalentLength": 16
             },
-        "90 degrees Elbow short radius": {
+        "Cotovelo 90° raio curto": {
             "equivalentLength": 20
             },
-        "45 degrees Elbow": {
+        "Cotovelo 45°": {
             "equivalentLength": 16
             },
-        "Tee (straight run)": {
+        "Tê (passagem reta)": {
             "equivalentLength": 20
             },
-        "Tee (side outlet)": {
+        "Tê (saída lateral)": {
             "equivalentLength": 65
             },
-        "Tank outlet": {
+        "Saída de tanque": {
             "equivalentLength": 32
             },
-        "Diaphragm valve": {
+        "Válvula de diafragma": {
             "equivalentLength": 200
             },
-        "Ball valve": {
+        "Válvula de esfera": {
             "equivalentLength": 18
             },
-        "Y-strainer valve": {
+        "Filtro em Y": {
             "equivalentLength": 250
             },
-        "Gate valve (fully open)": {
+        "Válvula gaveta (totalmente aberta)": {
             "equivalentLength": 13
             },
-        "Gate valve (3/4 open)": {
+        "Válvula gaveta (3/4 aberta)": {
             "equivalentLength": 35
             },
-        "Gate valve (half open)": {
+        "Válvula gaveta (meio aberta)": {
             "equivalentLength": 160
             },
-        "Gate valve (1/4 open)": {
+        "Válvula gaveta (1/4 aberta)": {
             "equivalentLength": 900
             },
-        "Foot check valve": {
+        "Válvula de retenção de pé": {
             "equivalentLength": 150
             },
-        "Swing check valve": {
+        "Válvula de retenção de porta": {
             "equivalentLength": 135
             },
-        "Needle valve": {
+        "Válvula agulha": {
             "equivalentLength": 1000
             },
-        "Globe valve (open)": {
+        "Válvula globo (aberta)": {
             "equivalentLength": 300
             },
-        "Butterfly valve": {
+        "Válvula borboleta": {
             "equivalentLength": 20
             },
-        "90 degrees Elbow medium radius": {
+        "Cotovelo 90° raio médio": {
             "equivalentLength": 28.5
             },
-        "45 degrees Elbow (custom)": {
+        "Cotovelo 45° (personalizado)": {
             "equivalentLength": 15.4
             },
-        "90 degrees Bend R per D = 1.5": {
+        "Curva 90° R/D = 1,5": {
             "equivalentLength": 12.8
             },
-        "90 degrees Bend R per D = 1": {
+        "Curva 90° R/D = 1": {
             "equivalentLength": 17.5
             },
-        "45 degrees Bend": {
+        "Curva 45°": {
             "equivalentLength": 7.8
             },
-        "Normal inlet": {
+        "Entrada normal": {
             "equivalentLength": 14.7
             },
-        "Side inlet": {
+        "Entrada lateral": {
             "equivalentLength": 30.2
             },
-        "Open angle valve": {
+        "Válvula angular aberta": {
             "equivalentLength": 171.5
             },
-        "90 degrees Tee double outlet": {
+        "Tê 90° dupla saída": {
             "equivalentLength": 69
             },
-        "Check valve, light duty": {
+        "Válvula de retenção, leve": {
             "equivalentLength": 83.6}
     }
 
@@ -428,8 +428,8 @@ _PIPING_DATA = {
 class Piping:
     def __init__(self):
         """
-        Contains piping specifications.
-        Each number key is the nominal diameter in mm, which retrieve:
+        Contém especificações de tubulação.
+        Cada chave numérica é o diâmetro nominal em mm, com os campos:
         ----external_diameter: mm
         ----thickness: mm
         ----weight: kg/m
@@ -437,28 +437,28 @@ class Piping:
         """
         
         self.ureg = UnitRegistry()
-        # Reference to static data (read-only usage intended)
+        # Referência aos dados estáticos (uso somente leitura)
         self.data = _PIPING_DATA
 
     def fittings(self):
         """        
-        Returns piping fittings
+        Retorna os acessórios de tubulação disponíveis.
         """
         return list(self.data["fittings"].keys())
         
     def fitting_specifications(self, fitting):
         """        
-        Returns piping specifications for fitting with additional details
+        Retorna as especificações do acessório com detalhes adicionais.
         """
         if fitting not in self.data["fittings"]:
-            raise TypeError("fitting not found")
+            raise TypeError("Acessório não encontrado")
             
-        # Get basic specifications (copy to avoid mutation)
+        # Obtém especificações básicas (cópia para evitar mutação)
         specs = copy.deepcopy(self.data["fittings"][fitting])
         
         specs["equivalentLength"] = specs["equivalentLength"] * self.ureg.dimensionless
 
-        # Add additional details
+        # Adiciona detalhes complementares
         enhanced_specs = {
             "name": fitting,
             "description": self._get_fitting_description(fitting),
@@ -470,26 +470,26 @@ class Piping:
     
     def compositions(self):
         """        
-        Returns piping compositions
+        Retorna as composições de tubulação disponíveis.
         """
         return list(self.data["composition"].keys())
     
     def composition_specifications(self, composition):
         """        
-        Returns piping specifications for composition with additional details
+        Retorna as especificações da composição com detalhes adicionais.
         """
         if composition not in self.data["composition"]:
-            raise TypeError("Composition not found")
+            raise TypeError("Composição não encontrada")
             
-        # Get basic specifications
+        # Obtém especificações básicas
         specs = copy.deepcopy(self.data["composition"][composition])
         
-        # Apply units
+        # Aplica unidades
         specs["roughness"] = specs["roughness"] * self.ureg.mm
         if specs.get("roughness_coefficient"):
             specs["roughness_coefficient"] = specs["roughness_coefficient"] * self.ureg.dimensionless
         
-        # Add additional details
+        # Adiciona detalhes complementares
         enhanced_specs = {
             "name": composition,
             "description": self._get_composition_description(composition),
@@ -501,7 +501,7 @@ class Piping:
     
     def schedules(self):
         """        
-        Returns piping schedules with available diameters
+        Retorna os schedules de tubulação com diâmetros disponíveis.
         """
         result = []
         for schedule in list(self.data["dimensions"].keys()):
@@ -514,17 +514,17 @@ class Piping:
     
     def diameters(self, schedule_key):
         """        
-        Returns piping diameters with basic information for the given schedule key   
+        Retorna os diâmetros com informações básicas para o schedule informado.
         """
         if schedule_key not in self.data["dimensions"]:
-            raise TypeError("Schedule not found")
+            raise TypeError("Schedule não encontrado")
             
         diameters_dict = {}
         for diameter in list(self.data["dimensions"][schedule_key].keys()):
             specs = self.data["dimensions"][schedule_key][diameter]
             diameters_dict[diameter] = {
                 "nominal_diameter": diameter,
-                "external_diameter": specs["external_diameter"], # Raw value in mm
+                "external_diameter": specs["external_diameter"], # valor bruto em mm
                 "units": "mm"
             }
             
@@ -532,14 +532,14 @@ class Piping:
         
     def diameter_specifications(self, schedule_key, diameter_nominal):
         """        
-        Returns piping data for the given schedule key and nominal diameter in mm
+        Retorna os dados da tubulação para o schedule e diâmetro nominal informados (mm).
         """
         if schedule_key not in self.data["dimensions"]:
-            raise TypeError("Schedule not found")
+            raise TypeError("Schedule não encontrado")
         if diameter_nominal not in self.data["dimensions"][schedule_key]:
-            raise TypeError("Nominal diameter not found")
+            raise TypeError("Diâmetro nominal não encontrado")
             
-        # Get and copy specs to apply units
+        # Obtém e copia especificações para aplicar unidades
         specs = copy.deepcopy(self.data["dimensions"][schedule_key][diameter_nominal])
         
         specs["external_diameter"] = specs["external_diameter"] * self.ureg.mm
@@ -547,82 +547,82 @@ class Piping:
         specs["weight"] = specs["weight"] * (self.ureg.kg / self.ureg.m)
         
         if specs["max_pressure"] is not None:
-             # Pressure values in the dictionary are in psi
+             # Valores de pressão no dicionário estão em psi
             p = specs["max_pressure"] * self.ureg(DEFAULT_PRESSURE_UNIT)
             specs["max_pressure"] = p.to(self.ureg.Pa)
             
         return specs
     
     def _get_fitting_description(self, fitting):
-        """Provides a description for the given fitting"""
+        """Fornece uma descrição para o acessório informado."""
         descriptions = {
-            "180 degrees Return": "A U-shaped pipe fitting that changes the direction of flow by 180 degrees.",
-            "90 degrees Elbow long radius": "An elbow with a large radius that changes the direction of flow by 90 degrees with reduced pressure loss.",
-            "90 degrees Elbow short radius": "A compact elbow that changes the direction of flow by 90 degrees with higher pressure loss.",
-            "45 degrees Elbow": "An elbow that changes the direction of flow by 45 degrees.",
-            "Tee (straight run)": "A T-shaped fitting with flow continuing straight through the main line.",
-            "Tee (side outlet)": "A T-shaped fitting with flow diverted through the side outlet.",
-            "Tank outlet": "A fitting that connects a tank to a pipe system.",
-            "Diaphragm valve": "A valve that uses a flexible diaphragm to control flow.",
-            "Ball valve": "A valve with a pivoting ball to control flow with minimal pressure loss when fully open."
+            "Retorno 180°": "Acessório em U que inverte o sentido do fluxo em 180 graus.",
+            "Cotovelo 90° raio longo": "Cotovelo de grande raio que desvia o fluxo em 90 graus com menor perda de carga.",
+            "Cotovelo 90° raio curto": "Cotovelo compacto que desvia o fluxo em 90 graus com maior perda de carga.",
+            "Cotovelo 45°": "Cotovelo que desvia o fluxo em 45 graus.",
+            "Tê (passagem reta)": "Acessório em T com continuidade do fluxo pela linha principal.",
+            "Tê (saída lateral)": "Acessório em T com desvio do fluxo pela saída lateral.",
+            "Saída de tanque": "Acessório que conecta um tanque ao sistema de tubulação.",
+            "Válvula de diafragma": "Válvula que utiliza um diafragma flexível para controlar o fluxo.",
+            "Válvula de esfera": "Válvula com esfera pivotante para controle de fluxo, com baixa perda de carga quando totalmente aberta."
         }
         
-        return descriptions.get(fitting, "A pipe fitting used in fluid transport systems.")
+        return descriptions.get(fitting, "Acessório utilizado em sistemas de transporte de fluidos.")
     
     def _get_fitting_usage(self, fitting):
-        """Provides usage information for the given fitting"""
+        """Fornece informações de uso para o acessório informado."""
         usages = {
-            "180 degrees Return": "Used in tight spaces where a complete reversal of flow is needed.",
-            "90 degrees Elbow long radius": "Preferred for high flow rates and to minimize pressure loss in directional changes.",
-            "90 degrees Elbow short radius": "Used where space is limited and flow rates are moderate.",
-            "45 degrees Elbow": "Used for gradual directional changes to reduce pressure loss.",
-            "Tee (straight run)": "Used to create branches while maintaining flow in the main line.",
-            "Tee (side outlet)": "Used to divert a portion of flow to a branch line.",
-            "Tank outlet": "Used to connect storage tanks to piping systems.",
-            "Diaphragm valve": "Used for precise flow control and isolation in sanitary applications.",
-            "Ball valve": "Used for quick shut-off with minimal pressure loss."
+            "Retorno 180°": "Utilizado em espaços reduzidos onde é necessária a inversão completa do fluxo.",
+            "Cotovelo 90° raio longo": "Preferido em altas vazões e para minimizar perda de carga em mudanças de direção.",
+            "Cotovelo 90° raio curto": "Utilizado quando o espaço é limitado e as vazões são moderadas.",
+            "Cotovelo 45°": "Utilizado para mudanças graduais de direção, reduzindo a perda de carga.",
+            "Tê (passagem reta)": "Utilizado para criar derivações mantendo o fluxo na linha principal.",
+            "Tê (saída lateral)": "Utilizado para desviar parte do fluxo para uma linha derivada.",
+            "Saída de tanque": "Utilizado para conectar tanques de armazenamento a sistemas de tubulação.",
+            "Válvula de diafragma": "Utilizada para controle preciso de fluxo e isolamento em aplicações sanitárias.",
+            "Válvula de esfera": "Utilizada para fechamento rápido com baixa perda de carga."
         }
         
-        return usages.get(fitting, "Common in industrial and commercial piping systems.")
+        return usages.get(fitting, "Comum em sistemas de tubulação industrial e comercial.")
     
     def _get_composition_description(self, composition):
-        """Provides a description for the given pipe composition"""
+        """Fornece uma descrição para a composição informada."""
         descriptions = {
-            "Commercial steel": "Standard carbon steel piping used in many industrial applications.",
-            "Galvanized steel": "Steel pipe coated with zinc to prevent corrosion.",
-            "Lightly rusted steel": "Steel pipe with minor surface oxidation.",
-            "Asphalt-coated steel": "Steel pipe coated with asphalt for corrosion protection in underground applications.",
-            "Steel coated with enamel, vinyl, epoxy": "Steel pipe with specialized coating for chemical resistance.",
-            "Aluminum": "Lightweight metal piping with good corrosion resistance.",
-            "Very rough concrete": "Concrete pipe with high surface roughness.",
-            "Smooth concrete": "Concrete pipe with minimal surface roughness.",
-            "Brass, copper": "Metal piping with excellent thermal conductivity and biofouling resistance.",
-            "Plastics": "Synthetic polymer piping with excellent chemical resistance and lightweight properties."
+            "Aço comercial": "Tubulação de aço carbono padrão, utilizada em diversas aplicações industriais.",
+            "Aço galvanizado": "Tubulação de aço revestida com zinco para prevenir corrosão.",
+            "Aço levemente enferrujado": "Tubulação de aço com oxidação superficial leve.",
+            "Aço revestido com asfalto": "Tubulação de aço revestida com asfalto para proteção contra corrosão em instalações enterradas.",
+            "Aço revestido com esmalte, vinil ou epóxi": "Tubulação de aço com revestimento especial para resistência química.",
+            "Alumínio": "Tubulação metálica leve com boa resistência à corrosão.",
+            "Concreto muito rugoso": "Tubo de concreto com alta rugosidade superficial.",
+            "Concreto liso": "Tubo de concreto com baixa rugosidade superficial.",
+            "Latão e cobre": "Tubulação metálica com excelente condutividade térmica e resistência a incrustações biológicas.",
+            "Plásticos": "Tubulação polimérica com excelente resistência química e baixo peso."
         }
         
-        return descriptions.get(composition, "Material used in fluid transport piping systems.")
+        return descriptions.get(composition, "Material utilizado em tubulações de transporte de fluidos.")
     
     def _get_composition_applications(self, composition):
-        """Provides application information for the given pipe composition"""
+        """Fornece informações de aplicação para a composição informada."""
         applications = {
-            "Commercial steel": "Water, gas, oil, steam transport in industrial settings.",
-            "Galvanized steel": "Potable water systems, fire sprinkler systems, irrigation.",
-            "Asphalt-coated steel": "Underground water and sewer lines.",
-            "Steel coated with enamel, vinyl, epoxy": "Chemical processing, corrosive environments.",
-            "Aluminum": "Compressed air, refrigeration, irrigation systems.",
-            "Concrete": "Large diameter water transport, sewage, drainage systems.",
-            "Brass, copper": "Potable water, heating systems, refrigeration, medical gas.",
-            "Plastics": "Chemical processing, water treatment, irrigation, low-pressure applications."
+            "Aço comercial": "Transporte de água, gás, óleo e vapor em ambientes industriais.",
+            "Aço galvanizado": "Sistemas de água potável, sprinklers e irrigação.",
+            "Aço revestido com asfalto": "Linhas enterradas de água e esgoto.",
+            "Aço revestido com esmalte, vinil ou epóxi": "Processos químicos e ambientes corrosivos.",
+            "Alumínio": "Ar comprimido, refrigeração e sistemas de irrigação.",
+            "Concreto": "Transporte de água em grandes diâmetros, esgoto e drenagem.",
+            "Latão e cobre": "Água potável, aquecimento, refrigeração e gases medicinais.",
+            "Plásticos": "Processos químicos, tratamento de água, irrigação e aplicações de baixa pressão."
         }
         
-        return applications.get(composition, "Various fluid transport applications based on material properties.")
+        return applications.get(composition, "Diversas aplicações de transporte de fluidos conforme as propriedades do material.")
     
     def _get_schedule_description(self, schedule):
-        """Provides a description for the given pipe schedule"""
+        """Fornece uma descrição para o schedule informado."""
         descriptions = {
-            "SCH10": "Light-duty schedule with thinner walls, suitable for low-pressure applications.",
-            "SCH40": "Standard-duty schedule used in most commercial and industrial applications.",
-            "SCH80": "Heavy-duty schedule with thicker walls for high-pressure applications."
+            "SCH10": "Schedule de baixa espessura, adequado para aplicações de baixa pressão.",
+            "SCH40": "Schedule padrão utilizado na maioria das aplicações comerciais e industriais.",
+            "SCH80": "Schedule de alta espessura para aplicações de alta pressão."
         }
         
-        return descriptions.get(schedule, "A standardized specification for pipe dimensions.")
+        return descriptions.get(schedule, "Especificação padronizada para dimensões de tubos.")

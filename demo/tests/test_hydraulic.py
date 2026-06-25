@@ -82,13 +82,13 @@ class TestHydraulicComprehensive:
         hl_base = hydraulic.head_loss(base_params)
         
         # 2. Calculate with fittings
-        # "90 degrees Elbow long radius": eq_len=16D
-        # "Ball valve": eq_len=18D
+        # "Cotovelo 90° raio longo": eq_len=16D
+        # "Válvula de esfera": eq_len=18D
         # Total added length = (16*2 + 18*1) * D = 50 * 0.1 = 5m
         params_with_fittings = base_params.copy()
         params_with_fittings["fittings"] = [
-            {"fitting": "90 degrees Elbow long radius", "quantity": 2},
-            {"fitting": "Ball valve", "quantity": 1}
+            {"fitting": "Cotovelo 90° raio longo", "quantity": 2},
+            {"fitting": "Válvula de esfera", "quantity": 1}
         ]
         
         hl_fittings = hydraulic.head_loss(params_with_fittings)

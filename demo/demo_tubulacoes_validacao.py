@@ -13,7 +13,7 @@ def demo_tubulacoes_validacao():
 
     # --- 4.4.4.1 Acessórios (Fittings) ---
     print("\n--- 4.4.4.1 Acessórios: Comparação Manual vs Código ---")
-    fitting_name = "90 degrees Elbow long radius"
+    fitting_name = "Cotovelo 90° raio longo"
     print(f"Item testado: {fitting_name}")
     
     # Manual value from standard reference (assumed to be the source of truth for this 'manual' check)
@@ -37,7 +37,7 @@ def demo_tubulacoes_validacao():
 
     # --- 4.4.4.3 Composição (Material) ---
     print("\n--- 4.4.4.3 Composição: Comparação Manual vs Código ---")
-    comp_name = "Commercial steel"
+    comp_name = "Aço comercial"
     print(f"Item testado: {comp_name}")
     
     # Manual value

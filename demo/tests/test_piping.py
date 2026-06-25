@@ -25,7 +25,7 @@ class TestPiping:
         """Verify fittings are returned."""
         fittings = piping.fittings()
         assert len(fittings) > 0
-        assert "90 degrees Elbow long radius" in fittings
+        assert "Cotovelo 90° raio longo" in fittings
 
     def test_diameter_specifications(self, piping):
         """Verify diameter properties."""
@@ -40,7 +40,7 @@ class TestPiping:
 
     def test_fitting_specs(self, piping):
         """Verify fitting specific data."""
-        spec = piping.fitting_specifications("90 degrees Elbow long radius")
+        spec = piping.fitting_specifications("Cotovelo 90° raio longo")
         assert spec["specifications"]["equivalentLength"].magnitude > 0
         
     def test_invalid_fitting_raises(self, piping):
@@ -51,11 +51,11 @@ class TestPiping:
         """Test listing compositions."""
         comps = piping.compositions()
         assert len(comps) > 0
-        assert "Commercial steel" in comps
+        assert "Aço comercial" in comps
 
     def test_composition_specifications(self, piping):
         """Test retrieving composition specs."""
-        spec = piping.composition_specifications("Commercial steel")
+        spec = piping.composition_specifications("Aço comercial")
         assert "roughness" in spec["specifications"]
 
     def test_diameters(self, piping):
@@ -68,24 +68,24 @@ class TestPiping:
 class TestPipingEdgeCases:
 
     def test_invalid_composition_raises(self, piping):
-        with pytest.raises(TypeError, match="Composition not found"):
+        with pytest.raises(TypeError, match="Composição não encontrada"):
             piping.composition_specifications("NonExistentMaterial")
 
     def test_invalid_nominal_diameter_raises(self, piping):
-        with pytest.raises(TypeError, match="Nominal diameter not found"):
+        with pytest.raises(TypeError, match="Diâmetro nominal não encontrado"):
             piping.diameter_specifications("SCH40", 99999)
 
     def test_diameter_specifications_invalid_schedule_raises(self, piping):
-        with pytest.raises(TypeError, match="Schedule not found"):
+        with pytest.raises(TypeError, match="Schedule não encontrado"):
             piping.diameter_specifications("INVALID", 50)
 
     def test_diameters_invalid_schedule_raises(self, piping):
-        with pytest.raises(TypeError, match="Schedule not found"):
+        with pytest.raises(TypeError, match="Schedule não encontrado"):
             piping.diameters("INVALID")
 
     def test_composition_without_roughness_coefficient(self, piping):
         """Some compositions have roughness but no Hazen-Williams coefficient."""
-        spec = piping.composition_specifications("Lightly rusted steel")
+        spec = piping.composition_specifications("Aço levemente enferrujado")
         assert spec["specifications"]["roughness"].magnitude > 0
         assert spec["specifications"].get("roughness_coefficient") is None
 

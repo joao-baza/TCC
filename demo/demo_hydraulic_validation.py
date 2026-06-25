@@ -148,8 +148,8 @@ def validate_head_loss():
     
     # Case B: With fittings
     # Need to know the equivalent length the code uses for "Elbow, 90 deg"
-    # From Piping class (Checked models/piping.py: "90 degrees Elbow long radius" -> Leq=16)
-    fitting_name = "90 degrees Elbow long radius"
+    # From Piping class (Checked models/piping.py: "Cotovelo 90° raio longo" -> Leq=16)
+    fitting_name = "Cotovelo 90° raio longo"
     leq_factor = 16.0
     qty = 2
     leq_manual = leq_factor * D_m * qty

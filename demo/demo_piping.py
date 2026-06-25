@@ -30,8 +30,8 @@ def demo_piping():
     print_result("compositions", res)
 
     # composition_specifications
-    res = pip.composition_specifications("Commercial steel")
-    print_result("composition_specifications (Commercial steel)", res)
+    res = pip.composition_specifications("Aço comercial")
+    print_result("composition_specifications (Aço comercial)", res)
 
     # schedules
     res = pip.schedules()
