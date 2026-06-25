@@ -13,8 +13,11 @@ const ReactorModule = {
         this.loadCSTRCalculationTypes();
         this.loadPFRCalculationTypes();
         this.setupEventListeners();
-        // Ativar acordeões criados dinamicamente
-        if (window.DidaticModule) DidaticModule.setupAccordions();
+        // Ativar acordeões e botão "Carregar exemplo" criados dinamicamente
+        if (window.DidaticModule) {
+            DidaticModule.setupAccordions();
+            DidaticModule.setupExampleButtons();
+        }
     },
 
     /**
@@ -36,8 +39,9 @@ const ReactorModule = {
                     <span class="sep" aria-hidden="true">›</span>
                     <span>CSTR / PFR</span>
                 </nav>
-                <h2 class="module-heading">Cálculos de Reator</h2>
+                <h2 class="module-heading">Cálculos de Reator <span class="level-chip level-chip-purple">Avançado</span></h2>
             </div>
+            <button class="btn-example" data-example="reactor" type="button" title="Preenche os formulários com um caso de exemplo realista (A → B)">▶ Carregar exemplo</button>
         `;
         reactorContent.appendChild(headerEl);
 
@@ -412,6 +416,89 @@ const ReactorModule = {
             e.preventDefault();
             await this.generateConversionVolumePlot();
         });
+    },
+
+    /**
+     * Preenche CSTR, PFR e gráfico com o caso de exemplo A → B (1ª ordem, fase líquida)
+     */
+    loadExampleData() {
+        const example = {
+            components: [
+                { component_name: 'A', state: 'liquid', flow_rate_inlet: 0.01, molar_concentration_inlet: 1 },
+                { component_name: 'B', state: 'liquid', flow_rate_inlet: 0, molar_concentration_inlet: 0 },
+            ],
+            stoichiometric_coefficients: [-1, 1],
+            reaction_orders: [1, 0],
+            k: 0.05,
+            operation: {
+                initial_temperature: 300,
+                initial_pressure: 101325,
+                final_temperature: 300,
+                final_pressure: 101325,
+            },
+            cstr: { input_type: 'conversion_and_kinetics', conversion: 0.85 },
+            pfr: { input_type: 'conversion_and_kinetics', conversion: 0.95, recycling_ratio: 0 },
+            plot: { max_conversion: 0.99, recycling_ratio: 0 },
+        };
+
+        ['cstr', 'pfr', 'plot'].forEach(type => {
+            this._populateReactorComponents(
+                type,
+                example.components,
+                example.stoichiometric_coefficients,
+                example.reaction_orders
+            );
+        });
+
+        this._setReactorScalars('cstr', example);
+        $('#cstr-input-type').val(example.cstr.input_type).trigger('change');
+        document.getElementById('cstr-conversion').value = example.cstr.conversion;
+
+        this._setReactorScalars('pfr', example);
+        $('#pfr-input-type').val(example.pfr.input_type).trigger('change');
+        document.getElementById('pfr-conversion').value = example.pfr.conversion;
+        document.getElementById('pfr-recycling-ratio').value = example.pfr.recycling_ratio;
+
+        this._setReactorScalars('plot', example);
+        document.getElementById('plot-recycling-ratio').value = example.plot.recycling_ratio;
+        document.getElementById('plot-max-conversion').value = example.plot.max_conversion;
+
+        UI.hideResult('#cstr-result');
+        UI.hideResult('#pfr-result');
+        UI.hideResult('#plot-result-reactor');
+    },
+
+    _setReactorScalars(reactorType, example) {
+        document.getElementById(`${reactorType}-rate-constant`).value = example.k;
+        document.getElementById(`${reactorType}-initial-temperature`).value = example.operation.initial_temperature;
+        document.getElementById(`${reactorType}-initial-pressure`).value = example.operation.initial_pressure;
+        document.getElementById(`${reactorType}-final-temperature`).value = example.operation.final_temperature;
+        document.getElementById(`${reactorType}-final-pressure`).value = example.operation.final_pressure;
+    },
+
+    _populateReactorComponents(reactorType, components, stoich, orders) {
+        const containerId = `${reactorType}-components-container`;
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        components.forEach(() => this.addReactorComponent(containerId));
+
+        container.querySelectorAll('.component-row').forEach((row, i) => {
+            const comp = components[i];
+            const nameSelect = row.querySelector('.component-name-select');
+            $(nameSelect).val(comp.component_name).trigger('change');
+            row.querySelector('.component-state').value = comp.state;
+            row.querySelector('.flow-rate-inlet').value = comp.flow_rate_inlet;
+            row.querySelector('.molar-concentration-inlet').value = comp.molar_concentration_inlet;
+        });
+
+        this.updateStoichiometricCoefficients(reactorType);
+        this.updateReactionOrders(reactorType);
+
+        document.querySelectorAll(`#${reactorType}-stoichiometric-container .stoichiometric-coef`)
+            .forEach((input, i) => { input.value = stoich[i]; });
+        document.querySelectorAll(`#${reactorType}-reaction-orders-container .reaction-order`)
+            .forEach((input, i) => { input.value = orders[i]; });
     },
 
     /**

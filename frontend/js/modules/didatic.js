@@ -64,9 +64,18 @@ const DidaticModule = {
     // -----------------------------------------------------------------------
     setupExampleButtons() {
         const examples = this.examples;
-        document.querySelectorAll('.btn-example[data-example]').forEach(btn => {
+        document.querySelectorAll('.btn-example[data-example]:not([data-ex-bound])').forEach(btn => {
+            btn.dataset.exBound = '1';
             btn.addEventListener('click', function () {
                 const key = this.getAttribute('data-example');
+                if (key === 'balance') {
+                    if (window.BalanceModule) BalanceModule.loadExampleData();
+                    return;
+                }
+                if (key === 'reactor') {
+                    if (window.ReactorModule) ReactorModule.loadExampleData();
+                    return;
+                }
                 const data = examples[key];
                 if (!data) return;
                 Object.entries(data).forEach(([id, value]) => {
