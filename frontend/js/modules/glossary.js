@@ -88,6 +88,14 @@ const GlossaryModule = (function () {
                + '\\\[H = \\frac{P_2 - P_1}{\\rho g} + \\frac{V_2^2 - V_1^2}{2g} + (z_2 - z_1) + h_f\\\] '
                + 'H &gt; 0 → bomba necessária; H &lt; 0 → energia extraída (turbina).',
         },
+        {
+            term: 'Diagrama de Moody',
+            cat: 'Hidráulica',
+            def: 'Gráfico log-log do fator de atrito de Darcy \\\(f\\\) em função de \\\(Re\\\) e da rugosidade relativa \\\(\\varepsilon/D\\\). '
+               + 'Organizado em três regiões: laminar (\\\(f = 64/Re\\\)), transição e turbulento. '
+               + 'No regime turbulento plenamente rugoso (altas \\\(Re\\\)), \\\(f\\\) depende apenas de \\\(\\varepsilon/D\\\). '
+               + 'Construído a partir da equação de Colebrook-White; o ponto operacional é plotado sobre ele para leitura visual do regime.',
+        },
 
         // ── Dimensionamento ─────────────────────────────────────────────────────
         {
@@ -225,6 +233,13 @@ const GlossaryModule = (function () {
                + '\\\[\\psi = (1 + \\varepsilon\\,X)\\,\\frac{P}{P_0}\\,\\frac{T_0}{T}\\\] '
                + 'Usado para calcular concentrações de saída a partir de \\\(X\\\).',
         },
+        {
+            term: 'Método de Brent',
+            cat: 'Reatores',
+            def: 'Algoritmo numérico para encontrar raízes de funções escalares em um intervalo \\\([a, b]\\\) onde \\\(f(a) \\cdot f(b) < 0\\\). '
+               + 'Combina bissecção (garante convergência), secante e interpolação quadrática inversa (aceleração). '
+               + 'Usado no CSTR e PFR quando o volume \\\(V\\\) ou o tempo de residência \\\(\\tau\\\) são dados e a conversão \\\(X\\\) é a incógnita — a equação de design é implícita em \\\(X\\\).',
+        },
 
         // ── Componentes ─────────────────────────────────────────────────────────
         {
@@ -267,6 +282,44 @@ const GlossaryModule = (function () {
             def: 'Relação entre \\\(P\\\), \\\(V\\\) e \\\(T\\\) de um fluido. '
                + 'Gás ideal: \\\(PV = nRT\\\). '
                + 'Para sistemas reais, equações cúbicas (Peng-Robinson, SRK) adicionam termos de atração/repulsão molecular.',
+        },
+        {
+            term: 'Calor específico (c_p / c_v)',
+            cat: 'Componentes',
+            def: 'Energia necessária para elevar 1 kg de substância em 1 K. '
+               + '\\\(c_p\\\) a pressão constante (J/kg·K); \\\(c_v\\\) a volume constante. '
+               + 'Para gases ideais: \\\(c_p - c_v = R/M\\\). '
+               + 'Obtido via CoolProp a partir de T e P; alimenta balanços de energia e dimensionamento de trocadores.',
+        },
+        {
+            term: 'Entalpia específica (h)',
+            cat: 'Componentes',
+            def: 'Função de estado definida como \\\(h = u + Pv\\\), onde \\\(u\\\) é a energia interna, \\\(P\\\) a pressão e \\\(v\\\) o volume específico (m³/kg). '
+               + 'Unidade: J/kg. Variação de entalpia \\\(\\Delta h\\\) é a troca de calor em processos a pressão constante. '
+               + 'Fundamental em balanços de energia de trocadores, evaporadores e condensadores.',
+        },
+        {
+            term: 'Entropia específica (s)',
+            cat: 'Componentes',
+            def: 'Medida da desordem do sistema por unidade de massa (J/kg·K). '
+               + 'Em processos reversíveis adiabáticos, \\\(\\Delta s = 0\\\) (isentrópico). '
+               + 'Obtida via CoolProp; usada para análise de eficiência de compressores e turbinas.',
+        },
+        {
+            term: 'Condutividade térmica (λ)',
+            cat: 'Componentes',
+            def: 'Capacidade do material de conduzir calor (W/m·K). Governa a lei de Fourier: '
+               + '\\\(\\dot{q} = -\\lambda \\nabla T\\\). '
+               + 'Varia com temperatura e fase; obtida via CoolProp. '
+               + 'Insumo para cálculo de coeficientes de troca térmica em trocadores e isolamentos.',
+        },
+        {
+            term: 'Ponto de bolha / Ponto de orvalho',
+            cat: 'Componentes',
+            def: '<strong>Ponto de bolha</strong>: temperatura (ou pressão) na qual a primeira bolha de vapor se forma ao aquecer um líquido a pressão constante. '
+               + '<strong>Ponto de orvalho</strong>: temperatura (ou pressão) na qual a primeira gota de líquido se condensa ao resfriar um vapor. '
+               + 'Em misturas, bolha e orvalho diferem (envelope bifásico). '
+               + 'Obtidos via CoolProp; relevantes para verificar fase do fluido nas condições de operação.',
         },
 
         // ── Balanço ─────────────────────────────────────────────────────────────
