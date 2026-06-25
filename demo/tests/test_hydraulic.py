@@ -286,5 +286,44 @@ class TestHydraulicEdgeCases:
         result = hydraulic.hydraulic_diameter({"shape": "circular", "diameter": 0})
         assert result.magnitude == 0
 
+    def test_hydraulic_diameter_triangular_valid(self, hydraulic):
+        """Equilateral triangle has hydraulic diameter side / sqrt(3)."""
+        result = hydraulic.hydraulic_diameter(
+            {"shape": "triangular", "side_a": 100, "side_b": 100, "side_c": 100}
+        )
+        assert result.magnitude == pytest.approx(100 / (3 ** 0.5), rel=1e-6)
+
+    def test_hydraulic_diameter_circular_cap_valid(self, hydraulic):
+        """Valid circular cap (height < diameter) returns a positive diameter."""
+        result = hydraulic.hydraulic_diameter(
+            {"shape": "circularCap", "diameter": 100, "height": 30}
+        )
+        assert result.magnitude == pytest.approx(84.354, abs=0.1)
+
+
+class TestHydraulicHead:
+
+    def test_head_basic(self, hydraulic):
+        """With equal pressures and velocities, head reduces to (z2-z1) + head_loss."""
+        result = hydraulic.head({
+            "pressure1": 101325, "pressure2": 101325,
+            "elevation1": 0, "elevation2": 10,
+            "velocity1": 2, "velocity2": 2,
+            "density": 1000, "head_loss": 5,
+        })
+        assert result.magnitude == pytest.approx(15.0, rel=1e-6)
+
+    def test_head_pressure_and_velocity_terms(self, hydraulic):
+        """Higher downstream pressure and velocity both increase the head."""
+        result = hydraulic.head({
+            "pressure1": 100000, "pressure2": 150000,
+            "elevation1": 0, "elevation2": 0,
+            "velocity1": 1, "velocity2": 3,
+            "density": 1000, "head_loss": 0,
+        })
+        # pressure term = 50000/(1000*9.81) ~= 5.097 m ; velocity term = (9-1)/(2*9.81) ~= 0.408 m
+        assert result.magnitude == pytest.approx(5.505, abs=0.05)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
