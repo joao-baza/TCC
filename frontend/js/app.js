@@ -8,9 +8,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Modo aula: acordeões, "Carregar exemplo" e validação inline
     if (window.DidaticModule) DidaticModule.init();
 
-    // Histórico de cálculos (localStorage)
-    if (window.HistoryModule) HistoryModule.init();
-
     // Handler global de erros de API
     window.addEventListener('unhandledrejection', function (event) {
         console.error('Unhandled promise rejection:', event.reason);

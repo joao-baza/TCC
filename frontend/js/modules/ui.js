@@ -230,7 +230,6 @@ const UI = {
         'reactor-content':    () => window.ReactorModule    && window.ReactorModule.init(),
         'components-content': () => window.ComponentsModule && window.ComponentsModule.init(),
         'balance-content':    () => window.BalanceModule    && window.BalanceModule.init(),
-        'history-content':   () => window.HistoryModule  && window.HistoryModule.render(),
         'glossary-content':  () => window.GlossaryModule && window.GlossaryModule.render(),
     },
 
@@ -337,7 +336,7 @@ const UI = {
         const hash = window.location.hash.replace('#', '');
         const validTabs = ['home-content', 'piping-content', 'sizing-content', 'flow-content',
                            'pump-content', 'reactor-content', 'components-content', 'balance-content',
-                           'history-content', 'glossary-content'];
+                           'glossary-content'];
         if (hash && validTabs.includes(hash)) {
             self.activateTab(hash);
         }
