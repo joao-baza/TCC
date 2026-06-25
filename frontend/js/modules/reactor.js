@@ -39,7 +39,7 @@ const ReactorModule = {
                     <span class="sep" aria-hidden="true">›</span>
                     <span>CSTR / PFR</span>
                 </nav>
-                <h2 class="module-heading">Cálculos de Reator <span class="level-chip level-chip-purple">Avançado</span></h2>
+                <h2 class="module-heading">Cálculos de Reator</h2>
             </div>
             <button class="btn-example" data-example="reactor" type="button" title="Preenche os formulários com um caso de exemplo realista (A → B)">▶ Carregar exemplo</button>
         `;
@@ -966,12 +966,6 @@ const ReactorModule = {
                 if (xTarget != null) this._renderLevenspielInline(reactorType, rateConstant, nVal, C_A0v, F_A0v, xTarget);
             } catch (_) {}
 
-            document.dispatchEvent(new CustomEvent('tcc:calculated', { detail: {
-                module: 'Reatores',
-                operation: `${reactorType.toUpperCase()} — ${inputType}`,
-                inputs: `k = ${rateConstant}`,
-                summary: 'Ver resultado acima',
-            }}));
         } catch (error) {
             const reactorLabel = reactorType === 'cstr' ? 'CSTR' : 'PFR';
             UI.showError(`Erro ao calcular ${reactorLabel}`, error);
@@ -1133,7 +1127,9 @@ const ReactorModule = {
         const ctx = document.getElementById(canvasId).getContext('2d');
         this[instKey] = new Chart(ctx, {
             type: 'line',
-            data: { datasets: [
+            data: {
+                labels: conversions,
+                datasets: [
                 { label: 'CSTR (V)', data: cstrVols, borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.10)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
                 { label: 'PFR (V)',  data: pfrVols,  borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.10)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
             ]},
