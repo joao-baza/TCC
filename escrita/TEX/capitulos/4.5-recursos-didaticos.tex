@@ -1,0 +1,89 @@
+\section{Recursos Didáticos}
+
+Além dos módulos de cálculo, o DCOU incorpora uma camada de recursos voltados ao aprendizado conceitual, que diferenciam a ferramenta de uma simples calculadora. Esses recursos articulam cada resultado numérico ao seu fundamento teórico e ao fenômeno físico correspondente, apoiando estudantes e engenheiros em formação. As subseções a seguir descrevem o glossário técnico, as explicações teóricas embutidas, as visualizações interativas, os exercícios guiados e as trilhas de aprendizagem.
+
+\subsection{Glossário}
+
+O glossário reúne 49 termos técnicos organizados em sete categorias (Hidráulica, Dimensionamento, Bombas, Reatores, Componentes e Balanço de Massa), cada um acompanhado de definição e, quando pertinente, da equação correspondente renderizada matematicamente por meio da biblioteca \textit{KaTeX}. Um campo de busca filtra os termos em tempo real, e as categorias se reorganizam dinamicamente conforme os resultados, permitindo que o estudante localize rapidamente conceitos como número de \textit{Reynolds}, fator de atrito de \textit{Darcy}, \textit{NPSH}, conversão em reatores ou equação de \textit{Antoine}.
+
+\begin{figure}[H]
+    \centering
+    \caption{Glossário técnico com busca e equações renderizadas}
+    \imgouplaceholder{media/glossario.png}
+    \fonte{Autoria própria.}
+    \label{fig:glossario}
+\end{figure}
+
+\subsection{Explicações Teóricas Embutidas}
+
+Cada calculadora dispõe de um bloco teórico retrátil (``Como funciona''), que apresenta a fundamentação do cálculo sem afastar o usuário da interface. Foram implementados oito blocos, cobrindo: cálculo de diâmetro, diâmetro nominal comercial, número de \textit{Reynolds}, fator de atrito de \textit{Darcy}, diâmetro hidráulico, perda de carga, \textit{NPSH} disponível e altura manométrica. Cada bloco reúne a equação utilizada, a interpretação física das variáveis e as referências bibliográficas correspondentes \cite{white2018, perry2007}, conectando o resultado numérico à teoria que o sustenta.
+
+\begin{figure}[H]
+    \centering
+    \caption{Exemplo de explicação teórica embutida em uma calculadora}
+    \imgouplaceholder{media/explicacao_teorica.png}
+    \fonte{Autoria própria.}
+    \label{fig:explicacao_teorica}
+\end{figure}
+
+\subsection{Visualizações Interativas}
+
+Para tornar tangíveis os fenômenos físicos, cada módulo de cálculo apresenta uma visualização contextual gerada no \textit{frontend} (com \textit{SVG} ou a biblioteca \textit{Chart.js}), que reage aos dados do problema. Foram desenvolvidas sete visualizações: o perfil de velocidade na seção do duto (módulo de dimensionamento); o medidor de regime de escoamento em escala logarítmica e o diagrama de \textit{Moody} com o ponto operacional destacado (módulo de escoamento); as curvas de perda de carga em função da vazão, a margem de \textit{NPSH} e a decomposição da altura manométrica em suas parcelas (módulo de bombas); e o diagrama de \textit{Levenspiel}, que compara graficamente o volume de reatores CSTR e PFR para uma mesma conversão (módulo de reatores).
+
+\begin{figure}[H]
+    \centering
+    \caption{Diagrama de \textit{Moody} com o ponto operacional do problema destacado}
+    \imgouplaceholder{media/friction_factor.png}
+    \fonte{Autoria própria.}
+    \label{fig:viz_moody}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \caption{Diagrama de \textit{Levenspiel} comparando reatores CSTR e PFR}
+    \imgouplaceholder{media/levenspiel.png}
+    \fonte{Autoria própria.}
+    \label{fig:viz_levenspiel}
+\end{figure}
+
+\subsection{Exercícios Integrados}
+
+O módulo de exercícios integrados oferece sete problemas guiados que encadeiam múltiplos módulos do sistema, reproduzindo fluxos de trabalho reais da engenharia química. Cada exercício é resolvido em etapas sequenciais, nas quais o usuário insere os dados, obtém o resultado parcial e recebe retorno imediato --- inclusive avisos sobre condições críticas, como mudança de fase em trocadores ou risco de erosão em turbinas. A Tabela \ref{tab:exercicios} resume os exercícios disponíveis.
+
+\begin{table}[H]
+\centering
+\caption{Exercícios integrados disponíveis no DCOU}
+\label{tab:exercicios}
+\begin{tabular}{|p{0.26\textwidth}|p{0.30\textwidth}|c|p{0.22\textwidth}|}
+\hline
+\textbf{Exercício} & \textbf{Operação unitária} & \textbf{Etapas} & \textbf{Módulos encadeados} \\ \hline
+Trocador de calor & Transferência de calor & 3 & Componentes \\ \hline
+Alimentação de reator & Linha de bombeamento e seleção de bomba & 5 & Componentes, Escoamento, Perda de carga, NPSH, Head \\ \hline
+Ciclo de \textit{Rankine} & Ciclo termodinâmico vapor/água & 5 & Componentes \\ \hline
+Reatores em série & Comparação PFR/CSTR & 6 & Reatores \\ \hline
+Balanço de massa simples & Balanço estequiométrico sem reciclo & 2 & Balanço de Massa \\ \hline
+Balanço com reciclo & Balanço com recirculação de corrente & 3 & Balanço de Massa \\ \hline
+Balanço com reciclo e purga & Balanço com recirculação e purga de inerte & 3 & Balanço de Massa \\ \hline
+\end{tabular}
+\fonte{Autoria própria.}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \caption{Exercício integrado resolvido em etapas guiadas}
+    \imgouplaceholder{media/exercicio_integrado.png}
+    \fonte{Autoria própria.}
+    \label{fig:exercicio_integrado}
+\end{figure}
+
+\subsection{Trilhas de Aprendizagem}
+
+A página inicial organiza o uso dos módulos em três trilhas de aprendizagem, que sugerem uma sequência didática de estudo: \textbf{Transporte de Fluidos} (Tubulações $\rightarrow$ Dimensionamento $\rightarrow$ Escoamento $\rightarrow$ Bombas); \textbf{Reatores Ideais} (Componentes $\rightarrow$ Reatores CSTR/PFR); e \textbf{Balanço de Massa} (Componentes $\rightarrow$ Balanço). As trilhas orientam o estudante a percorrer os módulos em uma ordem coerente com a construção dos conceitos, em vez de utilizá-los de forma isolada.
+
+\begin{figure}[H]
+    \centering
+    \caption{Trilhas de aprendizagem apresentadas na página inicial}
+    \imgouplaceholder{media/trilhas.png}
+    \fonte{Autoria própria.}
+    \label{fig:trilhas}
+\end{figure}
