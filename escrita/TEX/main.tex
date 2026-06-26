@@ -28,10 +28,18 @@
 % Configurações do pacote graphicx
 \graphicspath{{./media/}}         % Caminho das imagens
 
+% Inclui a imagem se ela existir; caso contrário, mostra um quadro "Figura pendente"
+% para que o documento compile mesmo antes de os screenshots serem capturados.
+\newcommand{\imgouplaceholder}[2][\linewidth]{%
+  \IfFileExists{#2}%
+    {\includegraphics[width=#1]{#2}}%
+    {\fbox{\parbox[c][4cm][c]{0.9\linewidth}{\centering\itshape Figura pendente --- inserir \detokenize{#2}}}}%
+}
+
 % ---
 % Informações de dados para CAPA e FOLHA DE ROSTO
 % ---
-\titulo{Desenvolvimento de Software para Dimensionamento em Operações Unitárias}
+\titulo{DCOU --- Dimensionamento Computacional de Operações Unitárias: uma ferramenta didática para Engenharia Química}
 \autor{João Pedro Baza Garcia Rodrigues}
 \local{Campo Grande -- MS}
 \data{2026}
@@ -177,9 +185,9 @@ Aos meus pais, Cassiano e Jacquecislene, por me darem não apenas a vida, mas ta
 % resumo em português
 \setlength{\absparsep}{18pt} % ajusta o espaçamento dos parágrafos do resumo
 \begin{resumo}
-Este trabalho apresenta o desenvolvimento de um software de código aberto para dimensionamento e disponibilização de dados para materiais e compostos úteis na Engenharia Química. O software automatiza cálculos a partir de dados inseridos pelo usuário, utilizando equações consolidadas. O sistema permite integração via API (\textit{Application Programming Interface}), promovendo flexibilidade, colaboração e apoio técnico no ensino e na prática da engenharia, contando com código aberto para colaboração e aprimoramento contínuo por parte da comunidade acadêmica.
+Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Computacional de Operações Unitárias}), um \textit{software} \textit{web} de código aberto concebido como ferramenta didática para o ensino de Engenharia Química. Além de automatizar cálculos de dimensionamento de operações unitárias a partir de equações consolidadas --- contemplando escoamento, perdas de carga, bombas, reatores e balanços de massa ---, o sistema integra recursos voltados ao aprendizado conceitual: um glossário técnico com termos e equações, explicações teóricas embutidas em cada calculadora, visualizações interativas dos fenômenos físicos e exercícios guiados que encadeiam múltiplos módulos para reproduzir fluxos de trabalho reais de engenharia. A arquitetura cliente-servidor expõe os cálculos por meio de uma API (\textit{Application Programming Interface}) aberta, e o código permanece publicamente disponível, promovendo flexibilidade, colaboração e aprimoramento contínuo por parte da comunidade acadêmica.
 
- \textbf{Palavras-chave}: Código aberto. Dimensionamento Industrial. Propriedade de compostos. Características de acessórios em tubulações.
+ \textbf{Palavras-chave}: Ferramenta didática. Operações unitárias. Software educacional. Código aberto. Engenharia Química.
 \end{resumo}
 
 % resumo em inglês
@@ -206,6 +214,7 @@ Este trabalho apresenta o desenvolvimento de um software de código aberto para 
 \pdfbookmark[0]{\listadesiglasname}{las}
 \begin{siglas}
   \item[API] Application Programming Interface
+  \item[DCOU] Dimensionamento Computacional de Operações Unitárias
   \item[HTML] HyperText Markup Language
   \item[CSS] Cascading Style Sheets
   \item[EDO] Equação diferencial ordinária
