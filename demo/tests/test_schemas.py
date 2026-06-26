@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from schemas import (
     ReynoldsRequest,
     HydraulicDiameterRequest,
+    HeadLossRequest,
     ReactorRequest,
     ReactorPlotRequest,
 )
@@ -67,6 +68,45 @@ class TestReynoldsRequest:
     def test_missing_both_viscosities_raises(self):
         with pytest.raises(ValidationError, match="dynamic viscosity or kinematic viscosity"):
             ReynoldsRequest(characteristic_diameter=0.05, velocity=2.0)
+
+
+# ---------------------------------------------------------------------------
+# HeadLossRequest
+# ---------------------------------------------------------------------------
+
+class TestHeadLossRequest:
+
+    def test_valid_darcy_with_velocity_only(self):
+        req = HeadLossRequest(
+            method="Darcy-Weisbach",
+            pipe_length=100,
+            diameter=100,
+            velocity=2.0,
+            friction_factor=0.02,
+        )
+        assert req.velocity == 2.0
+        assert req.flow_rate is None
+
+    def test_valid_hazen_with_flow_rate_only(self):
+        req = HeadLossRequest(
+            method="Hazen-Williams",
+            pipe_length=100,
+            diameter=100,
+            flow_rate=0.01,
+            roughness_coefficient=140,
+        )
+        assert req.flow_rate == 0.01
+        assert req.velocity is None
+
+    def test_negative_velocity_rejected(self):
+        with pytest.raises(ValidationError):
+            HeadLossRequest(
+                method="Darcy-Weisbach",
+                pipe_length=100,
+                diameter=100,
+                velocity=-1.0,
+                friction_factor=0.02,
+            )
 
 
 # ---------------------------------------------------------------------------

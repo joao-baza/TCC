@@ -21,18 +21,24 @@ def calculate_headloss(payload: HeadLossRequest):
             "method": payload.method
         }
         
+        if payload.flow_rate is not None:
+            params["flow_rate"] = payload.flow_rate  # m³/s
+        if payload.velocity is not None:
+            params["velocity"] = payload.velocity  # m/s
+
+        if payload.flow_rate is None and payload.velocity is None:
+            raise ValueError(
+                "Provide flow rate (m³/s) and/or velocity (m/s); at least one is required."
+            )
+
         if payload.method == "Darcy-Weisbach":
-            if payload.friction_factor is None or payload.velocity is None:
-                raise ValueError("Darcy-Weisbach requires friction factor and velocity")
-                
+            if payload.friction_factor is None:
+                raise ValueError("Darcy-Weisbach requires friction factor")
             params["friction_factor"] = payload.friction_factor  # dimensionless
-            params["velocity"] = payload.velocity               # m/s
-            
+
         elif payload.method == "Hazen-Williams":
-            if payload.flow_rate is None or payload.roughness_coefficient is None:
-                raise ValueError("Hazen-Williams requires flow rate and roughness coefficient")
-                
-            params["flow_rate"] = payload.flow_rate                      # m³/s
+            if payload.roughness_coefficient is None:
+                raise ValueError("Hazen-Williams requires roughness coefficient")
             params["roughness_coefficient"] = payload.roughness_coefficient  # dimensionless
             
         if payload.fittings is not None:

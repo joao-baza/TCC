@@ -25,6 +25,63 @@ class Hydraulic(BaseValidator):
     # ------------------------------------------------------------------ #
     #                         PRIVATE HELPERS                            #
     # ------------------------------------------------------------------ #
+    def _resolve_flow_velocity(
+        self,
+        parameters: Dict[str, object],
+        diameter_mm: float,
+        *,
+        relative_tolerance: float = 1e-3,
+    ) -> tuple[float, float]:
+        """
+        Resolve flow rate (m³/s) and velocity (m/s) from diameter (mm).
+
+        At least one of ``flow_rate`` or ``velocity`` must be provided.
+        When both are given, they must be consistent with Q = V·A for a circular pipe.
+        """
+        has_q = parameters.get("flow_rate") is not None
+        has_v = parameters.get("velocity") is not None
+
+        if not has_q and not has_v:
+            raise ValueError(
+                "Provide flow rate (m³/s) and/or velocity (m/s); "
+                "at least one is required."
+            )
+
+        D_m = (diameter_mm * self.ureg.mm).to(self.ureg.m).magnitude
+        if D_m <= 0:
+            raise ValueError(f"Diameter must be positive, got {diameter_mm} mm.")
+
+        area = np.pi * D_m**2 / 4
+
+        if has_q and has_v:
+            self._validate_numeric(parameters, ["flow_rate", "velocity"])
+            Q = float(parameters["flow_rate"])
+            V = float(parameters["velocity"])
+            if Q <= 0 or V <= 0:
+                raise ValueError("Flow rate and velocity must be positive.")
+            Q_from_v = V * area
+            if Q > 0:
+                rel_err = abs(Q - Q_from_v) / Q
+                if rel_err > relative_tolerance:
+                    raise ValueError(
+                        "Flow rate and velocity are inconsistent with the pipe diameter "
+                        f"(relative error {rel_err:.2%})."
+                    )
+            return Q, V
+
+        if has_v:
+            self._validate_numeric(parameters, ["velocity"])
+            V = float(parameters["velocity"])
+            if V <= 0:
+                raise ValueError("Velocity must be positive.")
+            return V * area, V
+
+        self._validate_numeric(parameters, ["flow_rate"])
+        Q = float(parameters["flow_rate"])
+        if Q <= 0:
+            raise ValueError("Flow rate must be positive.")
+        return Q, Q / area
+
     def _equivalent_length(
         self, fittings: List[Dict[str, object]] | None, diameter_m: "pint.Quantity"
     ) -> "pint.Quantity":
@@ -55,13 +112,15 @@ class Hydraulic(BaseValidator):
               "friction_factor": <float>,
               "pipe_length": <m>,
               "diameter": <mm>,
-              "velocity": <m/s>,
+              "velocity": <m/s>,          # or flow_rate (m³/s), or both (consistent)
+              "flow_rate": <m³/s>,        # optional; derived from velocity if omitted
               "fittings": [{"fitting": <str>, "quantity": <int>}, ...]}``
 
             **Hazen-Williams**
 
             ``{"method": "Hazen-Williams",
-              "flow_rate": <m³/s>,
+              "flow_rate": <m³/s>,        # or velocity (m/s), or both (consistent)
+              "velocity": <m/s>,          # optional; derived from flow_rate if omitted
               "roughness_coefficient": <float>,
               "pipe_length": <m>,
               "diameter": <mm>,
@@ -79,18 +138,19 @@ class Hydraulic(BaseValidator):
 
         # ----------------------- Darcy-Weisbach ------------------------ #
         if method == "Darcy-Weisbach":
-            req = ["friction_factor", "velocity", "pipe_length", "diameter"]
+            req = ["friction_factor", "pipe_length", "diameter"]
             self._require_keys(parameters, req)
             self._validate_numeric(parameters, req)
 
             f = parameters["friction_factor"]
             L = parameters["pipe_length"] * self.ureg.m
-            V = parameters["velocity"] * self.ureg.m / self.ureg.s
             D = parameters["diameter"] * self.ureg.mm
             D_m = D.to(self.ureg.m)
+            _, V = self._resolve_flow_velocity(parameters, parameters["diameter"])
+            V = V * self.ureg.m / self.ureg.s
 
             Leq = self._equivalent_length(parameters.get("fittings"), D_m)
- 
+
             hl = f * (L + Leq) * V**2 / (2 * D_m * self.g)
             if hl < 0:
                 raise ValueError(f"Head loss cannot be negative, got {hl}.")
@@ -98,11 +158,10 @@ class Hydraulic(BaseValidator):
 
         # ----------------------- Hazen-Williams ------------------------ #
         if method == "Hazen-Williams":
-            req = ["flow_rate", "roughness_coefficient", "diameter", "pipe_length"]
+            req = ["roughness_coefficient", "diameter", "pipe_length"]
             self._require_keys(parameters, req)
             self._validate_numeric(parameters, req)
 
-            Q = parameters["flow_rate"] * self.ureg.m**3 / self.ureg.s
             C = parameters["roughness_coefficient"]
             L = parameters["pipe_length"] * self.ureg.m
             D = parameters["diameter"] * self.ureg.mm
@@ -111,6 +170,8 @@ class Hydraulic(BaseValidator):
                 raise ValueError("For Hazen-Williams the diameter must exceed 50 mm.")
 
             D_m = D.to(self.ureg.m)
+            Q, _ = self._resolve_flow_velocity(parameters, parameters["diameter"])
+            Q = Q * self.ureg.m**3 / self.ureg.s
             Leq = self._equivalent_length(parameters.get("fittings"), D_m)
 
             hl = (

@@ -123,6 +123,67 @@ class TestHydraulicComprehensive:
         with pytest.raises(ValueError, match="diameter must exceed 50 mm"):
             hydraulic.head_loss(params)
 
+    def test_head_loss_darcy_from_flow_rate_only(self, hydraulic):
+        """Darcy-Weisbach accepts flow_rate alone; velocity is derived."""
+        D_mm = 100
+        V = 2.0
+        Q = V * (3.14159265 * (D_mm / 1000) ** 2 / 4)
+        params_v = {
+            "method": "Darcy-Weisbach",
+            "friction_factor": 0.02,
+            "pipe_length": 100,
+            "diameter": D_mm,
+            "velocity": V,
+            "fittings": [],
+        }
+        params_q = {**params_v, "flow_rate": Q}
+        del params_q["velocity"]
+
+        hl_v = hydraulic.head_loss(params_v)
+        hl_q = hydraulic.head_loss(params_q)
+        assert hl_v.magnitude == pytest.approx(hl_q.magnitude, rel=1e-6)
+
+    def test_head_loss_hazen_from_velocity_only(self, hydraulic):
+        """Hazen-Williams accepts velocity alone; flow_rate is derived."""
+        D_mm = 100
+        V = 2.0
+        Q = V * (3.14159265 * (D_mm / 1000) ** 2 / 4)
+        params_q = {
+            "method": "Hazen-Williams",
+            "flow_rate": Q,
+            "roughness_coefficient": 140,
+            "pipe_length": 100,
+            "diameter": D_mm,
+        }
+        params_v = {**params_q, "velocity": V}
+        del params_v["flow_rate"]
+
+        hl_q = hydraulic.head_loss(params_q)
+        hl_v = hydraulic.head_loss(params_v)
+        assert hl_q.magnitude == pytest.approx(hl_v.magnitude, rel=1e-6)
+
+    def test_head_loss_inconsistent_flow_velocity_raises(self, hydraulic):
+        params = {
+            "method": "Darcy-Weisbach",
+            "friction_factor": 0.02,
+            "pipe_length": 100,
+            "diameter": 100,
+            "velocity": 2.0,
+            "flow_rate": 0.5,  # inconsistent with V and D
+        }
+        with pytest.raises(ValueError, match="inconsistent"):
+            hydraulic.head_loss(params)
+
+    def test_head_loss_missing_flow_and_velocity_raises(self, hydraulic):
+        params = {
+            "method": "Darcy-Weisbach",
+            "friction_factor": 0.02,
+            "pipe_length": 100,
+            "diameter": 100,
+        }
+        with pytest.raises(ValueError, match="flow rate"):
+            hydraulic.head_loss(params)
+
     # -------------------------------------------------------------------------
     # NPSH & DIAMETERS
     # -------------------------------------------------------------------------
@@ -196,7 +257,7 @@ class TestHydraulicEdgeCases:
             "pipe_length": 100,
             "diameter": 100,
         }
-        with pytest.raises(ValueError, match="Head loss must be positive"):
+        with pytest.raises(ValueError, match="Flow rate must be positive"):
             hydraulic.head_loss(params)
 
     def test_head_loss_invalid_method_raises(self, hydraulic):
