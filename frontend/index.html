@@ -15,7 +15,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css">
     <!-- KaTeX -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <link rel="stylesheet" href="vendor/katex.min.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link">Pular para o conteúdo principal</a>
@@ -548,7 +548,7 @@
                         <h3 class="text-lg font-medium mb-3 text-gray-800">Perda de Carga</h3>
                         <div class="accordion">
                             <button type="button" class="accordion-trigger" aria-expanded="false" aria-controls="acc-headloss">
-                                <span>Como funciona — Perda de Carga (Darcy-Weisbach)</span>
+                                <span>Como funciona — Perda de Carga (Darcy-Weisbach e Hazen-Williams)</span>
                                 <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                     <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
@@ -569,8 +569,22 @@
                                     </tbody>
                                 </table>
                                 <p><strong>Acessórios:</strong> curvas, válvulas, expansões e contrações introduzem perdas localizadas. Cada acessório contribui com um L<sub>eq</sub>/D tabelado; multiplicado por D, obtém-se o comprimento equivalente em metros a somar ao trecho reto.</p>
-                                <p><strong>Hazen-Williams</strong> (método alternativo para água, D &gt; 50 mm): h<sub>f</sub> = 4,73 L / (C<sup>1,852</sup> · D<sup>4,87</sup>) · Q<sup>1,852</sup>, onde C é o coeficiente de rugosidade do material.</p>
-                                <p><strong>Dica:</strong> obtenha <em>f</em> no módulo Escoamento → Fator de atrito (Colebrook-White, Swamee-Jain ou Haaland) antes de calcular a perda de carga.</p>
+                                <p><strong>Fator de atrito (f) no Darcy-Weisbach:</strong> a equação de perda de carga <em>não</em> usa Reynolds diretamente — usa o fator <em>f</em>. Reynolds só é necessário quando você escolhe calcular <em>f</em> a partir do material (rugosidade ε), porque <em>f</em> depende do regime de escoamento (Re = ρVD/μ) e da rugosidade relativa ε/D. Se você já conhece <em>f</em> (diagrama de Moody, módulo Escoamento → Fator de atrito), selecione <strong>Valor personalizado</strong> e informe <em>f</em> diretamente — Reynolds não será solicitado.</p>
+                                <p><strong>Hazen-Williams</strong> — fórmula empírica alternativa para escoamento de água em regime turbulento plenamente desenvolvido. Não exige cálculo de <em>f</em> nem de Reynolds; o efeito do material entra apenas pelo coeficiente <em>C</em>. Indicada para tubulações de diâmetro moderado (D &gt; 50 mm) e água a cerca de 20 °C, sendo consagrada no projeto de redes de distribuição pela simplicidade:</p>
+                                <div class="formula-block">h<sub>f</sub> = 4,73 · (L + ΣL<sub>eq</sub>) / (C<sup>1,852</sup> · D<sup>4,87</sup>) · Q<sup>1,852</sup></div>
+                                <table class="variables-table">
+                                    <thead><tr><th>Símbolo</th><th>Variável</th><th>Unidade</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>h<sub>f</sub></td><td>Perda de carga total</td><td>m</td></tr>
+                                        <tr><td>L</td><td>Comprimento reto da tubulação</td><td>m</td></tr>
+                                        <tr><td>ΣL<sub>eq</sub></td><td>Soma dos comprimentos equivalentes dos acessórios</td><td>m</td></tr>
+                                        <tr><td>C</td><td>Coeficiente de Hazen-Williams do material (adimensional, tabelado)</td><td>—</td></tr>
+                                        <tr><td>D</td><td>Diâmetro interno</td><td>m</td></tr>
+                                        <tr><td>Q</td><td>Vazão volumétrica</td><td>m³/s</td></tr>
+                                    </tbody>
+                                </table>
+                                <p><strong>Coeficiente C:</strong> quanto maior C, menor a perda de carga (tubo mais liso). Valores típicos: PVC novo ≈ 150, ferro fundido ≈ 100, aço com incrustação ≈ 80–90. Pode ser informado manualmente ou selecionado a partir do material cadastrado.</p>
+                                <p><strong>Limitações:</strong> válida apenas para água; não substitui Darcy-Weisbach para outros fluidos ou condições fora do regime turbulento. Apesar de empírica, fornece boa precisão para dimensionamento de adutoras e redes de água.</p>
                                 <p class="teoria-ref">Ref.: White, Mecânica dos Fluidos, 8ª ed., McGraw-Hill, 2018 · Perry's Chemical Engineers' Handbook, 9ª ed.</p>
                             </div>
                         </div>
@@ -588,47 +602,88 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Diâmetro (mm)</label>
                                     <input type="number" step="0.0000000001" id="headloss-diameter" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
                                 </div>
-
-                                <!-- Darcy-Weisbach specific fields -->
-                                <div class="darcy-fields hidden">
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Fator de Atrito</label>
-                                        <input type="number" step="0.0000000001" id="headloss-friction-factor" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Velocidade (m/s)</label>
-                                        <input type="number" step="0.0000000001" id="headloss-velocity" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
-                                    </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Vazão (m³/s)</label>
+                                    <input type="number" step="0.0000000001" id="headloss-flow-rate" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Velocidade (m/s)</label>
+                                    <input type="number" step="0.0000000001" id="headloss-velocity" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
+                                </div>
+                                <div class="mb-4 flex items-end">
+                                    <p class="text-sm text-gray-500 pb-2">Informe vazão ou velocidade (ou ambos, consistentes com o diâmetro).</p>
                                 </div>
 
-                                <!-- Hazen-Williams specific fields -->
-                                <div class="hazen-fields hidden">
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Vazão (m³/s)</label>
-                                        <input type="number" step="0.0000000001" id="headloss-flow-rate" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Seleção do Coeficiente de Rugosidade</label>
-                                        <div class="flex space-x-4">
-                                            <label class="inline-flex items-center">
-                                                <input type="radio" name="roughness-coef-type" value="material" class="form-radio" checked>
-                                                <span class="ml-2">Material</span>
-                                            </label>
-                                            <label class="inline-flex items-center">
-                                                <input type="radio" name="roughness-coef-type" value="custom" class="form-radio">
-                                                <span class="ml-2">Valor Personalizado</span>
-                                            </label>
+                                <!-- Darcy-Weisbach: same grid slots as Hazen-Williams -->
+                                <div class="darcy-fields hidden col-span-2">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="mb-4 md:col-span-2">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Seleção do Fator de Atrito</label>
+                                            <div class="flex space-x-4">
+                                                <label class="inline-flex items-center">
+                                                    <input type="radio" name="friction-factor-type" value="material" class="form-radio" checked>
+                                                    <span class="ml-2">Material</span>
+                                                </label>
+                                                <label class="inline-flex items-center">
+                                                    <input type="radio" name="friction-factor-type" value="custom" class="form-radio">
+                                                    <span class="ml-2">Valor Personalizado</span>
+                                                </label>
+                                            </div>
+                                            <p id="darcy-friction-type-hint" class="text-sm text-gray-500 mt-2">
+                                                <strong>Material:</strong> calcula <em>f</em> a partir de ε, D e Re (Colebrook-White, Swamee-Jain ou Haaland).
+                                                <strong>Valor personalizado:</strong> informe <em>f</em> diretamente — Reynolds não é necessário.
+                                            </p>
                                         </div>
-                                    </div>
-                                    <div id="material-roughness-container" class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                                        <select id="material-composition-select" class="w-full select2-input"></select>
-                                    </div>
-                                    <div id="custom-roughness-coef-container" class="mb-4 hidden">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Coeficiente de Rugosidade</label>
-                                        <input type="number" step="0.0000000001" id="roughness-coefficient" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
+                                        <div id="darcy-material-anchor" class="hidden" aria-hidden="true"></div>
+                                        <div id="darcy-material-friction-extras" class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Número de Reynolds</label>
+                                                <input type="number" step="0.0000000001" id="headloss-reynolds-number" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 100000" aria-describedby="headloss-reynolds-hint">
+                                                <p id="headloss-reynolds-hint" class="text-sm text-gray-500 mt-1">Obrigatório apenas para calcular <em>f</em> pelo material — caracteriza o regime (Re = ρVD/μ). Não entra na fórmula de h<sub>f</sub>.</p>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Método de Cálculo do f</label>
+                                                <select id="headloss-friction-factor-method" class="w-full select2-input"></select>
+                                            </div>
+                                        </div>
+                                        <div id="darcy-custom-friction-container" class="mb-4 hidden">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Fator de Atrito</label>
+                                            <input type="number" step="0.0000000001" id="headloss-friction-factor" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00" aria-describedby="headloss-friction-hint">
+                                            <p id="headloss-friction-hint" class="text-sm text-gray-500 mt-1">Informe <em>f</em> já determinado — Reynolds não é necessário neste modo.</p>
+                                        </div>
+                                        <div id="darcy-slot-spacer" class="mb-4 hidden md:block" aria-hidden="true"></div>
                                     </div>
                                 </div>
+
+                                <!-- Hazen-Williams: mirrored layout -->
+                                <div class="hazen-fields hidden col-span-2">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="mb-4 md:col-span-2">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Seleção do Coeficiente de Rugosidade</label>
+                                            <div class="flex space-x-4">
+                                                <label class="inline-flex items-center">
+                                                    <input type="radio" name="roughness-coef-type" value="material" class="form-radio" checked>
+                                                    <span class="ml-2">Material</span>
+                                                </label>
+                                                <label class="inline-flex items-center">
+                                                    <input type="radio" name="roughness-coef-type" value="custom" class="form-radio">
+                                                    <span class="ml-2">Valor Personalizado</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div id="hazen-material-anchor" class="hidden" aria-hidden="true"></div>
+                                        <div id="custom-roughness-coef-container" class="mb-4 hidden">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Coeficiente de Rugosidade</label>
+                                            <input type="number" step="0.0000000001" id="roughness-coefficient" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
+                                        </div>
+                                        <div id="hazen-slot-spacer" class="mb-4 hidden md:block" aria-hidden="true"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="headloss-material-container" class="mb-4 hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Material</label>
+                                <select id="material-composition-select" class="w-full select2-input"></select>
                             </div>
                             
                             <div class="mb-4">
@@ -775,7 +830,7 @@
                                 </div>
                                 <div class="mb-4">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Fator de Atrito (m)</label>
-                                    <input type="number" step="0.0000000001" id="head-friction-factor" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
+                                    <input type="number" step="0.01" id="head-friction-factor" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-shadow duration-200 placeholder-gray-400" placeholder="ex: 0.00">
                                 </div>
                             </div>
                             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 active:scale-95 transition-transform duration-150">Calcular Head</button>
@@ -868,12 +923,12 @@
     <script src="js/modules/components.js"></script>
     <script src="js/modules/balance.js"></script>
     <script src="js/modules/didatic.js"></script>
-<script src="js/modules/glossary.js"></script>
+    <script src="js/modules/glossary.js"></script>
     <script src="js/modules/exercises.js"></script>
     <script src="js/app.js"></script>
     <!-- KaTeX JS (defer para não bloquear render) -->
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+    <script defer src="vendor/katex.min.js"></script>
+    <script defer src="vendor/katex-auto-render.min.js"
             onload="if(window.GlossaryModule) GlossaryModule._renderMath()"></script>
 </body>
 </html> 

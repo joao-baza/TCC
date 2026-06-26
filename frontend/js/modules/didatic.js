@@ -14,6 +14,7 @@ const DidaticModule = {
         pump: {
             'pipe-length':              '100',
             'headloss-diameter':        '100',
+            'headloss-flow-rate':       '0.015708',
             'headloss-friction-factor': '0.018',
             'headloss-velocity':        '2',
             'manometric-pressure':  '0',
@@ -88,6 +89,8 @@ const DidaticModule = {
                 if (key === 'pump') {
                     const method = document.getElementById('headloss-method');
                     if (method) { method.value = 'Darcy-Weisbach'; $(method).trigger('change'); }
+                    const frictionCustom = document.querySelector('input[name="friction-factor-type"][value="custom"]');
+                    if (frictionCustom) { frictionCustom.checked = true; frictionCustom.dispatchEvent(new Event('change')); }
                 }
             });
         });
@@ -175,6 +178,7 @@ const DidaticModule = {
         this._setupFieldValidation([
             { id: 'pipe-length',              label: 'Comprimento do tubo', rule: 'positive' },
             { id: 'headloss-diameter',        label: 'Diâmetro',            rule: 'positive' },
+            { id: 'headloss-flow-rate',       label: 'Vazão',               rule: 'positive' },
             { id: 'headloss-friction-factor', label: 'Fator de atrito',     rule: 'positive' },
             { id: 'headloss-velocity',        label: 'Velocidade',          rule: 'positive' },
         ]);

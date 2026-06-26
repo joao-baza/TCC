@@ -9,6 +9,7 @@ const PumpModule = {
      */
     init() {
         this.loadHeadlossMethods();
+        this.loadFrictionFactorMethods();
         this.loadFittingsOptions();
         this.loadCompositionOptions();
         this.setupEventListeners();
@@ -19,57 +20,51 @@ const PumpModule = {
      */
     setupEventListeners() {
         // Headloss method change handler
-        $('#headloss-method').on('change', (e) => {
-            const selectedMethod = e.target.value;
-            
-            // Show/hide method-specific fields
-            const darcyFields = document.querySelector('.darcy-fields');
-            const hazenFields = document.querySelector('.hazen-fields');
-            
-            if (selectedMethod === 'Darcy-Weisbach') {
-                darcyFields.classList.remove('hidden');
-                hazenFields.classList.add('hidden');
-            } else if (selectedMethod === 'Hazen-Williams') {
-                darcyFields.classList.add('hidden');
-                hazenFields.classList.remove('hidden');
-            } else {
-                darcyFields.classList.add('hidden');
-                hazenFields.classList.add('hidden');
-            }
+        $('#headloss-method').on('change', () => {
+            this.updateHeadlossFieldsVisibility();
         });
 
-        // Roughness coefficient type radio buttons change handler
-        $('input[name="roughness-coef-type"]').on('change', (e) => {
-            const selectedType = e.target.value;
-            const materialContainer = document.getElementById('material-roughness-container');
-            const customContainer = document.getElementById('custom-roughness-coef-container');
-            
-            if (selectedType === 'material') {
-                materialContainer.classList.remove('hidden');
-                customContainer.classList.add('hidden');
-            } else {
-                materialContainer.classList.add('hidden');
-                customContainer.classList.remove('hidden');
-            }
+        // Friction factor type radio buttons (Darcy-Weisbach)
+        $('input[name="friction-factor-type"]').on('change', () => {
+            this.updateHeadlossFieldsVisibility();
         });
+
+        // Roughness coefficient type radio buttons (Hazen-Williams)
+        $('input[name="roughness-coef-type"]').on('change', () => {
+            this.updateHeadlossFieldsVisibility();
+        });
+
+        this.setupHeadlossFlowVelocitySync();
 
         // Material composition select change handler
         $('#material-composition-select').on('change', async (e) => {
             const selectedMaterial = e.target.value;
+            this.selectedMaterialRoughnessCoefficient = null;
+            this.selectedMaterialRoughness = null;
+
             if (selectedMaterial) {
                 try {
                     const materialDetails = await API.getCompositionDetails(selectedMaterial);
-                    if (materialDetails && materialDetails.specifications.roughness_coefficient) {
-                        // Store the roughness coefficient for later use in form submission
-                        if (materialDetails.specifications.roughness_coefficient.value) {
-                            this.selectedMaterialRoughnessCoefficient = materialDetails.specifications.roughness_coefficient.value;
-                        }else{
-                            UI.showError('Dados incompletos', 'Coeficiente de rugosidade não encontrado para este material');
-                            return;
-                        }
-                    }else{
-                        UI.showError('Dados incompletos', 'Coeficiente de rugosidade não encontrado para este material');
+                    const specs = materialDetails && materialDetails.specifications;
+
+                    if (specs && specs.roughness_coefficient && specs.roughness_coefficient.value != null) {
+                        this.selectedMaterialRoughnessCoefficient = specs.roughness_coefficient.value;
+                    }
+
+                    if (specs && specs.roughness && specs.roughness.value != null) {
+                        this.selectedMaterialRoughness = specs.roughness.value;
+                    } else {
+                        UI.showError('Dados incompletos', 'Rugosidade absoluta não encontrada para este material');
                         return;
+                    }
+
+                    if (!this.selectedMaterialRoughnessCoefficient) {
+                        // Hazen-Williams may not have C for all materials; only warn when that method is active
+                        const method = document.getElementById('headloss-method').value;
+                        const roughnessType = document.querySelector('input[name="roughness-coef-type"]:checked')?.value;
+                        if (method === 'Hazen-Williams' && roughnessType === 'material') {
+                            UI.showError('Dados incompletos', 'Coeficiente de rugosidade (C) não encontrado para este material');
+                        }
                     }
                 } catch (error) {
                     console.error('Error loading material details:', error);
@@ -90,33 +85,74 @@ const PumpModule = {
             const method = document.getElementById('headloss-method').value;
             const pipeLength = document.getElementById('pipe-length').value;
             const diameter = document.getElementById('headloss-diameter').value;
+            const flowRate = document.getElementById('headloss-flow-rate').value;
+            const velocity = document.getElementById('headloss-velocity').value;
             
             if (!method || !pipeLength || !diameter) {
                 UI.showError('Dados incompletos', 'Informe comprimento, diâmetro e selecione um método');
+                return;
+            }
+
+            const flowResolved = this._resolveHeadlossFlowVelocity(
+                parseFloat(diameter),
+                flowRate,
+                velocity
+            );
+            if (flowResolved.error) {
+                UI.showError('Dados incompletos', flowResolved.error);
                 return;
             }
             
             const params = {
                 pipe_length: parseFloat(pipeLength),
                 diameter: parseFloat(diameter),
-                method: method
+                method: method,
+                flow_rate: flowResolved.flow_rate,
+                velocity: flowResolved.velocity,
             };
             
             // Add method-specific parameters
             if (method === 'Darcy-Weisbach') {
-                const frictionFactor = document.getElementById('headloss-friction-factor').value;
-                const velocity = document.getElementById('headloss-velocity').value;
-                
-                if (!frictionFactor || !velocity) {
-                    UI.showError('Dados incompletos', 'Para Darcy-Weisbach, informe fator de atrito e velocidade');
-                    return;
+                const frictionType = document.querySelector('input[name="friction-factor-type"]:checked').value;
+                let frictionFactor;
+
+                if (frictionType === 'material') {
+                    const reynolds = document.getElementById('headloss-reynolds-number').value;
+                    const ffMethod = document.getElementById('headloss-friction-factor-method').value;
+
+                    if (!this.selectedMaterialRoughness) {
+                        UI.showError('Dados incompletos', 'Selecione um material com rugosidade absoluta');
+                        return;
+                    }
+                    if (!reynolds || !ffMethod) {
+                        UI.showError('Dados incompletos', 'Para fator de atrito por material, informe Reynolds e o método de cálculo');
+                        return;
+                    }
+
+                    try {
+                        const ffResult = await API.calculateFrictionFactor(
+                            this.selectedMaterialRoughness,
+                            parseFloat(diameter),
+                            parseFloat(reynolds),
+                            ffMethod
+                        );
+                        frictionFactor = ffResult.value;
+                    } catch (error) {
+                        UI.showError('Erro ao calcular fator de atrito', error);
+                        return;
+                    }
+                } else {
+                    frictionFactor = document.getElementById('headloss-friction-factor').value;
+                    if (!frictionFactor) {
+                        UI.showError('Dados incompletos', 'Informe o fator de atrito');
+                        return;
+                    }
+                    frictionFactor = parseFloat(frictionFactor);
                 }
-                
-                params.friction_factor = parseFloat(frictionFactor);
-                params.velocity = parseFloat(velocity);
+
+                params.friction_factor = frictionFactor;
 
             } else if (method === 'Hazen-Williams') {
-                const flowRate = document.getElementById('headloss-flow-rate').value;
                 let roughnessCoefficient;
                 
                 const roughnessType = document.querySelector('input[name="roughness-coef-type"]:checked').value;
@@ -136,12 +172,6 @@ const PumpModule = {
                     roughnessCoefficient = parseFloat(roughnessCoefficient);
                 }
                 
-                if (!flowRate) {
-                    UI.showError('Dados incompletos', 'Para Hazen-Williams, informe a vazão');
-                    return;
-                }
-                
-                params.flow_rate = parseFloat(flowRate);
                 params.roughness_coefficient = roughnessCoefficient;
             }
             
@@ -221,6 +251,185 @@ const PumpModule = {
     },
 
     /**
+     * Sync flow rate and velocity from diameter (Q = V·A).
+     */
+    setupHeadlossFlowVelocitySync() {
+        const qInput = document.getElementById('headloss-flow-rate');
+        const vInput = document.getElementById('headloss-velocity');
+        const dInput = document.getElementById('headloss-diameter');
+        if (!qInput || !vInput || !dInput) return;
+
+        let syncing = false;
+
+        const pipeArea = () => {
+            const D = parseFloat(dInput.value);
+            if (!D || D <= 0) return null;
+            const D_m = D / 1000;
+            return Math.PI * D_m * D_m / 4;
+        };
+
+        const syncFrom = (source) => {
+            if (syncing) return;
+            const A = pipeArea();
+            if (!A) return;
+
+            syncing = true;
+            if (source === 'Q' && qInput.value) {
+                const Q = parseFloat(qInput.value);
+                if (Q > 0) vInput.value = (Q / A).toPrecision(6);
+            } else if (source === 'V' && vInput.value) {
+                const V = parseFloat(vInput.value);
+                if (V > 0) qInput.value = (V * A).toPrecision(6);
+            } else if (source === 'D') {
+                if (vInput.value) {
+                    const V = parseFloat(vInput.value);
+                    if (V > 0) qInput.value = (V * A).toPrecision(6);
+                } else if (qInput.value) {
+                    const Q = parseFloat(qInput.value);
+                    if (Q > 0) vInput.value = (Q / A).toPrecision(6);
+                }
+            }
+            syncing = false;
+        };
+
+        qInput.addEventListener('input', () => syncFrom('Q'));
+        vInput.addEventListener('input', () => syncFrom('V'));
+        dInput.addEventListener('input', () => syncFrom('D'));
+    },
+
+    /**
+     * Resolve Q and V from diameter; validate consistency when both are given.
+     */
+    _resolveHeadlossFlowVelocity(diameterMm, flowRateStr, velocityStr) {
+        const hasQ = flowRateStr !== '';
+        const hasV = velocityStr !== '';
+
+        if (!hasQ && !hasV) {
+            return { error: 'Informe vazão ou velocidade (ou ambos, consistentes com o diâmetro)' };
+        }
+
+        const D_m = diameterMm / 1000;
+        const area = Math.PI * D_m * D_m / 4;
+
+        let Q, V;
+        if (hasQ && hasV) {
+            Q = parseFloat(flowRateStr);
+            V = parseFloat(velocityStr);
+            if (!(Q > 0 && V > 0)) {
+                return { error: 'Vazão e velocidade devem ser positivas' };
+            }
+            const Q_from_v = V * area;
+            const relErr = Math.abs(Q - Q_from_v) / Q;
+            if (relErr > 0.001) {
+                return {
+                    error: 'Vazão e velocidade inconsistentes com o diâmetro informado',
+                };
+            }
+        } else if (hasV) {
+            V = parseFloat(velocityStr);
+            if (!(V > 0)) return { error: 'Velocidade deve ser positiva' };
+            Q = V * area;
+        } else {
+            Q = parseFloat(flowRateStr);
+            if (!(Q > 0)) return { error: 'Vazão deve ser positiva' };
+            V = Q / area;
+        }
+
+        return { flow_rate: Q, velocity: V };
+    },
+
+    /**
+     * Show/hide headloss fields based on selected method and input type
+     */
+    updateHeadlossFieldsVisibility() {
+        const method = document.getElementById('headloss-method').value;
+        const darcyFields = document.querySelector('.darcy-fields');
+        const hazenFields = document.querySelector('.hazen-fields');
+        const materialContainer = document.getElementById('headloss-material-container');
+        const customRoughnessContainer = document.getElementById('custom-roughness-coef-container');
+        const darcyMaterialExtras = document.getElementById('darcy-material-friction-extras');
+        const darcyCustomFriction = document.getElementById('darcy-custom-friction-container');
+        const darcySlotSpacer = document.getElementById('darcy-slot-spacer');
+        const hazenSlotSpacer = document.getElementById('hazen-slot-spacer');
+
+        darcyFields.classList.toggle('hidden', method !== 'Darcy-Weisbach');
+        hazenFields.classList.toggle('hidden', method !== 'Hazen-Williams');
+
+        if (method === 'Darcy-Weisbach') {
+            const frictionType = document.querySelector('input[name="friction-factor-type"]:checked')?.value;
+            const useMaterial = frictionType === 'material';
+
+            this._placeMaterialContainer('darcy-material-anchor');
+            materialContainer.classList.toggle('hidden', !useMaterial);
+            darcyMaterialExtras.classList.toggle('hidden', !useMaterial);
+            darcyCustomFriction.classList.toggle('hidden', useMaterial);
+            darcySlotSpacer.classList.toggle('hidden', useMaterial);
+            customRoughnessContainer.classList.add('hidden');
+            hazenSlotSpacer.classList.add('hidden');
+        } else if (method === 'Hazen-Williams') {
+            const roughnessType = document.querySelector('input[name="roughness-coef-type"]:checked')?.value;
+            const useMaterial = roughnessType === 'material';
+
+            this._placeMaterialContainer('hazen-material-anchor');
+            materialContainer.classList.toggle('hidden', !useMaterial);
+            customRoughnessContainer.classList.toggle('hidden', useMaterial);
+            hazenSlotSpacer.classList.toggle('hidden', useMaterial);
+            darcyMaterialExtras.classList.add('hidden');
+            darcyCustomFriction.classList.add('hidden');
+            darcySlotSpacer.classList.add('hidden');
+        } else {
+            materialContainer.classList.add('hidden');
+            customRoughnessContainer.classList.add('hidden');
+            darcyMaterialExtras.classList.add('hidden');
+            darcyCustomFriction.classList.add('hidden');
+            darcySlotSpacer.classList.add('hidden');
+            hazenSlotSpacer.classList.add('hidden');
+        }
+    },
+
+    /**
+     * Move the shared material select to the anchor for the active method
+     * @param {string} anchorId - ID of the anchor element
+     */
+    _placeMaterialContainer(anchorId) {
+        const materialContainer = document.getElementById('headloss-material-container');
+        const anchor = document.getElementById(anchorId);
+        if (materialContainer && anchor && anchor.nextElementSibling !== materialContainer) {
+            anchor.insertAdjacentElement('afterend', materialContainer);
+        }
+    },
+
+    /**
+     * Load friction factor methods for Darcy-Weisbach material-based calculation
+     */
+    async loadFrictionFactorMethods() {
+        try {
+            UI.showLoading('#headloss-friction-factor-method');
+
+            const methods = await API.getFrictionFactorMethods();
+            const select = document.getElementById('headloss-friction-factor-method');
+
+            select.innerHTML = '<option value="">Selecione um método</option>';
+
+            methods.forEach(method => {
+                const option = document.createElement('option');
+                option.value = method;
+                option.textContent = method;
+                select.appendChild(option);
+            });
+
+            $(select).select2({
+                ...UI.getSelect2Options('Selecione um método'),
+                allowClear: true
+            });
+        } catch (error) {
+            console.error('Error loading friction factor methods:', error);
+        } finally {
+            UI.hideLoading('#headloss-friction-factor-method');
+        }
+    },
+
+    /**
      * Load headloss methods from the API
      */
     async loadHeadlossMethods() {
@@ -241,6 +450,7 @@ const PumpModule = {
             
             // Refresh Select2
             $(select).trigger('change');
+            this.updateHeadlossFieldsVisibility();
         } catch (error) {
             UI.showError('Erro ao carregar métodos de perda de carga', error);
         } finally {
@@ -312,10 +522,10 @@ const PumpModule = {
             if (hfValue != null) this._renderHeadlossChart(params, hfValue);
 
             // Optionally update the friction factor input in the head form
-            if (result && result.value) {
+            if (result && result.value != null) {
                 const headFrictionInput = document.getElementById('head-friction-factor');
                 if (headFrictionInput) {
-                    headFrictionInput.value = result.value;
+                    headFrictionInput.value = parseFloat(result.value).toFixed(2);
                 }
             }
         } catch (error) {
