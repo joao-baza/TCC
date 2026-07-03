@@ -125,7 +125,21 @@ Tom instrutivo e direto — como um roteiro de laboratório, não uma descriçã
 
 ---
 
-## 4. Fluxo de Dados (Frontend)
+## 4. Visualizações Atualizadas pelos Sliders
+
+Todas as visualizações existentes em cada módulo atualizam automaticamente quando o slider aciona o `recalculate()`, pois as funções de renderização já são chamadas como parte do fluxo de resultado. Nenhum código de renderização separado é necessário.
+
+| Módulo | Visualizações atualizadas pelo slider |
+|---|---|
+| Escoamento | SVG: Régua de Regime de Escoamento (escala logarítmica) + Chart.js: Diagrama de Moody (ponto operacional) |
+| Dimensionamento | SVG: Perfil de Velocidade na seção circular do duto |
+| Bombas | Chart.js: Curva Perda de Carga × Vazão + SVG: Margem de NPSH (barra) + Chart.js: Decomposição da Altura Manométrica |
+| Reatores | Chart.js: Diagrama de Levenspiel (Conversão × Volume — CSTR e PFR) |
+| Balanço de Massa | Chart.js: Fluxo de correntes por componente |
+
+---
+
+## 5. Fluxo de Dados (Frontend)
 
 ```
 Usuário seleciona template
@@ -148,7 +162,7 @@ Usuário clica "Salvar Cenário"
 
 ---
 
-## 5. Restrições e Decisões
+## 6. Restrições e Decisões
 
 - **Sem back-end novo:** toda a lógica de templates, sliders e cenários é client-side em `didatic.js`. Os módulos existentes continuam usando a mesma API.
 - **Máximo de 3 cenários** para não poluir o gráfico nem exceder a legenda.
