@@ -106,6 +106,12 @@ def test_didatic_module_defines_scroll_alignment_and_visual_hooks():
         assert snippet in didatic
 
 
+def test_didatic_module_rerenders_visuals_after_slider_recalculation():
+    didatic = read("frontend/js/modules/didatic.js")
+
+    assert "this._runModuleCalculation(moduleKey, tpl);\n                    this._renderExploratoryVisuals(moduleKey);" in didatic
+
+
 def test_modules_expose_embedded_visual_render_surface():
     for rel_path in (
         "frontend/js/modules/flow.js",

@@ -800,8 +800,9 @@ const DidaticModule = {
                 (cfg.extraFields || []).forEach(fieldId => this._setFieldValue(fieldId, slider.value));
 
                 clearTimeout(debounceTimer);
-                debounceTimer = window.setTimeout(() => {
-                    this._runModuleCalculation(moduleKey, tpl);
+                debounceTimer = window.setTimeout(async () => {
+                    await this._runModuleCalculation(moduleKey, tpl);
+                    this._renderExploratoryVisuals(moduleKey);
                 }, 300);
             });
         });
