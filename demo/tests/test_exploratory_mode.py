@@ -108,8 +108,13 @@ def test_didatic_module_defines_scroll_alignment_and_visual_hooks():
 
 def test_didatic_module_rerenders_visuals_after_slider_recalculation():
     didatic = read("frontend/js/modules/didatic.js")
+    start = didatic.index("debounceTimer = window.setTimeout(async () => {")
+    end = didatic.index("}, 300);", start)
+    debounce_slice = didatic[start:end]
 
-    assert "this._runModuleCalculation(moduleKey, tpl);\n                    this._renderExploratoryVisuals(moduleKey);" in didatic
+    assert "this._runModuleCalculation(moduleKey, tpl)" in debounce_slice
+    assert "this._renderExploratoryVisuals(moduleKey)" in debounce_slice
+    assert "_scrollExploratoryPanelIntoView(moduleKey)" not in debounce_slice
 
 
 def test_modules_expose_embedded_visual_render_surface():
