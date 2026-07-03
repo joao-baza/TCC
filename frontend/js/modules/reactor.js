@@ -4,6 +4,7 @@
  */
 
 const ReactorModule = {
+    _lastExploratoryPlotState: null,
     /**
      * Initialize the Reactor module
      */
@@ -17,6 +18,7 @@ const ReactorModule = {
         if (window.DidaticModule) {
             DidaticModule.setupAccordions();
             DidaticModule.setupExampleButtons();
+            DidaticModule.initDynamicExploratoryPanel('reactor');
         }
     },
 
@@ -1046,59 +1048,16 @@ const ReactorModule = {
 
             const { conversions, cstrVols, pfrVols } = this._computeReactorCurves(F_A0, C_A0, rateConstant, n, maxConversion);
 
-            const plotContainer = document.getElementById('plot-result-reactor');
-            plotContainer.classList.remove('hidden');
-
-            const ctx = document.getElementById('conversion-chart').getContext('2d');
-            if (this._reactorChart) this._reactorChart.destroy();
-
-            this._reactorChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: conversions.map(x => x.toFixed(1) + '%'),
-                    datasets: [
-                        {
-                            label: 'CSTR',
-                            data: cstrVols,
-                            borderColor: '#2563EB',
-                            backgroundColor: 'rgba(37,99,235,0.08)',
-                            tension: 0.3,
-                            pointRadius: 0,
-                            borderWidth: 2,
-                        },
-                        {
-                            label: 'PFR',
-                            data: pfrVols,
-                            borderColor: '#7C3AED',
-                            backgroundColor: 'rgba(124,58,237,0.08)',
-                            tension: 0.3,
-                            pointRadius: 0,
-                            borderWidth: 2,
-                        },
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `Conversão × Volume  (n=${n}, k=${rateConstant})`,
-                            font: { size: 14 },
-                        },
-                        tooltip: { mode: 'index', intersect: false },
-                    },
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'Conversão X (%)' },
-                            ticks: { maxTicksLimit: 10 },
-                        },
-                        y: {
-                            title: { display: true, text: 'Volume (m³)' },
-                            beginAtZero: true,
-                        },
-                    },
-                },
+            this._lastExploratoryPlotState = { conversions, cstrVols, pfrVols, n, rateConstant };
+            this._renderConversionVolumeChart({
+                containerId: 'plot-result-reactor',
+                canvasId: 'conversion-chart',
+                chartKey: '_reactorChart',
+                conversions,
+                cstrVols,
+                pfrVols,
+                n,
+                rateConstant,
             });
 
         } catch (error) {
@@ -1145,6 +1104,120 @@ const ReactorModule = {
                 },
             },
         });
+    },
+
+    _renderConversionVolumeChart({
+        containerId,
+        canvasId,
+        chartKey,
+        conversions,
+        cstrVols,
+        pfrVols,
+        n,
+        rateConstant,
+        title = `Conversão × Volume  (n=${n}, k=${rateConstant})`,
+    }) {
+        const plotContainer = document.getElementById(containerId);
+        if (!plotContainer) return;
+
+        plotContainer.classList.remove('hidden');
+        if (containerId !== 'plot-result-reactor') {
+            plotContainer.innerHTML = `<div class="viz-container"><div class="viz-chart-wrap" style="height: 320px"><canvas id="${canvasId}"></canvas></div></div>`;
+        }
+
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        if (this[chartKey]) this[chartKey].destroy();
+
+        this[chartKey] = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: conversions.map(x => x.toFixed(1) + '%'),
+                datasets: [
+                    {
+                        label: 'CSTR',
+                        data: cstrVols,
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37,99,235,0.08)',
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2,
+                    },
+                    {
+                        label: 'PFR',
+                        data: pfrVols,
+                        borderColor: '#7C3AED',
+                        backgroundColor: 'rgba(124,58,237,0.08)',
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: title, font: { size: 14 } },
+                    tooltip: { mode: 'index', intersect: false },
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Conversão X (%)' }, ticks: { maxTicksLimit: 10 } },
+                    y: { title: { display: true, text: 'Volume (m³)' }, beginAtZero: true },
+                },
+            },
+        });
+    },
+
+    renderExploratoryVisuals(targets = {}) {
+        const summaryEl = document.getElementById(targets.summaryId);
+        const chartEl = document.getElementById(targets.chartId);
+        if (!summaryEl || !chartEl) return;
+
+        const state = this._lastExploratoryPlotState;
+        const conversion = parseFloat(document.getElementById('cstr-conversion')?.value || '0');
+        const rateConstant = parseFloat(document.getElementById('plot-rate-constant')?.value || state?.rateConstant || '0');
+
+        summaryEl.innerHTML = `
+            <h4 class="font-medium text-gray-700 mb-2">Leitura do cenário</h4>
+            <div class="text-sm text-gray-600 space-y-1">
+                <p>Conversão alvo: <strong>${conversion ? (conversion * 100).toFixed(1) : '—'}%</strong></p>
+                <p>Constante cinética: <strong>${rateConstant ? rateConstant.toFixed(3) : '—'}</strong></p>
+                <p>Curvas comparadas: <strong>CSTR × PFR</strong></p>
+            </div>
+        `;
+
+        chartEl.innerHTML = '';
+        if (!state) {
+            chartEl.innerHTML = '<div class="exploratory-placeholder">Gere o gráfico de conversão para carregar a comparação volumétrica neste laboratório.</div>';
+            return;
+        }
+
+        this._renderConversionVolumeChart({
+            containerId: targets.chartId,
+            canvasId: 'reactor-exploratory-chart-canvas',
+            chartKey: '_exploratoryReactorChart',
+            ...state,
+            title: 'Conversão × Volume — modo exploratório',
+        });
+    },
+
+    async recalculate(params = {}) {
+        const update = (id, value) => {
+            const input = document.getElementById(id);
+            if (input && value != null) input.value = value;
+        };
+
+        update('cstr-conversion', params.cstr_conversion);
+        update('cstr-rate-constant', params.rate_constant ?? params.cstr_rate_constant);
+        update('pfr-conversion', params.pfr_conversion ?? params.cstr_conversion);
+        update('pfr-rate-constant', params.rate_constant ?? params.pfr_rate_constant);
+        update('plot-rate-constant', params.rate_constant ?? params.plot_rate_constant);
+        update('plot-max-conversion', params.plot_max_conversion ?? params.cstr_conversion);
+
+        await this.calculateReactor('cstr');
+        await this.calculateReactor('pfr');
+        await this.generateConversionVolumePlot();
     },
 };
 

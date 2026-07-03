@@ -4,6 +4,7 @@
  */
 
 const FlowModule = {
+    _lastFrictionState: null,
     /**
      * Initialize the Flow module
      */
@@ -538,7 +539,15 @@ const FlowModule = {
 
             // Moody diagram
             const fVal = result && result.value != null ? result.value : null;
-            if (fVal != null) this._renderMoodyChart(parseFloat(reynolds), fVal, parseFloat(roughness), parseFloat(diameter));
+            if (fVal != null) {
+                this._lastFrictionState = {
+                    reynolds: parseFloat(reynolds),
+                    frictionFactor: fVal,
+                    roughness: parseFloat(roughness),
+                    diameter: parseFloat(diameter),
+                };
+                this._renderMoodyChart(parseFloat(reynolds), fVal, parseFloat(roughness), parseFloat(diameter));
+            }
 
             // Optionally update the friction factor input in the headloss form
             if (result && result.value) {
@@ -649,7 +658,13 @@ const FlowModule = {
         return arg > 0 ? 0.25 / (Math.log10(arg) ** 2) : null;
     },
 
-    _renderMoodyChart(re, f, roughnessMm, diameterMm) {
+    _renderMoodyChart(re, f, roughnessMm, diameterMm, options = {}) {
+        const {
+            targetId = 'friction-factor-result',
+            canvasId = 'moody-chart',
+            chartKey = '_moodyChart',
+            title = 'Diagrama de Moody',
+        } = options;
         const epsDs = [0, 0.00005, 0.0001, 0.001, 0.005, 0.01, 0.05];
         const colors = ['#94A3B8','#60A5FA','#34D399','#FBBF24','#F87171','#A78BFA','#EC4899'];
         const labelsEps = ['liso (ε/D=0)','ε/D=5×10⁻⁵','ε/D=10⁻⁴','ε/D=10⁻³','ε/D=5×10⁻³','ε/D=10⁻²','ε/D=5×10⁻²'];
@@ -679,15 +694,18 @@ const FlowModule = {
             showLine: false,
         });
 
-        const container = document.getElementById('friction-factor-result');
-        if (this._moodyChart) { this._moodyChart.destroy(); this._moodyChart = null; }
+        const container = document.getElementById(targetId);
+        if (!container) return;
+        if (this[chartKey]) { this[chartKey].destroy(); this[chartKey] = null; }
         const wrap = document.createElement('div');
         wrap.className = 'viz-container mt-3';
-        wrap.innerHTML = `<div class="viz-title">Diagrama de Moody</div><div class="viz-chart-wrap"><canvas id="moody-chart"></canvas></div>`;
+        wrap.innerHTML = `<div class="viz-title">${title}</div><div class="viz-chart-wrap"><canvas id="${canvasId}"></canvas></div>`;
         container.appendChild(wrap);
 
-        const ctx = document.getElementById('moody-chart').getContext('2d');
-        this._moodyChart = new Chart(ctx, {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        this[chartKey] = new Chart(ctx, {
             type: 'scatter',
             data: { datasets },
             options: {
@@ -703,6 +721,77 @@ const FlowModule = {
                 },
             },
         });
+    },
+
+    renderExploratoryVisuals(targets = {}) {
+        const summaryEl = document.getElementById(targets.summaryId);
+        const chartEl = document.getElementById(targets.chartId);
+        if (!summaryEl || !chartEl) return;
+
+        const state = this._lastFrictionState;
+        const reynolds = parseFloat(document.getElementById('reynolds-number')?.value || state?.reynolds || '0');
+        const roughness = parseFloat(document.getElementById('custom-roughness')?.value || state?.roughness || '0');
+        const diameter = parseFloat(document.getElementById('custom-diameter')?.value || state?.diameter || '0');
+        const frictionFactor = state?.frictionFactor ?? null;
+
+        summaryEl.innerHTML = `
+            <h4 class="font-medium text-gray-700 mb-2">Leitura do cenário</h4>
+            <div class="text-sm text-gray-600 space-y-1">
+                <p>Reynolds: <strong>${reynolds ? reynolds.toFixed(0) : '—'}</strong></p>
+                <p>Fator de atrito: <strong>${frictionFactor != null ? Number(frictionFactor).toFixed(5) : '—'}</strong></p>
+                <p>Rugosidade: <strong>${roughness ? roughness.toFixed(4) : '—'} mm</strong></p>
+                <p>Diâmetro: <strong>${diameter ? diameter.toFixed(1) : '—'} mm</strong></p>
+            </div>
+        `;
+
+        chartEl.innerHTML = '';
+        if (!reynolds || frictionFactor == null || !diameter) {
+            chartEl.innerHTML = '<div class="exploratory-placeholder">Calcule o fator de atrito para carregar o Diagrama de Moody neste laboratório.</div>';
+            return;
+        }
+
+        this._renderMoodyChart(reynolds, frictionFactor, roughness, diameter, {
+            targetId: targets.chartId,
+            canvasId: 'flow-exploratory-chart-canvas',
+            chartKey: '_exploratoryMoodyChart',
+            title: 'Diagrama de Moody — modo exploratório',
+        });
+    },
+
+    async recalculate(params = {}) {
+        const read = (id) => document.getElementById(id);
+        const update = (id, value) => {
+            const input = read(id);
+            if (input && value != null) input.value = value;
+        };
+
+        update('characteristic-diameter', params.characteristic_diameter);
+        update('reynolds-velocity', params.velocity);
+        update('density', params.density);
+        update('dynamic-viscosity', params.dynamic_viscosity);
+        update('kinematic-viscosity', params.kinematic_viscosity);
+
+        const reynoldsParams = {
+            characteristic_diameter: parseFloat(read('characteristic-diameter')?.value || '0'),
+            velocity: parseFloat(read('reynolds-velocity')?.value || '0'),
+        };
+        if (read('density')?.value && read('dynamic-viscosity')?.value) {
+            reynoldsParams.density = parseFloat(read('density').value);
+            reynoldsParams.dynamic_viscosity = parseFloat(read('dynamic-viscosity').value);
+        } else if (read('kinematic-viscosity')?.value) {
+            reynoldsParams.kinematic_viscosity = parseFloat(read('kinematic-viscosity').value);
+        }
+
+        await this.calculateReynolds(reynoldsParams);
+
+        const roughness = params.roughness ?? read('custom-roughness')?.value;
+        const diameter = params.friction_diameter ?? params.characteristic_diameter ?? read('custom-diameter')?.value ?? read('characteristic-diameter')?.value;
+        const method = params.method ?? read('friction-factor-method')?.value;
+        const reynolds = read('reynolds-number')?.value;
+
+        if (roughness && diameter && method && reynolds) {
+            await this.calculateFrictionFactor(roughness, diameter, reynolds, method);
+        }
     },
 };
 
