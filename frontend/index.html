@@ -292,6 +292,32 @@
                         <div id="real-diameter-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
                     </div>
                 </div>
+                <div class="exploratory-panel hidden" id="sizing-exploratory">
+                    <div class="exp-header">
+                        <span class="exp-title">Modo Exploratório</span>
+                        <select class="template-select" id="sizing-template-select">
+                            <option value="">Selecione um template didático</option>
+                            <option value="process-line">Linha de processo - Água, v=1,5 m/s</option>
+                            <option value="suction-line">Linha de sucção - Água, v=0,8 m/s</option>
+                        </select>
+                    </div>
+                    <div class="sliders-section hidden" id="sizing-sliders"></div>
+                    <div class="guided-steps hidden" id="sizing-steps"></div>
+                    <div class="exploratory-visuals hidden" id="sizing-exploratory-visuals">
+                        <div class="exploratory-visual-card" id="sizing-exploratory-summary"></div>
+                        <div class="exploratory-visual-card" id="sizing-exploratory-chart"></div>
+                    </div>
+                    <div class="scenario-panel hidden" id="sizing-scenario-panel">
+                        <div class="scenario-panel-header">
+                            <span class="scenario-panel-title">Comparacao de cenarios</span>
+                            <div class="scenario-actions">
+                                <button class="btn-save-scenario" id="sizing-save-scenario" type="button">Salvar cenario</button>
+                                <button class="btn-clear-scenarios" id="sizing-clear-scenarios" type="button">Limpar</button>
+                            </div>
+                        </div>
+                        <div class="scenario-list" id="sizing-scenario-list"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Flow Section -->
@@ -523,6 +549,33 @@
                             <button type="reset" class="text-gray-500 hover:text-gray-700 underline text-sm ml-4">Limpar campos</button>
                         </form>
                         <div id="hydraulic-diameter-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+                </div>
+                <div class="exploratory-panel hidden" id="flow-exploratory">
+                    <div class="exp-header">
+                        <span class="exp-title">Modo Exploratório</span>
+                        <select class="template-select" id="flow-template-select">
+                            <option value="">Selecione um template didático</option>
+                            <option value="water-pvc-dn100">Água a 20 °C - PVC DN100, v=1,5 m/s</option>
+                            <option value="oil-steel-dn80">Óleo viscoso - Aço carbono DN80, v=0,5 m/s</option>
+                            <option value="air-duct-200">Ar - Duto 200 mm, v=3 m/s</option>
+                        </select>
+                    </div>
+                    <div class="sliders-section hidden" id="flow-sliders"></div>
+                    <div class="guided-steps hidden" id="flow-steps"></div>
+                    <div class="exploratory-visuals hidden" id="flow-exploratory-visuals">
+                        <div class="exploratory-visual-card" id="flow-exploratory-summary"></div>
+                        <div class="exploratory-visual-card" id="flow-exploratory-chart"></div>
+                    </div>
+                    <div class="scenario-panel hidden" id="flow-scenario-panel">
+                        <div class="scenario-panel-header">
+                            <span class="scenario-panel-title">Comparacao de cenarios</span>
+                            <div class="scenario-actions">
+                                <button class="btn-save-scenario" id="flow-save-scenario" type="button">Salvar cenario</button>
+                                <button class="btn-clear-scenarios" id="flow-clear-scenarios" type="button">Limpar</button>
+                            </div>
+                        </div>
+                        <div class="scenario-list" id="flow-scenario-list"></div>
                     </div>
                 </div>
             </div>
@@ -837,6 +890,32 @@
                             <button type="reset" class="text-gray-500 hover:text-gray-700 underline text-sm ml-4">Limpar campos</button>
                         </form>
                         <div id="head-result" class="mt-4 p-3 bg-white rounded border hidden"></div>
+                    </div>
+                </div>
+                <div class="exploratory-panel hidden" id="pump-exploratory">
+                    <div class="exp-header">
+                        <span class="exp-title">Modo Exploratório</span>
+                        <select class="template-select" id="pump-template-select">
+                            <option value="">Selecione um template didático</option>
+                            <option value="standard-pump">Bombeamento padrão - Água, L=100 m, DN100</option>
+                            <option value="high-resistance">Alta resistência - Óleo, L=200 m, DN80</option>
+                        </select>
+                    </div>
+                    <div class="sliders-section hidden" id="pump-sliders"></div>
+                    <div class="guided-steps hidden" id="pump-steps"></div>
+                    <div class="exploratory-visuals hidden" id="pump-exploratory-visuals">
+                        <div class="exploratory-visual-card" id="pump-exploratory-summary"></div>
+                        <div class="exploratory-visual-card" id="pump-exploratory-chart"></div>
+                    </div>
+                    <div class="scenario-panel hidden" id="pump-scenario-panel">
+                        <div class="scenario-panel-header">
+                            <span class="scenario-panel-title">Comparacao de cenarios</span>
+                            <div class="scenario-actions">
+                                <button class="btn-save-scenario" id="pump-save-scenario" type="button">Salvar cenario</button>
+                                <button class="btn-clear-scenarios" id="pump-clear-scenarios" type="button">Limpar</button>
+                            </div>
+                        </div>
+                        <div class="scenario-list" id="pump-scenario-list"></div>
                     </div>
                 </div>
             </div>
