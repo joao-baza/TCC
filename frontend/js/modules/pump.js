@@ -4,6 +4,9 @@
  */
 
 const PumpModule = {
+    _lastHeadlossState: null,
+    _lastNpshState: null,
+    _lastHeadState: null,
     /**
      * Initialize the Pump module
      */
@@ -519,7 +522,10 @@ const PumpModule = {
             UI.showResult('#headloss-result', html);
 
             const hfValue = result && result.value != null ? result.value : null;
-            if (hfValue != null) this._renderHeadlossChart(params, hfValue);
+            if (hfValue != null) {
+                this._lastHeadlossState = { params: { ...params }, headloss: hfValue };
+                this._renderHeadlossChart(params, hfValue);
+            }
 
             // Optionally update the friction factor input in the head form
             if (result && result.value != null) {
@@ -555,6 +561,7 @@ const PumpModule = {
             const npshd = result.head_loss && result.head_loss.value != null ? result.head_loss.value : null;
             const npshRInput = document.getElementById('npsh-required');
             const npshR = npshRInput && npshRInput.value ? parseFloat(npshRInput.value) : null;
+            this._lastNpshState = { npshd, npshRequired: npshR };
             this._renderNPSHGauge(npshd, npshR);
 
         } catch (error) {
@@ -582,7 +589,10 @@ const PumpModule = {
             UI.showResult('#head-result', html);
 
             const H = result && result.value != null ? result.value : null;
-            if (H != null) this._renderHeadBreakdown(params, H);
+            if (H != null) {
+                this._lastHeadState = { params: { ...params }, head: H };
+                this._renderHeadBreakdown(params, H);
+            }
 
         } catch (error) {
             UI.showError('Erro ao calcular altura manométrica', error);
@@ -591,7 +601,13 @@ const PumpModule = {
         }
     },
 
-    _renderHeadlossChart(params, hfValue) {
+    _renderHeadlossChart(params, hfValue, options = {}) {
+        const {
+            targetId = 'headloss-result',
+            canvasId = 'headloss-chart',
+            chartKey = '_headlossChart',
+            title = `Perda de Carga × Vazão (${params.method})`,
+        } = options;
         const method = params.method;
         const D_m = params.diameter / 1000;
         const L = params.pipe_length;
@@ -614,14 +630,16 @@ const PumpModule = {
             return isFinite(y) && y >= 0 ? { x: parseFloat(Q.toPrecision(5)), y: parseFloat(y.toPrecision(5)) } : null;
         }).filter(Boolean);
 
-        if (this._headlossChart) { this._headlossChart.destroy(); this._headlossChart = null; }
+        if (this[chartKey]) { this[chartKey].destroy(); this[chartKey] = null; }
         const wrap = document.createElement('div');
         wrap.className = 'viz-container mt-3';
-        wrap.innerHTML = `<div class="viz-title">Perda de Carga × Vazão (${method})</div><div class="viz-chart-wrap"><canvas id="headloss-chart"></canvas></div>`;
-        document.getElementById('headloss-result').appendChild(wrap);
+        wrap.innerHTML = `<div class="viz-title">${title}</div><div class="viz-chart-wrap"><canvas id="${canvasId}"></canvas></div>`;
+        document.getElementById(targetId)?.appendChild(wrap);
 
-        const ctx = document.getElementById('headloss-chart').getContext('2d');
-        this._headlossChart = new Chart(ctx, {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        this[chartKey] = new Chart(ctx, {
             type: 'line',
             data: { datasets: [
                 { label: 'h_f vs Q', data: points, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, pointRadius: 0, tension: 0.3 },
@@ -635,6 +653,40 @@ const PumpModule = {
                 },
                 plugins: { legend: { labels: { font: { size: 11 } } } },
             },
+        });
+    },
+
+    renderExploratoryVisuals(targets = {}) {
+        const summaryEl = document.getElementById(targets.summaryId);
+        const chartEl = document.getElementById(targets.chartId);
+        if (!summaryEl || !chartEl) return;
+
+        const headloss = this._lastHeadlossState?.headloss;
+        const npshd = this._lastNpshState?.npshd;
+        const npshRequired = this._lastNpshState?.npshRequired;
+        const head = this._lastHeadState?.head;
+
+        summaryEl.innerHTML = `
+            <h4 class="font-medium text-gray-700 mb-2">Leitura do cenário</h4>
+            <div class="text-sm text-gray-600 space-y-1">
+                <p>Perda de carga: <strong>${head != null || headloss != null ? Number(headloss || 0).toFixed(3) : '—'} m</strong></p>
+                <p>NPSHd: <strong>${npshd != null ? npshd.toFixed(2) : '—'} m</strong></p>
+                <p>NPSHr: <strong>${npshRequired != null ? npshRequired.toFixed(2) : '—'} m</strong></p>
+                <p>Altura manométrica: <strong>${head != null ? head.toFixed(3) : '—'} m</strong></p>
+            </div>
+        `;
+
+        chartEl.innerHTML = '';
+        if (!this._lastHeadlossState) {
+            chartEl.innerHTML = '<div class="exploratory-placeholder">Calcule a perda de carga para carregar a curva deste laboratório.</div>';
+            return;
+        }
+
+        this._renderHeadlossChart(this._lastHeadlossState.params, this._lastHeadlossState.headloss, {
+            targetId: targets.chartId,
+            canvasId: 'pump-exploratory-chart-canvas',
+            chartKey: '_exploratoryHeadlossChart',
+            title: 'Perda de Carga × Vazão — modo exploratório',
         });
     },
 
@@ -698,6 +750,72 @@ const PumpModule = {
                 scales: { x: { title: { display: true, text: 'm de coluna de fluido' } }, y: { ticks: { font: { size: 11 } } } },
                 plugins: { legend: { display: false } },
             },
+        });
+    },
+
+    async recalculate(params = {}) {
+        const update = (id, value) => {
+            const input = document.getElementById(id);
+            if (input && value != null) input.value = value;
+        };
+
+        Object.entries({
+            'pipe-length': params.pipe_length,
+            'headloss-diameter': params.diameter,
+            'headloss-flow-rate': params.flow_rate,
+            'headloss-velocity': params.velocity,
+            'headloss-friction-factor': params.friction_factor,
+            'manometric-pressure': params.manometric_pressure,
+            'atmospheric-pressure': params.atmospheric_pressure,
+            'vapor-pressure': params.vapor_pressure,
+            'specific-mass': params.density,
+            'npsh-friction-factor': params.npsh_friction_factor,
+            'pump-inlet-velocity': params.pump_inlet_velocity,
+            'gauge-elevation': params.gauge_elevation,
+            'pressure1': params.pressure1,
+            'pressure2': params.pressure2,
+            'elevation1': params.elevation1,
+            'elevation2': params.elevation2,
+            'velocity1': params.velocity1,
+            'velocity2': params.velocity2,
+            'head-specific-mass': params.head_density,
+            'head-friction-factor': params.head_friction_factor,
+        }).forEach(([id, value]) => update(id, value));
+
+        const diameter = parseFloat(document.getElementById('headloss-diameter')?.value || '0');
+        const flowRate = document.getElementById('headloss-flow-rate')?.value;
+        const velocity = document.getElementById('headloss-velocity')?.value;
+        const resolved = this._resolveHeadlossFlowVelocity(diameter, flowRate, velocity);
+        if (resolved.error) return;
+
+        await this.calculateHeadloss({
+            pipe_length: parseFloat(document.getElementById('pipe-length')?.value || '0'),
+            diameter,
+            method: params.method || document.getElementById('headloss-method')?.value || 'Darcy-Weisbach',
+            flow_rate: resolved.flow_rate,
+            velocity: resolved.velocity,
+            friction_factor: parseFloat(document.getElementById('headloss-friction-factor')?.value || '0'),
+        });
+
+        await this.calculateNPSHAvailable({
+            manometric_pressure: parseFloat(document.getElementById('manometric-pressure')?.value || '0'),
+            atmospheric_pressure: parseFloat(document.getElementById('atmospheric-pressure')?.value || '0'),
+            vapor_pressure: parseFloat(document.getElementById('vapor-pressure')?.value || '0'),
+            density: parseFloat(document.getElementById('specific-mass')?.value || '0'),
+            friction_factor: parseFloat(document.getElementById('npsh-friction-factor')?.value || '0'),
+            pump_inlet_velocity: parseFloat(document.getElementById('pump-inlet-velocity')?.value || '0'),
+            gauge_elevation: parseFloat(document.getElementById('gauge-elevation')?.value || '0'),
+        });
+
+        await this.calculateHead({
+            pressure1: parseFloat(document.getElementById('pressure1')?.value || '0'),
+            pressure2: parseFloat(document.getElementById('pressure2')?.value || '0'),
+            elevation1: parseFloat(document.getElementById('elevation1')?.value || '0'),
+            elevation2: parseFloat(document.getElementById('elevation2')?.value || '0'),
+            velocity1: parseFloat(document.getElementById('velocity1')?.value || '0'),
+            velocity2: parseFloat(document.getElementById('velocity2')?.value || '0'),
+            density: parseFloat(document.getElementById('head-specific-mass')?.value || '0'),
+            friction_factor: parseFloat(document.getElementById('head-friction-factor')?.value || '0'),
         });
     },
 };

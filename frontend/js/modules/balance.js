@@ -4,6 +4,7 @@
  */
 
 const BalanceModule = {
+    _lastPlotState: null,
     /**
      * Initialize the Balance module
      */
@@ -13,6 +14,7 @@ const BalanceModule = {
         UI.initializeSelect2();
         if (window.DidaticModule) {
             DidaticModule.setupAccordions();
+            DidaticModule.initDynamicExploratoryPanel('balance');
         }
     },
 
@@ -849,59 +851,14 @@ const BalanceModule = {
                 return;
             }
 
-            if (this._balanceChart) {
-                this._balanceChart.destroy();
-                this._balanceChart = null;
-            }
-            plotEl.innerHTML = '<canvas id="balance-chart" aria-label="Gráfico de Balanço de Massa por Corrente"></canvas>';
-            plotEl.classList.remove('hidden');
-
-            const ctx = document.getElementById('balance-chart').getContext('2d');
-
-            this._balanceChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: streamNames,
-                    datasets: [{
-                        label: 'Vazão da Corrente',
-                        data: flowRates,
-                        backgroundColor: streamNames.map(name =>
-                            dirMap[name] === 1
-                                ? 'rgba(37,99,235,0.75)'
-                                : 'rgba(220,38,38,0.75)'
-                        ),
-                        borderColor: streamNames.map(name =>
-                            dirMap[name] === 1 ? '#2563EB' : '#DC2626'
-                        ),
-                        borderWidth: 1,
-                    }],
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Balanço de Massa — Vazões por Corrente',
-                            font: { size: 14 },
-                        },
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => {
-                                    const dir = dirMap[ctx.label] === 1 ? 'Entrada' : 'Saída';
-                                    return `${ctx.raw.toFixed(3)}  (${dir})`;
-                                },
-                            },
-                        },
-                    },
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'Vazão (unidades consistentes)' },
-                            beginAtZero: true,
-                        },
-                    },
-                },
+            this._lastPlotState = { streamNames, flowRates, dirMap };
+            this._renderBalanceChart({
+                containerId: 'plot-result-mass-balance',
+                canvasId: 'balance-chart',
+                chartKey: '_balanceChart',
+                streamNames,
+                flowRates,
+                dirMap,
             });
 
             UI.hideLoading('#balance-content');
@@ -910,7 +867,94 @@ const BalanceModule = {
             UI.hideLoading('#balance-content');
             UI.showError('Erro', error);
         }
-    }
+    },
+
+    async recalculate() {
+        await this.calculateMassBalance();
+        await this.generatePlot();
+    },
+
+    _renderBalanceChart({ containerId, canvasId, chartKey, streamNames, flowRates, dirMap, title = 'Balanço de Massa — Vazões por Corrente' }) {
+        const plotEl = document.getElementById(containerId);
+        if (!plotEl) return;
+
+        if (this[chartKey]) {
+            this[chartKey].destroy();
+            this[chartKey] = null;
+        }
+
+        plotEl.innerHTML = `<canvas id="${canvasId}" aria-label="Gráfico de Balanço de Massa por Corrente"></canvas>`;
+        plotEl.classList.remove('hidden');
+
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        this[chartKey] = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: streamNames,
+                datasets: [{
+                    label: 'Vazão da Corrente',
+                    data: flowRates,
+                    backgroundColor: streamNames.map(name => dirMap[name] === 1 ? 'rgba(37,99,235,0.75)' : 'rgba(220,38,38,0.75)'),
+                    borderColor: streamNames.map(name => dirMap[name] === 1 ? '#2563EB' : '#DC2626'),
+                    borderWidth: 1,
+                }],
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: title, font: { size: 14 } },
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                const dir = dirMap[ctx.label] === 1 ? 'Entrada' : 'Saída';
+                                return `${ctx.raw.toFixed(3)}  (${dir})`;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Vazão (unidades consistentes)' }, beginAtZero: true },
+                },
+            },
+        });
+    },
+
+    renderExploratoryVisuals(targets = {}) {
+        const summaryEl = document.getElementById(targets.summaryId);
+        const chartEl = document.getElementById(targets.chartId);
+        if (!summaryEl || !chartEl) return;
+
+        const state = this._lastPlotState;
+        const streamCount = document.querySelectorAll('#streams-container .stream-form').length;
+        const splitCount = document.querySelectorAll('#splits-container .split-form').length;
+
+        summaryEl.innerHTML = `
+            <h4 class="font-medium text-gray-700 mb-2">Leitura do cenário</h4>
+            <div class="text-sm text-gray-600 space-y-1">
+                <p>Correntes configuradas: <strong>${streamCount}</strong></p>
+                <p>Divisões configuradas: <strong>${splitCount}</strong></p>
+                <p>Leitura principal: <strong>vazões por corrente</strong></p>
+            </div>
+        `;
+
+        chartEl.innerHTML = '';
+        if (!state) {
+            chartEl.innerHTML = '<div class="exploratory-placeholder">Gere o gráfico de correntes para carregar a visualização deste laboratório.</div>';
+            return;
+        }
+
+        this._renderBalanceChart({
+            containerId: targets.chartId,
+            canvasId: 'balance-exploratory-chart-canvas',
+            chartKey: '_exploratoryBalanceChart',
+            ...state,
+            title: 'Balanço de Massa — modo exploratório',
+        });
+    },
 };
 
 // Export the Balance module

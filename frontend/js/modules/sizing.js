@@ -124,7 +124,7 @@ const SizingModule = {
      * @param {number} calculatedDiameter - Calculated diameter in mm
      * @param {string} schedule - Pipe schedule
      */
-    _renderVelocityProfile(V, D_m) {
+    _buildVelocityProfileMarkup(V, D_m) {
         const Re = 1000 * V * D_m / 0.001;
         const isLam = Re < 2300, isTurb = Re >= 4000;
         const color = isLam ? '#3B82F6' : (isTurb ? '#EF4444' : '#F59E0B');
@@ -151,10 +151,43 @@ const SizingModule = {
             arrows + `</svg>`;
         const badge = `<div class="viz-meta"><span class="viz-chip" style="background:${color}20;color:${color};border:1px solid ${color}50">${regime} — Re ≈ ${Re.toFixed(0)}</span>` +
             `<span class="viz-note">Perfil estimado para água a 20 °C · D = ${(D_m*1000).toFixed(1)} mm · V = ${V} m/s</span></div>`;
+        return `<div class="viz-title">Perfil de Velocidade — Duto Circular</div>${svg}${badge}`;
+    },
+
+    _renderVelocityProfile(V, D_m, targetId = 'calculated-diameter-result') {
         const wrap = document.createElement('div');
         wrap.className = 'viz-container mt-3';
-        wrap.innerHTML = `<div class="viz-title">Perfil de Velocidade — Duto Circular</div>${svg}${badge}`;
-        document.getElementById('calculated-diameter-result').appendChild(wrap);
+        wrap.innerHTML = this._buildVelocityProfileMarkup(V, D_m);
+        document.getElementById(targetId)?.appendChild(wrap);
+    },
+
+    renderExploratoryVisuals(targets = {}) {
+        const summaryEl = document.getElementById(targets.summaryId);
+        const chartEl = document.getElementById(targets.chartId);
+        if (!summaryEl || !chartEl) return;
+
+        const flowRate = parseFloat(document.getElementById('flow-rate')?.value || '0');
+        const velocity = parseFloat(document.getElementById('velocity')?.value || '0');
+        const calculatedDiameter = parseFloat(document.getElementById('calculated-diameter')?.value || '0');
+        const schedule = document.getElementById('real-diameter-schedule')?.value || '—';
+
+        summaryEl.innerHTML = `
+            <h4 class="font-medium text-gray-700 mb-2">Leitura do cenário</h4>
+            <div class="text-sm text-gray-600 space-y-1">
+                <p>Vazão: <strong>${flowRate ? flowRate.toFixed(4) : '—'} m³/s</strong></p>
+                <p>Velocidade: <strong>${velocity ? velocity.toFixed(2) : '—'} m/s</strong></p>
+                <p>Diâmetro calculado: <strong>${calculatedDiameter ? calculatedDiameter.toFixed(2) : '—'} mm</strong></p>
+                <p>Schedule ativo: <strong>${schedule}</strong></p>
+            </div>
+        `;
+
+        chartEl.innerHTML = '';
+        if (!velocity || !calculatedDiameter) {
+            chartEl.innerHTML = '<div class="exploratory-placeholder">Calcule o diâmetro para visualizar o perfil de velocidade neste laboratório.</div>';
+            return;
+        }
+
+        this._renderVelocityProfile(velocity, calculatedDiameter / 1000, targets.chartId);
     },
 
     async getRealDiameter(calculatedDiameter, schedule) {
@@ -174,6 +207,34 @@ const SizingModule = {
             UI.showError('Erro ao obter diâmetro real', error);
         } finally {
             UI.hideLoading('#real-diameter-form');
+        }
+    },
+
+    async recalculate(params = {}) {
+        if (params.flow_rate != null) {
+            document.getElementById('flow-rate').value = params.flow_rate;
+        }
+        if (params.velocity != null) {
+            document.getElementById('velocity').value = params.velocity;
+        }
+        if (params.schedule != null) {
+            const schedule = document.getElementById('real-diameter-schedule');
+            if (schedule) {
+                schedule.value = params.schedule;
+                $(schedule).trigger('change');
+            }
+        }
+
+        const flowRate = document.getElementById('flow-rate').value;
+        const velocity = document.getElementById('velocity').value;
+        if (!flowRate || !velocity) return;
+
+        await this.calculateDiameter(flowRate, velocity);
+
+        const calculatedDiameter = document.getElementById('calculated-diameter').value;
+        const schedule = document.getElementById('real-diameter-schedule').value;
+        if (calculatedDiameter && schedule) {
+            await this.getRealDiameter(calculatedDiameter, schedule);
         }
     }
 };
