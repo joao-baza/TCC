@@ -1,3 +1,7 @@
+\makeatletter
+\def\hyper@nopatch@caption{}
+\makeatother
+
 \documentclass[
 	12pt,				% tamanho da fonte
 	openright,			% capítulos começam em pág ímpar (insere página vazia se preciso)
@@ -73,13 +77,23 @@
 \makeatother
 % ---
 
+\makeatletter
+\renewcommand{\fonte}[2][\fontename]{%
+  \par\begingroup
+    \ABNTEXfontereduzida
+    \noindent #1\ABNTEXcaptionfontedelim\ignorespaces #2\par
+  \endgroup
+}
+\makeatother
+
 % --- Esse trecho é responsável por alinhar o texto ao topo. Se preferível que haja espaçamento entre os parágrafos para ocupar todo o espaço disponível, descomente a linha abaixo.
-\raggedbottom
 \raggedbottom
 
 % ---
 % Compilando o índice
 \makeindex
+\setlength{\cftlastnumwidth}{3em}
+\setpnumwidth{2em}
 % ---
 
 % ---
@@ -89,6 +103,8 @@
 
 % Seleciona o idioma principal (para separar hifenização)
 \selectlanguage{brazil}
+
+\hypersetup{pageanchor=false}
 
 % Retira espaço extra obsoleto entre as frases.
 \frenchspacing 
@@ -240,6 +256,7 @@ Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Compu
 % ----------------------------------------------------------
 % ELEMENTOS TEXTUAIS
 % ----------------------------------------------------------
+\hypersetup{pageanchor=true}
 \textual
 
 \include{capitulos/1-introducao}

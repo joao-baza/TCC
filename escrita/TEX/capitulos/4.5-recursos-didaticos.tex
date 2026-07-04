@@ -4,7 +4,7 @@ Além dos módulos de cálculo, o DCOU incorpora uma camada de recursos voltados
 
 \subsection{Glossário}
 
-O glossário reúne 49 termos técnicos organizados em sete categorias (Hidráulica, Dimensionamento, Bombas, Reatores, Componentes e Balanço de Massa), cada um acompanhado de definição e, quando pertinente, da equação correspondente renderizada matematicamente por meio da biblioteca \textit{KaTeX}. Um campo de busca filtra os termos em tempo real, e as categorias se reorganizam dinamicamente conforme os resultados, permitindo que o estudante localize rapidamente conceitos como número de \textit{Reynolds}, fator de atrito de \textit{Darcy}, \textit{NPSH}, conversão em reatores ou equação de \textit{Antoine}.
+O glossário reúne 49 termos técnicos organizados em sete categorias (Hidráulica, Dimensionamento, Bombas, Reatores, Componentes e Balanço de Massa), cada um acompanhado de definição e, quando pertinente, da equação correspondente renderizada matematicamente por meio da biblioteca \textit{KaTeX}. Um campo de busca filtra os termos em tempo real, e as categorias se reorganizam dinamicamente conforme os resultados, permitindo que o estudante localize rapidamente conceitos como número de \textit{Reynolds}, fator de atrito de \textit{Darcy}, \textit{NPSH}, conversão em reatores ou equação de \textit{Antoine}. Na interface final, o glossário também passou a atuar como recurso de apoio ao fluxo de navegação, aparecendo integrado ao painel de recursos para que o usuário compreenda o papel dessa área sem sair da experiência principal.
 
 \begin{figure}[H]
     \centering
@@ -28,7 +28,7 @@ Cada calculadora dispõe de um bloco teórico retrátil (``Como funciona''), que
 
 \subsection{Visualizações Interativas}
 
-Para tornar tangíveis os fenômenos físicos, cada módulo de cálculo apresenta uma visualização contextual gerada no \textit{frontend} (com \textit{SVG} ou a biblioteca \textit{Chart.js}), que reage aos dados do problema. Foram desenvolvidas sete visualizações: o perfil de velocidade na seção do duto (módulo de dimensionamento); o medidor de regime de escoamento em escala logarítmica e o diagrama de \textit{Moody} com o ponto operacional destacado (módulo de escoamento); as curvas de perda de carga em função da vazão, a margem de \textit{NPSH} e a decomposição da altura manométrica em suas parcelas (módulo de bombas); e o diagrama de \textit{Levenspiel}, que compara graficamente o volume de reatores CSTR e PFR para uma mesma conversão (módulo de reatores).
+Para tornar tangíveis os fenômenos físicos, cada módulo de cálculo apresenta uma visualização contextual gerada no \textit{frontend} por componentes reativos, utilizando \textit{SVG} e, quando pertinente, bibliotecas gráficas como \textit{Chart.js}. Essa abordagem permite que os gráficos respondam imediatamente às alterações de entrada e se integrem à mesma arquitetura modular dos formulários e resultados. Foram desenvolvidas sete visualizações: o perfil de velocidade na seção do duto (módulo de dimensionamento); o medidor de regime de escoamento em escala logarítmica e o diagrama de \textit{Moody} com o ponto operacional destacado (módulo de escoamento); as curvas de perda de carga em função da vazão, a margem de \textit{NPSH} e a decomposição da altura manométrica em suas parcelas (módulo de bombas); e o diagrama de \textit{Levenspiel}, que compara graficamente o volume de reatores CSTR e PFR para uma mesma conversão (módulo de reatores).
 
 \begin{figure}[H]
     \centering
@@ -54,7 +54,7 @@ O módulo de exercícios integrados oferece sete problemas guiados que encadeiam
 \centering
 \caption{Exercícios integrados disponíveis no DCOU}
 \label{tab:exercicios}
-\begin{tabular}{|p{0.26\textwidth}|p{0.30\textwidth}|c|p{0.22\textwidth}|}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{0.26\textwidth}|>{\raggedright\arraybackslash}p{0.30\textwidth}|c|>{\raggedright\arraybackslash}p{0.22\textwidth}|}
 \hline
 \textbf{Exercício} & \textbf{Operação unitária} & \textbf{Etapas} & \textbf{Módulos encadeados} \\ \hline
 Trocador de calor & Transferência de calor & 3 & Componentes \\ \hline
@@ -78,7 +78,7 @@ Balanço com reciclo e purga & Balanço com recirculação e purga de inerte & 3
 
 \subsection{Trilhas de Aprendizagem}
 
-A página inicial organiza o uso dos módulos em três trilhas de aprendizagem, que sugerem uma sequência didática de estudo: \textbf{Transporte de Fluidos} (Tubulações $\rightarrow$ Dimensionamento $\rightarrow$ Escoamento $\rightarrow$ Bombas); \textbf{Reatores Ideais} (Componentes $\rightarrow$ Reatores CSTR/PFR); e \textbf{Balanço de Massa} (Componentes $\rightarrow$ Balanço). As trilhas orientam o estudante a percorrer os módulos em uma ordem coerente com a construção dos conceitos, em vez de utilizá-los de forma isolada.
+A página inicial organiza o uso dos módulos em três trilhas de aprendizagem, que sugerem uma sequência didática de estudo: \textbf{Transporte de Fluidos} (Tubulações $\rightarrow$ Dimensionamento $\rightarrow$ Escoamento $\rightarrow$ Bombas); \textbf{Reatores Ideais} (Componentes $\rightarrow$ Reatores CSTR/PFR); e \textbf{Balanço de Massa} (Componentes $\rightarrow$ Balanço). As trilhas orientam o estudante a percorrer os módulos em uma ordem coerente com a construção dos conceitos, em vez de utilizá-los de forma isolada. No desenho mais recente da interface, essas trilhas convivem com os cartões de acesso rápido e com um conjunto de blocos de contexto para docentes e discentes, reforçando a intenção de uso de cada área antes da abertura do módulo.
 
 \begin{figure}[H]
     \centering

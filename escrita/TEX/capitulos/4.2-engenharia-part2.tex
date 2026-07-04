@@ -51,21 +51,21 @@ No cálculo de perdas de carga totais, o comprimento $L$ da tubulação reta é 
 O balanço de massa aplica o princípio da conservação da massa a sistemas de processo: em regime estacionário, a massa que entra em um sistema deve ser igual à massa que sai, ajustada pela geração ou consumo devido a reações químicas \cite{felder2005}. Para cada componente, a quantidade produzida ou consumida deve ser contabilizada segundo a estequiometria.
 
 \begin{equation}
-Acúmula = Entradas - Saídas + Geração - Consumo
+\text{Acumulo} = \text{Entradas} - \text{Saidas} + \text{Geracao} - \text{Consumo}
 \label{eq:mass_balance_word}
 \end{equation}
 
 No estado estacionário sem reação, o acúmulo é zero, de modo que:
 
 \begin{equation}
-\sum_{}^{} \dot{m}_{e n t r a d a} = \sum_{}^{} \dot{m}_{s a í d a}
+\sum \dot{m}_{\mathrm{entrada}} = \sum \dot{m}_{\mathrm{saida}}
 \label{eq:steady_state_mass_balance}
 \end{equation}
 
 Por componente $i$, incluindo reação química:
 
 \begin{equation}
-\sum_{}^{} {\dot{m}_{e n t r a d a , i} + \dot{m}_{g e r a ç ã o , i}} = \sum_{}^{} {\dot{m}_{s a í d a} + \dot{m}_{c o n s u m o , i}}
+\sum \left(\dot{m}_{\mathrm{entrada},i} + \dot{m}_{\mathrm{geracao},i}\right) = \sum \left(\dot{m}_{\mathrm{saida},i} + \dot{m}_{\mathrm{consumo},i}\right)
 \label{eq:component_mass_balance_rxn}
 \end{equation}
 
@@ -341,7 +341,7 @@ O programa permite ao usuário informar $A$ e $P$ para cálculo de $D_{h}$ em si
 \begin{figure}[H]
     \centering
     \caption{Exemplo da identificação e critérios de diâmetro hidráulico}
-    \includegraphics[width=\linewidth]{media/7221cf0271e3a1ab50dca25dd06555c1.png}
+    \includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{media/7221cf0271e3a1ab50dca25dd06555c1.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -352,7 +352,7 @@ Propriedades termofísicas – como densidade, viscosidade, calor específico, c
 \begin{figure}[H]
     \centering
     \caption{Obtenção de propriedades pela biblioteca \textit{CoolProp}}
-    \includegraphics[width=0.9\linewidth]{media/a1499028eef6699f7fb45ecfeb6e97eb.png}
+    \includegraphics[width=0.9\linewidth,height=0.78\textheight,keepaspectratio]{media/a1499028eef6699f7fb45ecfeb6e97eb.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -373,7 +373,13 @@ No \textit{software} desenvolvido, um módulo de propriedades utiliza a bibliote
     \label{fig:mixture_properties}
 \end{figure}
 
-Para misturas, a \textit{API} do \textit{CoolProp} permite montar \textit{strings} do tipo "\textit{HEOS::Componente1[x1]\&Componente2[x2]\&...}" com frações especificadas e retornar as propriedades solicitadas \cite{bell2014}. Todas as grandezas retornam já associadas a unidades do SI (via integração com a biblioteca \textit{Pint}), garantindo consistência nos cálculos.
+Para misturas, a \textit{API} do \textit{CoolProp} permite montar \textit{strings} com o padrão abaixo, usando as frações especificadas para cada componente \cite{bell2014}:
+
+\begin{quote}
+\small\texttt{HEOS::Comp1[x1]\&Comp2[x2]\&...}
+\end{quote}
+
+Todas as grandezas retornam já associadas a unidades do SI (via integração com a biblioteca \textit{Pint}), garantindo consistência nos cálculos.
 
 \begin{figure}[H]
     \centering
