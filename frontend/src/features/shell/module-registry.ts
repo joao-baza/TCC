@@ -8,6 +8,7 @@ export type ProductSection = {
   id: ProductSectionId;
   label: string;
   href: `#${ProductSectionId}`;
+  aliases: readonly string[];
 };
 
 export type SimulationModule = {
@@ -15,21 +16,46 @@ export type SimulationModule = {
   label: string;
   group: "Hidráulica & Escoamento" | "Recursos";
   href: `#${SimulationModuleId}`;
+  aliases: readonly string[];
 };
 
 const TOP_LEVEL_SECTIONS: readonly ProductSection[] = [
-  { id: "home", label: "Início", href: "#home" },
-  { id: "simulations", label: "Simulações", href: "#simulations" },
-  { id: "trails", label: "Trilhas", href: "#trails" },
-  { id: "resources", label: "Recursos", href: "#resources" },
-  { id: "teaching", label: "Docência", href: "#teaching" }
+  { id: "home", label: "Início", href: "#home", aliases: ["home-content"] },
+  { id: "simulations", label: "Simulações", href: "#simulations", aliases: ["simulations-content"] },
+  { id: "trails", label: "Trilhas", href: "#trails", aliases: ["trails-content"] },
+  { id: "resources", label: "Recursos", href: "#resources", aliases: ["resources-content"] },
+  { id: "teaching", label: "Docência", href: "#teaching", aliases: ["teaching-content"] }
 ] as const;
 
 const SIMULATION_MODULES: readonly SimulationModule[] = [
-  { id: "piping", label: "Tubulações", group: "Hidráulica & Escoamento", href: "#piping" },
-  { id: "sizing", label: "Dimensionamento", group: "Hidráulica & Escoamento", href: "#sizing" },
-  { id: "flow", label: "Escoamento", group: "Hidráulica & Escoamento", href: "#flow" },
-  { id: "glossary", label: "Glossário", group: "Recursos", href: "#glossary" }
+  {
+    id: "piping",
+    label: "Tubulações",
+    group: "Hidráulica & Escoamento",
+    href: "#piping",
+    aliases: ["piping-content"]
+  },
+  {
+    id: "sizing",
+    label: "Dimensionamento",
+    group: "Hidráulica & Escoamento",
+    href: "#sizing",
+    aliases: ["sizing-content"]
+  },
+  {
+    id: "flow",
+    label: "Escoamento",
+    group: "Hidráulica & Escoamento",
+    href: "#flow",
+    aliases: ["flow-content"]
+  },
+  {
+    id: "glossary",
+    label: "Glossário",
+    group: "Recursos",
+    href: "#glossary",
+    aliases: ["glossary-content"]
+  }
 ] as const;
 
 export const productSections = TOP_LEVEL_SECTIONS;
@@ -39,40 +65,20 @@ export const shellNavigation = {
   simulations: simulationModules
 } as const;
 
-const SHELL_SECTION_TARGETS = new Set<ProductSectionId>([
-  "home",
-  "simulations",
-  "trails",
-  "resources",
-  "teaching"
-]);
-
-const MODULE_TARGETS = new Set<SimulationModuleId>([
-  "piping",
-  "sizing",
-  "flow",
-  "glossary"
-]);
-
 export function resolveProductSection(target?: string): ProductSectionId {
   if (!target || target === "home-content") {
     return "home";
   }
 
-  if (SHELL_SECTION_TARGETS.has(target as ProductSectionId)) {
-    return target as ProductSectionId;
+  const matchedSection = TOP_LEVEL_SECTIONS.find(
+    (section) => section.id === target || section.aliases.includes(target)
+  );
+
+  if (matchedSection) {
+    return matchedSection.id;
   }
 
-  if (
-    target === "piping-content" ||
-    target === "sizing-content" ||
-    target === "flow-content" ||
-    target === "glossary-content" ||
-    target === "piping" ||
-    target === "sizing" ||
-    target === "flow" ||
-    target === "glossary"
-  ) {
+  if (SIMULATION_MODULES.some((module) => module.id === target || module.aliases.includes(target))) {
     return "simulations";
   }
 
@@ -84,25 +90,5 @@ export function resolveSimulationModule(target?: string): SimulationModuleId | u
     return undefined;
   }
 
-  if (MODULE_TARGETS.has(target as SimulationModuleId)) {
-    return target as SimulationModuleId;
-  }
-
-  if (target === "piping-content") {
-    return "piping";
-  }
-
-  if (target === "sizing-content") {
-    return "sizing";
-  }
-
-  if (target === "flow-content") {
-    return "flow";
-  }
-
-  if (target === "glossary-content") {
-    return "glossary";
-  }
-
-  return undefined;
+  return SIMULATION_MODULES.find((module) => module.id === target || module.aliases.includes(target))?.id;
 }
