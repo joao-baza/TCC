@@ -56,6 +56,10 @@ As decisões fechadas na etapa de brainstorming foram:
 4. Mudanças profundas de estrutura são permitidas se melhorarem a experiência.
 5. Não há restrição técnica prévia para a análise, além do cuidado de refletir novos módulos adicionados também na tese em `/escrita`.
 6. A direção macro aprovada foi a de **Estúdio de Simulação**, em que o valor da ferramenta aparece primeiro nos módulos, com explicação contextual integrada.
+7. A experiência deve incorporar **efeitos visuais e gráficos adicionais** com dupla função:
+   - apoio didático para explicar fenômenos e comportamento dos sistemas;
+   - aprofundamento analítico para comparação, leitura de curvas e interpretação técnica.
+8. Essa camada visual mais rica deve ser tratada como diretriz para **todos os módulos**, não apenas para um subconjunto inicial.
 
 ---
 
@@ -273,6 +277,35 @@ O fluxo de cada módulo passa a ser:
 
 Esse fluxo deve estar visualmente claro sem exigir que o usuário descubra a lógica sozinho.
 
+### 8.4 Camada Visual de Fenômenos e Análise
+
+Além do resultado principal, cada módulo deve evoluir para incluir uma camada visual com duas funções simultâneas:
+
+1. **Explicar o fenômeno**
+   - mostrar o que muda fisicamente ou conceitualmente quando os parâmetros variam;
+   - tornar visíveis transições, regimes, tendências e relações entre variáveis;
+   - ajudar o discente a conectar número, comportamento e teoria.
+
+2. **Aprofundar a análise**
+   - ampliar a leitura técnica além do valor final;
+   - permitir comparação de cenários;
+   - expor curvas, faixas, indicadores e gráficos complementares quando fizer sentido.
+
+Essa camada não deve ser cosmética. Efeitos visuais, gráficos e elementos interativos só são aprovados quando melhorarem compreensão ou interpretação.
+
+### 8.5 Aplicação Transversal
+
+Essa diretriz vale para todos os módulos do produto.
+
+Exemplos esperados:
+
+- em escoamento, visualizações de regime, comportamento do Reynolds, fator de atrito e transições;
+- em dimensionamento, leitura gráfica do impacto de vazão, velocidade e diâmetro;
+- em tubulações, apoio visual para materiais, schedules, conexões e consequências técnicas das escolhas;
+- em reatores, balanço e demais operações, gráficos e esquemas que revelem comportamento do sistema, não apenas o valor calculado.
+
+Se um módulo ainda não tiver material visual suficiente, o redesign deve prever a estrutura para recebê-lo sem quebrar a consistência do sistema.
+
 ---
 
 ## 9. Princípios de UX para Docentes e Discentes
@@ -344,7 +377,24 @@ Com base na análise de UI/UX, a direção recomendada é:
 - estados ativos e de progresso bem marcados;
 - tratamento visual de unidades e valores como elementos de primeira classe.
 
-### 10.3 Acessibilidade e Clareza
+### 10.3 Visualização Didática e Analítica
+
+Os módulos devem incorporar mais recursos visuais, desde que tenham função pedagógica ou analítica clara, como:
+
+- gráficos de comportamento;
+- comparações entre cenários;
+- indicadores de faixa ou regime;
+- esquemas que expliquem relações entre variáveis;
+- destaques visuais para transições importantes;
+- feedback visual de causa e efeito quando parâmetros forem alterados.
+
+Referência de decisão:
+
+- se o elemento ajuda a explicar “o que está acontecendo”, ele é didático;
+- se ajuda a explicar “o que este resultado implica”, ele é analítico;
+- se não ajuda em nenhum dos dois, ele não deve entrar.
+
+### 10.4 Acessibilidade e Clareza
 
 Devem ser considerados obrigatórios:
 
@@ -376,13 +426,21 @@ Isso implica:
 - separar com clareza contexto, entrada, saída e apoio;
 - evitar blocos homogêneos com mesmo peso visual;
 - incorporar ajuda contextual e continuidade;
-- reduzir a sensação de formulário cru.
+- reduzir a sensação de formulário cru;
+- preparar regiões estáveis para gráficos, esquemas e indicadores didático-analíticos.
 
 ### 11.3 Expansão Futura
 
 Ao adicionar módulos ainda ausentes no frontend migrado, a implementação deve seguir a mesma arquitetura-base.
 
 Se a expansão incluir novos módulos de produto, registrar também o impacto correspondente em `/escrita`, para manter coerência entre software e tese.
+
+Os módulos já existentes e os futuros devem nascer com espaço arquitetural para:
+
+- visualização principal;
+- visualização complementar;
+- comparação de cenários;
+- interpretação guiada do resultado.
 
 ---
 
@@ -415,6 +473,8 @@ Antes de considerar o redesign implementado de forma satisfatória, verificar:
 - os módulos principais deixam evidente objetivo, entradas, resultado e próximos passos;
 - docentes conseguem identificar valor de apoio didático;
 - discentes conseguem executar cálculos com menos atrito e mais contexto;
+- os elementos visuais adicionais explicam fenômenos ou aprofundam análise, sem virar ornamento;
+- todos os módulos possuem caminho consistente para evolução visual;
 - a interface mantém consistência entre módulos;
 - novos módulos adicionados possuem correspondência documentada em `/escrita`, quando aplicável.
 
