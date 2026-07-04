@@ -22,7 +22,7 @@ describe("AppShell", () => {
   it("exposes the simulation modules under secondary grouped navigation", () => {
     render(<AppShell />);
 
-    expect(screen.getByText("Hidráulica & Escoamento")).toBeInTheDocument();
+    expect(screen.getByText("Hidráulica & Escoamento", { selector: ".nav-group-label" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tubulações" })).toHaveAttribute("href", "#piping");
     expect(screen.getByRole("link", { name: "Dimensionamento" })).toHaveAttribute(
       "href",
