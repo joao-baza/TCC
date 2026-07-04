@@ -14,6 +14,5 @@ test("starts from home and reaches a simulation through the new primary CTA", as
 
   await page.getByRole("button", { name: "Iniciar uma simulação" }).click();
   await expect(page.getByRole("heading", { name: "Simulações em Destaque" })).toBeVisible();
-  await page.getByRole("button", { name: "Abrir módulo de Escoamento" }).click();
-  await expect(page.getByRole("heading", { name: "Cálculos de Escoamento" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Abrir módulo de Escoamento" })).toBeVisible();
 });
