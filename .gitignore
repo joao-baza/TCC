@@ -34,3 +34,10 @@ escrita/TEX/**/*.run.xml
 
 deploy_app.sh
 deploy_app_external.sh
+
+# Frontend Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/test-results/
+frontend/tsconfig.tsbuildinfo
+.superpowers/
