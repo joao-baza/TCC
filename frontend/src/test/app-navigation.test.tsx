@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AppShell } from "@/features/shell/app-shell";
 
 describe("AppShell", () => {
@@ -29,5 +30,18 @@ describe("AppShell", () => {
     );
     expect(screen.getByRole("link", { name: "Escoamento" })).toHaveAttribute("href", "#flow");
     expect(screen.getByRole("link", { name: "Glossário" })).toHaveAttribute("href", "#glossary");
+  });
+
+  it("emits navigation targets when shell links are clicked", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn();
+
+    render(<AppShell onNavigate={onNavigate} />);
+
+    await user.click(screen.getByRole("link", { name: "Simulações" }));
+    await user.click(screen.getByRole("link", { name: "Tubulações" }));
+
+    expect(onNavigate).toHaveBeenNthCalledWith(1, "simulations");
+    expect(onNavigate).toHaveBeenNthCalledWith(2, "piping");
   });
 });
