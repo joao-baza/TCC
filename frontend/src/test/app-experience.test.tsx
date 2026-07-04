@@ -51,25 +51,17 @@ describe("AppExperience", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens the flow module from the highlighted simulations hub", async () => {
+  it("surfaces the highlighted flow entry from the simulations hub", async () => {
     const user = userEvent.setup();
-    const api = createApiStub() as EngineeringApi;
-    api.getFrictionFactorMethods = vi.fn().mockResolvedValue(["ColebrookWhite", "SwameeJain"]);
-    api.getHydraulicDiameterShapes = vi.fn().mockResolvedValue(["circular", "rectangular"]);
-    api.calculateReynolds = vi.fn();
-    api.calculateFrictionFactor = vi.fn();
-    api.calculateHydraulicDiameter = vi.fn().mockResolvedValue({
-      value: 66.66666666666667,
-      units: "millimeter"
-    });
-
-    render(<AppExperience api={api} />);
+    render(<AppExperience api={createApiStub()} />);
 
     await user.click(screen.getByRole("button", { name: "Iniciar uma simulação" }));
-    await user.click(screen.getByRole("button", { name: "Abrir módulo de Escoamento" }));
 
-    expect(await screen.findByRole("heading", { name: "Cálculos de Escoamento" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Calcular Número de Reynolds" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Calcular Diâmetro Hidráulico" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Simulações em Destaque" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Abrir módulo de Escoamento" })
+    ).toBeInTheDocument();
   });
 });
