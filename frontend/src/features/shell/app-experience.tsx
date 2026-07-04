@@ -6,7 +6,7 @@ import { GlossaryFeature } from "@/features/glossary/glossary-feature";
 import { PipingFeature } from "@/features/piping/piping-feature";
 import { HomePage } from "@/features/shell/home-page";
 import { AppShell } from "@/features/shell/app-shell";
-import { shellNavigation } from "@/features/shell/navigation";
+import { resolveProductSection, resolveSimulationModule, shellNavigation } from "@/features/shell/module-registry";
 import { SizingFeature } from "@/features/sizing/sizing-feature";
 import { apiClient, type EngineeringApi } from "@/lib/api";
 
@@ -14,39 +14,20 @@ type AppExperienceProps = {
   api?: EngineeringApi;
 };
 
-type ShellSectionId = "home" | "simulations" | "trails" | "resources" | "teaching";
 type SimulationModuleId = (typeof shellNavigation.simulations)[number]["id"];
 
 export function AppExperience({ api = apiClient }: AppExperienceProps) {
-  const [currentSection, setCurrentSection] = useState<ShellSectionId>("home");
+  const [currentSection, setCurrentSection] = useState("home");
   const [currentModule, setCurrentModule] = useState<SimulationModuleId>("flow");
 
   function handleNavigate(target: string) {
-    if (target === "home" || target === "simulations" || target === "trails" || target === "resources" || target === "teaching") {
-      setCurrentSection(target);
-      return;
-    }
+    const nextSection = resolveProductSection(target);
+    const nextModule = resolveSimulationModule(target);
 
-    if (
-      target === "piping-content" ||
-      target === "piping" ||
-      target === "sizing-content" ||
-      target === "sizing" ||
-      target === "flow-content" ||
-      target === "flow" ||
-      target === "glossary-content" ||
-      target === "glossary"
-    ) {
-      setCurrentSection("simulations");
-      setCurrentModule(
-        target === "piping-content" || target === "piping"
-          ? "piping"
-          : target === "sizing-content" || target === "sizing"
-            ? "sizing"
-            : target === "flow-content" || target === "flow"
-              ? "flow"
-              : "glossary"
-      );
+    setCurrentSection(nextSection);
+
+    if (nextSection === "simulations" && nextModule) {
+      setCurrentModule(nextModule);
     }
   }
 
@@ -77,12 +58,11 @@ export function AppExperience({ api = apiClient }: AppExperienceProps) {
     <GlossaryFeature />;
 
   return (
-    <AppShell
-      currentSection={currentSection}
-      currentTab={currentModule}
-      onNavigateSection={handleNavigate}
-      onNavigate={handleNavigate}
-    >
+      <AppShell
+        currentSection={currentSection}
+        currentTab={currentModule}
+        onNavigate={handleNavigate}
+      >
       {currentSection === "simulations" ? (
         <div className="tab-pane active" id="simulations-content">
           <div className="home-hero">
