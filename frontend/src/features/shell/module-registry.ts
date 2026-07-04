@@ -19,6 +19,13 @@ export type SimulationModule = {
   aliases: readonly string[];
 };
 
+export type QuickAccessModule = {
+  group: string;
+  label: string;
+  target?: SimulationModuleId;
+  disabled?: true;
+};
+
 const TOP_LEVEL_SECTIONS: readonly ProductSection[] = [
   { id: "home", label: "Início", href: "#home", aliases: ["home-content"] },
   { id: "simulations", label: "Simulações", href: "#simulations", aliases: ["simulations-content"] },
@@ -64,6 +71,16 @@ export const shellNavigation = {
   topLevel: productSections,
   simulations: simulationModules
 } as const;
+
+export const quickAccessModules: readonly QuickAccessModule[] = [
+  { group: "Hidráulica", label: "Tubulações", target: "piping" },
+  { group: "Hidráulica", label: "Dimensionamento", target: "sizing" },
+  { group: "Hidráulica", label: "Escoamento", target: "flow" },
+  { group: "Bombas", label: "Perda de Carga & NPSH", disabled: true },
+  { group: "Propriedades", label: "Componentes", disabled: true },
+  { group: "Reatores", label: "CSTR / PFR", disabled: true },
+  { group: "Balanço", label: "Balanço de Massa", disabled: true }
+] as const;
 
 export function resolveProductSection(target?: string): ProductSectionId {
   if (!target || target === "home-content") {
