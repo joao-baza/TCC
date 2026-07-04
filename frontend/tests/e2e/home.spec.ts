@@ -1,21 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-test("renders the migrated home shell", async ({ page }) => {
+test("renders the new IA home entry points", async ({ page }) => {
   await page.goto("/");
 
-  await expect(
-    page.getByRole("heading", {
-      name: "DCOU - Dimensionamento Computacional de Operações Unitárias"
-    })
-  ).toBeVisible();
-
-  const sidebarNav = page.locator(".sidebar-nav");
-
-  await expect(page.getByText("Trilhas de Aprendizagem", { exact: true })).toBeVisible();
-  await expect(page.getByText("Acesso Rápido", { exact: true })).toBeVisible();
-  await expect(sidebarNav.getByRole("link", { name: "Início", exact: true })).toBeVisible();
-  await expect(sidebarNav.getByRole("link", { name: "Tubulações", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Perda de Carga/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Iniciar uma simulação" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Seguir uma trilha" })).toBeVisible();
+  await expect(page.getByText("Recursos de Apoio")).toBeVisible();
+  await expect(page.getByText("Para Docência")).toBeVisible();
 });
 
 test("starts from home and reaches a simulation through the new primary CTA", async ({ page }) => {
