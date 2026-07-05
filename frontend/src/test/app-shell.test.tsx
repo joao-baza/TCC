@@ -1,14 +1,26 @@
 import { render, screen } from "@testing-library/react";
-import { AppShell } from "@/features/shell/app-shell";
+import { RouterProvider, createMemoryRouter } from "react-router-dom";
 
-describe("AppShell IA", () => {
-  it("renders top-level product sections", () => {
-    render(<AppShell />);
+import { routes } from "@/app/router";
 
-    expect(screen.getByRole("link", { name: "Início" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Simulações" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Trilhas" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Recursos" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Docência" })).toBeInTheDocument();
+describe("App shell bootstrap", () => {
+  it("renders the home route through the application router", async () => {
+    const router = createMemoryRouter(routes, {
+      initialEntries: ["/"],
+    });
+
+    render(
+      <RouterProvider router={router} />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: /DCOU - Dimensionamento Computacional de Operações Unitárias/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Início/i })).toHaveAttribute(
+      "href",
+      "/",
+    );
   });
 });

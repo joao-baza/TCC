@@ -40,4 +40,9 @@ frontend/node_modules/
 frontend/.next/
 frontend/test-results/
 frontend/tsconfig.tsbuildinfo
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend/vitest.config.js
+frontend/vitest.config.d.ts
 .superpowers/
