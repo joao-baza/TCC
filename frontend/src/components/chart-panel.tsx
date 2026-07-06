@@ -8,7 +8,7 @@ export function ChartPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-background p-4 shadow-sm">
       <h3 className="text-base font-semibold">{title}</h3>
       <div className="mt-4 min-h-80">{children}</div>
     </section>
