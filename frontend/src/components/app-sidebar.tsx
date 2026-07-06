@@ -23,7 +23,12 @@ export function AppSidebar({
   className,
 }: HTMLAttributes<HTMLElement>) {
   return (
-    <aside className={cn("border-r bg-white", className)}>
+    <aside
+      className={cn(
+        "border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
+        className,
+      )}
+    >
       <div className="border-b px-6 py-5">
         <p className="text-lg font-semibold">DCOU</p>
         <p className="text-sm text-muted-foreground">Engenharia Química — UFMS</p>
@@ -47,8 +52,8 @@ export function AppSidebar({
                       cn(
                         "rounded-lg px-3 py-2 text-sm transition-colors",
                         isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-slate-700 hover:bg-muted",
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground",
                       )
                     }
                   >

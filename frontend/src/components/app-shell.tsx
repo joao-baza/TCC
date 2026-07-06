@@ -13,10 +13,10 @@ import {
 
 export function AppShell() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 md:grid md:grid-cols-[18rem_1fr]">
+    <div className="min-h-screen bg-background text-foreground md:grid md:grid-cols-[18rem_1fr]">
       <AppSidebar className="hidden md:block" />
       <div className="min-w-0">
-        <header className="border-b bg-white px-4 py-3 md:hidden">
+        <header className="border-b bg-background px-4 py-3 md:hidden">
           <Sheet>
             <SheetTrigger
               render={
