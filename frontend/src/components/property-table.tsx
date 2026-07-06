@@ -23,18 +23,6 @@ function formatLabel(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function formatValue(value: number | string | null) {
-  if (value === null) {
-    return "—";
-  }
-
-  if (typeof value === "number") {
-    return formatTableNumber(value);
-  }
-
-  return value;
-}
-
 function escapeLatexText(value: string) {
   return value.replace(/([\\{}#$%&_~^])/g, "\\$1");
 }
@@ -45,7 +33,7 @@ function formatValueLatex(value: number | string | null) {
   }
 
   if (typeof value === "number") {
-    return `\\text{${formatTableNumber(value)}}`;
+    return formatTableNumber(value);
   }
 
   return `\\text{${escapeLatexText(value)}}`;
@@ -125,10 +113,7 @@ export function PropertyTable(props: PropertyTableProps) {
             );
           }
 
-          const renderedValue =
-            typeof value === "number" && !isLegacyData
-              ? formatTableNumber(value)
-              : formatValue(isPrimitiveValue(value) ? value : String(value));
+          const renderedValue = isPrimitiveValue(value) ? value : String(value);
           const renderedLabel = isLegacyData ? formatLabel(key) : key;
 
           return (
