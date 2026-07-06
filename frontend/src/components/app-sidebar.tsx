@@ -30,8 +30,22 @@ export function AppSidebar({
       )}
     >
       <div className="border-b px-6 py-5">
-        <p className="text-lg font-semibold">DCOU</p>
-        <p className="text-sm text-muted-foreground">Engenharia Química — UFMS</p>
+        <div className="flex items-center gap-3">
+          <img
+            alt="Universidade Federal de Mato Grosso do Sul"
+            className="h-11 w-11 shrink-0 rounded-xl object-contain"
+            src="/UFMS.png"
+          />
+          <div className="min-w-0">
+            <p className="text-lg font-semibold leading-tight">DCOU</p>
+            <p className="text-sm font-medium text-foreground/80 leading-tight">
+              Dimensionamento Computacional de Operações Unitárias
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Engenharia Química — UFMS
+            </p>
+          </div>
+        </div>
       </div>
       <ScrollArea className="h-[calc(100vh-89px)]">
         <nav aria-label="Navegação principal" className="space-y-6 px-4 py-6">
