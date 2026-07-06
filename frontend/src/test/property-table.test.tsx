@@ -74,24 +74,45 @@ describe("PropertyTable", () => {
             value: 1234567,
             units: "pascal",
           },
+          {
+            label: "Limite Inferior",
+            value: 0.0001,
+            units: "dimensionless",
+          },
+          {
+            label: "Limite Superior",
+            value: 100000,
+            units: "dimensionless",
+          },
         ]}
       />,
     );
 
     expect(screen.getByText("Pequeno")).toBeInTheDocument();
     expect(screen.getByText("Grande")).toBeInTheDocument();
+    expect(screen.getByText("Limite Inferior")).toBeInTheDocument();
+    expect(screen.getByText("Limite Superior")).toBeInTheDocument();
 
     const smallRow = getRowContaining("Pequeno");
     const largeRow = getRowContaining("Grande");
+    const lowerBoundaryRow = getRowContaining("Limite Inferior");
+    const upperBoundaryRow = getRowContaining("Limite Superior");
 
     expect(smallRow?.querySelector(".katex")).not.toBeNull();
     expect(largeRow?.querySelector(".katex")).not.toBeNull();
+    expect(lowerBoundaryRow?.querySelector(".katex")).not.toBeNull();
+    expect(upperBoundaryRow?.querySelector(".katex")).not.toBeNull();
     expect(smallRow).toHaveTextContent("8,94903");
     expect(smallRow).toHaveTextContent("10");
     expect(smallRow).toHaveTextContent("millimeter");
     expect(largeRow).toHaveTextContent("1,23457");
     expect(largeRow).toHaveTextContent("10");
     expect(largeRow).toHaveTextContent("pascal");
+    expect(lowerBoundaryRow).toHaveTextContent("0,0001");
+    expect(lowerBoundaryRow).toHaveTextContent("dimensionless");
+    expect(upperBoundaryRow).toHaveTextContent("1");
+    expect(upperBoundaryRow).toHaveTextContent("10");
+    expect(upperBoundaryRow).toHaveTextContent("dimensionless");
   });
 
   it("preserves the legacy data contract with semantic row tokens", () => {
