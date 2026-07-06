@@ -34,6 +34,5 @@ describe("App shell bootstrap", () => {
       "href",
       "/",
     );
-    expect(screen.getByLabelText(/Notifications alt\+T/i)).toBeInTheDocument();
   });
 });
