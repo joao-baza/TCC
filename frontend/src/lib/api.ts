@@ -1,3 +1,12 @@
+export type ValueWithUnits = {
+  value: number;
+  units: string;
+};
+
+export interface PropertyRecord {
+  [key: string]: ValueWithUnits | string | number | null | PropertyRecord;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -29,11 +38,39 @@ export class ApiClient {
     const response = await fetch(`${this.baseUrl}${path}`, init);
 
     if (!response.ok) {
-      const message = await response.text();
-      throw new ApiError(message || "Request failed", response.status);
+      const message = await this.extractErrorMessage(response);
+      throw new ApiError(message, response.status);
     }
 
     return (await response.json()) as T;
+  }
+
+  private async extractErrorMessage(response: Response): Promise<string> {
+    const raw = await response.text();
+    if (!raw) {
+      return "Resposta vazia da API.";
+    }
+
+    try {
+      const data = JSON.parse(raw) as {
+        detail?: unknown;
+      };
+
+      if (typeof data.detail === "string" && data.detail.trim()) {
+        return data.detail;
+      }
+
+      if (Array.isArray(data.detail) && data.detail.length > 0) {
+        const first = data.detail[0] as { msg?: string };
+        if (typeof first.msg === "string" && first.msg.trim()) {
+          return first.msg;
+        }
+      }
+    } catch {
+      // Non-JSON responses should use the raw text body.
+    }
+
+    return raw;
   }
 }
 
