@@ -15,7 +15,14 @@ const AccordionItem = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof BaseAccordion.Item>
 >(({ className, ...props }, ref) => (
-  <BaseAccordion.Item ref={ref} className={cn("border-b border-border", className)} {...props} />
+  <BaseAccordion.Item
+    ref={ref}
+    className={cn(
+      "overflow-hidden rounded-2xl border border-border bg-card/80 shadow-sm transition data-[open]:border-primary/25 data-[open]:bg-primary/[0.03]",
+      className,
+    )}
+    {...props}
+  />
 ));
 AccordionItem.displayName = "AccordionItem";
 
@@ -27,7 +34,7 @@ const AccordionTrigger = React.forwardRef<
     <BaseAccordion.Trigger
       ref={ref}
       className={cn(
-        "flex flex-1 items-center justify-between gap-3 py-3 text-left text-sm font-medium transition hover:text-foreground",
+        "flex flex-1 items-center justify-between gap-3 px-4 py-4 text-left text-sm font-medium text-foreground transition hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-inset data-[panel-open]:text-primary",
         className,
       )}
       {...props}
@@ -45,7 +52,7 @@ const AccordionContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <BaseAccordion.Panel
     ref={ref}
-    className={cn("overflow-hidden pb-4 text-sm text-muted-foreground", className)}
+    className={cn("overflow-hidden px-4 pb-4 pt-1 text-sm text-muted-foreground", className)}
     {...props}
   />
 ));
