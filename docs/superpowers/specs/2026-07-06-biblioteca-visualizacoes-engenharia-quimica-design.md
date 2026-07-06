@@ -117,6 +117,21 @@ A regra é preferir:
 
 antes de criar um novo padrão visual do zero.
 
+### 5.4 Cautela com rótulos
+
+Todo gráfico numérico deve tratar textos internos como elementos de risco visual.
+
+Isso significa que a biblioteca deve, por padrão:
+
+- reservar margens suficientes para rótulos e valores de eixo;
+- gerar ticks automáticos que mostrem valores de tempos em tempos sem poluir a leitura;
+- evitar sobreposição entre texto e linhas, curvas, áreas, eixos ou marcadores;
+- deslocar rótulos para áreas seguras quando houver conflito;
+- mover o texto para legenda, cabeçalho ou callout lateral quando a área útil estiver congestionada;
+- priorizar legibilidade sobre simetria visual perfeita.
+
+Esse cuidado vale para todos os gráficos com escala numérica, com atenção especial para gráficos densos como `ArrheniusPlot` e `McCabeThieleChart`, onde rótulos como `Xb` e `Xf` devem ficar fora da trajetória principal ou em áreas livres sempre que possível.
+
 ---
 
 ## 6. Arquitetura Alvo
@@ -129,6 +144,8 @@ Componentes básicos e reutilizáveis, como:
 
 - `ChartPanel`;
 - eixos, grids, legendas e rótulos;
+- gerador de ticks automáticos por gráfico;
+- helper de posicionamento seguro para textos e anotações;
 - cards de comparação;
 - tabelas compactas;
 - chips de cenário;
@@ -378,6 +395,8 @@ Os componentes atuais devem servir de base e ser refinados onde necessário:
 - componentes de tabela;
 - badges e chips de cenário;
 - componentes SVG com escalas e anotação de ponto;
+- grids de fundo e eixos com ticks automáticos;
+- helpers de posicionamento seguro para textos sobre o gráfico;
 - wrappers de eixo, legenda e grid.
 
 ### 9.2 Componentes novos prováveis
@@ -444,4 +463,3 @@ A validação deve cobrir:
 - revisão visual dos estados de ponto operacional, risco e comparação.
 
 Se um gráfico novo introduzir um formato de dado novo, o contrato desse formato deve ser testado explicitamente.
-
