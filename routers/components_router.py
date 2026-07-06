@@ -1,7 +1,14 @@
 import CoolProp.CoolProp as CP
+import numpy as np
 from fastapi import APIRouter, HTTPException
 from models import Components
-from schemas import FluidRequest, PropertyRequest, MixturePropertiesRequest, PropsStateRequest
+from schemas import (
+    FluidRequest,
+    MixturePropertiesRequest,
+    PropertyRequest,
+    PropsStateRequest,
+    SaturationEnvelopeRequest,
+)
 
 router = APIRouter(prefix="/components", tags=["Components"])
 components_obj = Components()
@@ -40,6 +47,63 @@ def get_critical_properties(payload: FluidRequest):
         }
     except Exception as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.post("/saturation-envelope")
+def get_saturation_envelope(payload: SaturationEnvelopeRequest):
+    try:
+        props = components_obj.get_critical_properties(payload.fluid)
+        triple_temperature = props["triple_point_temperature"].magnitude
+        critical_temperature = props["critical_temperature"].magnitude
+
+        lower_bound = triple_temperature * 1.0001
+        upper_bound = critical_temperature * 0.9999
+
+        if upper_bound <= lower_bound:
+            raise ValueError("Invalid saturation range for the selected fluid.")
+
+        temperatures = np.linspace(lower_bound, upper_bound, payload.sample_count)
+        points = []
+
+        for temperature in temperatures:
+            try:
+                pressure = CP.PropsSI("P", "T", float(temperature), "Q", 0, payload.fluid)
+                liquid_entropy = CP.PropsSI("S", "T", float(temperature), "Q", 0, payload.fluid)
+                vapor_entropy = CP.PropsSI("S", "T", float(temperature), "Q", 1, payload.fluid)
+                liquid_enthalpy = CP.PropsSI("H", "T", float(temperature), "Q", 0, payload.fluid)
+                vapor_enthalpy = CP.PropsSI("H", "T", float(temperature), "Q", 1, payload.fluid)
+            except Exception:
+                continue
+
+            points.append(
+                {
+                    "temperature": float(temperature),
+                    "pressure": float(pressure),
+                    "liquid_entropy": float(liquid_entropy),
+                    "vapor_entropy": float(vapor_entropy),
+                    "liquid_enthalpy": float(liquid_enthalpy),
+                    "vapor_enthalpy": float(vapor_enthalpy),
+                }
+            )
+
+        if len(points) < 2:
+            raise ValueError("Could not generate enough saturation points for the selected fluid.")
+
+        return {
+            "fluid": payload.fluid,
+            "critical": {
+                "temperature": props["critical_temperature"].magnitude,
+                "pressure": props["critical_pressure"].magnitude,
+                "density": props["critical_density"].magnitude,
+            },
+            "triple": {
+                "temperature": props["triple_point_temperature"].magnitude,
+                "pressure": props["triple_point_pressure"].magnitude,
+            },
+            "points": points,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/property")

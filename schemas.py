@@ -317,6 +317,16 @@ class FluidRequest(BaseModel):
     fluid: str = Field(..., description="Name of the fluid")
 
 
+class SaturationEnvelopeRequest(BaseModel):
+    fluid: str = Field(..., description="Name of the fluid")
+    sample_count: int = Field(
+        60,
+        ge=10,
+        le=200,
+        description="Number of samples between triple and critical points",
+    )
+
+
 class PropsStateRequest(BaseModel):
     fluid: str = Field(..., description="Name of the fluid")
     input1: str = Field(..., description="First state variable key (CoolProp format, e.g. 'P', 'T', 'S', 'Q')")
