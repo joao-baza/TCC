@@ -1,41 +1,127 @@
-pdflatex main;bibtex main; pdflatex main; pdflatex main;
+# DCOU
 
+Software educacional para dimensionamento computacional de operações unitárias em Engenharia Química, desenvolvido como TCC na UFMS. A aplicação combina uma API em `FastAPI` com um frontend `Vite + React + TypeScript`.
 
-# 🌐 Educational Simulator for Unit Operations
+## Stack atual
 
-Final project in Chemical Engineering at UFMS, developed by **João Pedro Baza Garcia Rodrigues** [[LinkedIn]](https://www.linkedin.com/in/joao-baza/) under the guidance of **Prof. Celso Murilo dos Santos** [[LinkedIn]](https://www.linkedin.com/in/celso-murilo-dos-santos/). The code can be tested online [here](https://tcc.homelab.sistemasj.com.br) - (last update: 2025-11-15)
+- `backend`: `Python`, `FastAPI`, `Pydantic`, `CoolProp`, `Pint`, `NumPy`, `SciPy`, `Matplotlib`
+- `frontend`: `Vite`, `React`, `TypeScript`, `React Router`, `Tailwind CSS`, `shadcn/ui`, `KaTeX`, `Recharts`, `Sonner`
+- `testes`: `Pytest`, `Vitest`, `React Testing Library`, `Playwright`
+- `deploy`: `Docker`, `Docker Swarm`, `Nginx`, `Traefik`
 
-## Academic Context
-- Final project proposing a free web software for simulation and dimensioning of unit operations.
+## Estrutura
 
-- Motivation: To democratize calculation tools used in chemical projects, reducing dependence on expensive software such as Aspen Plus®, HYSYS®, or ChemCAD®.
+- `routers/`, `models/`, `schemas/`: API e lógica de cálculo
+- `frontend/`: SPA React
+- `deploy/`: Dockerfiles, compose e scripts de deploy
+- `escrita/`: monografia em LaTeX
+- `demo/tests/`: testes Python de integração e demonstração
 
-## Introduction, Justification, and Objectives
-- **Introduction**: Sizing chemical process equipment requires mastery of mass/energy balances, thermodynamics, heat/mass transfer, and chemical kinetics. The system integrates these concepts into an accessible application.
+## Execução local
 
-- **Justification**: Institutions without commercial licenses lack didactic platforms. The open solution allows for active learning, real-time visualization of results, and interdisciplinary collaboration.
+### Backend
 
-- **General Objective**: To offer a modular web software for calculating and sizing unit operations, using client-server architecture and an open API.
+```bash
+python main.py
+```
 
-- **Specific Objectives**:
-1. Implement classic sizing routines (heat exchangers, columns, absorption, evaporation, reactors, piping).
-2. Develop a responsive and user-friendly web interface.
-3. Integrate local database of physicochemical properties (initially hardcoded) and scientific libraries.
-4. Validate results with literature and commercial tools to ensure reliability.
+API padrão: `http://localhost:5000`
 
-## Didactic Purpose
-- Supports case studies that connect theory (balances, kinetics, flow) with modern computational implementation.
+O backend também responde ao healthcheck em `http://localhost:5000/health` e aceita `DCOU_HOST`/`DCOU_PORT` quando precisa subir em um endereço diferente.
 
-- Encourages open contributions to expand property catalogs, new process modules, and comparative studies with proprietary software from scholars in both chemical engineering and software.
+### Frontend
 
-## TODO:
-- CAPE-OPEN
-- Removal of hardcoded values
-    1. Maximum conversion value by Brent method;
-    2. Characteristics, properties, and schedules of piping;
-    3. Change input types in reactor to accept mass, molar or volumetric concentration;
-    4. Add new unit operations ad infinitum, such as multiphase and heterogeneous reactors, heat exchangers, evaporators etc.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
---- 
+App padrão: `http://localhost:5173`
 
-Contributions and feedback are welcome!
+O `Vite` já faz proxy de `/api` para `http://localhost:5000`.
+
+### Desktop
+
+O projeto também pode ser empacotado como instalador autossuficiente para macOS, Windows e Linux usando a pasta `desktop/`.
+
+```bash
+cd desktop
+npm install
+npm run dist
+```
+
+Isso gera:
+
+- macOS: `.dmg`
+- Windows: instalador `nsis`
+- Linux: `.AppImage`
+
+O empacotamento desktop reaproveita o frontend compilado e o backend Python congelado como executável local.
+
+## Testes
+
+### Frontend
+
+```bash
+cd frontend
+npm test
+npm run build
+npm run test:e2e -- --project=chromium
+```
+
+### Backend
+
+```bash
+pytest
+```
+
+### Desktop
+
+```bash
+cd desktop
+npm test
+```
+
+```bash
+.venv/bin/pytest demo/tests/test_desktop_bootstrap.py -q
+```
+
+## Monografia
+
+```bash
+cd escrita
+./compile.sh
+```
+
+PDF gerado em `escrita/TEX/main.pdf`.
+
+## Deploy
+
+O frontend é compilado com `Vite` no `deploy/Dockerfile.frontend` e servido via `Nginx`. O script principal de publicação em swarm é:
+
+```bash
+./deploy/deploy.sh
+```
+
+Aplicação publicada: [tcc.homelab.sistemasj.com.br](https://tcc.homelab.sistemasj.com.br)
+
+## Empacotamento Desktop
+
+O fluxo de build do instalador é:
+
+```bash
+cd frontend
+npm run build
+
+cd ../desktop
+python -m pip install -r requirements-build.txt
+python scripts/build-backend.py
+npx electron-builder --config electron-builder.yml
+```
+
+O backend desktop expõe `GET /health` para o host local validar a inicialização antes de abrir a janela principal.
+
+## Observações
+
+- O branch de trabalho atual não deve reverter alterações não relacionadas já existentes no workspace.
