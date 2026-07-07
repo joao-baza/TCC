@@ -16,6 +16,12 @@ services:
         - "traefik.http.routers.tcc-api.entrypoints=websecure"
         - "traefik.http.routers.tcc-api.tls=true"
         - "traefik.http.routers.tcc-api.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.tcc-api-main.rule=Host(`tcc.homelab.sistemasj.com.br`) && PathPrefix(`/api`)"
+        - "traefik.http.routers.tcc-api-main.entrypoints=websecure"
+        - "traefik.http.routers.tcc-api-main.tls=true"
+        - "traefik.http.routers.tcc-api-main.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.tcc-api-main.middlewares=tcc-api-strip"
+        - "traefik.http.middlewares.tcc-api-strip.stripprefix.prefixes=/api"
         - "traefik.http.services.tcc-api.loadbalancer.server.port=5000"
 
   tcc-frontend:
