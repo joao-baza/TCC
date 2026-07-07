@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
 
@@ -32,15 +32,14 @@ export function Combobox({
 }: ComboboxProps) {
   const inputId = useId();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value) ?? null,
     [options, value],
   );
+  const [searchValue, setSearchValue] = useState("");
 
   const visibleOptions = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = searchValue.trim().toLowerCase();
     if (!normalizedQuery) {
       return options;
     }
@@ -50,7 +49,23 @@ export function Combobox({
         option.label.toLowerCase().includes(normalizedQuery) ||
         option.value.toLowerCase().includes(normalizedQuery),
     );
-  }, [options, query]);
+  }, [options, searchValue]);
+
+  useEffect(() => {
+    const normalizedQuery = searchValue.trim();
+    if (!normalizedQuery || visibleOptions.length !== 1) {
+      return;
+    }
+
+    const [nextOption] = visibleOptions;
+    if (!nextOption || nextOption.value === value) {
+      return;
+    }
+
+    onValueChange(nextOption.value);
+    setSearchValue("");
+    setOpen(false);
+  }, [onValueChange, searchValue, value, visibleOptions]);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -60,18 +75,23 @@ export function Combobox({
 
       <BaseCombobox.Root
         items={options}
+        filteredItems={visibleOptions}
         value={selectedOption}
         open={open}
         autoHighlight
         disabled={disabled}
         onOpenChange={setOpen}
-        onInputValueChange={(nextQuery) => {
-          setQuery(nextQuery);
+        onInputValueChange={(nextQuery, eventDetails) => {
+          setSearchValue(nextQuery);
+
+          if (eventDetails.reason === "input-change" || eventDetails.reason === "input-clear") {
+            setOpen(true);
+          }
         }}
         onValueChange={(nextOption) => {
           onValueChange(nextOption?.value ?? "");
           setOpen(false);
-          setQuery(nextOption?.label ?? "");
+          setSearchValue("");
         }}
       >
         <BaseCombobox.Input
@@ -83,13 +103,12 @@ export function Combobox({
             "focus:border-primary focus:ring-2 focus:ring-primary/20",
             "disabled:cursor-not-allowed disabled:bg-muted/40",
           )}
-          onFocus={() => {
+          onFocus={(event) => {
             setOpen(true);
-            setQuery(selectedOption?.label ?? "");
-          }}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setOpen(true);
+            event.currentTarget.value = "";
+            event.currentTarget.dispatchEvent(new Event("input", { bubbles: true }));
+            // Clear the search text so reopening shows the full option list.
+            setSearchValue("");
           }}
           onKeyDown={(event) => {
             if (event.key !== "Enter" || !open || !visibleOptions.length) {
@@ -98,7 +117,7 @@ export function Combobox({
 
             event.preventDefault();
             onValueChange(visibleOptions[0].value);
-            setQuery(visibleOptions[0].label);
+            setSearchValue("");
             setOpen(false);
           }}
         />

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2Icon } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { NumberField } from "@/components/number-field";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { RemoveButton } from "@/components/remove-button";
+import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import type { PropertyRow } from "@/components/property-table";
 import { ResultTableSection } from "@/components/result-table-section";
 import { LevenspielChart } from "@/components/viz/levenspiel-chart";
@@ -18,6 +20,7 @@ import { reactorWorkedExample } from "@/features/reactor/presets";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
+import { reactorTabs } from "@/features/reactor/reactor-tabs";
 
 type ReactorCalculationType = SelectOption;
 
@@ -86,9 +89,6 @@ type ReactorComparableBasis = {
 
 const inputClassName =
   "mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400";
-
-const removeButtonClassName =
-  "border-destructive/40 bg-background text-destructive shadow-sm hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive";
 
 function createEmptyComponent(componentName = ""): ReactorComponentState {
   return {
@@ -580,16 +580,10 @@ function ReactorFormCard({
                     <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       Componente {index + 1}
                     </h4>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon-sm"
-                      className={removeButtonClassName}
-                      aria-label={`Remover componente ${index + 1}`}
+                    <RemoveButton
+                      label={`Remover componente ${index + 1}`}
                       onClick={() => onRemoveComponent(index)}
-                    >
-                      <Trash2Icon className="size-4" />
-                    </Button>
+                    />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -670,6 +664,8 @@ function ReactorFormCard({
 }
 
 export function ReactorPage() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [componentOptions, setComponentOptions] = useState<SelectOption[]>([]);
   const [cstrTypes, setCstrTypes] = useState<ReactorCalculationType[]>([]);
   const [pfrTypes, setPfrTypes] = useState<ReactorCalculationType[]>([]);
@@ -686,6 +682,15 @@ export function ReactorPage() {
   const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
   const cstrSessionRef = useRef(0);
   const pfrSessionRef = useRef(0);
+  const activeTab = pathname.startsWith("/reactor/")
+    ? pathname.slice("/reactor/".length).split("/")[0] || "cstr"
+    : "cstr";
+
+  useEffect(() => {
+    if (pathname === "/reactor") {
+      navigate("cstr", { replace: true });
+    }
+  }, [navigate, pathname]);
 
   useEffect(() => {
     let ignore = false;
@@ -941,32 +946,26 @@ export function ReactorPage() {
   const pfrProfileSeries = pfrResult ? buildPfrProfileSeries(pfrForm, pfrResult) : [];
 
   return (
-    <section className="space-y-8 overflow-x-hidden p-6 md:p-8">
-      <Card>
-        <CardHeader
-          level={1}
-          subtitle={
-            <>
-              <p className="max-w-3xl">
-                Compare os modelos CSTR e PFR no mesmo fluxo de cálculo. O diagrama
-                local funciona como uma aproximação didática reativa no frontend,
-                enquanto os resultados numéricos continuam vindo dos serviços já
-                expostos pela API do projeto.
-              </p>
-              {pageError ? <p className="text-red-600">{pageError}</p> : null}
-            </>
-          }
-          title="Cálculos de Reator"
-          variant="hero"
-          action={
-            <Button type="button" variant="outline" onClick={loadExample}>
-              Carregar exemplo
-            </Button>
-          }
-        />
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-2">
+    <ModuleTabsLayout
+      title="Cálculos de Reator"
+      subtitle={
+        <>
+          <p className="max-w-3xl">
+            Compare os modelos CSTR e PFR no mesmo fluxo de cálculo. O diagrama local funciona
+            como uma aproximação didática reativa no frontend, enquanto os resultados numéricos
+            continuam vindo dos serviços já expostos pela API do projeto.
+          </p>
+          {pageError ? <p className="text-red-600">{pageError}</p> : null}
+        </>
+      }
+      action={
+        <Button type="button" variant="outline" onClick={loadExample}>
+          Carregar exemplo
+        </Button>
+      }
+      tabs={reactorTabs}
+    >
+      {activeTab === "cstr" ? (
         <ReactorFormCard
           calculationTypes={cstrTypes}
           componentOptions={componentOptions}
@@ -995,8 +994,11 @@ export function ReactorPage() {
           submitLabel="Calcular CSTR"
           title="CSTR"
         />
+      ) : null}
 
-        <ReactorFormCard
+      {activeTab === "pfr" ? (
+        <>
+          <ReactorFormCard
           calculationTypes={pfrTypes}
           componentOptions={componentOptions}
           error={pfrError}
@@ -1023,92 +1025,96 @@ export function ReactorPage() {
           showRecyclingRatio
           submitLabel="Calcular PFR"
           title="PFR"
-        />
-      </div>
-
-      <ExploratoryPanel
-        config={reactorExploratory}
-        state={{
-          applyFields: applyExploratoryFields,
-          changeField: changeExploratoryField,
-          describeScenario,
-        }}
-        onScenariosChange={setSavedScenarios}
-      >
-        {() =>
-          comparableForms && cstrOperatingPoint && pfrOperatingPoint && chartData.points.length > 0 ? (
-            <div className="mt-4">
-              <LevenspielChart
-                cstrOperatingPoint={cstrOperatingPoint}
-                maxConversion={chartData.maxConversion}
-                pfrOperatingPoint={pfrOperatingPoint}
-                points={chartData.points}
-                scenarios={savedScenarios}
-              />
-            </div>
-          ) : null
-        }
-      </ExploratoryPanel>
-
-      {pfrResult && pfrProfileSeries.length > 0 ? (
-        <PfrProfileChart
-          concentrationSeries={pfrProfileSeries}
-          temperature={{
-            inlet: Number(pfrForm.initialTemperature),
-            outlet: Number(pfrForm.finalTemperature),
-          }}
-        />
+          />
+          {pfrResult && pfrProfileSeries.length > 0 ? (
+            <PfrProfileChart
+              concentrationSeries={pfrProfileSeries}
+              temperature={{
+                inlet: Number(pfrForm.initialTemperature),
+                outlet: Number(pfrForm.finalTemperature),
+              }}
+            />
+          ) : null}
+        </>
       ) : null}
 
-      <Card>
-        <CardHeader title="Arrhenius" />
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Visualizacao semilog da dependencia de k com a temperatura de referencia.
-          </p>
-          <div className="grid gap-4 md:grid-cols-2">
-            <NumberField
-              id="arrhenius-activation-energy"
-              label="Energia de ativacao"
-              unit="J/mol"
-              value={plotForm.activationEnergy}
-              onChange={(value) =>
-                setPlotForm((current) => ({ ...current, activationEnergy: value }))
-              }
-            />
-            <NumberField
-              id="arrhenius-reference-temperature"
-              label="Temperatura de referencia"
-              unit="K"
-              value={plotForm.referenceTemperature}
-              onChange={(value) =>
-                setPlotForm((current) => ({ ...current, referenceTemperature: value }))
-              }
-            />
-          </div>
+      {activeTab === "exploratory" ? (
+        <ExploratoryPanel
+          config={reactorExploratory}
+          state={{
+            applyFields: applyExploratoryFields,
+            changeField: changeExploratoryField,
+            describeScenario,
+          }}
+          onScenariosChange={setSavedScenarios}
+        >
+          {() =>
+            comparableForms && cstrOperatingPoint && pfrOperatingPoint && chartData.points.length > 0 ? (
+              <div className="mt-4">
+                <LevenspielChart
+                  cstrOperatingPoint={cstrOperatingPoint}
+                  maxConversion={chartData.maxConversion}
+                  pfrOperatingPoint={pfrOperatingPoint}
+                  points={chartData.points}
+                  scenarios={savedScenarios}
+                />
+              </div>
+            ) : null
+          }
+        </ExploratoryPanel>
+      ) : null}
 
-          <ArrheniusPlot
-            activationEnergy={Number(plotForm.activationEnergy)}
-            maxTemperature={Number(plotForm.referenceTemperature) * 1.2}
-            minTemperature={Number(plotForm.referenceTemperature) * 0.8}
-            referenceRateConstant={Number(plotForm.rateConstant)}
-            referenceTemperature={Number(plotForm.referenceTemperature)}
-          />
-        </CardContent>
-      </Card>
+      {activeTab === "arrhenius" ? (
+        <Card>
+          <CardHeader title="Arrhenius" />
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Visualizacao semilog da dependencia de k com a temperatura de referencia.
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <NumberField
+                id="arrhenius-activation-energy"
+                label="Energia de ativacao"
+                unit="J/mol"
+                value={plotForm.activationEnergy}
+                onChange={(value) =>
+                  setPlotForm((current) => ({ ...current, activationEnergy: value }))
+                }
+              />
+              <NumberField
+                id="arrhenius-reference-temperature"
+                label="Temperatura de referencia"
+                unit="K"
+                value={plotForm.referenceTemperature}
+                onChange={(value) =>
+                  setPlotForm((current) => ({ ...current, referenceTemperature: value }))
+                }
+              />
+            </div>
 
-      {cstrOperatingPoint && pfrOperatingPoint && !comparableForms ? (
+            <ArrheniusPlot
+              activationEnergy={Number(plotForm.activationEnergy)}
+              maxTemperature={Number(plotForm.referenceTemperature) * 1.2}
+              minTemperature={Number(plotForm.referenceTemperature) * 0.8}
+              referenceRateConstant={Number(plotForm.rateConstant)}
+              referenceTemperature={Number(plotForm.referenceTemperature)}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {activeTab === "cstr" && cstrOperatingPoint && pfrOperatingPoint && !comparableForms ? (
         <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">
-          Alinhe conversão, cinética e alimentação entre CSTR e PFR para gerar o
-          diagrama comparativo no frontend.
+          Alinhe conversão, cinética e alimentação entre CSTR e PFR para gerar o diagrama
+          comparativo no frontend.
         </div>
       ) : null}
 
-      {!cstrOperatingPoint || !pfrOperatingPoint ? (
+      {activeTab === "cstr" && (!cstrOperatingPoint || !pfrOperatingPoint) ? (
         <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
           Calcule CSTR e PFR para gerar o diagrama comparativo no frontend.
         </div>
       ) : null}
-    </section>
+    </ModuleTabsLayout>
   );
 }

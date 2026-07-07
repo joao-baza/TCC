@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { ResultTableSection } from "@/components/result-table-section";
 import {
@@ -23,6 +25,7 @@ import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
 import type { PropertyRow } from "@/components/property-table";
+import { componentsTabs } from "@/features/components/components-tabs";
 
 type QuantityResult = {
   value: number;
@@ -114,6 +117,55 @@ type TernaryFormState = {
   fractionB: string;
   fractionC: string;
   streamName: string;
+};
+
+type PropertyFormState = {
+  fluid: string;
+  propertyNames: string[];
+  temperature: string;
+  pressure: string;
+};
+
+type MixtureFormState = {
+  temperature: string;
+  pressure: string;
+  propertyNames: string[];
+};
+
+type StateFormState = {
+  fluid: string;
+  input1: string;
+  value1: string;
+  input2: string;
+  value2: string;
+  output: string;
+};
+
+type BinaryVleFormState = {
+  fluid1: string;
+  fluid2: string;
+  pressure: string;
+  sampleCount: string;
+};
+
+type MccabeFormState = {
+  distillateComposition: string;
+  bottomsComposition: string;
+  feedComposition: string;
+  refluxRatio: string;
+  qValue: string;
+  maxStages: string;
+};
+
+type PropertySurfaceFormState = {
+  fluid: string;
+  propertyName: string;
+  temperatureMin: string;
+  temperatureMax: string;
+  pressureMin: string;
+  pressureMax: string;
+  temperatureSamples: string;
+  pressureSamples: string;
 };
 
 const propertySurfaceKeys = new Set(["D", "C", "V", "L", "H", "S", "U", "A", "Z"]);
@@ -269,7 +321,77 @@ function getStateVariableLabel(value: string) {
   return stateVariableOptions.find((option) => option.value === value)?.label ?? value;
 }
 
+type ComponentsPageContextValue = {
+  components: SelectOption[];
+  propertyNames: PropertyNamesResponse;
+  mixturePropertyNames: PropertyNamesResponse;
+  pageError: string | null;
+  criticalFluid: string;
+  criticalResult: CriticalPropertiesResponse | null;
+  handleCriticalSubmit: React.FormEventHandler<HTMLFormElement>;
+  handleCriticalFluidChange: (value: string) => void;
+  propertyForm: PropertyFormState;
+  propertyResult: Record<string, QuantityResult>;
+  handlePropertySubmit: React.FormEventHandler<HTMLFormElement>;
+  handlePropertyFluidChange: (value: string) => void;
+  handlePropertyNamesChange: (selectedValues: string[]) => void;
+  handlePropertyTemperatureChange: (value: string) => void;
+  handlePropertyPressureChange: (value: string) => void;
+  stateForm: StateFormState;
+  stateResult: StatePropertyResponse | null;
+  handleStateSubmit: React.FormEventHandler<HTMLFormElement>;
+  handleStateFormChange: (field: keyof StateFormState, value: string) => void;
+  mixtureRows: MixtureRow[];
+  mixtureForm: MixtureFormState;
+  mixtureResult: MixturePropertiesResponse | null;
+  addMixtureRow: () => void;
+  updateMixtureRow: (id: number, field: "component" | "fraction", value: string) => void;
+  removeMixtureRow: (id: number) => void;
+  handleMixtureTemperatureChange: (value: string) => void;
+  handleMixturePressureChange: (value: string) => void;
+  handleMixturePropertiesChange: (selectedValues: string[]) => void;
+  handleMixtureSubmit: React.FormEventHandler<HTMLFormElement>;
+  ternaryForm: TernaryFormState;
+  handleTernaryFieldChange: (field: keyof TernaryFormState, value: string) => void;
+  binaryVleForm: BinaryVleFormState;
+  binaryVleResult: BinaryVleResponse | null;
+  isLoadingBinaryVle: boolean;
+  handleBinaryVleSubmit: () => void;
+  handleBinaryVleFieldChange: (field: keyof BinaryVleFormState, value: string) => void;
+  mccabeForm: MccabeFormState;
+  handleMccabeFieldChange: (field: keyof MccabeFormState, value: string) => void;
+  propertySurfaceForm: PropertySurfaceFormState;
+  propertySurfaceResult: PropertySurfaceResponse | null;
+  isLoadingPropertySurface: boolean;
+  handlePropertySurfaceSubmit: React.FormEventHandler<HTMLFormElement>;
+  handlePropertySurfaceFieldChange: (
+    field: keyof PropertySurfaceFormState,
+    value: string,
+  ) => void;
+  saturationEnvelope: SaturationEnvelopeResponse | null;
+  isLoadingEnvelope: boolean;
+  handleSaturationEnvelopeSubmit: () => void;
+  savedScenarios: Scenario[];
+  handleSavedScenariosChange: (scenarios: Scenario[]) => void;
+  applyExploratoryFields: (fields: Record<string, string>) => void;
+  changeExploratoryField: (field: string, value: string) => void;
+  describeScenario: () => string;
+};
+
+const ComponentsPageContext = createContext<ComponentsPageContextValue | null>(null);
+
+function useComponentsPageContext() {
+  const context = useContext(ComponentsPageContext);
+  if (!context) {
+    throw new Error("ComponentsPageContext is missing.");
+  }
+
+  return context;
+}
+
 export function ComponentsPage() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [components, setComponents] = useState<SelectOption[]>([]);
   const [propertyNames, setPropertyNames] = useState<PropertyNamesResponse>({});
   const [mixturePropertyNames, setMixturePropertyNames] = useState<PropertyNamesResponse>({});
@@ -321,6 +443,12 @@ export function ComponentsPage() {
   const criticalSessionRef = useRef(0);
   const propertySurfaceSessionRef = useRef(0);
   const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
+
+  useEffect(() => {
+    if (pathname === "/components") {
+      navigate("critical-properties", { replace: true });
+    }
+  }, [navigate, pathname]);
 
   const [propertyForm, setPropertyForm] = useState({
     fluid: "",
@@ -482,6 +610,20 @@ export function ComponentsPage() {
     setCriticalFluid(value);
   }
 
+  function handleTernaryFieldChange(field: keyof TernaryFormState, value: string) {
+    setTernaryForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleBinaryVleFieldChange(field: keyof BinaryVleFormState, value: string) {
+    setBinaryVleResult(null);
+    setBinaryVleForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function handlePropertySurfaceFieldChange(field: keyof PropertySurfaceFormState, value: string) {
+    clearDerivedResults();
+    setPropertySurfaceForm((current) => ({ ...current, [field]: value }));
+  }
+
   function applyExploratoryFields(fields: Record<string, string>) {
     clearDerivedResults();
 
@@ -631,6 +773,10 @@ export function ComponentsPage() {
     return `VLE ${binaryVleForm.fluid1 || "—"} / ${binaryVleForm.fluid2 || "—"} · R=${mccabeForm.refluxRatio || "—"} · fluido ${propertySurfaceForm.fluid || "—"}`;
   }
 
+  function handleSavedScenariosChange(scenarios: Scenario[]) {
+    setSavedScenarios(scenarios);
+  }
+
   async function handleSaturationEnvelopeSubmit() {
     if (!criticalFluid) {
       notify.error("Selecione um fluido");
@@ -679,7 +825,7 @@ export function ComponentsPage() {
     }
   }
 
-  function handleMccabeFieldChange(field: keyof typeof mccabeForm, value: string) {
+  function handleMccabeFieldChange(field: keyof MccabeFormState, value: string) {
     setMccabeForm((current) => ({ ...current, [field]: value }));
   }
 
@@ -882,7 +1028,7 @@ export function ComponentsPage() {
     }
   }
 
-  function handleStateFormChange(field: keyof typeof stateForm, value: string) {
+  function handleStateFormChange(field: keyof StateFormState, value: string) {
     clearStateResult();
     setStateForm((current) => ({ ...current, [field]: value }));
   }
@@ -927,22 +1073,455 @@ export function ComponentsPage() {
     }
   }
 
+  const activeTabPath = pathname.startsWith("/components/")
+    ? pathname.slice("/components/".length).split("/")[0] || "critical-properties"
+    : "critical-properties";
+  const activeTab = componentsTabs.some((tab) => tab.to === activeTabPath)
+    ? activeTabPath
+    : "critical-properties";
+
+  const contextValue: ComponentsPageContextValue = {
+    components,
+    propertyNames,
+    mixturePropertyNames,
+    pageError,
+    criticalFluid,
+    criticalResult,
+    handleCriticalSubmit,
+    handleCriticalFluidChange,
+    propertyForm,
+    propertyResult,
+    handlePropertySubmit,
+    handlePropertyFluidChange,
+    handlePropertyNamesChange,
+    handlePropertyTemperatureChange,
+    handlePropertyPressureChange,
+    stateForm,
+    stateResult,
+    handleStateSubmit,
+    handleStateFormChange,
+    mixtureRows,
+    mixtureForm,
+    mixtureResult,
+    addMixtureRow,
+    updateMixtureRow,
+    removeMixtureRow,
+    handleMixtureTemperatureChange,
+    handleMixturePressureChange,
+    handleMixturePropertiesChange,
+    handleMixtureSubmit,
+    ternaryForm,
+    handleTernaryFieldChange,
+    binaryVleForm,
+    binaryVleResult,
+    isLoadingBinaryVle,
+    handleBinaryVleSubmit,
+    handleBinaryVleFieldChange,
+    mccabeForm,
+    handleMccabeFieldChange,
+    propertySurfaceForm,
+    propertySurfaceResult,
+    isLoadingPropertySurface,
+    handlePropertySurfaceSubmit,
+    handlePropertySurfaceFieldChange,
+    saturationEnvelope,
+    isLoadingEnvelope,
+    handleSaturationEnvelopeSubmit,
+    savedScenarios,
+    handleSavedScenariosChange,
+    applyExploratoryFields,
+    changeExploratoryField,
+    describeScenario,
+  };
+
+  return (
+    <ComponentsPageContext.Provider value={contextValue}>
+      <ModuleTabsLayout
+        title="Propriedades de Componentes"
+        subtitle={
+          <>
+            <p>
+              Consulte propriedades críticas, propriedades de fluidos puros e propriedades de
+              misturas usando os serviços já expostos pela API.
+            </p>
+            {pageError ? <p className="text-red-600">{pageError}</p> : null}
+          </>
+        }
+        tabs={componentsTabs}
+      >
+        {renderComponentsTab(activeTab)}
+      </ModuleTabsLayout>
+    </ComponentsPageContext.Provider>
+  );
+}
+
+function renderComponentsTab(activeTab: string) {
+  switch (activeTab) {
+    case "pure-fluid":
+      return <ComponentsPureFluidTab />;
+    case "state-properties":
+      return <ComponentsStatePropertiesTab />;
+    case "mixtures":
+      return <ComponentsMixturesTab />;
+    case "ternary-diagram":
+      return <ComponentsTernaryDiagramTab />;
+    case "binary-vle":
+      return <ComponentsBinaryVleTab />;
+    case "mccabe-thiele":
+      return <ComponentsMcCabeThieleTab />;
+    case "property-surface":
+      return <ComponentsPropertySurfaceTab />;
+    case "phase-envelope":
+      return <ComponentsPhaseEnvelopeTab />;
+    case "exploratory":
+      return <ComponentsExploratoryTab />;
+    case "critical-properties":
+    default:
+      return <ComponentsCriticalPropertiesTab />;
+  }
+}
+
+function ComponentsCriticalPropertiesTab() {
+  const { components, criticalFluid, criticalResult, handleCriticalFluidChange, handleCriticalSubmit } =
+    useComponentsPageContext();
+  const componentOptions = buildComponentOptions(components);
+
+  return (
+    <Card>
+      <CardHeader title="Propriedades Críticas" />
+      <CardContent>
+        <CriticalPropertiesHowItWorks />
+        <form className="space-y-4" onSubmit={handleCriticalSubmit}>
+          <Combobox
+            label="Fluido crítico"
+            options={componentOptions}
+            value={criticalFluid}
+            onValueChange={handleCriticalFluidChange}
+            placeholder="Selecione um fluido"
+          />
+          <Button type="submit">Obter propriedades críticas</Button>
+        </form>
+
+        {criticalResult ? (
+          <ResultTableSection
+            title="Resultado"
+            emptyLabel="Obtenha propriedades críticas para visualizar os resultados."
+            rows={formatCriticalProperties(criticalResult)}
+            showTitleWhenEmpty={false}
+          />
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComponentsPureFluidTab() {
+  const {
+    components,
+    propertyForm,
+    propertyNames,
+    propertyResult,
+    handlePropertyFluidChange,
+    handlePropertyNamesChange,
+    handlePropertyPressureChange,
+    handlePropertySubmit,
+    handlePropertyTemperatureChange,
+  } = useComponentsPageContext();
+  const componentOptions = buildComponentOptions(components);
+  const propertyOptions = buildPropertyOptions(propertyNames);
   const propertyRows = buildPropertyRows(propertyForm.propertyNames, propertyResult, propertyNames);
+
+  return (
+    <Card>
+      <CardHeader title="Fluido Puro" />
+      <CardContent>
+        <PurePropertiesHowItWorks />
+        <form className="space-y-4" onSubmit={handlePropertySubmit}>
+          <Combobox
+            label="Fluido puro"
+            options={componentOptions}
+            value={propertyForm.fluid}
+            onValueChange={handlePropertyFluidChange}
+            placeholder="Selecione um fluido"
+          />
+          <MultiCombobox
+            label="Propriedades do fluido"
+            options={propertyOptions}
+            value={propertyForm.propertyNames}
+            onValueChange={handlePropertyNamesChange}
+            placeholder="Selecione propriedades"
+          />
+          <label className="block text-sm font-medium text-slate-800" htmlFor="property-temperature">
+            Temperatura do fluido
+            <input
+              id="property-temperature"
+              className={inputClassName}
+              type="number"
+              step="any"
+              value={propertyForm.temperature}
+              onChange={(event) => handlePropertyTemperatureChange(event.target.value)}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800" htmlFor="property-pressure">
+            Pressão do fluido
+            <input
+              id="property-pressure"
+              className={inputClassName}
+              type="number"
+              step="any"
+              value={propertyForm.pressure}
+              onChange={(event) => handlePropertyPressureChange(event.target.value)}
+            />
+          </label>
+          <Button type="submit">Calcular propriedades</Button>
+        </form>
+
+        {propertyRows.length > 0 ? (
+          <ResultTableSection
+            title="Resultado"
+            emptyLabel="Calcule propriedades para visualizar os resultados."
+            rows={propertyRows}
+            showTitleWhenEmpty={false}
+          />
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComponentsStatePropertiesTab() {
+  const {
+    components,
+    stateForm,
+    stateResult,
+    handleStateFormChange,
+    handleStateSubmit,
+  } = useComponentsPageContext();
+  const componentOptions = buildComponentOptions(components);
+
+  return (
+    <Card>
+      <CardHeader title="Propriedades por Estado" />
+      <CardContent>
+        <form className="space-y-4" onSubmit={handleStateSubmit}>
+          <Combobox
+            label="Fluido de estado"
+            options={componentOptions}
+            value={stateForm.fluid}
+            onValueChange={(value) => handleStateFormChange("fluid", value)}
+            placeholder="Selecione um fluido"
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Combobox
+              label="Variável 1"
+              options={stateVariableComboboxOptions}
+              value={stateForm.input1}
+              onValueChange={(value) => handleStateFormChange("input1", value)}
+              placeholder="Selecione uma variável"
+            />
+            <label className="block text-sm font-medium text-slate-800" htmlFor="state-value1">
+              Valor 1
+              <input
+                id="state-value1"
+                className={inputClassName}
+                type="number"
+                step="any"
+                value={stateForm.value1}
+                onChange={(event) => handleStateFormChange("value1", event.target.value)}
+              />
+            </label>
+            <Combobox
+              label="Variável 2"
+              options={stateVariableComboboxOptions}
+              value={stateForm.input2}
+              onValueChange={(value) => handleStateFormChange("input2", value)}
+              placeholder="Selecione uma variável"
+            />
+            <label className="block text-sm font-medium text-slate-800" htmlFor="state-value2">
+              Valor 2
+              <input
+                id="state-value2"
+                className={inputClassName}
+                type="number"
+                step="any"
+                value={stateForm.value2}
+                onChange={(event) => handleStateFormChange("value2", event.target.value)}
+              />
+            </label>
+          </div>
+
+          <Combobox
+            label="Propriedade de saída"
+            options={stateVariableComboboxOptions}
+            value={stateForm.output}
+            onValueChange={(value) => handleStateFormChange("output", value)}
+            placeholder="Selecione uma variável"
+          />
+
+          <Button type="submit">Calcular por estado</Button>
+        </form>
+
+        {stateResult ? (
+          <ResultTableSection
+            title="Resultado"
+            emptyLabel="Calcule por estado para visualizar o resultado."
+            rows={[
+              {
+                label: getStateVariableLabel(stateForm.output),
+                value: stateResult.value,
+                units: stateResult.units,
+              },
+            ]}
+            showTitleWhenEmpty={false}
+          />
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComponentsMixturesTab() {
+  const {
+    components,
+    mixtureForm,
+    mixturePropertyNames,
+    mixtureResult,
+    mixtureRows,
+    addMixtureRow,
+    handleMixturePressureChange,
+    handleMixturePropertiesChange,
+    handleMixtureTemperatureChange,
+    handleMixtureSubmit,
+    removeMixtureRow,
+    updateMixtureRow,
+  } = useComponentsPageContext();
+  const componentOptions = buildComponentOptions(components);
+  const mixturePropertyOptions = buildPropertyOptions(mixturePropertyNames);
   const mixturePropertyRows = buildPropertyRows(
     mixtureForm.propertyNames,
     mixtureResult?.properties ?? {},
     mixturePropertyNames,
   );
-  const componentOptions = buildComponentOptions(components);
-  const propertyOptions = buildPropertyOptions(propertyNames);
-  const mixturePropertyOptions = buildPropertyOptions(mixturePropertyNames);
-  const surfacePropertyOptions = buildSurfacePropertyOptions(propertyNames);
   const mixtureComposition = mixtureRows
     .filter((row) => row.component && row.fraction !== "")
     .map((row) => ({
       component: row.component,
       fraction: Number(row.fraction),
     }));
+
+  return (
+    <Card>
+      <CardHeader title="Misturas" />
+      <CardContent>
+        <MixturePropertiesHowItWorks />
+        <form className="space-y-4" onSubmit={handleMixtureSubmit}>
+          <div className="space-y-3">
+            {mixtureRows.map((row, index) => (
+              <div key={row.id} className="rounded-xl border border-slate-200 p-3">
+                <Combobox
+                  label={`Mistura componente ${index + 1}`}
+                  options={componentOptions}
+                  value={row.component}
+                  onValueChange={(value) => updateMixtureRow(row.id, "component", value)}
+                  placeholder="Selecione um fluido"
+                />
+                <label
+                  className="mt-3 block text-sm font-medium text-slate-800"
+                  htmlFor={`mixture-fraction-${row.id}`}
+                >
+                  Fração molar {index + 1}
+                  <input
+                    id={`mixture-fraction-${row.id}`}
+                    className={inputClassName}
+                    type="number"
+                    step="any"
+                    value={row.fraction}
+                    onChange={(event) => updateMixtureRow(row.id, "fraction", event.target.value)}
+                  />
+                </label>
+                {mixtureRows.length > 2 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => removeMixtureRow(row.id)}
+                  >
+                    Remover fluido
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+            <Button type="button" variant="outline" onClick={addMixtureRow}>
+              Adicionar fluido
+            </Button>
+          </div>
+
+          <label className="block text-sm font-medium text-slate-800" htmlFor="mixture-temperature">
+            Temperatura da mistura
+            <input
+              id="mixture-temperature"
+              className={inputClassName}
+              type="number"
+              step="any"
+              value={mixtureForm.temperature}
+              onChange={(event) => handleMixtureTemperatureChange(event.target.value)}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800" htmlFor="mixture-pressure">
+            Pressão da mistura
+            <input
+              id="mixture-pressure"
+              className={inputClassName}
+              type="number"
+              step="any"
+              value={mixtureForm.pressure}
+              onChange={(event) => handleMixturePressureChange(event.target.value)}
+            />
+          </label>
+          <MultiCombobox
+            label="Propriedades da mistura"
+            options={mixturePropertyOptions}
+            value={mixtureForm.propertyNames}
+            onValueChange={handleMixturePropertiesChange}
+            placeholder="Selecione propriedades"
+          />
+          <Button type="submit">Calcular mistura</Button>
+        </form>
+
+        {mixturePropertyRows.length > 0 ? (
+          <>
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Composição da mistura
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {mixtureComposition.map(({ component, fraction }) => (
+                  <span
+                    key={`${component}-${fraction}`}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-700"
+                  >
+                    {component}: {fraction}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <ResultTableSection
+              title="Resultado"
+              emptyLabel="Calcule a mistura para visualizar os resultados."
+              rows={mixturePropertyRows}
+              showTitleWhenEmpty={false}
+            />
+          </>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComponentsTernaryDiagramTab() {
+  const { components, ternaryForm, handleTernaryFieldChange } = useComponentsPageContext();
+  const componentOptions = buildComponentOptions(components);
   const ternaryComponents = [ternaryForm.componentA, ternaryForm.componentB, ternaryForm.componentC];
   const ternaryFractions = [
     Number(ternaryForm.fractionA),
@@ -954,836 +1533,546 @@ export function ComponentsPage() {
     ternaryComponents.every((component) => component.trim()) &&
     ternaryDistinctComponents &&
     ternaryFractions.every((fraction) => Number.isFinite(fraction));
-  const mccabeEquilibriumPoints = binaryVleResult?.bubble_points ?? [];
+
   return (
-    <section className="space-y-8 p-6 md:p-8">
-      <Card>
-        <CardHeader
-          level={1}
-          subtitle={
-            <>
-              <p>
-                Consulte propriedades críticas, propriedades de fluidos puros e
-                propriedades de misturas usando os serviços já expostos pela API.
-              </p>
-              {pageError ? <p className="text-red-600">{pageError}</p> : null}
-            </>
-          }
-          title="Propriedades de Componentes"
-          variant="hero"
-        />
-      </Card>
+    <Card>
+      <CardHeader title="Diagrama Ternário" />
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Projeção de uma corrente de três componentes. Útil para misturas e separações
+          multicomponentes sem adicionar um módulo novo.
+        </p>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <Card>
-          <CardHeader title="Propriedades Críticas" />
-          <CardContent>
-            <CriticalPropertiesHowItWorks />
-            <form className="space-y-4" onSubmit={handleCriticalSubmit}>
-              <Combobox
-                label="Fluido crítico"
-                options={componentOptions}
-                value={criticalFluid}
-                onValueChange={handleCriticalFluidChange}
-                placeholder="Selecione um fluido"
-              />
-              <Button type="submit">Obter propriedades críticas</Button>
-            </form>
-
-            {criticalResult ? (
-              <ResultTableSection
-                title="Resultado"
-                emptyLabel="Obtenha propriedades críticas para visualizar os resultados."
-                rows={formatCriticalProperties(criticalResult)}
-                showTitleWhenEmpty={false}
-              />
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader title="Fluido Puro" />
-          <CardContent>
-            <PurePropertiesHowItWorks />
-            <form className="space-y-4" onSubmit={handlePropertySubmit}>
-              <Combobox
-                label="Fluido puro"
-                options={componentOptions}
-                value={propertyForm.fluid}
-                onValueChange={handlePropertyFluidChange}
-                placeholder="Selecione um fluido"
-              />
-              <MultiCombobox
-                label="Propriedades do fluido"
-                options={propertyOptions}
-                value={propertyForm.propertyNames}
-                onValueChange={handlePropertyNamesChange}
-                placeholder="Selecione propriedades"
-              />
-              <label className="block text-sm font-medium text-slate-800" htmlFor="property-temperature">
-                Temperatura do fluido
-                <input
-                  id="property-temperature"
-                  className={inputClassName}
-                  type="number"
-                  step="any"
-                  value={propertyForm.temperature}
-                  onChange={(event) => handlePropertyTemperatureChange(event.target.value)}
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-800" htmlFor="property-pressure">
-                Pressão do fluido
-                <input
-                  id="property-pressure"
-                  className={inputClassName}
-                  type="number"
-                  step="any"
-                  value={propertyForm.pressure}
-                  onChange={(event) => handlePropertyPressureChange(event.target.value)}
-                />
-              </label>
-              <Button type="submit">Calcular propriedades</Button>
-            </form>
-
-            {propertyRows.length > 0 ? (
-              <ResultTableSection
-                title="Resultado"
-                emptyLabel="Calcule propriedades para visualizar os resultados."
-                rows={propertyRows}
-                showTitleWhenEmpty={false}
-              />
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader title="Propriedades por Estado" />
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleStateSubmit}>
-              <Combobox
-                label="Fluido de estado"
-                options={componentOptions}
-                value={stateForm.fluid}
-                onValueChange={(value) => handleStateFormChange("fluid", value)}
-                placeholder="Selecione um fluido"
-              />
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Combobox
-                  label="Variável 1"
-                  options={stateVariableComboboxOptions}
-                  value={stateForm.input1}
-                  onValueChange={(value) => handleStateFormChange("input1", value)}
-                  placeholder="Selecione uma variável"
-                />
-                <label className="block text-sm font-medium text-slate-800" htmlFor="state-value1">
-                  Valor 1
-                  <input
-                    id="state-value1"
-                    className={inputClassName}
-                    type="number"
-                    step="any"
-                    value={stateForm.value1}
-                    onChange={(event) => handleStateFormChange("value1", event.target.value)}
-                  />
-                </label>
-                <Combobox
-                  label="Variável 2"
-                  options={stateVariableComboboxOptions}
-                  value={stateForm.input2}
-                  onValueChange={(value) => handleStateFormChange("input2", value)}
-                  placeholder="Selecione uma variável"
-                />
-                <label className="block text-sm font-medium text-slate-800" htmlFor="state-value2">
-                  Valor 2
-                  <input
-                    id="state-value2"
-                    className={inputClassName}
-                    type="number"
-                    step="any"
-                    value={stateForm.value2}
-                    onChange={(event) => handleStateFormChange("value2", event.target.value)}
-                  />
-                </label>
-              </div>
-
-              <Combobox
-                label="Propriedade de saída"
-                options={stateVariableComboboxOptions}
-                value={stateForm.output}
-                onValueChange={(value) => handleStateFormChange("output", value)}
-                placeholder="Selecione uma variável"
-              />
-
-              <Button type="submit">Calcular por estado</Button>
-            </form>
-
-            {stateResult ? (
-              <ResultTableSection
-                title="Resultado"
-                emptyLabel="Calcule por estado para visualizar o resultado."
-                rows={[
-                  {
-                    label: getStateVariableLabel(stateForm.output),
-                    value: stateResult.value,
-                    units: stateResult.units,
-                  },
-                ]}
-                showTitleWhenEmpty={false}
-              />
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader title="Misturas" />
-          <CardContent>
-            <MixturePropertiesHowItWorks />
-            <form className="space-y-4" onSubmit={handleMixtureSubmit}>
-              <div className="space-y-3">
-                {mixtureRows.map((row, index) => (
-                  <div key={row.id} className="rounded-xl border border-slate-200 p-3">
-                    <Combobox
-                      label={`Mistura componente ${index + 1}`}
-                      options={componentOptions}
-                      value={row.component}
-                      onValueChange={(value) => updateMixtureRow(row.id, "component", value)}
-                      placeholder="Selecione um fluido"
-                    />
-                    <label
-                      className="mt-3 block text-sm font-medium text-slate-800"
-                      htmlFor={`mixture-fraction-${row.id}`}
-                    >
-                      Fração molar {index + 1}
-                      <input
-                        id={`mixture-fraction-${row.id}`}
-                        className={inputClassName}
-                        type="number"
-                        step="any"
-                        value={row.fraction}
-                        onChange={(event) => updateMixtureRow(row.id, "fraction", event.target.value)}
-                      />
-                    </label>
-                    {mixtureRows.length > 2 ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="mt-3"
-                        onClick={() => removeMixtureRow(row.id)}
-                      >
-                        Remover fluido
-                      </Button>
-                    ) : null}
-                  </div>
-                ))}
-                <Button type="button" variant="outline" onClick={addMixtureRow}>
-                  Adicionar fluido
-                </Button>
-              </div>
-
-              <label className="block text-sm font-medium text-slate-800" htmlFor="mixture-temperature">
-                Temperatura da mistura
-                <input
-                  id="mixture-temperature"
-                  className={inputClassName}
-                  type="number"
-                  step="any"
-                  value={mixtureForm.temperature}
-                  onChange={(event) => handleMixtureTemperatureChange(event.target.value)}
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-800" htmlFor="mixture-pressure">
-                Pressão da mistura
-                <input
-                  id="mixture-pressure"
-                  className={inputClassName}
-                  type="number"
-                  step="any"
-                  value={mixtureForm.pressure}
-                  onChange={(event) => handleMixturePressureChange(event.target.value)}
-                />
-              </label>
-              <MultiCombobox
-                label="Propriedades da mistura"
-                options={mixturePropertyOptions}
-                value={mixtureForm.propertyNames}
-                onValueChange={handleMixturePropertiesChange}
-                placeholder="Selecione propriedades"
-              />
-              <Button type="submit">Calcular mistura</Button>
-            </form>
-
-            {mixturePropertyRows.length > 0 ? (
-              <>
-                <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Composição da mistura
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {mixtureComposition.map(({ component, fraction }) => (
-                      <span
-                        key={`${component}-${fraction}`}
-                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-700"
-                      >
-                        {component}: {fraction}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <ResultTableSection
-                  title="Resultado"
-                  emptyLabel="Calcule a mistura para visualizar os resultados."
-                  rows={mixturePropertyRows}
-                  showTitleWhenEmpty={false}
-                />
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-
-      <ExploratoryPanel
-        config={componentsExploratory}
-        state={{
-          applyFields: applyExploratoryFields,
-          changeField: changeExploratoryField,
-          describeScenario,
-        }}
-        onScenariosChange={setSavedScenarios}
-      />
-
-      <Card>
-        <CardHeader title="Diagrama Ternário" />
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Projeção de uma corrente de três componentes. Útil para misturas e separações
-            multicomponentes sem adicionar um módulo novo.
-          </p>
-
-          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-            <Combobox
-              label="Componente A"
-              options={componentOptions}
-              value={ternaryForm.componentA}
-              onValueChange={(value) =>
-                setTernaryForm((current) => ({ ...current, componentA: value }))
-              }
-              placeholder="Selecione um fluido"
-            />
-            <Combobox
-              label="Componente B"
-              options={componentOptions}
-              value={ternaryForm.componentB}
-              onValueChange={(value) =>
-                setTernaryForm((current) => ({ ...current, componentB: value }))
-              }
-              placeholder="Selecione um fluido"
-            />
-            <Combobox
-              label="Componente C"
-              options={componentOptions}
-              value={ternaryForm.componentC}
-              onValueChange={(value) =>
-                setTernaryForm((current) => ({ ...current, componentC: value }))
-              }
-              placeholder="Selecione um fluido"
-            />
-            <label className="block text-sm font-medium text-slate-800" htmlFor="ternary-fraction-a">
-              Fração A
-              <input
-                id="ternary-fraction-a"
-                className={inputClassName}
-                type="number"
-                min="0"
-                max="1"
-                step="any"
-                value={ternaryForm.fractionA}
-                onChange={(event) =>
-                  setTernaryForm((current) => ({ ...current, fractionA: event.target.value }))
-                }
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-800" htmlFor="ternary-fraction-b">
-              Fração B
-              <input
-                id="ternary-fraction-b"
-                className={inputClassName}
-                type="number"
-                min="0"
-                max="1"
-                step="any"
-                value={ternaryForm.fractionB}
-                onChange={(event) =>
-                  setTernaryForm((current) => ({ ...current, fractionB: event.target.value }))
-                }
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-800" htmlFor="ternary-fraction-c">
-              Fração C
-              <input
-                id="ternary-fraction-c"
-                className={inputClassName}
-                type="number"
-                min="0"
-                max="1"
-                step="any"
-                value={ternaryForm.fractionC}
-                onChange={(event) =>
-                  setTernaryForm((current) => ({ ...current, fractionC: event.target.value }))
-                }
-              />
-            </label>
-          </div>
-
-          <label className="block text-sm font-medium text-slate-800" htmlFor="ternary-name">
-            Nome da corrente
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+          <Combobox
+            label="Componente A"
+            options={componentOptions}
+            value={ternaryForm.componentA}
+            onValueChange={(value) => handleTernaryFieldChange("componentA", value)}
+            placeholder="Selecione um fluido"
+          />
+          <Combobox
+            label="Componente B"
+            options={componentOptions}
+            value={ternaryForm.componentB}
+            onValueChange={(value) => handleTernaryFieldChange("componentB", value)}
+            placeholder="Selecione um fluido"
+          />
+          <Combobox
+            label="Componente C"
+            options={componentOptions}
+            value={ternaryForm.componentC}
+            onValueChange={(value) => handleTernaryFieldChange("componentC", value)}
+            placeholder="Selecione um fluido"
+          />
+          <label className="block text-sm font-medium text-slate-800" htmlFor="ternary-fraction-a">
+            Fração A
             <input
-              id="ternary-name"
+              id="ternary-fraction-a"
               className={inputClassName}
-              type="text"
-              value={ternaryForm.streamName}
+              type="number"
+              min="0"
+              max="1"
+              step="any"
+              value={ternaryForm.fractionA}
+              onChange={(event) => handleTernaryFieldChange("fractionA", event.target.value)}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800" htmlFor="ternary-fraction-b">
+            Fração B
+            <input
+              id="ternary-fraction-b"
+              className={inputClassName}
+              type="number"
+              min="0"
+              max="1"
+              step="any"
+              value={ternaryForm.fractionB}
+              onChange={(event) => handleTernaryFieldChange("fractionB", event.target.value)}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800" htmlFor="ternary-fraction-c">
+            Fração C
+            <input
+              id="ternary-fraction-c"
+              className={inputClassName}
+              type="number"
+              min="0"
+              max="1"
+              step="any"
+              value={ternaryForm.fractionC}
+              onChange={(event) => handleTernaryFieldChange("fractionC", event.target.value)}
+            />
+          </label>
+        </div>
+
+        <label className="block text-sm font-medium text-slate-800" htmlFor="ternary-name">
+          Nome da corrente
+          <input
+            id="ternary-name"
+            className={inputClassName}
+            type="text"
+            value={ternaryForm.streamName}
+            onChange={(event) => handleTernaryFieldChange("streamName", event.target.value)}
+          />
+        </label>
+
+        {ternaryReady ? (
+          <TernaryDiagram
+            components={ternaryComponents}
+            streams={[
+              {
+                name: ternaryForm.streamName.trim() || "Corrente atual",
+                direction: "alimentação",
+                compositions: {
+                  [ternaryForm.componentA]: ternaryFractions[0],
+                  [ternaryForm.componentB]: ternaryFractions[1],
+                  [ternaryForm.componentC]: ternaryFractions[2],
+                },
+              },
+            ]}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Selecione três componentes distintos e valores numéricos para visualizar o triângulo.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComponentsBinaryVleTab() {
+  const {
+    binaryVleForm,
+    binaryVleResult,
+    components,
+    handleBinaryVleFieldChange,
+    isLoadingBinaryVle,
+    handleBinaryVleSubmit,
+  } = useComponentsPageContext();
+  const componentOptions = buildComponentOptions(components);
+
+  return (
+    <Card>
+      <CardHeader title="Diagrama T-x-y / y-x" />
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Visualização binária ideal de Raoult para dois fluidos. Útil para leitura de equilíbrio
+          líquido-vapor sem criar um módulo completo de destilação.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Combobox
+            label="Componente 1"
+            options={componentOptions}
+            value={binaryVleForm.fluid1}
+            onValueChange={(value) => handleBinaryVleFieldChange("fluid1", value)}
+            placeholder="Selecione um fluido"
+          />
+          <Combobox
+            label="Componente 2"
+            options={componentOptions}
+            value={binaryVleForm.fluid2}
+            onValueChange={(value) => handleBinaryVleFieldChange("fluid2", value)}
+            placeholder="Selecione um fluido"
+          />
+          <label className="block text-sm font-medium text-slate-800" htmlFor="binary-vle-pressure">
+            Pressão (Pa)
+            <input
+              id="binary-vle-pressure"
+              className={inputClassName}
+              type="number"
+              step="any"
+              value={binaryVleForm.pressure}
+              onChange={(event) => handleBinaryVleFieldChange("pressure", event.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-[1fr_180px]">
+          <label className="block text-sm font-medium text-slate-800" htmlFor="binary-vle-samples">
+            Amostras por curva
+            <input
+              id="binary-vle-samples"
+              className={inputClassName}
+              type="number"
+              min="5"
+              max="60"
+              step="1"
+              value={binaryVleForm.sampleCount}
+              onChange={(event) => handleBinaryVleFieldChange("sampleCount", event.target.value)}
+            />
+          </label>
+          <div className="flex items-end">
+            <Button
+              type="button"
+              disabled={isLoadingBinaryVle}
+              onClick={() => void handleBinaryVleSubmit()}
+            >
+              {isLoadingBinaryVle ? "Gerando..." : "Gerar diagrama"}
+            </Button>
+          </div>
+        </div>
+
+        {binaryVleResult ? (
+          <BinaryVleChart
+            fluid1={binaryVleResult.fluid1}
+            fluid2={binaryVleResult.fluid2}
+            pressure={binaryVleResult.pressure}
+            bubblePoints={binaryVleResult.bubble_points}
+            dewPoints={binaryVleResult.dew_points}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            O diagrama aparecerá após a geração das curvas.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComponentsMcCabeThieleTab() {
+  const { binaryVleResult, handleMccabeFieldChange, mccabeForm } = useComponentsPageContext();
+  const mccabeEquilibriumPoints = binaryVleResult?.bubble_points ?? [];
+
+  return (
+    <Card>
+      <CardHeader title="McCabe-Thiele" />
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Construção didática de estágios teóricos usando o equilíbrio binário já gerado acima.
+          O objetivo aqui é visualizar a lógica do método sem criar um módulo completo de destilação.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+          <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-distillate">
+            xD
+            <input
+              id="mccabe-distillate"
+              className={inputClassName}
+              type="number"
+              min="0"
+              max="1"
+              step="any"
+              value={mccabeForm.distillateComposition}
               onChange={(event) =>
-                setTernaryForm((current) => ({ ...current, streamName: event.target.value }))
+                handleMccabeFieldChange("distillateComposition", event.target.value)
               }
             />
           </label>
-
-          {ternaryReady ? (
-            <TernaryDiagram
-              components={ternaryComponents}
-              streams={[
-                {
-                  name: ternaryForm.streamName.trim() || "Corrente atual",
-                  direction: "alimentação",
-                  compositions: {
-                    [ternaryForm.componentA]: ternaryFractions[0],
-                    [ternaryForm.componentB]: ternaryFractions[1],
-                    [ternaryForm.componentC]: ternaryFractions[2],
-                  },
-                },
-              ]}
+          <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-bottoms">
+            xB
+            <input
+              id="mccabe-bottoms"
+              className={inputClassName}
+              type="number"
+              min="0"
+              max="1"
+              step="any"
+              value={mccabeForm.bottomsComposition}
+              onChange={(event) => handleMccabeFieldChange("bottomsComposition", event.target.value)}
             />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Selecione três componentes distintos e valores numéricos para visualizar o triângulo.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          </label>
+          <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-feed">
+            zF
+            <input
+              id="mccabe-feed"
+              className={inputClassName}
+              type="number"
+              min="0"
+              max="1"
+              step="any"
+              value={mccabeForm.feedComposition}
+              onChange={(event) => handleMccabeFieldChange("feedComposition", event.target.value)}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-reflux">
+            Refluxo
+            <input
+              id="mccabe-reflux"
+              className={inputClassName}
+              type="number"
+              min="0"
+              step="any"
+              value={mccabeForm.refluxRatio}
+              onChange={(event) => handleMccabeFieldChange("refluxRatio", event.target.value)}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-q">
+            q
+            <input
+              id="mccabe-q"
+              className={inputClassName}
+              type="number"
+              step="any"
+              value={mccabeForm.qValue}
+              onChange={(event) => handleMccabeFieldChange("qValue", event.target.value)}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-max-stages">
+            Máx. estágios
+            <input
+              id="mccabe-max-stages"
+              className={inputClassName}
+              type="number"
+              min="1"
+              max="30"
+              step="1"
+              value={mccabeForm.maxStages}
+              onChange={(event) => handleMccabeFieldChange("maxStages", event.target.value)}
+            />
+          </label>
+        </div>
 
-      <Card>
-        <CardHeader title="Diagrama T-x-y / y-x" />
-        <CardContent className="space-y-4">
+        {binaryVleResult ? (
+          <McCabeThieleChart
+            fluid1={binaryVleResult.fluid1}
+            fluid2={binaryVleResult.fluid2}
+            equilibriumPoints={mccabeEquilibriumPoints}
+            distillateComposition={Number(mccabeForm.distillateComposition)}
+            bottomsComposition={Number(mccabeForm.bottomsComposition)}
+            feedComposition={Number(mccabeForm.feedComposition)}
+            refluxRatio={Number(mccabeForm.refluxRatio)}
+            qValue={Number(mccabeForm.qValue)}
+            maxStages={Number(mccabeForm.maxStages)}
+          />
+        ) : (
           <p className="text-sm text-muted-foreground">
-            Visualização binária ideal de Raoult para dois fluidos. Útil para leitura de equilíbrio
-            líquido-vapor sem criar um módulo completo de destilação.
+            Gere primeiro o diagrama T-x-y / y-x para reutilizar o equilíbrio binário.
           </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
-          <div className="grid gap-4 md:grid-cols-3">
+function ComponentsPropertySurfaceTab() {
+  const {
+    components,
+    propertyNames,
+    propertySurfaceForm,
+    propertySurfaceResult,
+    handlePropertySurfaceFieldChange,
+    handlePropertySurfaceSubmit,
+    isLoadingPropertySurface,
+  } = useComponentsPageContext();
+  const componentOptions = buildComponentOptions(components);
+  const surfacePropertyOptions = buildSurfacePropertyOptions(propertyNames);
+
+  return (
+    <Card>
+      <CardHeader title="Superfície de Propriedades" />
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Mapa T-P para uma propriedade termodinâmica do CoolProp. Útil para ver variações de
+          densidade, entalpia, entropia e outras propriedades sem montar um módulo completo.
+        </p>
+
+        <form className="space-y-4" onSubmit={handlePropertySurfaceSubmit}>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Combobox
-              label="Componente 1"
+              label="Fluido"
               options={componentOptions}
-              value={binaryVleForm.fluid1}
-              onValueChange={(value) => {
-                setBinaryVleResult(null);
-                setBinaryVleForm((current) => ({ ...current, fluid1: value }));
-              }}
+              value={propertySurfaceForm.fluid}
+              onValueChange={(value) => handlePropertySurfaceFieldChange("fluid", value)}
               placeholder="Selecione um fluido"
             />
             <Combobox
-              label="Componente 2"
-              options={componentOptions}
-              value={binaryVleForm.fluid2}
-              onValueChange={(value) => {
-                setBinaryVleResult(null);
-                setBinaryVleForm((current) => ({ ...current, fluid2: value }));
-              }}
-              placeholder="Selecione um fluido"
+              label="Propriedade"
+              options={surfacePropertyOptions}
+              value={propertySurfaceForm.propertyName}
+              onValueChange={(value) => handlePropertySurfaceFieldChange("propertyName", value)}
+              placeholder="Selecione uma propriedade"
             />
-            <label className="block text-sm font-medium text-slate-800" htmlFor="binary-vle-pressure">
-              Pressão (Pa)
+            <label className="block text-sm font-medium text-slate-800" htmlFor="surface-temp-min">
+              Temperatura mínima
               <input
-                id="binary-vle-pressure"
+                id="surface-temp-min"
                 className={inputClassName}
                 type="number"
                 step="any"
-                value={binaryVleForm.pressure}
-                onChange={(event) => {
-                  setBinaryVleResult(null);
-                  setBinaryVleForm((current) => ({ ...current, pressure: event.target.value }));
-                }}
+                value={propertySurfaceForm.temperatureMin}
+                onChange={(event) =>
+                  handlePropertySurfaceFieldChange("temperatureMin", event.target.value)
+                }
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-800" htmlFor="surface-temp-max">
+              Temperatura máxima
+              <input
+                id="surface-temp-max"
+                className={inputClassName}
+                type="number"
+                step="any"
+                value={propertySurfaceForm.temperatureMax}
+                onChange={(event) =>
+                  handlePropertySurfaceFieldChange("temperatureMax", event.target.value)
+                }
               />
             </label>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-[1fr_180px]">
-            <label className="block text-sm font-medium text-slate-800" htmlFor="binary-vle-samples">
-              Amostras por curva
+          <div className="grid gap-4 md:grid-cols-[1fr_1fr_180px_180px]">
+            <label className="block text-sm font-medium text-slate-800" htmlFor="surface-pressure-min">
+              Pressão mínima
               <input
-                id="binary-vle-samples"
+                id="surface-pressure-min"
                 className={inputClassName}
                 type="number"
-                min="5"
-                max="60"
+                step="any"
+                value={propertySurfaceForm.pressureMin}
+                onChange={(event) =>
+                  handlePropertySurfaceFieldChange("pressureMin", event.target.value)
+                }
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-800" htmlFor="surface-pressure-max">
+              Pressão máxima
+              <input
+                id="surface-pressure-max"
+                className={inputClassName}
+                type="number"
+                step="any"
+                value={propertySurfaceForm.pressureMax}
+                onChange={(event) =>
+                  handlePropertySurfaceFieldChange("pressureMax", event.target.value)
+                }
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-800" htmlFor="surface-temp-samples">
+              Amostras T
+              <input
+                id="surface-temp-samples"
+                className={inputClassName}
+                type="number"
+                min="4"
+                max="40"
                 step="1"
-                value={binaryVleForm.sampleCount}
-                onChange={(event) => {
-                  setBinaryVleResult(null);
-                  setBinaryVleForm((current) => ({
-                    ...current,
-                    sampleCount: event.target.value,
-                  }));
-                }}
+                value={propertySurfaceForm.temperatureSamples}
+                onChange={(event) =>
+                  handlePropertySurfaceFieldChange("temperatureSamples", event.target.value)
+                }
               />
             </label>
-            <div className="flex items-end">
-              <Button type="button" disabled={isLoadingBinaryVle} onClick={() => void handleBinaryVleSubmit()}>
-                {isLoadingBinaryVle ? "Gerando..." : "Gerar diagrama"}
-              </Button>
-            </div>
-          </div>
-
-          {binaryVleResult ? (
-            <BinaryVleChart
-              fluid1={binaryVleResult.fluid1}
-              fluid2={binaryVleResult.fluid2}
-              pressure={binaryVleResult.pressure}
-              bubblePoints={binaryVleResult.bubble_points}
-              dewPoints={binaryVleResult.dew_points}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              O diagrama aparecerá após a geração das curvas.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader title="McCabe-Thiele" />
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Construção didática de estágios teóricos usando o equilíbrio binário já gerado acima.
-            O objetivo aqui é visualizar a lógica do método sem criar um módulo completo de destilação.
-          </p>
-
-          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-            <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-distillate">
-              xD
+            <label className="block text-sm font-medium text-slate-800" htmlFor="surface-pressure-samples">
+              Amostras P
               <input
-                id="mccabe-distillate"
+                id="surface-pressure-samples"
                 className={inputClassName}
                 type="number"
-                min="0"
-                max="1"
-                step="any"
-                value={mccabeForm.distillateComposition}
-                onChange={(event) => handleMccabeFieldChange("distillateComposition", event.target.value)}
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-bottoms">
-              xB
-              <input
-                id="mccabe-bottoms"
-                className={inputClassName}
-                type="number"
-                min="0"
-                max="1"
-                step="any"
-                value={mccabeForm.bottomsComposition}
-                onChange={(event) => handleMccabeFieldChange("bottomsComposition", event.target.value)}
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-feed">
-              zF
-              <input
-                id="mccabe-feed"
-                className={inputClassName}
-                type="number"
-                min="0"
-                max="1"
-                step="any"
-                value={mccabeForm.feedComposition}
-                onChange={(event) => handleMccabeFieldChange("feedComposition", event.target.value)}
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-reflux">
-              Refluxo
-              <input
-                id="mccabe-reflux"
-                className={inputClassName}
-                type="number"
-                min="0"
-                step="any"
-                value={mccabeForm.refluxRatio}
-                onChange={(event) => handleMccabeFieldChange("refluxRatio", event.target.value)}
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-q">
-              q
-              <input
-                id="mccabe-q"
-                className={inputClassName}
-                type="number"
-                step="any"
-                value={mccabeForm.qValue}
-                onChange={(event) => handleMccabeFieldChange("qValue", event.target.value)}
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-800" htmlFor="mccabe-max-stages">
-              Máx. estágios
-              <input
-                id="mccabe-max-stages"
-                className={inputClassName}
-                type="number"
-                min="1"
-                max="30"
+                min="4"
+                max="40"
                 step="1"
-                value={mccabeForm.maxStages}
-                onChange={(event) => handleMccabeFieldChange("maxStages", event.target.value)}
+                value={propertySurfaceForm.pressureSamples}
+                onChange={(event) =>
+                  handlePropertySurfaceFieldChange("pressureSamples", event.target.value)
+                }
               />
             </label>
           </div>
 
-          {binaryVleResult ? (
-            <McCabeThieleChart
-              fluid1={binaryVleResult.fluid1}
-              fluid2={binaryVleResult.fluid2}
-              equilibriumPoints={mccabeEquilibriumPoints}
-              distillateComposition={Number(mccabeForm.distillateComposition)}
-              bottomsComposition={Number(mccabeForm.bottomsComposition)}
-              feedComposition={Number(mccabeForm.feedComposition)}
-              refluxRatio={Number(mccabeForm.refluxRatio)}
-              qValue={Number(mccabeForm.qValue)}
-              maxStages={Number(mccabeForm.maxStages)}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Gere primeiro o diagrama T-x-y / y-x para reutilizar o equilíbrio binário.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          <Button type="submit" disabled={isLoadingPropertySurface}>
+            {isLoadingPropertySurface ? "Gerando..." : "Gerar superfície"}
+          </Button>
+        </form>
 
-      <Card>
-        <CardHeader title="Superfície de Propriedades" />
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Mapa T-P para uma propriedade termodinâmica do CoolProp. Útil para ver
-            variações de densidade, entalpia, entropia e outras propriedades sem
-            montar um módulo completo.
-          </p>
-
-          <form className="space-y-4" onSubmit={handlePropertySurfaceSubmit}>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <Combobox
-                label="Fluido"
-                options={componentOptions}
-                value={propertySurfaceForm.fluid}
-                onValueChange={(value) => {
-                  clearDerivedResults();
-                  setPropertySurfaceForm((current) => ({ ...current, fluid: value }));
-                }}
-                placeholder="Selecione um fluido"
-              />
-              <Combobox
-                label="Propriedade"
-                options={surfacePropertyOptions}
-                value={propertySurfaceForm.propertyName}
-                onValueChange={(value) => {
-                  clearDerivedResults();
-                  setPropertySurfaceForm((current) => ({ ...current, propertyName: value }));
-                }}
-                placeholder="Selecione uma propriedade"
-              />
-              <label className="block text-sm font-medium text-slate-800" htmlFor="surface-temp-min">
-                Temperatura mínima
-                <input
-                  id="surface-temp-min"
-                  className={inputClassName}
-                  type="number"
-                  step="any"
-                  value={propertySurfaceForm.temperatureMin}
-                  onChange={(event) => {
-                    clearDerivedResults();
-                    setPropertySurfaceForm((current) => ({
-                      ...current,
-                      temperatureMin: event.target.value,
-                    }));
-                  }}
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-800" htmlFor="surface-temp-max">
-                Temperatura máxima
-                <input
-                  id="surface-temp-max"
-                  className={inputClassName}
-                  type="number"
-                  step="any"
-                  value={propertySurfaceForm.temperatureMax}
-                  onChange={(event) => {
-                    clearDerivedResults();
-                    setPropertySurfaceForm((current) => ({
-                      ...current,
-                      temperatureMax: event.target.value,
-                    }));
-                  }}
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-[1fr_1fr_180px_180px]">
-              <label className="block text-sm font-medium text-slate-800" htmlFor="surface-pressure-min">
-                Pressão mínima
-                <input
-                  id="surface-pressure-min"
-                  className={inputClassName}
-                  type="number"
-                  step="any"
-                  value={propertySurfaceForm.pressureMin}
-                  onChange={(event) => {
-                    clearDerivedResults();
-                    setPropertySurfaceForm((current) => ({
-                      ...current,
-                      pressureMin: event.target.value,
-                    }));
-                  }}
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-800" htmlFor="surface-pressure-max">
-                Pressão máxima
-                <input
-                  id="surface-pressure-max"
-                  className={inputClassName}
-                  type="number"
-                  step="any"
-                  value={propertySurfaceForm.pressureMax}
-                  onChange={(event) => {
-                    clearDerivedResults();
-                    setPropertySurfaceForm((current) => ({
-                      ...current,
-                      pressureMax: event.target.value,
-                    }));
-                  }}
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-800" htmlFor="surface-temp-samples">
-                Amostras T
-                <input
-                  id="surface-temp-samples"
-                  className={inputClassName}
-                  type="number"
-                  min="4"
-                  max="40"
-                  step="1"
-                  value={propertySurfaceForm.temperatureSamples}
-                  onChange={(event) => {
-                    clearDerivedResults();
-                    setPropertySurfaceForm((current) => ({
-                      ...current,
-                      temperatureSamples: event.target.value,
-                    }));
-                  }}
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-800" htmlFor="surface-pressure-samples">
-                Amostras P
-                <input
-                  id="surface-pressure-samples"
-                  className={inputClassName}
-                  type="number"
-                  min="4"
-                  max="40"
-                  step="1"
-                  value={propertySurfaceForm.pressureSamples}
-                  onChange={(event) => {
-                    clearDerivedResults();
-                    setPropertySurfaceForm((current) => ({
-                      ...current,
-                      pressureSamples: event.target.value,
-                    }));
-                  }}
-                />
-              </label>
-            </div>
-
-            <Button type="submit" disabled={isLoadingPropertySurface}>
-              {isLoadingPropertySurface ? "Gerando..." : "Gerar superfície"}
-            </Button>
-          </form>
-
-          {propertySurfaceResult ? (
-            <PropertySurfaceHeatmap
-              fluid={propertySurfaceResult.fluid}
-              propertyLabel={translatePropertyBaseLabel(
-                propertyNames[propertySurfaceResult.property_name] ??
-                  propertySurfaceResult.property_label,
-              )}
-              propertyUnits={propertySurfaceResult.property_units}
-              temperatures={propertySurfaceResult.temperatures}
-              pressures={propertySurfaceResult.pressures}
-              values={propertySurfaceResult.values}
-              valueMin={propertySurfaceResult.value_min}
-              valueMax={propertySurfaceResult.value_max}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              A superfície aparecerá após a geração do mapa.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader title="Envelope de Fase" />
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Gere o domo de saturação T-s do fluido selecionado usando o ponto
-            tríplice e o ponto crítico da base termodinâmica.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              disabled={!criticalFluid || isLoadingEnvelope}
-              onClick={() => void handleSaturationEnvelopeSubmit()}
-            >
-              {isLoadingEnvelope ? "Traçando..." : "Traçar envelope"}
-            </Button>
-            {criticalFluid ? (
-              <span className="text-sm text-muted-foreground">
-                Fluido selecionado: {criticalFluid}
-              </span>
-            ) : (
-              <span className="text-sm text-muted-foreground">Selecione um fluido acima.</span>
+        {propertySurfaceResult ? (
+          <PropertySurfaceHeatmap
+            fluid={propertySurfaceResult.fluid}
+            propertyLabel={translatePropertyBaseLabel(
+              propertyNames[propertySurfaceResult.property_name] ??
+                propertySurfaceResult.property_label,
             )}
-          </div>
+            propertyUnits={propertySurfaceResult.property_units}
+            temperatures={propertySurfaceResult.temperatures}
+            pressures={propertySurfaceResult.pressures}
+            values={propertySurfaceResult.values}
+            valueMin={propertySurfaceResult.value_min}
+            valueMax={propertySurfaceResult.value_max}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            A superfície aparecerá após a geração do mapa.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
-          {saturationEnvelope ? (
-            <PhaseEnvelopeChart
-              critical={saturationEnvelope.critical}
-              fluid={saturationEnvelope.fluid}
-              points={saturationEnvelope.points}
-              triple={saturationEnvelope.triple}
-            />
+function ComponentsPhaseEnvelopeTab() {
+  const { criticalFluid, isLoadingEnvelope, handleSaturationEnvelopeSubmit, saturationEnvelope } =
+    useComponentsPageContext();
+
+  return (
+    <Card>
+      <CardHeader title="Envelope de Fase" />
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Gere o domo de saturação T-s do fluido selecionado usando o ponto tríplice e o ponto
+          crítico da base termodinâmica.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            disabled={!criticalFluid || isLoadingEnvelope}
+            onClick={() => void handleSaturationEnvelopeSubmit()}
+          >
+            {isLoadingEnvelope ? "Traçando..." : "Traçar envelope"}
+          </Button>
+          {criticalFluid ? (
+            <span className="text-sm text-muted-foreground">
+              Fluido selecionado: {criticalFluid}
+            </span>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              O gráfico aparecerá após a geração do envelope.
-            </p>
+            <span className="text-sm text-muted-foreground">Selecione um fluido acima.</span>
           )}
+        </div>
 
-          {saturationEnvelope ? (
-            <VaporPressureCurve
-              critical={saturationEnvelope.critical}
-              fluid={saturationEnvelope.fluid}
-              points={saturationEnvelope.points.map((point) => ({
-                temperature: point.temperature,
-                pressure: point.pressure,
-              }))}
-              triple={saturationEnvelope.triple}
-            />
-          ) : null}
-        </CardContent>
-      </Card>
-    </section>
+        {saturationEnvelope ? (
+          <PhaseEnvelopeChart
+            critical={saturationEnvelope.critical}
+            fluid={saturationEnvelope.fluid}
+            points={saturationEnvelope.points}
+            triple={saturationEnvelope.triple}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            O gráfico aparecerá após a geração do envelope.
+          </p>
+        )}
+
+        {saturationEnvelope ? (
+          <VaporPressureCurve
+            critical={saturationEnvelope.critical}
+            fluid={saturationEnvelope.fluid}
+            points={saturationEnvelope.points.map((point) => ({
+              temperature: point.temperature,
+              pressure: point.pressure,
+            }))}
+            triple={saturationEnvelope.triple}
+          />
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComponentsExploratoryTab() {
+  const { applyExploratoryFields, changeExploratoryField, describeScenario, handleSavedScenariosChange } =
+    useComponentsPageContext();
+
+  return (
+    <ExploratoryPanel
+      config={componentsExploratory}
+      state={{
+        applyFields: applyExploratoryFields,
+        changeField: changeExploratoryField,
+        describeScenario,
+      }}
+      onScenariosChange={handleSavedScenariosChange}
+    />
   );
 }

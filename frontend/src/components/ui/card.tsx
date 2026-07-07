@@ -18,16 +18,80 @@ function Card({
   )
 }
 
-function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
+type CardHeaderProps = React.ComponentProps<"div"> & {
+  title?: React.ReactNode
+  subtitle?: React.ReactNode
+  action?: React.ReactNode
+  level?: 1 | 2 | 3
+  variant?: "section" | "hero"
+}
+
+function CardHeader({
+  className,
+  title,
+  subtitle,
+  action,
+  level = 2,
+  variant = "section",
+  children,
+  ...props
+}: CardHeaderProps) {
+  if (title == null && subtitle == null && action == null) {
+    return (
+      <div
+        data-slot="card-header"
+        className={cn(
+          "grid auto-rows-min items-start gap-1 px-6 pt-6",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  }
+
+  const isHero = variant === "hero"
+  const wrapperClassName = cn(
+    "px-6 pt-6",
+    isHero
+      ? "flex flex-col gap-4 pb-6 md:flex-row md:items-start md:justify-between"
+      : "grid auto-rows-min items-start gap-1",
+    className
+  )
+  const titleClassName = cn(
+    "font-heading leading-snug font-medium",
+    level === 1 ? "text-3xl font-semibold" : level === 2 ? "text-xl font-semibold" : "text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+  )
+  const TitleTag = level === 1 ? "h1" : level === 2 ? "h2" : "h3"
+
   return (
-    <div
-      data-slot="card-header"
-      className={cn(
-        "grid auto-rows-min items-start gap-1 px-6 pt-6",
-        className
-      )}
-      {...props}
-    />
+    <div data-slot="card-header" className={wrapperClassName} {...props}>
+      <div className={cn("space-y-3", isHero ? "max-w-3xl" : undefined)}>
+        {title != null ? (
+          <TitleTag data-slot="card-title" className={titleClassName}>
+            {title}
+          </TitleTag>
+        ) : null}
+        {subtitle != null ? (
+          <div
+            data-slot="card-description"
+            className="text-sm text-muted-foreground"
+          >
+            {subtitle}
+          </div>
+        ) : null}
+      </div>
+      {action != null ? (
+        <div
+          data-slot="card-action"
+          className={cn("shrink-0", isHero ? "md:self-start" : "self-start")}
+        >
+          {action}
+        </div>
+      ) : null}
+      {children}
+    </div>
   )
 }
 

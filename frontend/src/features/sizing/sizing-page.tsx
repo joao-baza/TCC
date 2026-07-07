@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Outlet, useOutletContext } from "react-router-dom";
 
+import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { NumberField } from "@/components/number-field";
 import type { PropertyRow } from "@/components/property-table";
 import { VelocityProfileChart } from "@/components/viz/velocity-profile";
@@ -18,6 +20,7 @@ import {
   RealDiameterHowItWorks,
 } from "@/features/sizing/didactics";
 import { sizingExample } from "@/features/sizing/presets";
+import { sizingTabs } from "@/features/sizing/sizing-tabs";
 
 type Schedule = {
   name: string;
@@ -44,6 +47,37 @@ function buildResultRows(label: string, result: QuantityResult): PropertyRow[] {
       units: result.units,
     },
   ];
+}
+
+type SizingPageContext = {
+  schedules: Schedule[];
+  scheduleError: string | null;
+  flowRate: string;
+  velocity: string;
+  schedule: string;
+  calculatedDiameterInput: string;
+  calculatedResult: QuantityResult | null;
+  realDiameterResult: QuantityResult | null;
+  isCalculating: boolean;
+  isResolvingRealDiameter: boolean;
+  savedScenarios: Scenario[];
+  loadExample: () => void;
+  clearCalculatedForm: () => void;
+  setFlowRate: (value: string) => void;
+  setVelocity: (value: string) => void;
+  setSchedule: (value: string) => void;
+  selectSchedule: (value: string) => void;
+  setCalculatedDiameterInput: (value: string) => void;
+  runCalculatedDiameter: (flow: string, vel: string, selectedSchedule?: string) => Promise<QuantityResult | null>;
+  runRealDiameter: (calculatedDiameter: string, selectedSchedule: string) => Promise<void>;
+  applyExploratoryFields: (fields: Record<string, string>) => void;
+  changeExploratoryField: (field: string, value: string) => void;
+  describeScenario: () => string;
+  setSavedScenarios: (value: Scenario[]) => void;
+};
+
+function useSizingPageContext() {
+  return useOutletContext<SizingPageContext>();
 }
 
 export function SizingPage() {
@@ -127,7 +161,11 @@ export function SizingPage() {
     setRealDiameterResult(null);
   }
 
-  async function runCalculatedDiameter(flow: string, vel: string, selectedSchedule = schedule) {
+  async function runCalculatedDiameter(
+    flow: string,
+    vel: string,
+    selectedSchedule = schedule,
+  ): Promise<QuantityResult | null> {
     const sessionId = calculatedDiameterSessionRef.current;
 
     for (const [rule, raw, label] of [
@@ -137,7 +175,7 @@ export function SizingPage() {
       const message = raw.trim() === "" ? `Informe ${label.toLowerCase()}.` : validateNumber(rule, raw, label);
       if (message) {
         notify.error(message);
-        return;
+        return null;
       }
     }
 
@@ -180,13 +218,6 @@ export function SizingPage() {
     }
   }
 
-  async function handleCalculatedDiameterSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-    await runCalculatedDiameter(flowRate, velocity, schedule);
-  }
-
   async function runRealDiameter(calculatedDiameter: string, selectedSchedule: string) {
     const sessionId = realDiameterSessionRef.current;
 
@@ -222,11 +253,13 @@ export function SizingPage() {
     }
   }
 
-  async function handleRealDiameterSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-    await runRealDiameter(calculatedDiameterInput, schedule);
+  function selectSchedule(nextSchedule: string) {
+    realDiameterSessionRef.current += 1;
+    setSchedule(nextSchedule);
+    setRealDiameterResult(null);
+    if (calculatedDiameterInput.trim() && nextSchedule) {
+      void runRealDiameter(calculatedDiameterInput, nextSchedule);
+    }
   }
 
   function applyExploratoryFields(fields: Record<string, string>) {
@@ -256,182 +289,244 @@ export function SizingPage() {
     return `Q=${flowRate || "—"} m3/s, v=${velocity || "—"} m/s`;
   }
 
+  const context: SizingPageContext = {
+    schedules,
+    scheduleError,
+    flowRate,
+    velocity,
+    schedule,
+    calculatedDiameterInput,
+    calculatedResult,
+    realDiameterResult,
+    isCalculating,
+    isResolvingRealDiameter,
+    savedScenarios,
+    loadExample,
+    clearCalculatedForm,
+    setFlowRate,
+    setVelocity,
+    setSchedule,
+    selectSchedule,
+    setCalculatedDiameterInput,
+    runCalculatedDiameter,
+    runRealDiameter,
+    applyExploratoryFields,
+    changeExploratoryField,
+    describeScenario,
+    setSavedScenarios,
+  };
+
   return (
-    <section className="space-y-8 overflow-x-hidden p-6 md:p-8">
-      <Card>
-        <CardHeader
-          level={1}
-          subtitle={
-            <p>
-              Calcule o diâmetro hidráulico a partir da vazão e da velocidade de
-              projeto e, em seguida, selecione o próximo diâmetro comercial do
-              schedule adotado.
-            </p>
-          }
-          title="Dimensionamento de Tubulação"
-          variant="hero"
-          action={
-            <Button type="button" variant="outline" onClick={loadExample}>
-              Carregar exemplo
-            </Button>
-          }
-        />
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <CardHeader title="Diâmetro Calculado" />
-          <CardContent className="space-y-4">
-            <DiameterHowItWorks />
-            <form className="space-y-4" onSubmit={handleCalculatedDiameterSubmit}>
-              <NumberField
-                id="flow-rate"
-                label="Vazão"
-                unit="m³/s"
-                rule="positive"
-                value={flowRate}
-                onChange={setFlowRate}
-                placeholder="ex: 0.01"
-              />
-              <NumberField
-                id="design-velocity"
-                label="Velocidade de projeto"
-                unit="m/s"
-                rule="positive"
-                value={velocity}
-                onChange={setVelocity}
-                placeholder="ex: 1.5"
-              />
-
-              <div className="flex items-center gap-4">
-                <Button type="submit" disabled={isCalculating}>
-                  {isCalculating ? "Calculando..." : "Calcular diâmetro"}
-                </Button>
-                <Button type="button" variant="link" onClick={clearCalculatedForm}>
-                  Limpar campos
-                </Button>
-              </div>
-            </form>
-
-            {calculatedResult ? (
-              <ResultTableSection
-                title="Resultado"
-                emptyLabel="Sem resultado."
-                rows={buildResultRows("Diâmetro calculado", calculatedResult)}
-                children={
-                  <VelocityProfileChart
-                    velocity={Number(velocity)}
-                    diameterMm={calculatedResult.value}
-                  />
-                }
-              />
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader title="Diâmetro Real" />
-          <CardContent className="space-y-4">
-            <RealDiameterHowItWorks />
-            <form className="space-y-4" onSubmit={handleRealDiameterSubmit}>
-              <NumberField
-                id="calculated-diameter"
-                label="Diâmetro calculado"
-                unit="mm"
-                rule="positive"
-                value={calculatedDiameterInput}
-                onChange={setCalculatedDiameterInput}
-                placeholder="ex: 126.16"
-              />
-
-              <Combobox
-                label="Schedule"
-                options={schedules.map((item) => ({
-                  value: item.name,
-                  label: item.label,
-                }))}
-                value={schedule}
-                onValueChange={(nextSchedule) => {
-                  realDiameterSessionRef.current += 1;
-                  setSchedule(nextSchedule);
-                  setRealDiameterResult(null);
-                  if (calculatedDiameterInput.trim() && nextSchedule) {
-                    void runRealDiameter(calculatedDiameterInput, nextSchedule);
-                  }
-                }}
-                placeholder="Selecione um schedule"
-                disabled={schedules.length === 0}
-              />
-
-              {scheduleError ? (
-                <p className="text-sm text-destructive">{scheduleError}</p>
-              ) : null}
-
-              <Button type="submit" disabled={isResolvingRealDiameter || schedules.length === 0}>
-                {isResolvingRealDiameter
-                  ? "Consultando..."
-                  : "Obter diâmetro real"}
-              </Button>
-            </form>
-
-            {realDiameterResult ? (
-              <ResultTableSection
-                title="Resultado"
-                emptyLabel="Sem resultado."
-                rows={buildResultRows("Diâmetro real", realDiameterResult)}
-              />
-            ) : null}
-
-            {schedule ? (
-              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-muted-foreground">
-                {schedules.find((item) => item.name === schedule)?.description ??
-                  "Schedule selecionado."}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-
-      <ExploratoryPanel
-        config={sizingExploratory}
-        state={{
-          applyFields: applyExploratoryFields,
-          changeField: changeExploratoryField,
-          describeScenario,
-        }}
-        onScenariosChange={setSavedScenarios}
-      >
-        {(scenarios) =>
-          calculatedResult ? (
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Perfil ao vivo
-              </p>
-              <VelocityProfileChart
-                velocity={Number(velocity) || 0}
-                diameterMm={calculatedResult.value}
-                scenarios={savedScenarios}
-              />
-              {scenarios.length > 0 ? (
-                <ul className="mt-3 space-y-1">
-                  {scenarios.map((scenario) => (
-                    <li
-                      key={scenario.id}
-                      className="flex items-center gap-2 text-xs text-slate-600"
-                    >
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ background: scenario.color }}
-                      />
-                      {scenario.name}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ) : null
-        }
-      </ExploratoryPanel>
-    </section>
+    <ModuleTabsLayout
+      title="Dimensionamento de Tubulação"
+      subtitle={
+        <p>
+          Calcule o diâmetro hidráulico a partir da vazão e da velocidade de projeto e, em
+          seguida, selecione o próximo diâmetro comercial do schedule adotado.
+        </p>
+      }
+      action={
+        <Button type="button" variant="outline" onClick={loadExample}>
+          Carregar exemplo
+        </Button>
+      }
+      tabs={sizingTabs}
+    >
+      <Outlet context={context} />
+    </ModuleTabsLayout>
   );
 }
+
+function SizingCalculatedDiameterTab() {
+  const {
+    flowRate,
+    velocity,
+    setFlowRate,
+    setVelocity,
+    runCalculatedDiameter,
+    isCalculating,
+    clearCalculatedForm,
+    calculatedResult,
+  } = useSizingPageContext();
+
+  return (
+    <Card>
+      <CardHeader title="Diâmetro Calculado" />
+      <CardContent className="space-y-4">
+        <DiameterHowItWorks />
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void runCalculatedDiameter(flowRate, velocity);
+          }}
+        >
+          <NumberField
+            id="flow-rate"
+            label="Vazão"
+            unit="m³/s"
+            rule="positive"
+            value={flowRate}
+            onChange={setFlowRate}
+            placeholder="ex: 0.01"
+          />
+          <NumberField
+            id="design-velocity"
+            label="Velocidade de projeto"
+            unit="m/s"
+            rule="positive"
+            value={velocity}
+            onChange={setVelocity}
+            placeholder="ex: 1.5"
+          />
+
+          <div className="flex items-center gap-4">
+            <Button type="submit" disabled={isCalculating}>
+              {isCalculating ? "Calculando..." : "Calcular diâmetro"}
+            </Button>
+            <Button type="button" variant="link" onClick={clearCalculatedForm}>
+              Limpar campos
+            </Button>
+          </div>
+        </form>
+
+        {calculatedResult ? (
+          <ResultTableSection
+            title="Resultado"
+            emptyLabel="Sem resultado."
+            rows={buildResultRows("Diâmetro calculado", calculatedResult)}
+            children={
+              <VelocityProfileChart velocity={Number(velocity)} diameterMm={calculatedResult.value} />
+            }
+          />
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SizingRealDiameterTab() {
+  const {
+    schedules,
+    scheduleError,
+    schedule,
+    calculatedDiameterInput,
+    setCalculatedDiameterInput,
+    realDiameterResult,
+    runRealDiameter,
+    isResolvingRealDiameter,
+    selectSchedule,
+  } = useSizingPageContext();
+
+  return (
+    <Card>
+      <CardHeader title="Diâmetro Real" />
+      <CardContent className="space-y-4">
+        <RealDiameterHowItWorks />
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void runRealDiameter(calculatedDiameterInput, schedule);
+          }}
+        >
+          <NumberField
+            id="calculated-diameter"
+            label="Diâmetro calculado"
+            unit="mm"
+            rule="positive"
+            value={calculatedDiameterInput}
+            onChange={setCalculatedDiameterInput}
+            placeholder="ex: 126.16"
+          />
+
+          <Combobox
+            label="Schedule"
+            options={schedules.map((item) => ({
+              value: item.name,
+              label: item.label,
+            }))}
+            value={schedule}
+            onValueChange={selectSchedule}
+            placeholder="Selecione um schedule"
+            disabled={schedules.length === 0}
+          />
+
+          {scheduleError ? <p className="text-sm text-destructive">{scheduleError}</p> : null}
+
+          <Button type="submit" disabled={isResolvingRealDiameter || schedules.length === 0}>
+            {isResolvingRealDiameter ? "Consultando..." : "Obter diâmetro real"}
+          </Button>
+        </form>
+
+        {realDiameterResult ? (
+          <ResultTableSection
+            title="Resultado"
+            emptyLabel="Sem resultado."
+            rows={buildResultRows("Diâmetro real", realDiameterResult)}
+          />
+        ) : null}
+
+        {schedule ? (
+          <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-muted-foreground">
+            {schedules.find((item) => item.name === schedule)?.description ?? "Schedule selecionado."}
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SizingExploratoryTab() {
+  const {
+    calculatedResult,
+    velocity,
+    savedScenarios,
+    applyExploratoryFields,
+    changeExploratoryField,
+    describeScenario,
+    setSavedScenarios,
+  } = useSizingPageContext();
+
+  return (
+    <ExploratoryPanel
+      config={sizingExploratory}
+      state={{
+        applyFields: applyExploratoryFields,
+        changeField: changeExploratoryField,
+        describeScenario,
+      }}
+      onScenariosChange={setSavedScenarios}
+    >
+      {(scenarios) =>
+        calculatedResult ? (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Perfil ao vivo
+            </p>
+            <VelocityProfileChart
+              velocity={Number(velocity) || 0}
+              diameterMm={calculatedResult.value}
+              scenarios={savedScenarios}
+            />
+            {scenarios.length > 0 ? (
+              <ul className="mt-3 space-y-1">
+                {scenarios.map((scenario) => (
+                  <li key={scenario.id} className="flex items-center gap-2 text-xs text-slate-600">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: scenario.color }}
+                    />
+                    {scenario.name}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null
+      }
+    </ExploratoryPanel>
+  );
+}
+
+export { SizingCalculatedDiameterTab, SizingExploratoryTab, SizingRealDiameterTab };
