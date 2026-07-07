@@ -142,24 +142,24 @@ class Components:
     def get_property_names(self):
         """Returns a dictionary of available property keys and their descriptions"""
         property_map = {
-            "D": "Density [kg/m³]",
-            "C": "Specific heat [J/(kg·K)]",
-            "V": "Viscosity [Pa·s]",
-            "L": "Thermal conductivity [W/(m·K)]",
-            "H": "Enthalpy [J/kg]",
-            "S": "Entropy [J/(kg·K)]",
-            "M": "Molar mass [kg/mol]",
-            "I": "Surface tension [N/m]",
-            "P": "Pressure [Pa]",
-            "T": "Temperature [K]",
-            "Q": "Quality (vapor fraction) [kg/kg]",
-            "U": "Internal energy [J/kg]",
-            "A": "Speed of sound [m/s]",
-            "Z": "Compressibility factor [-]",
-            "T_bubble": "Bubble point temperature [K]",
-            "T_dew": "Dew point temperature [K]",
-            "P_bubble": "Bubble point pressure [Pa]",
-            "P_dew": "Dew point pressure [Pa]"
+            "D": "Densidade [kg/m³]",
+            "C": "Calor específico [J/(kg·K)]",
+            "V": "Viscosidade [Pa·s]",
+            "L": "Condutividade térmica [W/(m·K)]",
+            "H": "Entalpia [J/kg]",
+            "S": "Entropia [J/(kg·K)]",
+            "M": "Massa molar [kg/mol]",
+            "I": "Tensão superficial [N/m]",
+            "P": "Pressão [Pa]",
+            "T": "Temperatura [K]",
+            "Q": "Título (fração de vapor) [kg/kg]",
+            "U": "Energia interna [J/kg]",
+            "A": "Velocidade do som [m/s]",
+            "Z": "Fator de compressibilidade [-]",
+            "T_bubble": "Temperatura do ponto de bolha [K]",
+            "T_dew": "Temperatura do ponto de orvalho [K]",
+            "P_bubble": "Pressão do ponto de bolha [Pa]",
+            "P_dew": "Pressão do ponto de orvalho [Pa]"
         }
         return property_map
     
@@ -192,16 +192,16 @@ class Components:
     def get_property_mixture_names(self):
         """Returns a dictionary of available property keys for mixtures and their descriptions"""
         property_map = {
-            "D": "Density [kg/m³]",
-            "C": "Specific heat [J/(kg·K)]",
-            "V": "Viscosity [Pa·s]",
-            "L": "Thermal conductivity [W/(m·K)]",
-            "H": "Enthalpy [J/kg]",
-            "S": "Entropy [J/(kg·K)]",
-            "M": "Molar mass [kg/mol]",
-            "I": "Surface tension [N/m]",
-            "P": "Pressure [Pa]",
-            "T": "Temperature [K]"
+            "D": "Densidade [kg/m³]",
+            "C": "Calor específico [J/(kg·K)]",
+            "V": "Viscosidade [Pa·s]",
+            "L": "Condutividade térmica [W/(m·K)]",
+            "H": "Entalpia [J/kg]",
+            "S": "Entropia [J/(kg·K)]",
+            "M": "Massa molar [kg/mol]",
+            "I": "Tensão superficial [N/m]",
+            "P": "Pressão [Pa]",
+            "T": "Temperatura [K]"
         }
         return property_map
 

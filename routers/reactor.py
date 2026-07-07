@@ -1,9 +1,10 @@
 import base64
 from io import BytesIO
 from fastapi import APIRouter, HTTPException
-from models import ReactorIsothermalHeterogeneous
+from models.reactor import ReactorIsothermalHeterogeneous
 from schemas import ReactorRequest, ReactorPlotRequest
 from .utils import serialize
+from .i18n import catalog_options
 
 router = APIRouter(prefix="/reactor", tags=["Reactor"])
 reactor_isothermal = ReactorIsothermalHeterogeneous()
@@ -11,7 +12,14 @@ reactor_isothermal = ReactorIsothermalHeterogeneous()
 
 @router.get("/cstr/calculation-types")
 def get_cstr_calculation_types():
-    return reactor_isothermal.cstr({})
+    return catalog_options(
+        reactor_isothermal.cstr({}),
+        {
+            "conversion_and_kinetics": "Conversão e cinética",
+            "volume_and_kinetics": "Volume e cinética",
+            "residence_time_and_kinetics": "Tempo de residência e cinética",
+        },
+    )
 
 
 @router.post("/cstr")
@@ -54,7 +62,14 @@ def calculate_cstr(payload: ReactorRequest):
 
 @router.get("/pfr/calculation-types")
 def get_pfr_calculation_types():
-    return reactor_isothermal.pfr({})
+    return catalog_options(
+        reactor_isothermal.pfr({}),
+        {
+            "conversion_and_kinetics": "Conversão e cinética",
+            "volume_and_kinetics": "Volume e cinética",
+            "residence_time_and_kinetics": "Tempo de residência e cinética",
+        },
+    )
 
 
 @router.post("/pfr")
@@ -117,7 +132,7 @@ def calculate_limiting_reagent(payload: ReactorRequest):
         
         limiting_index = reactor_isothermal.determine_limiting_reagent(params)
         return {
-            "limiting_reagent": components[limiting_index]["component_name"]
+            "reagente_limitante": components[limiting_index]["component_name"]
         }
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
