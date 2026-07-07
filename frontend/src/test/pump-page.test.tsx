@@ -617,6 +617,56 @@ describe("PumpPage", () => {
     });
   });
 
+  it("removes an accessory row before submitting headloss", async () => {
+    mockPumpRequests();
+    renderPumpPage();
+
+    expect(
+      await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+      target: { value: "100" },
+    });
+    fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
+      target: { value: "100" },
+    });
+    fireEvent.change(screen.getByLabelText(/Vazão/i), {
+      target: { value: "0.01" },
+    });
+    fireEvent.change(screen.getByLabelText(/Fator de atrito/i), {
+      target: { value: "0.02" },
+    });
+    fireEvent.change(screen.getAllByLabelText(/Conexão/i)[0], {
+      target: { value: "Cotovelo 90° raio longo" },
+    });
+    fireEvent.change(screen.getAllByLabelText(/Quantidade/i)[0], {
+      target: { value: "2" },
+    });
+    fireEvent.click(screen.getByText(/Adicionar conexão/i, { selector: "button" }));
+    fireEvent.change(screen.getAllByLabelText(/Conexão/i)[1], {
+      target: { value: "Válvula gaveta" },
+    });
+    fireEvent.change(screen.getAllByLabelText(/Quantidade/i)[1], {
+      target: { value: "1" },
+    });
+
+    fireEvent.click(screen.getByLabelText(/Remover conexão 2/i));
+    fireEvent.click(screen.getByText(/Calcular perda de carga/i, { selector: "button" }));
+
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/pump/headloss")[0]).toMatchObject({
+        pipe_length: 100,
+        diameter: 100,
+        flow_rate: 0.01,
+        method: "Darcy-Weisbach",
+        friction_factor: 0.02,
+        fittings: [{ fitting: "Cotovelo 90° raio longo", quantity: 2 }],
+        velocity: expect.any(Number),
+      });
+    });
+  });
+
   it("derives velocity from flow rate and diameter before sending the headloss request", async () => {
     mockPumpRequests();
     renderPumpPage();

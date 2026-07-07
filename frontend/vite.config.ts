@@ -10,6 +10,27 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src")
     }
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) {
+            return undefined;
+          }
+
+          if (id.includes("recharts") || id.includes("d3-")) {
+            return "charts";
+          }
+
+          if (id.includes("katex") || id.includes("react-katex")) {
+            return "math";
+          }
+
+          return "vendor";
+        },
+      },
+    },
+  },
   server: {
     host: "0.0.0.0",
     port: 5173,

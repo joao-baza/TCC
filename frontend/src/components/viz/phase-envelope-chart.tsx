@@ -1,3 +1,6 @@
+import { NumericChartGrid } from "@/components/viz/chart-grid";
+import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
+
 type SaturationEnvelopePoint = {
   temperature: number;
   pressure: number;
@@ -61,24 +64,16 @@ export function PhaseEnvelopeChart({
   const allEntropy = points.flatMap((point) => [point.liquid_entropy, point.vapor_entropy]);
   const allTemperature = points.map((point) => point.temperature);
 
-  const minEntropy = Math.min(...allEntropy);
-  const maxEntropy = Math.max(...allEntropy);
-  const minTemperature = Math.min(...allTemperature, triple.temperature);
-  const maxTemperature = Math.max(...allTemperature, critical.temperature);
+  const entropyDomain = expandNumericDomain(allEntropy);
+  const temperatureDomain = expandNumericDomain([...allTemperature, triple.temperature, critical.temperature]);
 
   const liquidPathPoints = points.map((point) => ({
-    x: scale(
-      point.liquid_entropy,
-      minEntropy,
-      maxEntropy,
-      padding.left,
-      width - padding.right,
-    ),
-    y: scale(point.temperature, minTemperature, maxTemperature, height - padding.bottom, padding.top),
+    x: scale(point.liquid_entropy, entropyDomain.min, entropyDomain.max, padding.left, width - padding.right),
+    y: scale(point.temperature, temperatureDomain.min, temperatureDomain.max, height - padding.bottom, padding.top),
   }));
   const vaporPathPoints = points.map((point) => ({
-    x: scale(point.vapor_entropy, minEntropy, maxEntropy, padding.left, width - padding.right),
-    y: scale(point.temperature, minTemperature, maxTemperature, height - padding.bottom, padding.top),
+    x: scale(point.vapor_entropy, entropyDomain.min, entropyDomain.max, padding.left, width - padding.right),
+    y: scale(point.temperature, temperatureDomain.min, temperatureDomain.max, height - padding.bottom, padding.top),
   }));
 
   const domeAreaPath =
@@ -93,25 +88,25 @@ export function PhaseEnvelopeChart({
   const tripleMarker = {
     x: scale(
       points[0]?.liquid_entropy ?? 0,
-      minEntropy,
-      maxEntropy,
+      entropyDomain.min,
+      entropyDomain.max,
       padding.left,
       width - padding.right,
     ),
-    y: scale(triple.temperature, minTemperature, maxTemperature, height - padding.bottom, padding.top),
+    y: scale(triple.temperature, temperatureDomain.min, temperatureDomain.max, height - padding.bottom, padding.top),
   };
   const criticalMarker = {
     x: scale(
       points[points.length - 1]?.vapor_entropy ?? 0,
-      minEntropy,
-      maxEntropy,
+      entropyDomain.min,
+      entropyDomain.max,
       padding.left,
       width - padding.right,
     ),
     y: scale(
       critical.temperature,
-      minTemperature,
-      maxTemperature,
+      temperatureDomain.min,
+      temperatureDomain.max,
       height - padding.bottom,
       padding.top,
     ),
@@ -134,91 +129,75 @@ export function PhaseEnvelopeChart({
         </p>
       </div>
 
-      <svg
-        aria-label={`Envelope de fase de ${fluid}`}
-        className="block w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        viewBox={`0 0 ${width} ${height}`}
+      <div
+        className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+        style={{ aspectRatio: `${width} / ${height}` }}
       >
-        <rect fill="#f8fafc" height={height} width={width} />
-        <line
-          stroke="#cbd5e1"
-          strokeWidth="1.5"
-          x1={padding.left}
-          x2={padding.left}
-          y1={padding.top}
-          y2={height - padding.bottom}
-        />
-        <line
-          stroke="#cbd5e1"
-          strokeWidth="1.5"
-          x1={padding.left}
-          x2={width - padding.right}
-          y1={height - padding.bottom}
-          y2={height - padding.bottom}
+        <NumericChartGrid
+          xDomain={[entropyDomain.min, entropyDomain.max]}
+          yDomain={[temperatureDomain.min, temperatureDomain.max]}
+          width={width}
+          height={height}
+          padding={padding}
+          xLabel="Entropia"
+          yLabel="Temperatura (K)"
         />
 
-        <path d={domeAreaPath} fill="rgba(37, 99, 235, 0.08)" stroke="none" />
-        <path
-          d={buildPath(liquidPathPoints)}
-          fill="none"
-          stroke="#0f766e"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="3"
-        />
-        <path
-          d={buildPath(vaporPathPoints)}
-          fill="none"
-          stroke="#b45309"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="3"
-        />
-
-        {liquidPathPoints.map((point, index) => (
-          <circle key={`liq-${index}`} cx={point.x} cy={point.y} fill="#0f766e" r="3.5" />
-        ))}
-        {vaporPathPoints.map((point, index) => (
-          <circle key={`vap-${index}`} cx={point.x} cy={point.y} fill="#b45309" r="3.5" />
-        ))}
-
-        <line
-          stroke="#0f766e"
-          strokeDasharray="5 5"
-          strokeWidth="2"
-          x1={tripleMarker.x}
-          x2={tripleMarker.x}
-          y1={tripleMarker.y}
-          y2={height - padding.bottom}
-        />
-        <line
-          stroke="#b45309"
-          strokeDasharray="5 5"
-          strokeWidth="2"
-          x1={criticalMarker.x}
-          x2={criticalMarker.x}
-          y1={criticalMarker.y}
-          y2={padding.top}
-        />
-
-        <circle cx={tripleMarker.x} cy={tripleMarker.y} fill="#0f766e" r="6" />
-        <circle cx={criticalMarker.x} cy={criticalMarker.y} fill="#b45309" r="6" />
-
-        <text fill="#475569" fontSize="12" x={padding.left - 22} y={padding.top + 4}>
-          T
-        </text>
-        <text
-          fill="#475569"
-          fontSize="12"
-          textAnchor="end"
-          x={width - padding.right}
-          y={height - 12}
+        <svg
+          aria-label={`Envelope de fase de ${fluid}`}
+          className="absolute inset-0 block h-full w-full overflow-hidden"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          viewBox={`0 0 ${width} ${height}`}
         >
-          s
-        </text>
-      </svg>
+          <path d={domeAreaPath} fill="rgba(37, 99, 235, 0.08)" stroke="none" />
+          <path
+            d={buildPath(liquidPathPoints)}
+            fill="none"
+            stroke="#0f766e"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+          />
+          <path
+            d={buildPath(vaporPathPoints)}
+            fill="none"
+            stroke="#b45309"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+          />
+
+          {liquidPathPoints.map((point, index) => (
+            <circle key={`liq-${index}`} cx={point.x} cy={point.y} fill="#0f766e" r="3.5" />
+          ))}
+          {vaporPathPoints.map((point, index) => (
+            <circle key={`vap-${index}`} cx={point.x} cy={point.y} fill="#b45309" r="3.5" />
+          ))}
+
+          <line
+            stroke="#0f766e"
+            strokeDasharray="5 5"
+            strokeWidth="2"
+            x1={tripleMarker.x}
+            x2={tripleMarker.x}
+            y1={tripleMarker.y}
+            y2={height - padding.bottom}
+          />
+          <line
+            stroke="#b45309"
+            strokeDasharray="5 5"
+            strokeWidth="2"
+            x1={criticalMarker.x}
+            x2={criticalMarker.x}
+            y1={criticalMarker.y}
+            y2={padding.top}
+          />
+
+          <circle cx={tripleMarker.x} cy={tripleMarker.y} fill="#0f766e" r="6" />
+          <circle cx={criticalMarker.x} cy={criticalMarker.y} fill="#b45309" r="6" />
+        </svg>
+      </div>
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">

@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { NumberField } from "@/components/number-field";
 import type { PropertyRow } from "@/components/property-table";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { RemoveButton } from "@/components/remove-button";
+import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { ResultTableSection } from "@/components/result-table-section";
 import { EnergyGradeLineChart } from "@/components/viz/energy-grade-line-chart";
 import { HeadBreakdownChart } from "@/components/viz/head-breakdown-chart";
@@ -25,6 +28,7 @@ import { pumpWorkedExample } from "@/features/pump/presets";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
+import { pumpTabs } from "@/features/pump/pump-tabs";
 
 type QuantityResult = {
   value: number;
@@ -265,6 +269,8 @@ function resolveHeadlossFlowVelocity(form: HeadlossFormState) {
 }
 
 export function PumpPage() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [methods, setMethods] = useState<SelectOption[]>([]);
   const [fittings, setFittings] = useState<SelectOption[]>([]);
   const [compositions, setCompositions] = useState<SelectOption[]>([]);
@@ -290,6 +296,15 @@ export function PumpPage() {
   const npshSessionRef = useRef(0);
   const headSessionRef = useRef(0);
   const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
+  const activeTab = pathname.startsWith("/pump/")
+    ? pathname.slice("/pump/".length).split("/")[0] || "headloss"
+    : "headloss";
+
+  useEffect(() => {
+    if (pathname === "/pump") {
+      navigate("headloss", { replace: true });
+    }
+  }, [navigate, pathname]);
 
   useEffect(() => {
     let ignore = false;
@@ -459,6 +474,11 @@ export function PumpPage() {
     setFittingRows((current) =>
       current.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
     );
+    clearHeadlossDerived();
+  }
+
+  function removeFittingRow(id: string) {
+    setFittingRows((current) => current.filter((row) => row.id !== id));
     clearHeadlossDerived();
   }
 
@@ -732,30 +752,25 @@ export function PumpPage() {
   ];
 
   return (
-    <section className="space-y-8 overflow-x-hidden p-6 md:p-8">
-      <Card>
-        <CardHeader
-          level={1}
-          subtitle={
-            <>
-              <p>
-                Estime perdas por atrito, NPSH disponível e altura manométrica a partir
-                dos dados hidráulicos do sistema.
-              </p>
-              {pageError ? <p className="text-red-600">{pageError}</p> : null}
-            </>
-          }
-          title="Perda de Carga e Bombas"
-          variant="hero"
-          action={
-            <Button type="button" variant="outline" onClick={applyWorkedExample}>
-              Carregar exemplo
-            </Button>
-          }
-        />
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-3">
+    <ModuleTabsLayout
+      title="Perda de Carga e Bombas"
+      subtitle={
+        <>
+          <p>
+            Estime perdas por atrito, NPSH disponível e altura manométrica a partir dos dados
+            hidráulicos do sistema.
+          </p>
+          {pageError ? <p className="text-red-600">{pageError}</p> : null}
+        </>
+      }
+      action={
+        <Button type="button" variant="outline" onClick={applyWorkedExample}>
+          Carregar exemplo
+        </Button>
+      }
+      tabs={pumpTabs}
+    >
+      {activeTab === "headloss" ? (
         <Card>
           <CardHeader title="Perda de Carga" />
           <CardContent className="space-y-4">
@@ -887,23 +902,38 @@ export function PumpPage() {
                 </div>
 
                 {fittingRows.map((row, index) => (
-                  <div key={row.id} className="grid gap-3 sm:grid-cols-[1fr_140px]">
-                    <Combobox
-                      label="Conexão"
-                      options={fittings}
-                      value={row.fitting}
-                      onValueChange={(value) => updateFittingRow(row.id, "fitting", value)}
-                      placeholder="Sem conexão adicional"
-                    />
+                  <div
+                    key={row.id}
+                    className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Conexão {index + 1}
+                      </h4>
+                      <RemoveButton
+                        label={`Remover conexão ${index + 1}`}
+                        onClick={() => removeFittingRow(row.id)}
+                      />
+                    </div>
 
-                    <NumberField
-                      id={`fitting-quantity-${index}`}
-                      label="Quantidade"
-                      min="1"
-                      step="1"
-                      value={row.quantity}
-                      onChange={(value) => updateFittingRow(row.id, "quantity", value)}
-                    />
+                    <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+                      <Combobox
+                        label="Conexão"
+                        options={fittings}
+                        value={row.fitting}
+                        onValueChange={(value) => updateFittingRow(row.id, "fitting", value)}
+                        placeholder="Sem conexão adicional"
+                      />
+
+                      <NumberField
+                        id={`fitting-quantity-${index}`}
+                        label="Quantidade"
+                        min="1"
+                        step="1"
+                        value={row.quantity}
+                        onChange={(value) => updateFittingRow(row.id, "quantity", value)}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -959,7 +989,9 @@ export function PumpPage() {
             ) : null}
           </CardContent>
         </Card>
+      ) : null}
 
+      {activeTab === "npsh-available" ? (
         <Card>
           <CardHeader title="NPSH Disponível" />
           <CardContent className="space-y-4">
@@ -1046,7 +1078,9 @@ export function PumpPage() {
             ) : null}
           </CardContent>
         </Card>
+      ) : null}
 
+      {activeTab === "manometric-head" ? (
         <Card>
           <CardHeader title="Altura Manométrica" />
           <CardContent className="space-y-4">
@@ -1130,9 +1164,9 @@ export function PumpPage() {
             ) : null}
           </CardContent>
         </Card>
-      </div>
+      ) : null}
 
-      {headlossResult ? (
+      {activeTab === "pressure-profile" && headlossResult ? (
         <Card>
           <CardHeader title="Perfil de pressão" />
           <CardContent className="space-y-4">
@@ -1149,15 +1183,17 @@ export function PumpPage() {
         </Card>
       ) : null}
 
-      <ExploratoryPanel
-        config={pumpExploratory}
-        state={{
-          applyFields: loadExploratoryFields,
-          changeField: changeExploratoryField,
-          describeScenario,
-        }}
-        onScenariosChange={setSavedScenarios}
-      />
-    </section>
+      {activeTab === "exploratory" ? (
+        <ExploratoryPanel
+          config={pumpExploratory}
+          state={{
+            applyFields: loadExploratoryFields,
+            changeField: changeExploratoryField,
+            describeScenario,
+          }}
+          onScenariosChange={setSavedScenarios}
+        />
+      ) : null}
+    </ModuleTabsLayout>
   );
 }

@@ -1,3 +1,5 @@
+import { NumericChartGrid } from "@/components/viz/chart-grid";
+import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
 import type { Scenario } from "@/features/exploratory/types";
 
 type HeadlossCurvePoint = {
@@ -12,12 +14,24 @@ type HeadlossCurveProps = {
   scenarios?: Scenario[];
 };
 
-function scaleValue(value: number, min: number, max: number, size: number) {
+const width = 320;
+const height = 180;
+const padding = { top: 20, right: 20, bottom: 40, left: 44 };
+
+function scaleValue(value: number, min: number, max: number, start: number, end: number) {
   if (min === max) {
-    return size / 2;
+    return (start + end) / 2;
   }
 
-  return ((value - min) / (max - min)) * size;
+  return start + ((value - min) / (max - min)) * (end - start);
+}
+
+function buildPath(points: Array<{ x: number; y: number }>) {
+  if (points.length === 0) {
+    return "";
+  }
+
+  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
 export function HeadlossCurve({
@@ -28,43 +42,30 @@ export function HeadlossCurve({
 }: HeadlossCurveProps) {
   const sortedPoints = [...points].sort((left, right) => left.flowRate - right.flowRate);
   const allPoints = [...sortedPoints, operationalPoint];
-  const flowRates = allPoints.map((point) => point.flowRate);
-  const headlosses = allPoints.map((point) => point.headloss);
+  const flowDomain = expandNumericDomain(allPoints.map((point) => point.flowRate));
+  const headlossDomain = expandNumericDomain(allPoints.map((point) => point.headloss));
 
-  const minFlowRate = Math.min(...flowRates);
-  const maxFlowRate = Math.max(...flowRates);
-  const minHeadloss = Math.min(...headlosses);
-  const maxHeadloss = Math.max(...headlosses);
+  const plottedPoints = sortedPoints.map((point) => ({
+    ...point,
+    x: scaleValue(point.flowRate, flowDomain.min, flowDomain.max, padding.left, width - padding.right),
+    y: scaleValue(point.headloss, headlossDomain.min, headlossDomain.max, height - padding.bottom, padding.top),
+  }));
 
-  const chartWidth = 320;
-  const chartHeight = 180;
-  const padding = 20;
-  const innerWidth = chartWidth - padding * 2;
-  const innerHeight = chartHeight - padding * 2;
-
-  const plottedPoints = sortedPoints.map((point) => {
-      const x = padding + scaleValue(point.flowRate, minFlowRate, maxFlowRate, innerWidth);
-      const y =
-        chartHeight -
-        padding -
-        scaleValue(point.headloss, minHeadloss, maxHeadloss, innerHeight);
-
-      return { ...point, x, y };
-    });
-
-  const pathData =
-    plottedPoints.length > 1
-      ? plottedPoints
-          .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-          .join(" ")
-      : null;
-
-  const operationalX =
-    padding + scaleValue(operationalPoint.flowRate, minFlowRate, maxFlowRate, innerWidth);
-  const operationalY =
-    chartHeight -
-    padding -
-    scaleValue(operationalPoint.headloss, minHeadloss, maxHeadloss, innerHeight);
+  const pathData = plottedPoints.length > 1 ? buildPath(plottedPoints) : "";
+  const operationalX = scaleValue(
+    operationalPoint.flowRate,
+    flowDomain.min,
+    flowDomain.max,
+    padding.left,
+    width - padding.right,
+  );
+  const operationalY = scaleValue(
+    operationalPoint.headloss,
+    headlossDomain.min,
+    headlossDomain.max,
+    height - padding.bottom,
+    padding.top,
+  );
 
   return (
     <section className="mt-3 rounded-xl border border-slate-200 p-3">
@@ -81,28 +82,31 @@ export function HeadlossCurve({
         </span>
       </div>
 
-      <svg
-        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-        className="w-full"
-        role="img"
-        aria-label={`Curva de perda de carga pelo metodo ${method}`}
-      >
-        <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="#FFFFFF" />
-        <line
-          x1={padding}
-          y1={chartHeight - padding}
-          x2={chartWidth - padding}
-          y2={chartHeight - padding}
-          stroke="#CBD5E1"
-          strokeWidth="1"
+      <div className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
+        <NumericChartGrid
+          xDomain={[flowDomain.min, flowDomain.max]}
+          yDomain={[headlossDomain.min, headlossDomain.max]}
+          width={width}
+          height={height}
+          padding={padding}
+          xLabel="Vazão volumétrica (m³/s)"
+          yLabel="Perda de carga acumulada (m)"
         />
-        <line x1={padding} y1={padding} x2={padding} y2={chartHeight - padding} stroke="#CBD5E1" strokeWidth="1" />
-        {pathData ? <path d={pathData} fill="none" stroke="#2563EB" strokeWidth="2.5" /> : null}
-        {plottedPoints.map((point) => (
-          <circle key={`${point.flowRate}-${point.headloss}`} cx={point.x} cy={point.y} r="3" fill="#2563EB" />
-        ))}
-        <circle cx={operationalX} cy={operationalY} r="5" fill="#DC2626" />
-      </svg>
+
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="absolute inset-0 block h-full w-full"
+          role="img"
+          aria-label={`Curva de perda de carga pelo metodo ${method}`}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          {pathData ? <path d={pathData} fill="none" stroke="#2563EB" strokeWidth="2.5" /> : null}
+          {plottedPoints.map((point) => (
+            <circle key={`${point.flowRate}-${point.headloss}`} cx={point.x} cy={point.y} r="3" fill="#2563EB" />
+          ))}
+          <circle cx={operationalX} cy={operationalY} r="5" fill="#DC2626" />
+        </svg>
+      </div>
 
       {scenarios.length > 0 ? (
         <div className="mt-3 border-t border-slate-200 pt-3">
@@ -115,10 +119,7 @@ export function HeadlossCurve({
                 key={scenario.id}
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
               >
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: scenario.color }}
-                />
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: scenario.color }} />
                 {scenario.name}
               </span>
             ))}
