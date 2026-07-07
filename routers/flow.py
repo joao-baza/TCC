@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from models import Hydraulic
+from models.hydraulic import Hydraulic
 from schemas import ReynoldsRequest, FrictionFactorRequest, HydraulicDiameterRequest
 from .utils import serialize
+from .i18n import catalog_options
 
 router = APIRouter(prefix="/flow", tags=["Flow"])
 hydraulic = Hydraulic()
@@ -29,7 +30,14 @@ def calculate_reynolds(payload: ReynoldsRequest):
 
 @router.get("/friction-factor/methods")
 def get_friction_factor_methods():
-    return hydraulic.friction_factor({})
+    return catalog_options(
+        hydraulic.friction_factor({}),
+        {
+            "ColebrookWhite": "Colebrook-White",
+            "SwameeJain": "Swamee-Jain",
+            "Haaland": "Haaland",
+        },
+    )
 
 
 @router.post("/friction-factor")
@@ -48,7 +56,16 @@ def calculate_friction_factor(payload: FrictionFactorRequest):
 
 @router.get("/hydraulic-diameter/shapes")
 def get_hydraulic_diameter_shapes():
-    return hydraulic.hydraulic_diameter({})
+    return catalog_options(
+        hydraulic.hydraulic_diameter({}),
+        {
+            "circular": "Circular",
+            "rectangular": "Retangular",
+            "annular": "Anular",
+            "triangular": "Triangular",
+            "circularCap": "Tampa circular",
+        },
+    )
 
 
 @router.post("/hydraulic-diameter")

@@ -156,7 +156,7 @@ class MassBalance:
         elif X is not None:
             actual_conversion = X
         else:
-            raise ValueError("Either 'conversion' or 'X' must be provided")
+            raise ValueError("Informe 'conversion' ou 'X'.")
         
         self.reactions.append(Reaction(stoichiometry, key_component, actual_conversion))
 
@@ -224,13 +224,16 @@ class MassBalance:
         symbols = set().union(*(e.free_symbols for e in eqs))
         sol = sp.solve(eqs, list(symbols), dict=True)
         if not sol:
-            raise ValueError("System is underdetermined or has no solution.")
+            raise ValueError("O sistema está subdeterminado ou não possui solução.")
         
         # Check if solution contains symbolic expressions
         solution = sol[0]
         for val in solution.values():
             if isinstance(val, sp.Basic) and not val.is_number:
-                raise ValueError("System is underdetermined (infinite solutions or symbolic result). Please check degrees of freedom.")
+                raise ValueError(
+                    "O sistema está subdeterminado (soluções infinitas ou resultado simbólico). "
+                    "Verifique os graus de liberdade."
+                )
                 
         return solution
 
@@ -255,12 +258,12 @@ class MassBalance:
         results = {}
         for stream_name, stream in self.streams.items():
             stream_results = {
-                'flow_rate': float(solution.get(stream.F, stream.F)),
-                'compositions': {}
+                'vazao': float(solution.get(stream.F, stream.F)),
+                'composicoes': {}
             }
             
             for comp, z in stream.z.items():
-                stream_results['compositions'][comp] = float(solution.get(z, z))
+                stream_results['composicoes'][comp] = float(solution.get(z, z))
                 
             results[stream_name] = stream_results
             
@@ -288,22 +291,28 @@ class MassBalance:
             
         # Check for negative flow rates
         for stream_name, stream_data in results.items():
-            if stream_data["flow_rate"] < 0:
-                return False, f"Negative flow rate detected for stream '{stream_name}': {stream_data['flow_rate']}"
+            if stream_data["vazao"] < 0:
+                return False, f"Vazão negativa detectada na corrente '{stream_name}': {stream_data['vazao']}"
         
         # Check for negative component fractions and sum close to 1
         for stream_name, stream_data in results.items():
-            compositions = stream_data["compositions"]
+            composicoes = stream_data["composicoes"]
             
             # Check for negative component fractions
-            for component, fraction in compositions.items():
+            for component, fraction in composicoes.items():
                 if fraction < 0:
-                    return False, f"Negative composition detected for component '{component}' in stream '{stream_name}': {fraction}"
+                    return False, (
+                        f"Composição negativa detectada para o componente '{component}' "
+                        f"na corrente '{stream_name}': {fraction}"
+                    )
             
             # Check if component fractions sum close to 1
-            sum_fractions = sum(compositions.values())
+            sum_fractions = sum(composicoes.values())
             if not (0.99 <= sum_fractions <= 1.01):
-                return False, f"Component fractions in stream '{stream_name}' do not sum to approximately 1: {sum_fractions}"
+                return False, (
+                    f"As frações dos componentes na corrente '{stream_name}' não somam aproximadamente 1: "
+                    f"{sum_fractions}"
+                )
         
         return True, ""
         
@@ -327,6 +336,9 @@ class MassBalance:
         if non_null_values:  # Check if there are any non-null values
             sum_fractions = sum(non_null_values)
             if sum_fractions > 1.01 or sum_fractions < 0.99:  # Allow a small tolerance for floating point errors
-                return False, f"Component fractions in stream '{stream.name}' sum to {sum_fractions}, which differs from 1"
+                return False, (
+                    f"As frações dos componentes na corrente '{stream.name}' somam {sum_fractions}, "
+                    "o que difere de 1"
+                )
         
         return True, "" 

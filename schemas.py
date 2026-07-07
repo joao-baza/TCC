@@ -335,3 +335,36 @@ class PropsStateRequest(BaseModel):
     value2: float = Field(..., description="Value of the second state variable (SI units)")
     output: str = Field(..., description="Output property key (CoolProp format, e.g. 'H', 'S', 'T', 'D')")
 
+
+class BinaryVLERequest(BaseModel):
+    fluid1: str = Field(..., description="First binary component")
+    fluid2: str = Field(..., description="Second binary component")
+    pressure: float = Field(..., gt=0, description="Operating pressure in Pa")
+    sample_count: int = Field(
+        21,
+        ge=5,
+        le=60,
+        description="Number of composition samples for each curve",
+    )
+
+
+class PropertySurfaceRequest(BaseModel):
+    fluid: str = Field(..., description="Name of the fluid")
+    property_name: str = Field(..., description="CoolProp property key")
+    temperature_min: float = Field(..., gt=0, description="Lower temperature bound in K")
+    temperature_max: float = Field(..., gt=0, description="Upper temperature bound in K")
+    pressure_min: float = Field(..., gt=0, description="Lower pressure bound in Pa")
+    pressure_max: float = Field(..., gt=0, description="Upper pressure bound in Pa")
+    temperature_samples: int = Field(
+        12,
+        ge=4,
+        le=40,
+        description="Number of temperature samples",
+    )
+    pressure_samples: int = Field(
+        10,
+        ge=4,
+        le=40,
+        description="Number of pressure samples",
+    )
+
