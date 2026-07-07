@@ -509,39 +509,39 @@ class Hydraulic(BaseValidator):
         
         Parameters
         ----------
-        parameters : dict
+            parameters : dict
             ``{"shape": <str>,
                ...shape-specific parameters...}``
                
             **Circular**
             ``{"shape": "circular",
-               "diameter": <mm>}``
+               "diameter": <m>}``
                
             **Rectangular**
             ``{"shape": "rectangular",
-               "width": <mm>,
-               "height": <mm>}``
+               "width": <m>,
+               "height": <m>}``
                
             **Annular**
             ``{"shape": "annular",
-               "outer_diameter": <mm>,
-               "inner_diameter": <mm>}``
+               "outer_diameter": <m>,
+               "inner_diameter": <m>}``
                
             **Triangular**
             ``{"shape": "triangular",
-               "side_a": <mm>,
-               "side_b": <mm>,
-               "side_c": <mm>}``
+               "side_a": <m>,
+               "side_b": <m>,
+               "side_c": <m>}``
 
             **Circular Cap**
             ``{"shape": "circularCap",
-               "diameter": <mm>,
-               "height": <mm>}``
+               "diameter": <m>,
+               "height": <m>}``
         
         Returns
         -------
         pint.Quantity
-            Hydraulic diameter (mm).
+            Hydraulic diameter (m).
         """
         if "shape" not in parameters:
             return ["circular", "rectangular", "annular", "triangular", "circularCap"]
@@ -553,7 +553,7 @@ class Hydraulic(BaseValidator):
             self._require_keys(parameters, ["diameter"])
             self._validate_numeric(parameters, ["diameter"])
             
-            D = parameters["diameter"] * self.ureg.mm
+            D = parameters["diameter"] * self.ureg.m
             return D
         
         # ----------------------- Rectangular ------------------------ #
@@ -561,8 +561,8 @@ class Hydraulic(BaseValidator):
             self._require_keys(parameters, ["width", "height"])
             self._validate_numeric(parameters, ["width", "height"])
             
-            width = parameters["width"] * self.ureg.mm
-            height = parameters["height"] * self.ureg.mm
+            width = parameters["width"] * self.ureg.m
+            height = parameters["height"] * self.ureg.m
             
             # Hydraulic diameter formula: 4*Area/Perimeter
             area = width * height
@@ -576,8 +576,8 @@ class Hydraulic(BaseValidator):
             self._require_keys(parameters, ["outer_diameter", "inner_diameter"])
             self._validate_numeric(parameters, ["outer_diameter", "inner_diameter"])
             
-            D_o = parameters["outer_diameter"] * self.ureg.mm
-            D_i = parameters["inner_diameter"] * self.ureg.mm
+            D_o = parameters["outer_diameter"] * self.ureg.m
+            D_i = parameters["inner_diameter"] * self.ureg.m
             
             if D_i >= D_o:
                 raise ValueError("Inner diameter must be smaller than outer diameter")
@@ -591,9 +591,9 @@ class Hydraulic(BaseValidator):
             self._require_keys(parameters, ["side_a", "side_b", "side_c"])
             self._validate_numeric(parameters, ["side_a", "side_b", "side_c"])
             
-            a = parameters["side_a"] * self.ureg.mm
-            b = parameters["side_b"] * self.ureg.mm
-            c = parameters["side_c"] * self.ureg.mm
+            a = parameters["side_a"] * self.ureg.m
+            b = parameters["side_b"] * self.ureg.m
+            c = parameters["side_c"] * self.ureg.m
             
             # Check triangle inequality
             if a + b <= c or a + c <= b or b + c <= a:
@@ -623,26 +623,27 @@ class Hydraulic(BaseValidator):
             
             if parameters["height"] <= 0:
                 raise ValueError("Height must be greater than 0")
-                
-            D = parameters["diameter"]
-            H = parameters["height"]
-            
+
+            D = parameters["diameter"] * self.ureg.m
+            H = parameters["height"] * self.ureg.m
             R = D / 2
-            
-            # Validate that R-H is not less than -R (arccos domain)
-            if (R-H)/R < -1:
+
+            ratio = ((R - H) / R).to_base_units().magnitude
+            if ratio < -1:
                 raise ValueError("Invalid height/diameter ratio")
-                
-            # Validate that 2*R*H-H^2 is not negative (for sqrt)
-            if (2*R*H - H**2) < 0:
+
+            chord_term = 2 * R * H - H**2
+            if chord_term.magnitude < 0:
                 raise ValueError("Invalid height/diameter combination")
-            
-            P = (2*np.arccos((R-H)/R)) + (2*np.sqrt((2*R*H)-(H**2)))
-            
-            A = (R**2 * np.arccos((R-H)/R))- ((R-H)*np.sqrt(2*R*H-(H**2)))
-            
-            D_h = 4 * A / P * self.ureg.dimensionless
-            
+
+            theta = np.arccos(ratio)
+            chord = chord_term**0.5
+
+            P = (2 * R * theta) + (2 * chord)
+            A = (R**2 * theta) - ((R - H) * chord)
+
+            D_h = (4 * A / P).to(self.ureg.m)
+
             return D_h
 
         else:

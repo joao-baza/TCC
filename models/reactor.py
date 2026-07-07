@@ -34,7 +34,9 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "dilution_factor": "fator_de_diluicao",
         }
 
-        return {key_map.get(key, key): value for key, value in result.items()}
+        translated = {key_map.get(key, key): value for key, value in result.items()}
+        translated.update(result)
+        return translated
 
     # ------------------------------------------------------------------ #
     #                         PRIVATE HELPERS                            #

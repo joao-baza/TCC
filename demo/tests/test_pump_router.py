@@ -30,6 +30,48 @@ def _headloss_payload(**overrides):
 
 
 class TestPumpHeadlossRouter:
+    def test_example_returns_input_presets_only(self):
+        response = client.get("/pump/example")
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "headloss": {
+                "method": "Darcy-Weisbach",
+                "pipe_length": 100.0,
+                "diameter": 125.0,
+                "flow_rate": 0.04,
+                "velocity": 3.259493234522017,
+                "reynolds": 3186.1046722863807,
+                "friction_factor": 0.04495094389484752,
+                "friction_method": "SwameeJain",
+                "composition": "Aço galvanizado",
+                "fittings": [
+                    {"fitting": "Cotovelo 45°", "quantity": 5},
+                    {"fitting": "Saída de tanque", "quantity": 1},
+                    {"fitting": "Válvula de esfera", "quantity": 2},
+                ],
+            },
+            "npsh": {
+                "manometric_pressure": 0.0,
+                "atmospheric_pressure": 1.033,
+                "vapor_pressure": 0.023,
+                "density": 1000.0,
+                "friction_factor": 10.0,
+                "pump_inlet_velocity": 1.5,
+                "gauge_elevation": 3.0,
+                "required": 3.0,
+            },
+            "head": {
+                "pressure1": 101325.0,
+                "pressure2": 101325.0,
+                "elevation1": 0.0,
+                "elevation2": 5.0,
+                "velocity1": 0.0,
+                "velocity2": 3.0,
+                "density": 1000.0,
+                "friction_factor": 2.55887,
+            },
+        }
 
     def test_headloss_darcy_velocity_only(self):
         response = client.post("/pump/headloss", json=_headloss_payload())
@@ -83,7 +125,7 @@ class TestPumpHeadlossRouter:
         del payload["velocity"]
         response = client.post("/pump/headloss", json=payload)
         assert response.status_code == 400
-        assert "flow rate" in response.json()["detail"].lower()
+        assert "vazão" in response.json()["detail"].lower()
 
     def test_headloss_inconsistent_flow_velocity_returns_400(self):
         payload = _headloss_payload(flow_rate=0.5)
@@ -96,7 +138,7 @@ class TestPumpHeadlossRouter:
         del payload["friction_factor"]
         response = client.post("/pump/headloss", json=payload)
         assert response.status_code == 400
-        assert "friction factor" in response.json()["detail"].lower()
+        assert "fator de atrito" in response.json()["detail"].lower()
 
     def test_headloss_hazen_missing_roughness_coefficient_returns_400(self):
         response = client.post(
@@ -109,14 +151,14 @@ class TestPumpHeadlossRouter:
             },
         )
         assert response.status_code == 400
-        assert "roughness coefficient" in response.json()["detail"].lower()
+        assert "coeficiente de rugosidade" in response.json()["detail"].lower()
 
     def test_headloss_methods_endpoint(self):
         response = client.get("/pump/headloss/methods")
         assert response.status_code == 200
         methods = response.json()
-        assert "Darcy-Weisbach" in methods
-        assert "Hazen-Williams" in methods
+        assert any(method["value"] == "Darcy-Weisbach" for method in methods)
+        assert any(method["value"] == "Hazen-Williams" for method in methods)
 
 
 class TestResolveFlowVelocity:

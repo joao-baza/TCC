@@ -47,6 +47,34 @@ class RealDiameterRequest(BaseModel):
     schedule: str = Field(..., description="Pipe schedule")
 
 
+class PipingExampleResponse(BaseModel):
+    composition: str = Field(..., description="Pipe composition selected for the example")
+    schedule: str = Field(..., description="Pipe schedule selected for the example")
+    diameter: float = Field(..., description="Nominal diameter in mm")
+    fitting: str = Field(..., description="Pipe fitting selected for the example")
+
+
+class SizingExampleCalculatedDiameter(BaseModel):
+    flow_rate: float = Field(..., description="Flow rate in m³/s")
+    velocity: float = Field(..., description="Velocity in m/s")
+
+
+class SizingExampleRealDiameter(BaseModel):
+    calculated_diameter: float = Field(..., description="Calculated diameter in mm")
+    schedule: str = Field(..., description="Pipe schedule")
+
+
+class SizingExampleResponse(BaseModel):
+    calculated_diameter: SizingExampleCalculatedDiameter = Field(
+        ...,
+        description="Worked example for the calculated diameter form",
+    )
+    real_diameter: SizingExampleRealDiameter = Field(
+        ...,
+        description="Worked example for the real diameter form",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Flow Models
 # ---------------------------------------------------------------------------
@@ -86,10 +114,69 @@ class FlowExampleFriction(BaseModel):
     custom_diameter: float = Field(..., description="Custom diameter in mm")
 
 
+class FlowExampleHydraulicDiameter(BaseModel):
+    shape: Literal["circularCap"] = Field(..., description="Hydraulic diameter worked example shape")
+    diameter: float = Field(..., description="Diameter in m")
+    height: float = Field(..., description="Height in m")
+
+
 class FlowExampleResponse(BaseModel):
     metadata: FlowExampleMetadata = Field(..., description="Example metadata")
     reynolds: FlowExampleReynolds = Field(..., description="Reynolds input parameters")
     friction: FlowExampleFriction = Field(..., description="Friction factor input parameters")
+    hydraulic_diameter: FlowExampleHydraulicDiameter = Field(
+        ...,
+        description="Hydraulic diameter input parameters",
+    )
+
+
+class PumpExampleFitting(BaseModel):
+    fitting: str = Field(..., description="Pipe fitting")
+    quantity: int = Field(..., ge=1, description="Quantity of fittings")
+
+
+class PumpExampleHeadloss(BaseModel):
+    method: Literal["Darcy-Weisbach"] = Field(..., description="Head loss method")
+    pipe_length: float = Field(..., description="Pipe length in m")
+    diameter: float = Field(..., description="Pipe diameter in mm")
+    flow_rate: float = Field(..., description="Flow rate in m³/s")
+    velocity: float = Field(..., description="Velocity in m/s")
+    reynolds: float = Field(..., description="Reynolds number used for friction-factor input")
+    friction_factor: float = Field(..., description="Friction factor used in the worked example")
+    friction_method: Literal["ColebrookWhite", "SwameeJain"] = Field(
+        ...,
+        description="Friction-factor method",
+    )
+    composition: str = Field(..., description="Pipe composition")
+    fittings: List[PumpExampleFitting] = Field(..., description="Worked example fittings")
+
+
+class PumpExampleNpsh(BaseModel):
+    manometric_pressure: float = Field(..., description="Manometric pressure")
+    atmospheric_pressure: float = Field(..., description="Atmospheric pressure")
+    vapor_pressure: float = Field(..., description="Vapor pressure")
+    density: float = Field(..., description="Fluid density in kg/m³")
+    friction_factor: float = Field(..., description="Head loss in meters")
+    pump_inlet_velocity: float = Field(..., description="Pump inlet velocity in m/s")
+    gauge_elevation: float = Field(..., description="Gauge elevation in m")
+    required: float = Field(..., description="Required NPSH in m")
+
+
+class PumpExampleHead(BaseModel):
+    pressure1: float = Field(..., description="Pressure at point 1 in Pa")
+    pressure2: float = Field(..., description="Pressure at point 2 in Pa")
+    elevation1: float = Field(..., description="Elevation at point 1 in m")
+    elevation2: float = Field(..., description="Elevation at point 2 in m")
+    velocity1: float = Field(..., description="Velocity at point 1 in m/s")
+    velocity2: float = Field(..., description="Velocity at point 2 in m/s")
+    density: float = Field(..., description="Fluid density in kg/m³")
+    friction_factor: float = Field(..., description="Head loss in meters")
+
+
+class PumpExampleResponse(BaseModel):
+    headloss: PumpExampleHeadloss = Field(..., description="Worked example for head loss")
+    npsh: PumpExampleNpsh = Field(..., description="Worked example for NPSH available")
+    head: PumpExampleHead = Field(..., description="Worked example for manometric head")
 
 
 class FrictionFactorRequest(BaseModel):
@@ -103,20 +190,20 @@ class HydraulicDiameterRequest(BaseModel):
     shape: str = Field(..., description="Shape type: circular, rectangular, annular, triangular, or circularCap")
     
     # Circular parameters
-    diameter: Optional[float] = Field(None, gt=0, description="Diameter for circular shape (mm)")
+    diameter: Optional[float] = Field(None, gt=0, description="Diameter for circular shape (m)")
     
     # Rectangular parameters
-    width: Optional[float] = Field(None, gt=0, description="Width for rectangular shape (mm)")
-    height: Optional[float] = Field(None, gt=0, description="Height for rectangular shape (mm)")
+    width: Optional[float] = Field(None, gt=0, description="Width for rectangular shape (m)")
+    height: Optional[float] = Field(None, gt=0, description="Height for rectangular shape (m)")
     
     # Annular parameters
-    outer_diameter: Optional[float] = Field(None, gt=0, description="Outer diameter for annular shape (mm)")
-    inner_diameter: Optional[float] = Field(None, gt=0, description="Inner diameter for annular shape (mm)")
+    outer_diameter: Optional[float] = Field(None, gt=0, description="Outer diameter for annular shape (m)")
+    inner_diameter: Optional[float] = Field(None, gt=0, description="Inner diameter for annular shape (m)")
     
     # Triangular parameters
-    side_a: Optional[float] = Field(None, gt=0, description="Side A for triangular shape (mm)")
-    side_b: Optional[float] = Field(None, gt=0, description="Side B for triangular shape (mm)")
-    side_c: Optional[float] = Field(None, gt=0, description="Side C for triangular shape (mm)")
+    side_a: Optional[float] = Field(None, gt=0, description="Side A for triangular shape (m)")
+    side_b: Optional[float] = Field(None, gt=0, description="Side B for triangular shape (m)")
+    side_c: Optional[float] = Field(None, gt=0, description="Side C for triangular shape (m)")
     
     @field_validator("shape")
     @classmethod
@@ -394,4 +481,72 @@ class PropertySurfaceRequest(BaseModel):
         le=40,
         description="Number of pressure samples",
     )
+
+
+class ComponentsExamplePureFluid(BaseModel):
+    fluid: str = Field(..., description="Fluid selected for the pure-fluid example")
+    property_names: List[str] = Field(..., description="Property keys selected for the example")
+    temperature: float = Field(..., description="Temperature in K")
+    pressure: float = Field(..., description="Pressure in Pa")
+
+
+class ComponentsExampleMixtures(BaseModel):
+    fluid_fractions: Dict[str, float] = Field(
+        ...,
+        description="Mixture composition selected for the example",
+    )
+    temperature: float = Field(..., description="Temperature in K")
+    pressure: float = Field(..., description="Pressure in Pa")
+    properties: List[str] = Field(..., description="Property keys selected for the example")
+
+
+class ComponentsExampleTernary(BaseModel):
+    component_a: str = Field(..., description="First ternary component")
+    component_b: str = Field(..., description="Second ternary component")
+    component_c: str = Field(..., description="Third ternary component")
+    fraction_a: float = Field(..., description="Molar fraction for component A")
+    fraction_b: float = Field(..., description="Molar fraction for component B")
+    fraction_c: float = Field(..., description="Molar fraction for component C")
+
+
+class ComponentsExampleBinaryVle(BaseModel):
+    fluid1: str = Field(..., description="First binary component")
+    fluid2: str = Field(..., description="Second binary component")
+    pressure: float = Field(..., description="Operating pressure in Pa")
+    sample_count: int = Field(..., description="Number of composition samples")
+
+
+class ComponentsExampleMccabeThiele(BaseModel):
+    distillate_composition: float = Field(..., description="Distillate composition")
+    bottoms_composition: float = Field(..., description="Bottoms composition")
+    feed_composition: float = Field(..., description="Feed composition")
+    reflux_ratio: float = Field(..., description="Reflux ratio")
+    q_value: float = Field(..., description="q-line value")
+    max_stages: int = Field(..., description="Maximum number of stages")
+
+
+class ComponentsExamplePropertySurface(BaseModel):
+    fluid: str = Field(..., description="Fluid selected for the surface example")
+    property_name: str = Field(..., description="Property key selected for the example")
+    temperature_min: float = Field(..., description="Lower temperature bound in K")
+    temperature_max: float = Field(..., description="Upper temperature bound in K")
+    pressure_min: float = Field(..., description="Lower pressure bound in Pa")
+    pressure_max: float = Field(..., description="Upper pressure bound in Pa")
+    temperature_samples: int = Field(..., description="Temperature sample count")
+    pressure_samples: int = Field(..., description="Pressure sample count")
+
+
+class ComponentsExamplePhaseEnvelope(BaseModel):
+    fluid: str = Field(..., description="Fluid selected for the phase-envelope example")
+    sample_count: int = Field(..., description="Number of saturation points")
+
+
+class ComponentsExampleResponse(BaseModel):
+    pure_fluid: ComponentsExamplePureFluid = Field(..., description="Pure-fluid example inputs")
+    mixtures: ComponentsExampleMixtures = Field(..., description="Mixture example inputs")
+    ternary_diagram: ComponentsExampleTernary = Field(..., description="Ternary diagram example inputs")
+    binary_vle: ComponentsExampleBinaryVle = Field(..., description="Binary VLE example inputs")
+    mccabe_thiele: ComponentsExampleMccabeThiele = Field(..., description="McCabe-Thiele example inputs")
+    property_surface: ComponentsExamplePropertySurface = Field(..., description="Property surface example inputs")
+    phase_envelope: ComponentsExamplePhaseEnvelope = Field(..., description="Phase envelope example inputs")
 

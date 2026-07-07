@@ -6,8 +6,13 @@ import pytest
 from pydantic import ValidationError
 
 from schemas import (
+    ComponentsExampleResponse,
+    FlowExampleResponse,
+    PipingExampleResponse,
+    PumpExampleResponse,
     ReynoldsRequest,
     HydraulicDiameterRequest,
+    SizingExampleResponse,
     HeadLossRequest,
     ReactorRequest,
     ReactorPlotRequest,
@@ -121,8 +126,8 @@ class TestHydraulicDiameterRequest:
 
     # --- circular ---
     def test_circular_valid(self):
-        req = HydraulicDiameterRequest(shape="circular", diameter=50.0)
-        assert req.diameter == 50.0
+        req = HydraulicDiameterRequest(shape="circular", diameter=0.5)
+        assert req.diameter == 0.5
 
     def test_circular_missing_diameter_raises(self):
         with pytest.raises(ValidationError, match="Diameter is required for circular shape"):
@@ -130,8 +135,8 @@ class TestHydraulicDiameterRequest:
 
     # --- rectangular ---
     def test_rectangular_valid(self):
-        req = HydraulicDiameterRequest(shape="rectangular", width=100.0, height=50.0)
-        assert req.width == 100.0 and req.height == 50.0
+        req = HydraulicDiameterRequest(shape="rectangular", width=0.1, height=0.05)
+        assert req.width == 0.1 and req.height == 0.05
 
     def test_rectangular_missing_width_raises(self):
         with pytest.raises(ValidationError, match="Width is required"):
@@ -143,8 +148,8 @@ class TestHydraulicDiameterRequest:
 
     # --- annular ---
     def test_annular_valid(self):
-        req = HydraulicDiameterRequest(shape="annular", outer_diameter=100.0, inner_diameter=50.0)
-        assert req.outer_diameter == 100.0
+        req = HydraulicDiameterRequest(shape="annular", outer_diameter=0.1, inner_diameter=0.05)
+        assert req.outer_diameter == 0.1
 
     def test_annular_missing_outer_raises(self):
         with pytest.raises(ValidationError, match="Outer diameter is required"):
@@ -156,8 +161,8 @@ class TestHydraulicDiameterRequest:
 
     # --- triangular ---
     def test_triangular_valid(self):
-        req = HydraulicDiameterRequest(shape="triangular", side_a=3.0, side_b=4.0, side_c=5.0)
-        assert req.side_a == 3.0
+        req = HydraulicDiameterRequest(shape="triangular", side_a=0.3, side_b=0.4, side_c=0.5)
+        assert req.side_a == 0.3
 
     def test_triangular_missing_side_a_raises(self):
         with pytest.raises(ValidationError, match="Side A is required"):
@@ -173,8 +178,8 @@ class TestHydraulicDiameterRequest:
 
     # --- circularCap ---
     def test_circular_cap_valid(self):
-        req = HydraulicDiameterRequest(shape="circularCap", diameter=100.0, height=30.0)
-        assert req.diameter == 100.0 and req.height == 30.0
+        req = HydraulicDiameterRequest(shape="circularCap", diameter=1.0, height=0.3)
+        assert req.diameter == 1.0 and req.height == 0.3
 
     def test_circular_cap_missing_diameter_raises(self):
         with pytest.raises(ValidationError, match="Diameter is required for circular cap"):
@@ -183,6 +188,188 @@ class TestHydraulicDiameterRequest:
     def test_circular_cap_missing_height_raises(self):
         with pytest.raises(ValidationError, match="Height is required for circular cap"):
             HydraulicDiameterRequest(shape="circularCap", diameter=100.0, height=None)
+
+
+# ---------------------------------------------------------------------------
+# Worked example response models
+# ---------------------------------------------------------------------------
+
+class TestWorkedExampleResponseModels:
+
+    def test_piping_example_response_validates(self):
+        response = PipingExampleResponse.model_validate(
+            {
+                "composition": "Aço galvanizado",
+                "schedule": "SCH40",
+                "diameter": 125,
+                "fitting": "Válvula de esfera",
+            }
+        )
+
+        assert response.model_dump() == {
+            "composition": "Aço galvanizado",
+            "schedule": "SCH40",
+            "diameter": 125.0,
+            "fitting": "Válvula de esfera",
+        }
+
+    def test_sizing_example_response_validates(self):
+        response = SizingExampleResponse.model_validate(
+            {
+                "calculated_diameter": {
+                    "flow_rate": 0.0166667,
+                    "velocity": 1.5,
+                },
+                "real_diameter": {
+                    "calculated_diameter": 118.94,
+                    "schedule": "SCH40",
+                },
+            }
+        )
+
+        assert response.calculated_diameter.flow_rate == pytest.approx(0.0166667)
+        assert response.real_diameter.schedule == "SCH40"
+
+    def test_flow_example_response_validates(self):
+        response = FlowExampleResponse.model_validate(
+            {
+                "metadata": {
+                    "fluid": "Methane",
+                    "pressure": 101325,
+                    "regime": "transitional",
+                },
+                "reynolds": {
+                    "characteristic_diameter": 13.843,
+                    "velocity": 3.923,
+                    "density": 0.65688,
+                    "dynamic_viscosity": 0.0000111963,
+                },
+                "friction": {
+                    "method": "SwameeJain",
+                    "roughness_source": "composition",
+                    "composition": "Aço galvanizado",
+                    "diameter_source": "custom",
+                    "custom_diameter": 13.843,
+                },
+                "hydraulic_diameter": {
+                    "shape": "circularCap",
+                    "diameter": 0.125,
+                    "height": 0.08333,
+                },
+            }
+        )
+
+        assert response.metadata.fluid == "Methane"
+        assert response.friction.method == "SwameeJain"
+        assert response.hydraulic_diameter.shape == "circularCap"
+
+    def test_pump_example_response_validates(self):
+        response = PumpExampleResponse.model_validate(
+            {
+                "headloss": {
+                    "method": "Darcy-Weisbach",
+                    "pipe_length": 100,
+                    "diameter": 125,
+                    "flow_rate": 0.04,
+                    "velocity": 3.259493234522017,
+                    "reynolds": 3186.1046722863807,
+                    "friction_factor": 0.04495094389484752,
+                    "friction_method": "SwameeJain",
+                    "composition": "Aço galvanizado",
+                    "fittings": [
+                        {"fitting": "Cotovelo 45°", "quantity": 5},
+                        {"fitting": "Saída de tanque", "quantity": 1},
+                        {"fitting": "Válvula de esfera", "quantity": 2},
+                    ],
+                },
+                "npsh": {
+                    "manometric_pressure": 0,
+                    "atmospheric_pressure": 1.033,
+                    "vapor_pressure": 0.023,
+                    "density": 1000,
+                    "friction_factor": 10,
+                    "pump_inlet_velocity": 1.5,
+                    "gauge_elevation": 3,
+                    "required": 3,
+                },
+                "head": {
+                    "pressure1": 101325,
+                    "pressure2": 101325,
+                    "elevation1": 0,
+                    "elevation2": 5,
+                    "velocity1": 0,
+                    "velocity2": 3,
+                    "density": 1000,
+                    "friction_factor": 2.55887,
+                },
+            }
+        )
+
+        assert response.headloss.friction_method == "SwameeJain"
+        assert len(response.headloss.fittings) == 3
+        assert response.npsh.required == pytest.approx(3)
+
+    def test_components_example_response_validates(self):
+        response = ComponentsExampleResponse.model_validate(
+            {
+                "pure_fluid": {
+                    "fluid": "Air",
+                    "property_names": ["C", "D", "V", "Z", "M"],
+                    "temperature": 353.15,
+                    "pressure": 101325,
+                },
+                "mixtures": {
+                    "fluid_fractions": {
+                        "Water": 0.7,
+                        "Ethanol": 0.29,
+                        "Methanol": 0.01,
+                    },
+                    "temperature": 303.15,
+                    "pressure": 101325,
+                    "properties": ["D", "M", "V", "C"],
+                },
+                "ternary_diagram": {
+                    "component_a": "Water",
+                    "component_b": "Ethanol",
+                    "component_c": "Methanol",
+                    "fraction_a": 0.7,
+                    "fraction_b": 0.29,
+                    "fraction_c": 0.1,
+                },
+                "binary_vle": {
+                    "fluid1": "Acetone",
+                    "fluid2": "Water",
+                    "pressure": 101325,
+                    "sample_count": 30,
+                },
+                "mccabe_thiele": {
+                    "distillate_composition": 0.95,
+                    "bottoms_composition": 0.05,
+                    "feed_composition": 0.7,
+                    "reflux_ratio": 3,
+                    "q_value": 1,
+                    "max_stages": 10,
+                },
+                "property_surface": {
+                    "fluid": "Ethanol",
+                    "property_name": "C",
+                    "temperature_min": 263.15,
+                    "temperature_max": 383.15,
+                    "pressure_min": 50662.5,
+                    "pressure_max": 101326,
+                    "temperature_samples": 20,
+                    "pressure_samples": 20,
+                },
+                "phase_envelope": {
+                    "fluid": "R1234ze(E)",
+                    "sample_count": 40,
+                },
+            }
+        )
+
+        assert response.pure_fluid.fluid == "Air"
+        assert response.binary_vle.sample_count == 30
+        assert response.phase_envelope.sample_count == 40
 
 
 # ---------------------------------------------------------------------------

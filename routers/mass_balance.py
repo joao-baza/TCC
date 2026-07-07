@@ -13,6 +13,16 @@ from schemas import MassBalanceRequest
 router = APIRouter(prefix="/mass-balance", tags=["Mass Balance"])
 
 
+def _legacy_mass_balance_results(results):
+    legacy_results = {}
+    for stream_name, stream_data in results.items():
+        legacy_results[stream_name] = {
+            "vazao": stream_data.get("vazao", stream_data.get("flow_rate")),
+            "composicoes": stream_data.get("composicoes", stream_data.get("compositions", {})),
+        }
+    return legacy_results
+
+
 @router.post("/calculate")
 def calculate_mass_balance(payload: MassBalanceRequest):
     try:
@@ -125,7 +135,7 @@ def calculate_mass_balance(payload: MassBalanceRequest):
                 pass
                 
             return {
-                "resultados": results,
+                "resultados": _legacy_mass_balance_results(results),
                 "metricas": metrics
             }
         except ValueError as validation_error:
@@ -435,7 +445,7 @@ def calculate_yields(payload: MassBalanceRequest):
             
             return {
                 "rendimentos": yields,
-                "resultados": results
+                "resultados": _legacy_mass_balance_results(results)
             }
         except ValueError as validation_error:
             # Catch and properly raise validation errors

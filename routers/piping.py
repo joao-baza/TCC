@@ -1,10 +1,33 @@
 from fastapi import APIRouter, HTTPException
 from models.piping import Piping
+from schemas import PipingExampleResponse
 from .utils import serialize
 from .i18n import catalog_options, option
 
 router = APIRouter(prefix="/piping", tags=["Piping"])
 piping = Piping()
+
+
+def validate_piping_example_catalogs() -> None:
+    if "Aço galvanizado" not in piping.compositions():
+        raise RuntimeError("Composition 'Aço galvanizado' not found")
+    if not any(schedule["name"] == "SCH40" for schedule in piping.schedules()):
+        raise RuntimeError("Schedule 'SCH40' not found")
+    if 125 not in piping.diameters("SCH40"):
+        raise RuntimeError("Diameter '125' not found for schedule 'SCH40'")
+    if "Válvula de esfera" not in piping.fittings():
+        raise RuntimeError("Fitting 'Válvula de esfera' not found")
+
+
+@router.get("/example", response_model=PipingExampleResponse)
+def get_piping_example():
+    validate_piping_example_catalogs()
+    return {
+        "composition": "Aço galvanizado",
+        "schedule": "SCH40",
+        "diameter": 125,
+        "fitting": "Válvula de esfera",
+    }
 
 
 @router.get("/compositions")
