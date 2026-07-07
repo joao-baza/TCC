@@ -1,33 +1,21 @@
 # syntax=docker/dockerfile:1
 
-# ---- Stage 1: build Tailwind CSS from source ----
-# Regenerates css/tailwind.css so utility classes used only in JS-generated
-# HTML (js/modules/*.js) are always present and never stale/purged.
+# ---- Stage 1: build Vite frontend ----
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy the frontend (tailwind.config.js scans ./index.html + ./js/**/*.js)
-COPY frontend/ .
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
 
-# Build the purged, minified stylesheet (pinned for reproducibility)
-RUN npx --yes tailwindcss@3.4.17 \
-    -c tailwind.config.js \
-    -i css/tailwind-input.css \
-    -o css/tailwind.css \
-    --minify
+COPY frontend/ ./
+RUN npm run build
 
-# ---- Stage 2: serve static files with nginx ----
+# ---- Stage 2: serve static bundle with nginx ----
 FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
 
-# Copy frontend (including the freshly built css/tailwind.css)
-COPY --from=builder /app .
-
-# Copy custom nginx configuration
+COPY --from=builder /app/dist/ /usr/share/nginx/html/
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose the web server port
 EXPOSE 80
 
-# Default command
 CMD ["nginx", "-g", "daemon off;"]
