@@ -8,7 +8,5 @@ cd "$repo_root/frontend"
 npm run build
 
 cd "$desktop_dir"
-python -m pip install -r requirements-build.txt
-python scripts/build-backend.py
+npm run build:backend
 npx electron-builder --config electron-builder.yml
-
