@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +63,33 @@ class ReynoldsRequest(BaseModel):
         if self.dynamic_viscosity is None and self.kinematic_viscosity is None:
             raise ValueError("Either dynamic viscosity or kinematic viscosity must be provided")
         return self
+
+
+class FlowExampleMetadata(BaseModel):
+    fluid: str = Field(..., description="Fluid used in the worked example")
+    pressure: float = Field(..., description="Pressure in Pa")
+    regime: Literal["transitional"] = Field(..., description="Flow regime")
+
+
+class FlowExampleReynolds(BaseModel):
+    characteristic_diameter: float = Field(..., description="Characteristic diameter in mm")
+    velocity: float = Field(..., description="Velocity in m/s")
+    density: float = Field(..., description="Density in kg/m³")
+    dynamic_viscosity: float = Field(..., description="Dynamic viscosity in Pa·s")
+
+
+class FlowExampleFriction(BaseModel):
+    method: Literal["SwameeJain"] = Field(..., description="Friction factor method")
+    roughness_source: Literal["composition"] = Field(..., description="Source for pipe roughness")
+    composition: str = Field(..., description="Pipe composition")
+    diameter_source: Literal["custom"] = Field(..., description="Source for the diameter used in friction")
+    custom_diameter: float = Field(..., description="Custom diameter in mm")
+
+
+class FlowExampleResponse(BaseModel):
+    metadata: FlowExampleMetadata = Field(..., description="Example metadata")
+    reynolds: FlowExampleReynolds = Field(..., description="Reynolds input parameters")
+    friction: FlowExampleFriction = Field(..., description="Friction factor input parameters")
 
 
 class FrictionFactorRequest(BaseModel):
