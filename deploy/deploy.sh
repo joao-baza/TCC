@@ -165,8 +165,8 @@ while (( elapsed < WAIT_TIMEOUT_SECONDS )); do
   if [[ "$service_count" -gt 0 && "$not_ready" -eq 0 ]]; then
     echo ""
     echo "==> Deploy concluído — todas as réplicas OK."
-    echo "    API:      https://tcc.api.homelab.sistemasj.com.br"
-    echo "    Frontend: https://tcc.homelab.sistemasj.com.br"
+    echo "    API:      https://tcc.api.joao.baza.dev.br"
+    echo "    Frontend: https://tcc.joao.baza.dev.br"
     echo "    Dica: se o navegador ainda mostrar versão antiga, use Ctrl+Shift+R (cache de JS/CSS: 7 dias)."
     exit 0
   fi

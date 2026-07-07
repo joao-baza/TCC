@@ -24,7 +24,7 @@ def test_compose_routes_frontend_to_nginx_and_main_host_api_to_backend():
 
     assert "traefik.http.services.tcc-frontend.loadbalancer.server.port=80" in compose
     assert (
-        "traefik.http.routers.tcc-api-main.rule=Host(`tcc.homelab.sistemasj.com.br`) "
+        "traefik.http.routers.tcc-api-main.rule=Host(`tcc.joao.baza.dev.br`) "
         "&& PathPrefix(`/api`)"
     ) in compose
     assert "traefik.http.middlewares.tcc-api-strip.stripprefix.prefixes=/api" in compose

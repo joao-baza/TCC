@@ -29,7 +29,7 @@ def test_cors_does_not_allow_wildcard_origin():
 
 def test_cors_allows_production_frontend():
     origins = _cors_kwargs().get("allow_origins", [])
-    assert "https://tcc.homelab.sistemasj.com.br" in origins
+    assert "https://tcc.joao.baza.dev.br" in origins
 
 
 def test_cors_keeps_credentials_enabled():

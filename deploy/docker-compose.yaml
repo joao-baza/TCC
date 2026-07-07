@@ -12,11 +12,11 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=SJNet"
-        - "traefik.http.routers.tcc-api.rule=Host(`tcc.api.homelab.sistemasj.com.br`)"
+        - "traefik.http.routers.tcc-api.rule=Host(`tcc.api.joao.baza.dev.br`)"
         - "traefik.http.routers.tcc-api.entrypoints=websecure"
         - "traefik.http.routers.tcc-api.tls=true"
         - "traefik.http.routers.tcc-api.tls.certresolver=letsencryptresolver"
-        - "traefik.http.routers.tcc-api-main.rule=Host(`tcc.homelab.sistemasj.com.br`) && PathPrefix(`/api`)"
+        - "traefik.http.routers.tcc-api-main.rule=Host(`tcc.joao.baza.dev.br`) && PathPrefix(`/api`)"
         - "traefik.http.routers.tcc-api-main.entrypoints=websecure"
         - "traefik.http.routers.tcc-api-main.tls=true"
         - "traefik.http.routers.tcc-api-main.tls.certresolver=letsencryptresolver"
@@ -35,7 +35,7 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=SJNet"
-        - "traefik.http.routers.tcc-frontend.rule=Host(`tcc.homelab.sistemasj.com.br`)"
+        - "traefik.http.routers.tcc-frontend.rule=Host(`tcc.joao.baza.dev.br`)"
         - "traefik.http.routers.tcc-frontend.entrypoints=websecure"
         - "traefik.http.routers.tcc-frontend.tls=true"
         - "traefik.http.routers.tcc-frontend.tls.certresolver=letsencryptresolver"
