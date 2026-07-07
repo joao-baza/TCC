@@ -1,18 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-test("renders the new IA home entry points", async ({ page }) => {
+test("home page shows learning trails and quick access links", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("button", { name: "Iniciar uma simulação" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Seguir uma trilha" })).toBeVisible();
-  await expect(page.getByText("Recursos de Apoio")).toBeVisible();
-  await expect(page.getByText("Para Docência")).toBeVisible();
-});
+  await expect(
+    page.getByRole("heading", {
+      name: /DCOU - Dimensionamento Computacional de Operações Unitárias/i,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Trilhas de Aprendizagem/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Acesso Rápido/i })).toBeVisible();
+  await expect(page.getByText(/Transporte de Fluidos/i)).toBeVisible();
+  await expect(page.locator('a[href="/exercises"]').first()).toBeVisible();
+  await expect(page.locator('a[href="/glossary"]').first()).toBeVisible();
 
-test("starts from home and reaches a simulation through the new primary CTA", async ({ page }) => {
-  await page.goto("/");
+  await page.locator('a[href="/glossary"]').first().click();
 
-  await page.getByRole("button", { name: "Iniciar uma simulação" }).click();
-  await expect(page.getByRole("heading", { name: "Simulações em Destaque" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Abrir módulo de Escoamento" })).toBeVisible();
+  await expect(page).toHaveURL(/\/glossary$/);
 });

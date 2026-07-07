@@ -1,65 +1,74 @@
-import {
-  ApiError,
-  buildApiUrl,
-  createApiClient,
-  getApiBaseUrl
-} from "@/lib/api";
+import { ApiClient } from "@/lib/api";
 
-describe("api client", () => {
-  it("uses the remote API in localhost development and same-origin proxy elsewhere", () => {
-    expect(getApiBaseUrl("localhost")).toBe("https://tcc.api.homelab.sistemasj.com.br");
-    expect(getApiBaseUrl("127.0.0.1")).toBe("https://tcc.api.homelab.sistemasj.com.br");
-    expect(getApiBaseUrl("tcc.homelab.sistemasj.com.br")).toBe("/api");
+describe("ApiClient", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it("builds endpoint URLs from the selected base path", () => {
-    expect(buildApiUrl("/api", "/piping/compositions")).toBe("/api/piping/compositions");
-  });
-
-  it("serializes POST payloads and returns JSON data", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ value: 42 })
-    });
-
-    const api = createApiClient({
-      baseUrl: "/api",
-      fetchImpl: fetchMock
-    });
-
-    await expect(
-      api.call("/sizing/calculated-diameter", "POST", {
-        flow_rate: 0.25,
-        velocity: 1.1
-      })
-    ).resolves.toEqual({ value: 42 });
-
-    expect(fetchMock).toHaveBeenCalledWith("/api/sizing/calculated-diameter", {
-      body: JSON.stringify({
-        flow_rate: 0.25,
-        velocity: 1.1
+  it("prefixes all requests with /api and returns parsed JSON", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
       }),
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      },
-      method: "POST"
+    );
+
+    const client = new ApiClient();
+    const result = await client.get<{ ok: boolean }>("/components/compositions");
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/components/compositions",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("extracts the FastAPI detail field from JSON error responses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(JSON.stringify({ detail: "Vazao invalida" }), {
+          status: 422,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    const client = new ApiClient();
+
+    await expect(client.get("/x")).rejects.toMatchObject({
+      message: "Vazao invalida",
+      status: 422,
     });
   });
 
-  it("raises a typed ApiError when the backend returns a detail message", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      json: async () => ({ detail: "Falha na requisição à API" })
-    });
+  it("falls back to the raw text when the error body is not JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("Bad Gateway", { status: 502 })),
+    );
 
-    const api = createApiClient({
-      baseUrl: "/api",
-      fetchImpl: fetchMock
-    });
+    const client = new ApiClient();
 
-    await expect(api.call("/pump/head", "GET")).rejects.toEqual(
-      new ApiError("Falha na requisição à API")
+    await expect(client.get("/x")).rejects.toEqual(
+      expect.objectContaining({
+        message: "Bad Gateway",
+        status: 502,
+      }),
+    );
+  });
+
+  it("uses a Portuguese fallback when the error body is empty", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 500 })));
+
+    const client = new ApiClient();
+
+    await expect(client.get("/x")).rejects.toEqual(
+      expect.objectContaining({
+        message: "Resposta vazia da API.",
+        status: 500,
+      }),
     );
   });
 });
