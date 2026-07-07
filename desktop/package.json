@@ -1,0 +1,21 @@
+{
+  "name": "dcou-desktop",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "test": "vitest run",
+    "build:frontend": "npm --prefix ../frontend run build",
+    "build:backend": "python scripts/build-backend.py",
+    "dist": "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml"
+  },
+  "dependencies": {
+    "electron": "^35.0.0",
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^3.0.5"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.0.12",
+    "vitest": "^2.1.1",
+    "yaml": "^2.7.1"
+  }
+}
