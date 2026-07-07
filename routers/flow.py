@@ -16,46 +16,43 @@ hydraulic = Hydraulic()
 components_obj = Components()
 piping = Piping()
 
+FLOW_EXAMPLE_RESPONSE = {
+    "metadata": {
+        "fluid": "Methane",
+        "pressure": 101325,
+        "regime": "transitional",
+    },
+    "reynolds": {
+        "characteristic_diameter": 13.843,
+        "velocity": 3.923,
+        "density": 0.65688,
+        "dynamic_viscosity": 0.0000111963,
+    },
+    "friction": {
+        "method": "SwameeJain",
+        "roughness_source": "composition",
+        "composition": "Aço galvanizado",
+        "diameter_source": "custom",
+        "custom_diameter": 13.843,
+    },
+}
 
-def _validate_flow_example_catalogs() -> None:
+def validate_flow_example_catalogs() -> None:
     if "Methane" not in components_obj.list_all_components():
-        raise HTTPException(status_code=404, detail="Fluid 'Methane' not found")
+        raise RuntimeError("Fluid 'Methane' not found")
 
     if "Aço galvanizado" not in piping.compositions():
-        raise HTTPException(
-            status_code=404,
-            detail="Composition 'Aço galvanizado' not found",
-        )
+        raise RuntimeError("Composition 'Aço galvanizado' not found")
 
 
 @router.get("/example", response_model=FlowExampleResponse)
 def get_flow_example():
-    try:
-        _validate_flow_example_catalogs()
-        return {
-            "metadata": {
-                "fluid": "Methane",
-                "pressure": 101325,
-                "regime": "transitional",
-            },
-            "reynolds": {
-                "characteristic_diameter": 13.843,
-                "velocity": 3.923,
-                "density": 0.65688,
-                "dynamic_viscosity": 0.0000111963,
-            },
-            "friction": {
-                "method": "SwameeJain",
-                "roughness_source": "composition",
-                "composition": "Aço galvanizado",
-                "diameter_source": "custom",
-                "custom_diameter": 13.843,
-            },
-        }
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    return FLOW_EXAMPLE_RESPONSE
+
+
+@router.on_event("startup")
+def validate_flow_example_catalogs_on_startup() -> None:
+    validate_flow_example_catalogs()
 
 
 @router.post("/reynolds")
