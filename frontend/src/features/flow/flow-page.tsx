@@ -13,8 +13,15 @@ import { RegimeRuler } from "@/components/viz/regime-ruler";
 import { ExploratoryPanel } from "@/features/exploratory/exploratory-panel";
 import type { Scenario } from "@/features/exploratory/types";
 import { flowExploratory } from "@/features/exploratory/templates";
-import { ReynoldsHowItWorks } from "@/features/flow/didactics";
-import { flowWorkedExample } from "@/features/flow/presets";
+import {
+  FrictionFactorHowItWorks,
+  HydraulicDiameterHowItWorks,
+  ReynoldsHowItWorks,
+} from "@/features/flow/didactics";
+import {
+  mapFlowExampleToFormState,
+  type FlowExamplePayload,
+} from "@/features/flow/example";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
@@ -324,6 +331,22 @@ export function FlowPage() {
     clearFrictionDerived();
   }
 
+  async function loadExample() {
+    try {
+      const example = await apiClient.get<FlowExamplePayload>("/flow/example");
+      const mapped = mapFlowExampleToFormState(example);
+
+      setReynoldsForm(mapped.reynoldsForm);
+      setFrictionForm(mapped.frictionForm);
+      setRoughnessSource(mapped.roughnessSource);
+      setDiameterSource(mapped.diameterSource);
+      clearReynoldsDerived();
+      notify.success("Exemplo carregado com sucesso.");
+    } catch (error) {
+      notify.error(`Erro ao carregar exemplo: ${getErrorMessage(error)}`);
+    }
+  }
+
   function describeScenario() {
     return `D=${reynoldsForm.characteristicDiameter || "—"} mm, v=${reynoldsForm.velocity || "—"} m/s`;
   }
@@ -544,14 +567,7 @@ export function FlowPage() {
         </>
       }
       action={
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            applyReynoldsFields(flowWorkedExample);
-            notify.success("Exemplo carregado com sucesso.");
-          }}
-        >
+        <Button type="button" variant="outline" onClick={loadExample}>
           Carregar exemplo
         </Button>
       }
@@ -619,6 +635,7 @@ export function FlowPage() {
         <Card>
           <CardHeader title="Fator de Atrito" />
           <CardContent>
+            <FrictionFactorHowItWorks />
             <form className="space-y-4" onSubmit={handleFrictionSubmit}>
               <label className="block text-sm font-medium text-slate-800" htmlFor="reynolds-number">
                 Número de Reynolds
@@ -796,6 +813,7 @@ export function FlowPage() {
         <Card>
           <CardHeader title="Diâmetro Hidráulico" />
           <CardContent>
+            <HydraulicDiameterHowItWorks />
             <form className="space-y-4" onSubmit={handleHydraulicSubmit}>
               <Combobox
                 label="Forma geométrica"
