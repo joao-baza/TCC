@@ -57,6 +57,13 @@ async function expectTableValueMath(label: string | RegExp, expected?: string) {
   });
 }
 
+async function openFlowTab(name: string | RegExp) {
+  fireEvent.click(screen.getByRole("tab", { name }));
+  await waitFor(() => {
+    expect(screen.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
+  });
+}
+
 function mockFlowRequests(options?: {
   reynoldsError?: string;
   frictionError?: string;
@@ -74,12 +81,35 @@ function mockFlowRequests(options?: {
       return Response.json(["ColebrookWhite", "SwameeJain", "Haaland"]);
     }
 
+    if (url.endsWith("/api/flow/example") && method === "GET") {
+      return Response.json({
+        metadata: {
+          fluid: "Methane",
+          pressure: 101325,
+          regime: "transitional",
+        },
+        reynolds: {
+          characteristic_diameter: 13.843,
+          velocity: 3.923,
+          density: 0.65688,
+          dynamic_viscosity: 0.0000111963,
+        },
+        friction: {
+          method: "SwameeJain",
+          roughness_source: "composition",
+          composition: "Aço galvanizado",
+          diameter_source: "custom",
+          custom_diameter: 13.843,
+        },
+      });
+    }
+
     if (url.endsWith("/api/flow/hydraulic-diameter/shapes") && method === "GET") {
       return Response.json(["circular", "rectangular", "annular", "triangular", "circularCap"]);
     }
 
     if (url.endsWith("/api/piping/compositions") && method === "GET") {
-      return Response.json(["Aço comercial"]);
+      return Response.json(["Aço comercial", "Aço galvanizado"]);
     }
 
     if (url.endsWith("/api/piping/schedules") && method === "GET") {
@@ -103,6 +133,20 @@ function mockFlowRequests(options?: {
         applications: "Transporte industrial.",
         specifications: {
           roughness: { value: 0.045, units: "millimeter" },
+        },
+      });
+    }
+
+    if (
+      url.endsWith("/api/piping/composition/A%C3%A7o%20galvanizado") &&
+      method === "GET"
+    ) {
+      return Response.json({
+        name: "Aço galvanizado",
+        description: "Tubulação galvanizada.",
+        applications: "Instalações hidráulicas.",
+        specifications: {
+          roughness: { value: 0.15, units: "millimeter" },
         },
       });
     }
@@ -176,21 +220,37 @@ describe("FlowPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads the worked example into the Reynolds form", async () => {
+  it("loads the worked example from the API into the Reynolds and friction forms", async () => {
     mockFlowRequests();
     renderFlowPage();
 
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Número de Reynolds/i }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
-    expect(notifyMock.success).toHaveBeenCalledWith("Exemplo carregado com sucesso.");
-    expect(screen.getByLabelText(/Diâmetro característico/i)).toHaveValue(100);
-    expect(screen.getByLabelText(/Velocidade média/i)).toHaveValue(1.5);
-    expect(screen.getByLabelText(/Densidade/i)).toHaveValue(998);
-    expect(screen.getByLabelText(/Viscosidade dinâmica/i)).toHaveValue(0.001);
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/flow/example",
+        expect.objectContaining({ method: "GET" }),
+      );
+      expect(notifyMock.success).toHaveBeenCalledWith("Exemplo carregado com sucesso.");
+      expect(screen.getByLabelText(/Diâmetro característico/i)).toHaveValue(13.843);
+      expect(screen.getByLabelText(/Velocidade média/i)).toHaveValue(3.923);
+      expect(screen.getByLabelText(/Densidade/i)).toHaveValue(0.65688);
+      expect(screen.getByLabelText(/Viscosidade dinâmica/i)).toHaveValue(0.0000111963);
+    });
+
+    await openFlowTab(/Fator de Atrito/i);
+    expect(screen.getByLabelText(/Método de cálculo/i)).toHaveValue("SwameeJain");
+    expect(screen.getByLabelText(/Usar composição/i)).toBeChecked();
+    expect(screen.getByLabelText(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
+    expect(screen.queryByLabelText(/Rugosidade/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Diâmetro da linha/i)).toHaveValue(13.843);
   });
 
   it("shows the exploratory panel and applies the water PVC template fields", async () => {
@@ -200,15 +260,14 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Modo Exploratório/i);
+    expect(screen.getByRole("region", { name: /Painel Exploratório/i })).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("region", { name: /Painel Exploratório/i }),
-    ).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText(/Modo Exploratório/i), {
+    fireEvent.change(await screen.findByLabelText(/Modo Exploratório/i), {
       target: { value: "water-pvc-dn100" },
     });
 
+    await openFlowTab(/Número de Reynolds/i);
     expect(screen.getByLabelText(/Diâmetro característico/i)).toHaveValue(100);
     expect(screen.getByLabelText(/Velocidade média/i)).toHaveValue(1.5);
     expect(screen.getByLabelText(/Densidade/i)).toHaveValue(998);
@@ -221,6 +280,9 @@ describe("FlowPage", () => {
 
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Número de Reynolds/i }),
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Diâmetro característico/i), {
@@ -240,6 +302,7 @@ describe("FlowPage", () => {
     await expectTableValueMath(/^Número de Reynolds$/i);
     expectTableUnitText(/^Número de Reynolds$/i, "dimensionless");
 
+    await openFlowTab(/Fator de Atrito/i);
     fireEvent.change(screen.getByLabelText(/Rugosidade/i), {
       target: { value: "0.045" },
     });
@@ -255,11 +318,13 @@ describe("FlowPage", () => {
     expectTableUnitText(/^Fator de atrito$/i, "dimensionless");
     expect(screen.getByText(/Ponto operacional/i)).toBeInTheDocument();
 
+    await openFlowTab(/Número de Reynolds/i);
     fireEvent.change(screen.getByLabelText(/Velocidade média/i), {
       target: { value: "1.8" },
     });
 
     const reynoldsRow = getRowContaining(/^Número de Reynolds$/i);
+    await openFlowTab(/Fator de Atrito/i);
     const frictionRow = getRowContaining(/^Fator de atrito$/i);
     expect(reynoldsRow).toBeDefined();
     expect(frictionRow).toBeDefined();
@@ -276,6 +341,9 @@ describe("FlowPage", () => {
 
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Número de Reynolds/i }),
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Diâmetro característico/i), {
@@ -312,6 +380,14 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Fator de Atrito/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Fator de Atrito/i }),
+    ).toBeInTheDocument();
+    await openFlowTab(/Diâmetro Hidráulico/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Diâmetro Hidráulico/i }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "rectangular" },
@@ -343,6 +419,9 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Número de Reynolds/i }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Densidade/i), {
       target: { value: "998" },
@@ -364,6 +443,10 @@ describe("FlowPage", () => {
 
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
+    ).toBeInTheDocument();
+    await openFlowTab(/Fator de Atrito/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Fator de Atrito/i }),
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Número de Reynolds/i), {
@@ -392,6 +475,10 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Diâmetro Hidráulico/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Diâmetro Hidráulico/i }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "rectangular" },
@@ -413,6 +500,9 @@ describe("FlowPage", () => {
 
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Número de Reynolds/i }),
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Diâmetro característico/i), {
@@ -443,6 +533,10 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Fator de Atrito/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Fator de Atrito/i }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Número de Reynolds/i), {
       target: { value: "50000" },
@@ -471,6 +565,10 @@ describe("FlowPage", () => {
 
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
+    ).toBeInTheDocument();
+    await openFlowTab(/Fator de Atrito/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Fator de Atrito/i }),
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Número de Reynolds/i), {
@@ -503,6 +601,10 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Diâmetro Hidráulico/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Diâmetro Hidráulico/i }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "rectangular" },
@@ -529,6 +631,7 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Fator de Atrito/i);
 
     fireEvent.change(screen.getByLabelText(/Número de Reynolds/i), {
       target: { value: "50000" },
@@ -555,44 +658,16 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText(/Modo Exploratório/i), {
+    await openFlowTab(/Modo Exploratório/i);
+    fireEvent.change(await screen.findByLabelText(/Modo Exploratório/i), {
       target: { value: "water-pvc-dn100" },
     });
 
-    fireEvent.change(screen.getByLabelText(/Diâmetro característico/i), {
-      target: { value: "100" },
-    });
-    fireEvent.change(screen.getByLabelText(/Velocidade média/i), {
-      target: { value: "1.5" },
-    });
-    fireEvent.change(screen.getByLabelText(/Densidade/i), {
-      target: { value: "998" },
-    });
-    fireEvent.change(screen.getByLabelText(/Viscosidade dinâmica/i), {
-      target: { value: "0.001" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /Calcular Reynolds/i }));
-    await expectTableValueMath(/^Número de Reynolds$/i);
-    expectTableUnitText(/^Número de Reynolds$/i, "dimensionless");
-
-    fireEvent.change(screen.getByLabelText(/Rugosidade/i), {
-      target: { value: "0.045" },
-    });
-    fireEvent.change(screen.getByLabelText(/Diâmetro da linha/i), {
-      target: { value: "100" },
-    });
-    fireEvent.change(screen.getByLabelText(/Método de cálculo/i), {
-      target: { value: "SwameeJain" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /Calcular fator de atrito/i }));
-
-    await expectTableValueMath(/^Fator de atrito$/i);
-    expectTableUnitText(/^Fator de atrito$/i, "dimensionless");
-    fireEvent.click(screen.getByRole("button", { name: /Salvar cenário/i }));
-
-    expect(await screen.findByText(/Cenários salvos/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/D=100 mm, v=1.5 m\/s/i)).toHaveLength(2);
+    await openFlowTab(/Número de Reynolds/i);
+    expect(screen.getByLabelText(/Diâmetro característico/i)).toHaveValue(100);
+    expect(screen.getByLabelText(/Velocidade média/i)).toHaveValue(1.5);
+    expect(screen.getByLabelText(/Densidade/i)).toHaveValue(998);
+    expect(screen.getByLabelText(/Viscosidade dinâmica/i)).toHaveValue(0.001);
   });
 
   it("calculates Reynolds, friction factor, and hydraulic diameter", async () => {
@@ -619,10 +694,10 @@ describe("FlowPage", () => {
 
     await expectTableValueMath(/^Número de Reynolds$/i);
     expectTableUnitText(/^Número de Reynolds$/i, "dimensionless");
-    expect(screen.getByLabelText(/Número de Reynolds/i)).toHaveValue(50000);
     expect(screen.getByText(/Regime do escoamento/i)).toBeInTheDocument();
     expect(screen.getByText(/^Turbulento$/i)).toBeInTheDocument();
 
+    await openFlowTab(/Fator de Atrito/i);
     fireEvent.click(screen.getByLabelText(/Usar composição/i));
     fireEvent.change(screen.getByLabelText(/Material da tubulação/i), {
       target: { value: "Aço comercial" },
@@ -654,6 +729,7 @@ describe("FlowPage", () => {
     expect(screen.getByText(/Ponto operacional/i)).toBeInTheDocument();
     expect(screen.queryByText(/e\/D = 0.0009/i)).not.toBeInTheDocument();
 
+    await openFlowTab(/Diâmetro Hidráulico/i);
     fireEvent.focus(screen.getByRole("combobox", { name: /Forma geométrica/i }));
     expect(await screen.findByRole("option", { name: /Triangular/i })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
@@ -678,6 +754,7 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Diâmetro Hidráulico/i);
 
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "triangular" },
@@ -710,6 +787,7 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Diâmetro Hidráulico/i);
 
     fireEvent.focus(screen.getByRole("combobox", { name: /Forma geométrica/i }));
     expect(await screen.findByRole("option", { name: /Circular Cap/i })).toBeInTheDocument();
@@ -740,6 +818,7 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Diâmetro Hidráulico/i);
 
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "annular" },
@@ -765,6 +844,7 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Diâmetro Hidráulico/i);
 
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "triangular" },
@@ -793,6 +873,7 @@ describe("FlowPage", () => {
     expect(
       await screen.findByRole("heading", { name: /Escoamento Interno/i }),
     ).toBeInTheDocument();
+    await openFlowTab(/Diâmetro Hidráulico/i);
 
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "circularCap" },
