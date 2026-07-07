@@ -37,6 +37,9 @@ describe("PropertyTable", () => {
 
     expect(screen.getByText("Diametro")).toBeInTheDocument();
     expectRowValueMath("Diametro", "126,16");
+    const row = getRowContaining("Diametro");
+    expect(row?.querySelector("td:nth-child(3) .katex")).not.toBeNull();
+    expect(row).toHaveTextContent("mm");
   });
 
   it("preserves provided textual row labels verbatim", () => {
@@ -104,15 +107,15 @@ describe("PropertyTable", () => {
     expect(upperBoundaryRow?.querySelector(".katex")).not.toBeNull();
     expect(smallRow).toHaveTextContent("8,94903");
     expect(smallRow).toHaveTextContent("10");
-    expect(smallRow).toHaveTextContent("millimeter");
+    expect(smallRow).toHaveTextContent("mm");
     expect(largeRow).toHaveTextContent("1,23457");
     expect(largeRow).toHaveTextContent("10");
-    expect(largeRow).toHaveTextContent("pascal");
+    expect(largeRow).toHaveTextContent("Pa");
     expect(lowerBoundaryRow).toHaveTextContent("0,0001");
-    expect(lowerBoundaryRow).toHaveTextContent("dimensionless");
+    expect(lowerBoundaryRow).toHaveTextContent("-");
     expect(upperBoundaryRow).toHaveTextContent("1");
     expect(upperBoundaryRow).toHaveTextContent("10");
-    expect(upperBoundaryRow).toHaveTextContent("dimensionless");
+    expect(upperBoundaryRow).toHaveTextContent("-");
   });
 
   it("preserves the legacy data contract with semantic row tokens", () => {
@@ -127,7 +130,24 @@ describe("PropertyTable", () => {
     expect(row).toHaveClass("border-border");
     expect(valueCell).toHaveTextContent("126,16");
     expect(valueCell?.querySelector(".katex")).not.toBeNull();
-    expect(unitCell).toHaveTextContent("millimeter");
+    expect(unitCell).toHaveTextContent("mm");
+    expect(unitCell?.querySelector(".katex")).not.toBeNull();
     expect(unitCell).toHaveClass("text-foreground");
+    expect(valueCell).toHaveClass("text-center");
+    expect(unitCell).toHaveClass("text-center");
+  });
+
+  it("centers value and unit headers and cells", () => {
+    const { container } = render(
+      <PropertyTable rows={[{ label: "Diametro", value: 126.16, units: "millimeter" }]} />,
+    );
+
+    const headerCells = container.querySelectorAll("thead th");
+    const bodyCells = container.querySelectorAll("tbody td");
+
+    expect(headerCells[1]).toHaveClass("text-center");
+    expect(headerCells[2]).toHaveClass("text-center");
+    expect(bodyCells[1]).toHaveClass("text-center");
+    expect(bodyCells[2]).toHaveClass("text-center");
   });
 });

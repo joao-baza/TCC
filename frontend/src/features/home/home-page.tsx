@@ -28,27 +28,26 @@ const quickAccess = [
   { to: "/components", group: "Propriedades", label: "Componentes" },
   { to: "/reactor", group: "Reatores", label: "CSTR / PFR" },
   { to: "/balance", group: "Balanço", label: "Balanço de Massa" },
+  { to: "/glossary", group: "Ferramentas", label: "Glossário" },
+  { to: "/exercises", group: "Ferramentas", label: "Exercícios Integrados" },
 ];
 
 export function HomePage() {
   return (
     <section className="space-y-8 p-6 md:p-8">
       <Card>
-        <CardHeader>
-          <h1 className="text-3xl font-semibold">
-            DCOU - Dimensionamento Computacional de Operações Unitárias
-          </h1>
-        </CardHeader>
-        <CardContent className="text-base text-muted-foreground">
-          Selecione um módulo na barra lateral, siga uma trilha de aprendizagem ou
-          explore diretamente pelo acesso rápido.
-        </CardContent>
+        <CardHeader
+          level={1}
+          subtitle={
+            "Use a barra lateral para navegar entre módulos, siga uma trilha se estiver aprendendo do zero ou vá direto ao cálculo pelos atalhos rápidos."
+          }
+          title="DCOU - Dimensionamento Computacional de Operações Unitárias"
+          variant="hero"
+        />
       </Card>
 
       <Card>
-        <CardHeader>
-          <h2 className="text-xl font-semibold">Trilhas de Aprendizagem</h2>
-        </CardHeader>
+        <CardHeader title="Trilhas de Aprendizagem" />
         <CardContent className="grid gap-4 md:grid-cols-3">
           {trails.map((trail) => (
             <Link
@@ -66,9 +65,7 @@ export function HomePage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <h2 className="text-xl font-semibold">Acesso Rápido</h2>
-        </CardHeader>
+        <CardHeader title="Acesso Rápido" />
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {quickAccess.map((item) => (
             <Link

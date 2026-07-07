@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 
 import { routes } from "@/app/router";
+import { abbreviateUnit } from "@/lib/units";
 
 const notifyMock = vi.hoisted(() => ({
   success: vi.fn(),
@@ -33,7 +34,14 @@ function getRowContaining(text: string | RegExp) {
 
 function expectTableUnitText(label: string | RegExp, expected: string) {
   const row = getRowContaining(label);
-  expect(row?.querySelector("td:last-child")?.textContent?.trim()).toBe(expected);
+  const unitCell = row?.querySelector("td:last-child");
+  const unitText =
+    unitCell?.querySelector(".katex-html")?.textContent?.trim() ??
+    unitCell?.textContent?.trim() ??
+    "";
+  const renderedExpected = expected === "dimensionless" ? "-" : abbreviateUnit(expected);
+
+  expect(unitText).toBe(renderedExpected);
 }
 
 async function expectTableValueMath(label: string | RegExp, expected?: string) {

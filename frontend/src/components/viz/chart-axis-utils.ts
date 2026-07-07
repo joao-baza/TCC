@@ -13,7 +13,6 @@ export type NumericBox = {
 export type SafeLabelAnchor = {
   x: number;
   y: number;
-  anchor?: "start" | "middle" | "end";
 };
 
 export type SafeLabelPlacement = {
@@ -23,7 +22,7 @@ export type SafeLabelPlacement = {
 };
 
 const EPSILON = 1e-9;
-const LABEL_GAP = 8;
+const LABEL_GAP = 10;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -63,35 +62,8 @@ function dedupeTicks(values: number[]) {
   }, []);
 }
 
-function niceStep(step: number) {
-  if (!(step > 0) || !Number.isFinite(step)) {
-    return 1;
-  }
-
-  const power = 10 ** Math.floor(Math.log10(step));
-  const error = step / power;
-  const candidates = [1, 2, 2.5, 5, 10];
-
-  let best = candidates[0];
-  let bestDistance = Number.POSITIVE_INFINITY;
-
-  for (const candidate of candidates) {
-    const distance = Math.abs(candidate - error);
-    if (distance < bestDistance) {
-      best = candidate;
-      bestDistance = distance;
-    }
-  }
-
-  return best * power;
-}
-
 function buildPlacementBox(x: number, y: number, width: number, height: number): NumericBox {
   return { x, y, width, height };
-}
-
-function overlapScore(candidate: NumericBox, avoid: NumericBox[]) {
-  return avoid.reduce((score, box) => score + intersectionArea(candidate, box), 0);
 }
 
 function placeCandidate(
@@ -99,14 +71,13 @@ function placeCandidate(
   y: number,
   anchor: "start" | "middle" | "end",
   size: { width: number; height: number },
-  plot: NumericBox,
+  plot: { left: number; top: number; right: number; bottom: number },
 ) {
-  const maxX = plot.x + plot.width - size.width;
-  const maxY = plot.y + plot.height - size.height;
+  const maxY = Math.max(plot.top, plot.bottom - size.height);
 
   return {
-    x: clamp(x, plot.x, maxX),
-    y: clamp(y, plot.y, maxY),
+    x,
+    y: clamp(y, plot.top, maxY),
     anchor,
   } satisfies SafeLabelPlacement;
 }
@@ -150,17 +121,12 @@ export function buildAxisTicks(min: number, max: number, targetCount = 5) {
     return [normalizeNumber(lower)];
   }
 
-  const desiredIntervals = Math.max(1, Math.round(targetCount) - 1);
-  const step = niceStep((upper - lower) / desiredIntervals);
-  const ticks = [normalizeNumber(lower)];
+  const count = Math.max(2, Math.round(targetCount));
+  const step = (upper - lower) / (count - 1);
 
-  for (let value = Math.ceil((lower + EPSILON) / step) * step; value < upper - EPSILON; value += step) {
-    ticks.push(normalizeNumber(value));
-  }
-
-  ticks.push(normalizeNumber(upper));
-
-  return dedupeTicks(ticks).sort((left, right) => left - right);
+  return Array.from({ length: count }, (_, index) =>
+    normalizeNumber(index === count - 1 ? upper : lower + step * index),
+  );
 }
 
 export function formatAxisTick(value: number) {
@@ -172,41 +138,51 @@ export function placeSafeLabel({
   anchor,
   size,
   plot,
-  avoid = [],
+  avoid,
 }: {
   anchor: SafeLabelAnchor;
   size: { width: number; height: number };
-  plot: NumericBox;
-  avoid?: NumericBox[];
+  plot: { left: number; top: number; right: number; bottom: number };
+  avoid: NumericBox[];
 }) {
-  const candidates = [
-    placeCandidate(anchor.x + LABEL_GAP, anchor.y - size.height / 2, "start", size, plot),
-    placeCandidate(anchor.x - size.width - LABEL_GAP, anchor.y - size.height / 2, "end", size, plot),
-    placeCandidate(anchor.x - size.width / 2, anchor.y - size.height - LABEL_GAP, "middle", size, plot),
-    placeCandidate(anchor.x - size.width / 2, anchor.y + LABEL_GAP, "middle", size, plot),
-    placeCandidate(anchor.x + LABEL_GAP, anchor.y - size.height - LABEL_GAP, "start", size, plot),
-    placeCandidate(anchor.x - size.width - LABEL_GAP, anchor.y - size.height - LABEL_GAP, "end", size, plot),
-    placeCandidate(anchor.x + LABEL_GAP, anchor.y + LABEL_GAP, "start", size, plot),
-    placeCandidate(anchor.x - size.width - LABEL_GAP, anchor.y + LABEL_GAP, "end", size, plot),
+  const midpoint = (plot.left + plot.right) / 2;
+  const preferredCandidate =
+    anchor.x >= midpoint
+      ? placeCandidate(plot.right + LABEL_GAP, anchor.y - size.height / 2, "start", size, plot)
+      : placeCandidate(plot.left - LABEL_GAP, anchor.y - size.height / 2, "end", size, plot);
+  const fallbackCandidate =
+    anchor.x >= midpoint
+      ? placeCandidate(plot.left - LABEL_GAP, anchor.y - size.height / 2, "end", size, plot)
+      : placeCandidate(plot.right + LABEL_GAP, anchor.y - size.height / 2, "start", size, plot);
+  const verticalCandidates = [
+    {
+      x: clamp(anchor.x - size.width / 2, plot.left, Math.max(plot.left, plot.right - size.width)),
+      y: plot.top - size.height - LABEL_GAP,
+      anchor: "middle" as const,
+    },
+    {
+      x: clamp(anchor.x - size.width / 2, plot.left, Math.max(plot.left, plot.right - size.width)),
+      y: plot.bottom + LABEL_GAP,
+      anchor: "middle" as const,
+    },
   ];
 
-  const scoredCandidates = candidates.map((candidate) => ({
-    candidate,
-    box: buildPlacementBox(candidate.x, candidate.y, size.width, size.height),
-    score: overlapScore(buildPlacementBox(candidate.x, candidate.y, size.width, size.height), avoid),
-  }));
-
-  const preferredAnchor = anchor.anchor ?? "start";
-  const preferredCandidates = scoredCandidates.filter(({ candidate }) => candidate.anchor === preferredAnchor);
-  const orderedCandidates = [...preferredCandidates, ...scoredCandidates.filter(({ candidate }) => candidate.anchor !== preferredAnchor)];
-
-  const freeCandidate = orderedCandidates.find(({ box }) => avoid.every((occupied) => !boxesOverlap(box, occupied)));
-
-  if (freeCandidate) {
-    return freeCandidate.candidate;
+  const preferredBox = buildPlacementBox(preferredCandidate.x, preferredCandidate.y, size.width, size.height);
+  if (avoid.every((occupied) => !boxesOverlap(preferredBox, occupied))) {
+    return preferredCandidate;
   }
 
-  return orderedCandidates
-    .slice()
-    .sort((left, right) => left.score - right.score)[0].candidate;
+  const fallbackBox = buildPlacementBox(fallbackCandidate.x, fallbackCandidate.y, size.width, size.height);
+  if (avoid.every((occupied) => !boxesOverlap(fallbackBox, occupied))) {
+    return fallbackCandidate;
+  }
+
+  for (const candidate of verticalCandidates) {
+    const candidateBox = buildPlacementBox(candidate.x, candidate.y, size.width, size.height);
+    if (avoid.every((occupied) => !boxesOverlap(candidateBox, occupied))) {
+      return candidate;
+    }
+  }
+
+  return preferredCandidate;
 }
