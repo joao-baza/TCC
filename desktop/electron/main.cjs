@@ -64,7 +64,7 @@ async function createDesktopApp() {
     await waitForUrl(`http://${backendHost}:${backendPort}/health`);
 
     hostServer = await startDesktopHost({
-      frontendDir,
+      frontendDir: path.resolve(frontendDir),
       backendUrl: `http://${backendHost}:${backendPort}`,
     });
 

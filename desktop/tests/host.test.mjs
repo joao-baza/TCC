@@ -33,9 +33,10 @@ afterEach(async () => {
 });
 
 test("serves the built frontend and proxies /api to the backend", async () => {
-  const frontendDir = mkdtempSync(path.join(os.tmpdir(), "dcou-frontend-"));
+  const frontendRoot = mkdtempSync(path.join(os.tmpdir(), "dcou-frontend-"));
+  const frontendDir = path.relative(process.cwd(), frontendRoot);
   writeFileSync(
-    path.join(frontendDir, "index.html"),
+    path.join(frontendRoot, "index.html"),
     "<!doctype html><html><body><div id=\"root\">desktop</div></body></html>",
   );
 
@@ -51,4 +52,3 @@ test("serves the built frontend and proxies /api to the backend", async () => {
   expect(await fetch(`${host.url}/`).then((r) => r.text())).toContain("id=\"root\"");
   expect(await fetch(`${host.url}/api/health`).then((r) => r.json())).toEqual({ status: "ok" });
 });
-

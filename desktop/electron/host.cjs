@@ -12,7 +12,7 @@ async function startDesktopHost({ frontendDir, backendUrl, port = 0, host = "127
     throw new Error("backendUrl is required");
   }
 
-  const indexHtml = path.join(frontendDir, "index.html");
+  const resolvedFrontendDir = path.resolve(frontendDir);
   const app = express();
 
   app.use(
@@ -25,7 +25,7 @@ async function startDesktopHost({ frontendDir, backendUrl, port = 0, host = "127
   );
 
   app.use(
-    express.static(frontendDir, {
+    express.static(resolvedFrontendDir, {
       index: false,
       extensions: ["html"],
     }),
@@ -47,7 +47,7 @@ async function startDesktopHost({ frontendDir, backendUrl, port = 0, host = "127
       return;
     }
 
-    res.sendFile(indexHtml);
+    res.sendFile("index.html", { root: resolvedFrontendDir });
   });
 
   const server = http.createServer(app);
