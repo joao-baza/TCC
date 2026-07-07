@@ -2,6 +2,7 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const { app, BrowserWindow } = require("electron");
 const { startDesktopHost } = require("./host.cjs");
+const { findAvailablePort } = require("./port.cjs");
 
 async function waitForUrl(url, timeoutMs = 30000) {
   const startedAt = Date.now();
@@ -56,7 +57,7 @@ async function createDesktopApp() {
     : path.join(__dirname, "..", "..", "frontend", "dist");
 
   const backendHost = "127.0.0.1";
-  const backendPort = 5000;
+  const backendPort = await findAvailablePort({ host: backendHost, startPort: 5000 });
   const backendProcess = spawnBackendProcess({ host: backendHost, port: backendPort });
   let hostServer;
 

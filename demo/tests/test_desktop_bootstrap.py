@@ -1,3 +1,4 @@
+import socket
 import runpy
 import sys
 from types import SimpleNamespace
@@ -24,6 +25,17 @@ def test_runtime_config_reads_environment(monkeypatch):
 
     assert host == "127.0.0.1"
     assert port == 6123
+
+
+def test_find_available_port_skips_occupied_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as occupied:
+        occupied.bind(("127.0.0.1", 0))
+        occupied.listen(1)
+        start_port = occupied.getsockname()[1]
+
+        selected_port = app.find_available_port("127.0.0.1", start_port, max_attempts=5)
+
+    assert selected_port > start_port
 
 
 def test_main_passes_the_loaded_app_to_uvicorn(monkeypatch):

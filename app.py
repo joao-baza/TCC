@@ -1,5 +1,6 @@
 import logging
 import os
+import socket
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -19,7 +20,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://tcc.homelab.sistemasj.com.br",
+        "https://tcc.joao.baza.dev.br",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
     ],
@@ -35,6 +36,27 @@ def get_runtime_config() -> tuple[str, int]:
     host = os.getenv("DCOU_HOST", "127.0.0.1")
     port = int(os.getenv("DCOU_PORT", "5000"))
     return host, port
+
+
+def is_port_available(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((host, port))
+        except OSError:
+            return False
+
+    return True
+
+
+def find_available_port(host: str, start_port: int, max_attempts: int = 50) -> int:
+    for port in range(start_port, start_port + max_attempts):
+        if is_port_available(host, port):
+            return port
+
+    raise RuntimeError(
+        f"Could not find an available port for {host} starting at {start_port}"
+    )
 
 # Include routers
 app.include_router(piping.router)
@@ -71,4 +93,9 @@ if __name__ == "__main__":
     import uvicorn
 
     host, port = get_runtime_config()
-    uvicorn.run(app, host=host, port=port, reload=False)
+    selected_port = find_available_port(host, port)
+
+    if selected_port != port:
+        logger.warning("Port %s is in use; falling back to %s", port, selected_port)
+
+    uvicorn.run(app, host=host, port=selected_port, reload=False)
