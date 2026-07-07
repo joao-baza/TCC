@@ -32,6 +32,24 @@ escrita/TEX/**/*.ind
 escrita/TEX/**/*.bcf
 escrita/TEX/**/*.run.xml
 
+# Arquivos gerados pela compilação do LaTeX em monograph/TEX
+monograph/TEX/**/*.aux
+monograph/TEX/**/*.bbl
+monograph/TEX/**/*.blg
+monograph/TEX/**/*.log
+monograph/TEX/**/*.out
+monograph/TEX/**/*.toc
+monograph/TEX/**/*.lof
+monograph/TEX/**/*.lot
+monograph/TEX/**/*.fls
+monograph/TEX/**/*.fdb_latexmk
+monograph/TEX/**/*.synctex.gz
+monograph/TEX/**/*.idx
+monograph/TEX/**/*.ilg
+monograph/TEX/**/*.ind
+monograph/TEX/**/*.bcf
+monograph/TEX/**/*.run.xml
+
 deploy_app.sh
 deploy_app_external.sh
 
