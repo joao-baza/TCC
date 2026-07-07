@@ -5,7 +5,7 @@ export type SelectOption = {
 
 export type SelectOptionLike = string | SelectOption;
 
-const FLUID_LABEL_TRANSLATIONS: Record<string, string> = {
+const SELECT_LABEL_TRANSLATIONS: Record<string, string> = {
   Water: "Água",
   Ethanol: "Etanol",
   Propane: "Propano",
@@ -20,10 +20,13 @@ const FLUID_LABEL_TRANSLATIONS: Record<string, string> = {
   Air: "Ar",
   CarbonDioxide: "Dióxido de carbono",
   Ammonia: "Amônia",
+  rectangular: "Retangular",
+  annular: "Anelar",
+  circularCap: "Canal circular",
 };
 
 function translateSelectLabel(value: string) {
-  return FLUID_LABEL_TRANSLATIONS[value] ?? value;
+  return SELECT_LABEL_TRANSLATIONS[value] ?? value;
 }
 
 export function toSelectOption(option: SelectOptionLike): SelectOption {

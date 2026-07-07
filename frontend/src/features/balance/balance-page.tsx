@@ -6,14 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RemoveButton } from "@/components/remove-button";
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
-import { TernaryDiagram } from "@/components/viz/ternary-diagram";
-import { ProcessSankey } from "@/components/viz/process-sankey";
-import { RecyclePurgeMap } from "@/components/viz/recycle-purge-map";
-import { StreamGraph } from "@/components/viz/stream-graph";
-import { StreamTable } from "@/components/viz/stream-table";
-import { ExploratoryPanel } from "@/features/exploratory/exploratory-panel";
-import type { Scenario } from "@/features/exploratory/types";
-import { balanceExploratory } from "@/features/exploratory/templates";
 import { BalanceHowItWorks } from "@/features/balance/didactics";
 import { balanceWorkedExample } from "@/features/balance/presets";
 import { balanceTabs } from "@/features/balance/balance-tabs";
@@ -244,38 +236,6 @@ function mapExampleState(example: MassBalanceExample) {
   };
 }
 
-function applyExploratoryOverrides(example: MassBalanceExample, fields: Record<string, string>) {
-  const mapped = mapExampleState(example);
-  const splitFraction = fields["split-fraction"];
-  const feedMainFraction = fields["feed-main-fraction"];
-  const mainComponent = mapped.components[0];
-  const secondaryComponent = mapped.components[1];
-
-  if (splitFraction && mapped.splits[0]) {
-    mapped.splits[0] = { ...mapped.splits[0], fraction: splitFraction };
-  }
-
-  if (feedMainFraction && mapped.streams[0] && mainComponent) {
-    mapped.streams[0] = {
-      ...mapped.streams[0],
-      compositions: {
-        ...mapped.streams[0].compositions,
-        [mainComponent]: feedMainFraction,
-        ...(secondaryComponent
-          ? {
-              [secondaryComponent]: String((1 - Number(feedMainFraction)).toFixed(2)).replace(
-                /\.?0+$/,
-                "",
-              ),
-            }
-          : {}),
-      },
-    };
-  }
-
-  return mapped;
-}
-
 export function BalancePage() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -289,7 +249,6 @@ export function BalancePage() {
   const [yieldError, setYieldError] = useState<string | null>(null);
   const [balanceResult, setBalanceResult] = useState<BalanceResultsResponse | null>(null);
   const [yieldResult, setYieldResult] = useState<YieldResponse | null>(null);
-  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
   const balanceSessionRef = useRef(0);
   const pathnameTab = pathname.startsWith("/balance/")
     ? pathname.slice("/balance/".length).split("/")[0] || "components"
@@ -464,56 +423,6 @@ export function BalancePage() {
     if (!balanceResult) {
       await calculateMassBalance();
     }
-  }
-
-  function applyExploratoryFields(fields: Record<string, string>) {
-    clearDerived();
-    applyMappedExample(applyExploratoryOverrides(balanceWorkedExample, fields));
-  }
-
-  function changeExploratoryField(field: string, value: string) {
-    clearDerived();
-
-    if (field === "split-fraction") {
-      setSplits((current) =>
-        current.map((split, index) => (index === 0 ? { ...split, fraction: value } : split)),
-      );
-      return;
-    }
-
-    if (field === "feed-main-fraction") {
-      const mainComponent = components[0];
-      const secondaryComponent = components[1];
-      if (!mainComponent) {
-        return;
-      }
-
-      setStreams((current) =>
-        current.map((stream, index) =>
-          index === 0
-            ? {
-                ...stream,
-                compositions: {
-                  ...stream.compositions,
-                  [mainComponent]: value,
-                  ...(secondaryComponent
-                    ? {
-                        [secondaryComponent]: String((1 - Number(value)).toFixed(2)).replace(
-                          /\.?0+$/,
-                          "",
-                        ),
-                      }
-                    : {}),
-                },
-              }
-            : stream,
-        ),
-      );
-    }
-  }
-
-  function describeScenario() {
-    return `R=${splits[0]?.fraction || "—"} · ${components[0] || "A"}=${streams[0]?.compositions[components[0]] || "—"}`;
   }
 
   return (
@@ -931,35 +840,6 @@ export function BalancePage() {
             )}
           </CardContent>
         </Card>
-      ) : null}
-
-      {activeTab === "exploratory" ? (
-        <>
-          <ExploratoryPanel
-            config={balanceExploratory}
-            state={{
-              applyFields: applyExploratoryFields,
-              changeField: changeExploratoryField,
-              describeScenario,
-            }}
-            onScenariosChange={setSavedScenarios}
-          >
-            {() =>
-              balanceResult ? (
-                <div className="space-y-6">
-                  <StreamGraph streams={streamGraphData} scenarios={savedScenarios} />
-                  <ProcessSankey streams={streamGraphData} />
-                  <TernaryDiagram components={components} streams={streamGraphData} />
-                </div>
-              ) : null
-            }
-          </ExploratoryPanel>
-
-          <div className="grid gap-6 xl:grid-cols-2">
-            <RecyclePurgeMap splits={recyclePurgeMapData} />
-            <StreamTable streams={streamGraphData} />
-          </div>
-        </>
       ) : null}
 
       {activeTab === "results" ? (

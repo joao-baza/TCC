@@ -24,8 +24,8 @@ export function DiameterHowItWorks() {
         no catalogo para o schedule desejado.
       </p>
       <p>
-        <strong>Dica:</strong> velocidades muito altas causam erosao e ruido; muito baixas
-        favorecem deposicao de solidos.
+        <strong>Dica:</strong> velocidades muito altas causam erosão e ruído; muito baixas
+        favorecem deposição de sólidos.
       </p>
       <TheoryRef>Ref.: White, Mecanica dos Fluidos, 8a ed., McGraw-Hill, 2018.</TheoryRef>
     </HowItWorks>
@@ -36,33 +36,33 @@ export function RealDiameterHowItWorks() {
   return (
     <HowItWorks title="Como funciona - Diametro Nominal Comercial">
       <p>
-        O diametro calculado e um valor continuo. Na pratica, tubos sao fabricados em{" "}
-        <strong>diametros nominais padronizados</strong> por <em>schedule</em>.
+        O diâmetro calculado é um valor contínuo. Na prática, tubos são fabricados em{" "}
+        <strong>diâmetros nominais padronizados</strong> por <em>schedule</em>.
       </p>
       <p>
-        A logica de selecao e encontrar o <em>diametro interno real</em> imediatamente
-        superior ao diametro calculado no catalogo do schedule escolhido.
+        A lógica de seleção é encontrar o <em>diâmetro interno real</em> imediatamente
+        superior ao diâmetro calculado no catálogo do schedule escolhido.
       </p>
       <VariablesTable
         headers={["Conceito", "Descricao"]}
         rows={[
           {
             symbol: "DN (Diametro Nominal)",
-            description: "Designador comercial em mm - nao e o diametro interno real",
+            description: "Designador comercial em mm - não é o diâmetro interno real",
           },
           {
             symbol: "Schedule (SCH)",
-            description: "Indica a espessura da parede; quanto maior o numero, menor o diametro interno",
+            description: "Indica a espessura da parede; quanto maior o número, menor o diâmetro interno",
           },
           {
-            symbol: "Diametro interno real",
-            description: "Diametro externo - 2 x espessura de parede",
+            symbol: "Diâmetro interno real",
+            description: "Diâmetro externo - 2 x espessura de parede",
           },
         ]}
       />
       <p>
         <strong>Fluxo de uso:</strong> calcule D, selecione o schedule e o sistema retorna o
-        menor DN comercial cujo diametro interno e maior ou igual ao calculado.
+        menor DN comercial cujo diâmetro interno é maior ou igual ao calculado.
       </p>
       <TheoryRef>Ref.: ASME B36.10M e White, Mecanica dos Fluidos, 8a ed.</TheoryRef>
     </HowItWorks>

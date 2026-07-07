@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { PumpEfficiencyMap } from "@/components/viz/pump-efficiency-map";
 
@@ -13,17 +13,22 @@ describe("PumpEfficiencyMap", () => {
           { flowRate: 12, head: 18.4 },
           { flowRate: 15, head: 23 },
         ]}
-        availableNpsh={6.8}
-        requiredNpsh={3}
       />,
     );
 
-    expect(screen.getByText(/Mapa de eficiência da bomba e BEP/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Eficiência e BEP$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Como funciona - Eficiência e BEP/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Como funciona - Eficiência e BEP/i }));
+    expect(
+      screen.getByText(/Este mapa ajuda a localizar a região de maior eficiência da bomba/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Quão perto a operação está do ponto de melhor eficiência/i)).toBeInTheDocument();
+    expect(screen.getByText(/Karassik et al\., Pump Handbook/i)).toBeInTheDocument();
     expect(screen.getByText("Vazão volumétrica (Q)")).toHaveAttribute("data-chart-label", "x");
     expect(screen.getByText("Altura manométrica (H)")).toHaveAttribute("data-chart-label", "y");
     expect(container.querySelectorAll("[data-axis-tick='x']")).toHaveLength(5);
     expect(container.querySelectorAll("[data-axis-tick='y']")).toHaveLength(5);
-    expect(screen.getByText(/BEP aproximado/i)).toBeInTheDocument();
-    expect(screen.getByText(/Margem NPSH/i)).toBeInTheDocument();
+    expect(screen.queryByText(/BEP aproximado/i)).toBeNull();
+    expect(screen.queryByText(/Margem NPSH/i)).toBeNull();
   });
 });

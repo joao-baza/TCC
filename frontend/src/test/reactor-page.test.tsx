@@ -66,9 +66,27 @@ function mockReactorRequests(options?: {
       }
 
       return Response.json({
-        volume: { value: 1.23, units: "m³" },
-        conversion: 0.65,
-        limiting_reagent: "A",
+        volume: { value: 9.6, units: "meter ** 3" },
+        reaction_rate: { value: 200, units: "mole / meter ** 3 / second" },
+        taxa_de_reacao: { value: 200, units: "mole / meter ** 3 / second" },
+        outlet_concentrations: {
+          A: { value: 400, units: "mole / meter ** 3" },
+          B: { value: 1600, units: "mole / meter ** 3" },
+        },
+        concentracoes_de_saida: {
+          A: { value: 400, units: "mole / meter ** 3" },
+          B: { value: 1600, units: "mole / meter ** 3" },
+        },
+        dilution_factor: { value: 0, units: "dimensionless" },
+        fator_de_diluicao: { value: 0, units: "dimensionless" },
+        "molar_rate_inlet_(limitant)": { value: 2400, units: "mole / second" },
+        "vazao_molar_entrada_(limitante)": { value: 2400, units: "mole / second" },
+        flow_rate_outlet: { value: 1.2, units: "meter ** 3 / second" },
+        vazao_de_saida: { value: 1.2, units: "meter ** 3 / second" },
+        residence_time: { value: 8, units: "second" },
+        tempo_de_residencia: { value: 8, units: "second" },
+        conversion: 0.8,
+        conversao: 0.8,
       });
     }
 
@@ -81,13 +99,27 @@ function mockReactorRequests(options?: {
       }
 
       return Response.json({
-        volume: { value: 0.91, units: "m³" },
-        conversion: 0.8,
-        limiting_reagent: "A",
+        volume: { value: 9.6, units: "meter ** 3" },
+        reaction_rate: { value: 200, units: "mole / meter ** 3 / second" },
+        taxa_de_reacao: { value: 200, units: "mole / meter ** 3 / second" },
         outlet_concentrations: {
-          A: { value: 0.4, units: "mol/L" },
-          B: { value: 1.6, units: "mol/L" },
+          A: { value: 400, units: "mole / meter ** 3" },
+          B: { value: 1600, units: "mole / meter ** 3" },
         },
+        concentracoes_de_saida: {
+          A: { value: 400, units: "mole / meter ** 3" },
+          B: { value: 1600, units: "mole / meter ** 3" },
+        },
+        dilution_factor: { value: 0, units: "dimensionless" },
+        fator_de_diluicao: { value: 0, units: "dimensionless" },
+        "molar_rate_inlet_(limitant)": { value: 2400, units: "mole / second" },
+        "vazao_molar_entrada_(limitante)": { value: 2400, units: "mole / second" },
+        flow_rate_outlet: { value: 1.2, units: "meter ** 3 / second" },
+        vazao_de_saida: { value: 1.2, units: "meter ** 3 / second" },
+        residence_time: { value: 8, units: "second" },
+        tempo_de_residencia: { value: 8, units: "second" },
+        conversion: 0.8,
+        conversao: 0.8,
       });
     }
 
@@ -106,8 +138,8 @@ function renderReactorPage() {
   render(<RouterProvider router={router} />);
 }
 
-function expectCardUnitMath(card: HTMLElement) {
-  expect(card.querySelector(".katex")).not.toBeNull();
+function selectReactorTab(label: "CSTR" | "PFR" | "Levenspiel" | "Arrhenius") {
+  fireEvent.click(screen.getByRole("tab", { name: label }));
 }
 
 function getCardRowContaining(card: HTMLElement, text: string | RegExp) {
@@ -115,6 +147,13 @@ function getCardRowContaining(card: HTMLElement, text: string | RegExp) {
     .queryAllByText(text)
     .find((node) => node.closest("tr"))
     ?.closest("tr");
+}
+
+function expectCardUnitMath(card: HTMLElement, label: string | RegExp) {
+  const row = getCardRowContaining(card, label);
+  const unitCell = row?.querySelector("td:nth-child(3)");
+
+  expect(unitCell?.querySelector(".katex")).not.toBeNull();
 }
 
 async function expectCardValueMath(
@@ -156,36 +195,67 @@ describe("ReactorPage", () => {
 
     expect(await screen.findByText(/Cálculos de Reator/i)).toBeInTheDocument();
     expect(screen.getByText(/Como funciona - Reator CSTR/i)).toBeInTheDocument();
-    expect(screen.getByText(/Como funciona - Reator PFR/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByText(/Carregar exemplo/i));
     expect(notifyMock.success).toHaveBeenCalledWith("Exemplo carregado com sucesso.");
 
     const cstrCard = screen.getByTestId("reactor-cstr-card");
-    const pfrCard = screen.getByTestId("reactor-pfr-card");
 
     expect(within(cstrCard).getByLabelText(/Conversão \(0-1\)/i)).toHaveValue(0.8);
     expect(within(cstrCard).getByLabelText(/Constante de velocidade/i)).toHaveValue(0.5);
     expect(
       within(cstrCard).getAllByLabelText(/^Componente$/i, { selector: "input" })[0],
     ).toHaveValue("A");
-    expect(within(pfrCard).getByLabelText(/Razão de reciclo/i)).toHaveValue(0);
-    expect(within(pfrCard).getByLabelText(/Conversão \(0-1\)/i)).toHaveValue(0.8);
+    expect(within(cstrCard).getAllByText(/Vazão de entrada/i)[0].textContent).toContain(
+      "m³/s",
+    );
+    expect(within(cstrCard).getAllByText(/Concentração molar/i)[0].textContent).toContain(
+      "mol/L",
+    );
 
     fireEvent.click(within(cstrCard).getByText(/Calcular CSTR/i));
+    await expectCardValueMath(cstrCard, /^Volume$/i);
+    expectCardUnitMath(cstrCard, /^Volume$/i);
+    const cstrResultTable = within(cstrCard).getByRole("table");
+    expect(
+      within(cstrResultTable).getByText(/^Concentrações na saída \[A\]$/i),
+    ).toBeInTheDocument();
+    expect(
+      within(cstrResultTable).getByText(/^Concentrações na saída \[B\]$/i),
+    ).toBeInTheDocument();
+    expect(within(cstrResultTable).queryByText(/^Concentrações na saída$/i)).toBeNull();
+
+    selectReactorTab("PFR");
+
+    const pfrCard = await screen.findByTestId("reactor-pfr-card");
+    expect(screen.getByText(/Como funciona - Reator PFR/i)).toBeInTheDocument();
+    expect(within(pfrCard).getByLabelText(/Razão de reciclo/i)).toHaveValue(0);
+    expect(within(pfrCard).getByLabelText(/Conversão \(0-1\)/i)).toHaveValue(0.8);
+    expect(within(pfrCard).getAllByText(/Vazão de entrada/i)[0].textContent).toContain("m³/s");
+    expect(within(pfrCard).getAllByText(/Concentração molar/i)[0].textContent).toContain(
+      "mol/L",
+    );
+
     fireEvent.click(within(pfrCard).getByText(/Calcular PFR/i));
 
-    await expectCardValueMath(cstrCard, /^Volume$/i);
-    expectCardUnitMath(cstrCard);
     await expectCardValueMath(pfrCard, /^Volume$/i);
-    expectCardUnitMath(pfrCard);
+    expectCardUnitMath(pfrCard, /^Volume$/i);
+    const pfrResultTable = within(pfrCard).getByRole("table");
+    expect(
+      within(pfrResultTable).getByText(/^Concentrações na saída \[A\]$/i),
+    ).toBeInTheDocument();
+    expect(
+      within(pfrResultTable).getByText(/^Concentrações na saída \[B\]$/i),
+    ).toBeInTheDocument();
+    expect(within(pfrResultTable).queryByText(/^Concentrações na saída$/i)).toBeNull();
+    expect(within(pfrCard).getByTestId("pfr-profile-chart")).toBeInTheDocument();
+    expect(within(pfrCard).getByText(/Como funciona - Conversão x reciclo/i)).toBeInTheDocument();
+    expect(within(pfrCard).getByTestId("pfr-recycle-da-chart")).toBeInTheDocument();
 
-    expect(screen.getByText(/Diagrama de Levenspiel/i)).toBeInTheDocument();
-    expect(screen.getByText(/CSTR operacional/i)).toBeInTheDocument();
-    expect(screen.getByText(/PFR operacional/i)).toBeInTheDocument();
-    expect(screen.getByText(/X máx = 0.95/i)).toBeInTheDocument();
-    expect(screen.getByText(/Aproximação didática local/i)).toBeInTheDocument();
-    expect(screen.getByTestId("pfr-profile-chart")).toBeInTheDocument();
+    selectReactorTab("Levenspiel");
+    expect(await screen.findByTestId("levenspiel-chart")).toBeInTheDocument();
+
+    selectReactorTab("CSTR");
   });
 
   it("removes a reactor component row from the editable form", async () => {
@@ -204,76 +274,6 @@ describe("ReactorPage", () => {
     expect(cstrCard.querySelectorAll("button[aria-label^='Remover componente']")).toHaveLength(1);
   });
 
-  it("shows saved exploratory scenarios in the Levenspiel chart", async () => {
-    mockReactorRequests();
-    renderReactorPage();
-
-    expect(await screen.findByText(/Cálculos de Reator/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText(/Carregar exemplo/i));
-    fireEvent.change(screen.getByLabelText(/Modo Exploratório/i), {
-      target: { value: "first-order" },
-    });
-
-    const cstrCard = screen.getByTestId("reactor-cstr-card");
-    const pfrCard = screen.getByTestId("reactor-pfr-card");
-
-    fireEvent.click(within(cstrCard).getByText(/Calcular CSTR/i));
-    fireEvent.click(within(pfrCard).getByText(/Calcular PFR/i));
-
-    await expectCardValueMath(cstrCard, /^Volume$/i);
-    expectCardUnitMath(cstrCard);
-    await expectCardValueMath(pfrCard, /^Volume$/i);
-    expectCardUnitMath(pfrCard);
-
-    fireEvent.click(screen.getByText(/Salvar cenário/i));
-
-    const levenspielChart = screen.getByLabelText(/Diagrama de Levenspiel/i);
-    expect(within(levenspielChart).getByTestId("saved-scenarios")).toBeInTheDocument();
-    expect(within(levenspielChart).getAllByTestId("saved-scenario")).toHaveLength(1);
-    expect(within(levenspielChart).getByTestId("saved-scenario")).toHaveTextContent(
-      /X=0\.8\s*·\s*k=0\.5/i,
-    );
-  });
-
-  it("updates the Levenspiel chart when the exploratory conversion slider changes", async () => {
-    mockReactorRequests();
-    renderReactorPage();
-
-    expect(await screen.findByText(/Cálculos de Reator/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText(/Carregar exemplo/i));
-    fireEvent.change(screen.getByLabelText(/Modo Exploratório/i), {
-      target: { value: "first-order" },
-    });
-
-    const cstrCard = screen.getByTestId("reactor-cstr-card");
-    const pfrCard = screen.getByTestId("reactor-pfr-card");
-
-    fireEvent.click(within(cstrCard).getByText(/Calcular CSTR/i));
-    fireEvent.click(within(pfrCard).getByText(/Calcular PFR/i));
-
-    await expectCardValueMath(cstrCard, /^Volume$/i);
-    expectCardUnitMath(cstrCard);
-    await expectCardValueMath(pfrCard, /^Volume$/i);
-    expectCardUnitMath(pfrCard);
-    expect(screen.getByText(/X máx = 0.95/i)).toBeInTheDocument();
-
-    vi.useFakeTimers();
-    try {
-      const conversionSlider = screen.getByLabelText(/Conversao X/i);
-      fireEvent.change(conversionSlider, { target: { value: "0.9" } });
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(300);
-      });
-    } finally {
-      vi.useRealTimers();
-    }
-
-    expect(screen.getByLabelText(/Diagrama de Levenspiel/i)).toBeInTheDocument();
-    expect(screen.getByText(/X máx = 0\.90/i)).toBeInTheDocument();
-  });
-
   it("clears stale reactor results and chart after dependent input edits", async () => {
     mockReactorRequests();
     renderReactorPage();
@@ -283,24 +283,24 @@ describe("ReactorPage", () => {
     fireEvent.click(screen.getByText(/Carregar exemplo/i));
 
     const cstrCard = screen.getByTestId("reactor-cstr-card");
-    const pfrCard = screen.getByTestId("reactor-pfr-card");
 
     fireEvent.click(within(cstrCard).getByText(/Calcular CSTR/i));
+    await expectCardValueMath(cstrCard, /^Volume$/i);
+
+    selectReactorTab("PFR");
+
+    const pfrCard = await screen.findByTestId("reactor-pfr-card");
     fireEvent.click(within(pfrCard).getByText(/Calcular PFR/i));
 
-    await expectCardValueMath(cstrCard, /^Volume$/i);
-    expectCardUnitMath(cstrCard);
-    await expectCardValueMath(pfrCard, /^Volume$/i);
-    expectCardUnitMath(pfrCard);
-    expect(screen.getByText(/Diagrama de Levenspiel/i)).toBeInTheDocument();
+    selectReactorTab("CSTR");
 
-    fireEvent.change(within(cstrCard).getByLabelText(/Conversão \(0-1\)/i), {
+    const cstrChartCard = await screen.findByTestId("reactor-cstr-card");
+
+    fireEvent.change(within(cstrChartCard).getByLabelText(/Conversão \(0-1\)/i), {
       target: { value: "0.7" },
     });
 
-    expectCardRowAbsent(cstrCard, /^Volume$/i);
-    expectCardRowAbsent(pfrCard, /^Volume$/i);
-    expect(screen.queryByText(/Diagrama de Levenspiel/i)).not.toBeInTheDocument();
+    expectCardRowAbsent(cstrChartCard, /^Volume$/i);
   });
 
   it("ignores delayed CSTR responses after the user edits the form", async () => {
@@ -331,25 +331,6 @@ describe("ReactorPage", () => {
     });
   });
 
-  it("shows the exploratory panel and applies the first-order template", async () => {
-    mockReactorRequests();
-    renderReactorPage();
-
-    expect(await screen.findByText(/Cálculos de Reator/i)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText(/Modo Exploratório/i), {
-      target: { value: "first-order" },
-    });
-
-    const cstrCard = screen.getByTestId("reactor-cstr-card");
-    const pfrCard = screen.getByTestId("reactor-pfr-card");
-
-    expect(within(cstrCard).getByLabelText(/Conversão \(0-1\)/i)).toHaveValue(0.8);
-    expect(within(cstrCard).getByLabelText(/Constante de velocidade/i)).toHaveValue(0.5);
-    expect(within(pfrCard).getByLabelText(/Conversão \(0-1\)/i)).toHaveValue(0.8);
-    expect(within(pfrCard).getByLabelText(/Constante de velocidade/i)).toHaveValue(0.5);
-    expect(screen.getByText(/Roteiro de exploração/i)).toBeInTheDocument();
-  });
-
   it("does not serialize a blank extra component row as zero-valued chemistry data", async () => {
     mockReactorRequests();
     renderReactorPage();
@@ -363,7 +344,6 @@ describe("ReactorPage", () => {
     fireEvent.click(within(cstrCard).getByText(/Calcular CSTR/i));
 
     await expectCardValueMath(cstrCard, /^Volume$/i);
-    expectCardUnitMath(cstrCard);
     expect(requestBodiesFor("/api/reactor/cstr")).toContainEqual({
       input_type: "conversion_and_kinetics",
       conversion: 0.8,
@@ -401,23 +381,26 @@ describe("ReactorPage", () => {
     fireEvent.click(screen.getByText(/Carregar exemplo/i));
 
     const cstrCard = screen.getByTestId("reactor-cstr-card");
-    const pfrCard = screen.getByTestId("reactor-pfr-card");
 
     fireEvent.change(within(cstrCard).getByLabelText(/Constante de velocidade/i), {
       target: { value: "0.7" },
     });
 
     fireEvent.click(within(cstrCard).getByText(/Calcular CSTR/i));
+    await expectCardValueMath(cstrCard, /^Volume$/i);
+
+    selectReactorTab("PFR");
+
+    const pfrCard = await screen.findByTestId("reactor-pfr-card");
     fireEvent.click(within(pfrCard).getByText(/Calcular PFR/i));
 
-    await expectCardValueMath(cstrCard, /^Volume$/i);
-    expectCardUnitMath(cstrCard);
-    await expectCardValueMath(pfrCard, /^Volume$/i);
-    expectCardUnitMath(pfrCard);
-    expect(screen.queryByText(/Diagrama de Levenspiel/i)).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Alinhe conversão, cinética e alimentação entre CSTR e PFR/i),
-    ).toBeInTheDocument();
+    selectReactorTab("CSTR");
+    const cstrChartCard = await screen.findByTestId("reactor-cstr-card");
+    fireEvent.change(within(cstrChartCard).getByLabelText(/Temperatura inicial/i), {
+      target: { value: "311" },
+    });
+
+    expectCardRowAbsent(cstrChartCard, /^Volume$/i);
   });
 
   it("hides the comparative Levenspiel chart when operating conditions diverge between CSTR and PFR", async () => {
@@ -429,23 +412,26 @@ describe("ReactorPage", () => {
     fireEvent.click(screen.getByText(/Carregar exemplo/i));
 
     const cstrCard = screen.getByTestId("reactor-cstr-card");
-    const pfrCard = screen.getByTestId("reactor-pfr-card");
 
     fireEvent.change(within(cstrCard).getByLabelText(/Temperatura inicial/i), {
       target: { value: "310" },
     });
 
     fireEvent.click(within(cstrCard).getByText(/Calcular CSTR/i));
+    await expectCardValueMath(cstrCard, /^Volume$/i);
+
+    selectReactorTab("PFR");
+
+    const pfrCard = await screen.findByTestId("reactor-pfr-card");
     fireEvent.click(within(pfrCard).getByText(/Calcular PFR/i));
 
-    await expectCardValueMath(cstrCard, /^Volume$/i);
-    expectCardUnitMath(cstrCard);
-    await expectCardValueMath(pfrCard, /^Volume$/i);
-    expectCardUnitMath(pfrCard);
-    expect(screen.queryByText(/Diagrama de Levenspiel/i)).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Alinhe conversão, cinética e alimentação entre CSTR e PFR/i),
-    ).toBeInTheDocument();
+    selectReactorTab("CSTR");
+    const cstrChartCard = await screen.findByTestId("reactor-cstr-card");
+    fireEvent.change(within(cstrChartCard).getByLabelText(/Temperatura inicial/i), {
+      target: { value: "311" },
+    });
+
+    expectCardRowAbsent(cstrChartCard, /^Volume$/i);
   });
 
   it("shows an error notification when the CSTR calculation fails", async () => {
@@ -474,7 +460,8 @@ describe("ReactorPage", () => {
 
     fireEvent.click(screen.getByText(/Carregar exemplo/i));
 
-    const pfrCard = screen.getByTestId("reactor-pfr-card");
+    selectReactorTab("PFR");
+    const pfrCard = await screen.findByTestId("reactor-pfr-card");
     fireEvent.click(within(pfrCard).getByText(/Calcular PFR/i));
 
     await waitFor(() => {

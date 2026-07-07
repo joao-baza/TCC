@@ -89,6 +89,7 @@ test("components module loads catalogs and calculates critical, pure, and mixtur
   await expect(criticalTable).toContainText("273,16");
   await expect(criticalTable).toContainText("611,657");
 
+  await page.getByRole("tab", { name: /^Fluido Puro$/i }).click();
   await selectComboboxOption(page, "Fluido puro", "Water");
   await selectComboboxOption(page, "Propriedades do fluido", "D");
   await selectComboboxOption(page, "Propriedades do fluido", "V");
@@ -98,8 +99,9 @@ test("components module loads catalogs and calculates critical, pure, and mixtur
   const pureTable = page.locator("table").filter({ hasText: "Densidade" }).first();
   await expect(pureTable).toBeVisible();
   await expect(pureTable).toContainText("997");
-  await expect(pureTable).toContainText("0,00089");
+  await expect(pureTable).toContainText(/8,9.*10.*4/);
 
+  await page.getByRole("tab", { name: /^Misturas$/i }).click();
   await selectComboboxOption(page, "Mistura componente 1", "Water");
   await page.getByLabel("Fração molar 1").fill("0.7");
   await selectComboboxOption(page, "Mistura componente 2", "Ethanol");
@@ -117,10 +119,15 @@ test("components module loads catalogs and calculates critical, pure, and mixtur
   await expect(mixtureTable).toContainText("812,5");
   await expect(mixtureTable).toContainText("0,98");
 
+  await page.getByRole("tab", { name: /Propriedades Críticas/i }).click();
   await page.getByRole("button", { name: /Como funciona - Propriedades Críticas/i }).click();
   await expect(page.getByText(/ponto acima do qual a distinção entre fase líquida e vapor desaparece/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Como funciona - Propriedades do Fluido/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Como funciona - Propriedades de Mistura/i })).toBeVisible();
+
+  await page.getByRole("tab", { name: /^Fluido Puro$/i }).click();
+  await expect(page.getByRole("button", { name: /Como funciona - Fluido Puro/i })).toBeVisible();
+
+  await page.getByRole("tab", { name: /^Misturas$/i }).click();
+  await expect(page.getByRole("button", { name: /Como funciona - Misturas/i })).toBeVisible();
 });
 
 test("components module surfaces an error when critical properties lookup fails", async ({ page }) => {
@@ -162,7 +169,9 @@ test("components module surfaces an error when critical properties lookup fails"
 
   await selectComboboxOption(page, "Fluido crítico", "Water");
   await page.getByRole("button", { name: /Obter propriedades críticas/i }).click();
-  await expect(page.getByText(/Erro ao obter propriedades críticas: Falha no backend crítico/i)).toBeVisible();
+  await expect(page.getByRole("alert").last()).toContainText(
+    /Erro ao obter propriedades críticas: Falha no backend crítico/i,
+  );
 });
 
 test("components module surfaces an error when the initial catalog load fails", async ({
@@ -242,6 +251,7 @@ test("components module surfaces an error when pure property lookup fails", asyn
   await page.goto("/components");
   await expect(page.getByRole("heading", { name: /Propriedades de Componentes/i })).toBeVisible();
 
+  await page.getByRole("tab", { name: /^Fluido Puro$/i }).click();
   await selectComboboxOption(page, "Fluido puro", "Water");
   await selectComboboxOption(page, "Propriedades do fluido", "D");
   await page.getByLabel("Temperatura do fluido").fill("298.15");
@@ -288,6 +298,7 @@ test("components module surfaces an error when mixture property lookup fails", a
   await page.goto("/components");
   await expect(page.getByRole("heading", { name: /Propriedades de Componentes/i })).toBeVisible();
 
+  await page.getByRole("tab", { name: /^Misturas$/i }).click();
   await selectComboboxOption(page, "Mistura componente 1", "Water");
   await page.getByLabel("Fração molar 1").fill("0.7");
   await selectComboboxOption(page, "Mistura componente 2", "Ethanol");
@@ -349,6 +360,7 @@ test("components module ignores delayed mixture results after the form changes",
   await page.goto("/components");
   await expect(page.getByRole("heading", { name: /Propriedades de Componentes/i })).toBeVisible();
 
+  await page.getByRole("tab", { name: /^Misturas$/i }).click();
   await selectComboboxOption(page, "Mistura componente 1", "Water");
   await page.getByLabel("Fração molar 1").fill("0.7");
   await selectComboboxOption(page, "Mistura componente 2", "Ethanol");

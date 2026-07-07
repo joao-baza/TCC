@@ -1,3 +1,5 @@
+import { formatTableNumberText } from "@/lib/table-number";
+
 type NpshGaugeProps = {
   available: number;
   required?: number;
@@ -8,7 +10,7 @@ const height = 160;
 const padding = { top: 24, right: 28, bottom: 44, left: 72 };
 
 function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
+  return formatTableNumberText(value);
 }
 
 function scale(value: number, min: number, max: number, start: number, end: number) {
@@ -54,13 +56,13 @@ export function NpshGauge({ available, required }: NpshGaugeProps) {
   const safeX = safeThreshold != null ? scale(safeThreshold, 0, maxValue, barStart, barEnd) : null;
 
   return (
-    <section className="mt-3 rounded-xl border border-slate-200 p-3">
+    <section className="mx-auto mt-3 w-full max-w-[760px] rounded-xl border border-slate-200 p-3">
       <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-medium text-slate-800">Margem de NPSH</h3>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span>NPSHd = {available}</span>
-            {required !== undefined ? <span>NPSHr = {required}</span> : null}
+            <span>NPSHd = {toFixedLabel(available)}</span>
+            {required !== undefined ? <span>NPSHr = {toFixedLabel(required)}</span> : null}
           </div>
         </div>
         <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${status.className}`}>
@@ -68,7 +70,7 @@ export function NpshGauge({ available, required }: NpshGaugeProps) {
         </span>
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
+      <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
         <svg
           aria-label="Gauge de margem de NPSH"
           className="block h-full w-full"

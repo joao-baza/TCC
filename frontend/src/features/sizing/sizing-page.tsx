@@ -12,14 +12,14 @@ import { ResultTableSection } from "@/components/result-table-section";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { validateNumber } from "@/lib/validation";
-import { ExploratoryPanel } from "@/features/exploratory/exploratory-panel";
-import type { Scenario } from "@/features/exploratory/types";
-import { sizingExploratory } from "@/features/exploratory/templates";
 import {
   DiameterHowItWorks,
   RealDiameterHowItWorks,
 } from "@/features/sizing/didactics";
-import { sizingExample } from "@/features/sizing/presets";
+import {
+  mapSizingExampleToFormInputs,
+  type SizingExamplePayload,
+} from "@/features/sizing/example";
 import { sizingTabs } from "@/features/sizing/sizing-tabs";
 
 type Schedule = {
@@ -60,7 +60,6 @@ type SizingPageContext = {
   realDiameterResult: QuantityResult | null;
   isCalculating: boolean;
   isResolvingRealDiameter: boolean;
-  savedScenarios: Scenario[];
   loadExample: () => void;
   clearCalculatedForm: () => void;
   setFlowRate: (value: string) => void;
@@ -70,10 +69,6 @@ type SizingPageContext = {
   setCalculatedDiameterInput: (value: string) => void;
   runCalculatedDiameter: (flow: string, vel: string, selectedSchedule?: string) => Promise<QuantityResult | null>;
   runRealDiameter: (calculatedDiameter: string, selectedSchedule: string) => Promise<void>;
-  applyExploratoryFields: (fields: Record<string, string>) => void;
-  changeExploratoryField: (field: string, value: string) => void;
-  describeScenario: () => string;
-  setSavedScenarios: (value: Scenario[]) => void;
 };
 
 function useSizingPageContext() {
@@ -95,7 +90,6 @@ export function SizingPage() {
   const [isResolvingRealDiameter, setIsResolvingRealDiameter] = useState(false);
   const calculatedDiameterSessionRef = useRef(0);
   const realDiameterSessionRef = useRef(0);
-  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
 
   useEffect(() => {
     let ignore = false;
@@ -147,9 +141,24 @@ export function SizingPage() {
   }, []);
 
   function loadExample() {
-    setFlowRate(sizingExample.flowRate);
-    setVelocity(sizingExample.velocity);
-    notify.success("Exemplo carregado com sucesso.");
+    void (async () => {
+      try {
+        const example = await apiClient.get<SizingExamplePayload>("/sizing/example");
+        const mapped = mapSizingExampleToFormInputs(example);
+
+        setFlowRate(mapped.flowRate);
+        setVelocity(mapped.velocity);
+        setCalculatedDiameterInput(mapped.calculatedDiameterInput);
+        setSchedule(mapped.schedule);
+        setCalculatedResult(null);
+        setRealDiameterResult(null);
+        notify.success("Exemplo carregado com sucesso.");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Falha ao carregar o exemplo.";
+        notify.error(message);
+      }
+    })();
   }
 
   function clearCalculatedForm() {
@@ -262,33 +271,6 @@ export function SizingPage() {
     }
   }
 
-  function applyExploratoryFields(fields: Record<string, string>) {
-    if (fields["flow-rate"] !== undefined) {
-      setFlowRate(fields["flow-rate"]);
-    }
-    if (fields.velocity !== undefined) {
-      setVelocity(fields.velocity);
-    }
-  }
-
-  function changeExploratoryField(field: string, value: string) {
-    if (field === "flow-rate") {
-      calculatedDiameterSessionRef.current += 1;
-      realDiameterSessionRef.current += 1;
-      setFlowRate(value);
-      void runCalculatedDiameter(value, velocity, schedule);
-    } else if (field === "velocity") {
-      calculatedDiameterSessionRef.current += 1;
-      realDiameterSessionRef.current += 1;
-      setVelocity(value);
-      void runCalculatedDiameter(flowRate, value, schedule);
-    }
-  }
-
-  function describeScenario() {
-    return `Q=${flowRate || "—"} m3/s, v=${velocity || "—"} m/s`;
-  }
-
   const context: SizingPageContext = {
     schedules,
     scheduleError,
@@ -300,7 +282,6 @@ export function SizingPage() {
     realDiameterResult,
     isCalculating,
     isResolvingRealDiameter,
-    savedScenarios,
     loadExample,
     clearCalculatedForm,
     setFlowRate,
@@ -310,10 +291,6 @@ export function SizingPage() {
     setCalculatedDiameterInput,
     runCalculatedDiameter,
     runRealDiameter,
-    applyExploratoryFields,
-    changeExploratoryField,
-    describeScenario,
-    setSavedScenarios,
   };
 
   return (
@@ -477,56 +454,4 @@ function SizingRealDiameterTab() {
   );
 }
 
-function SizingExploratoryTab() {
-  const {
-    calculatedResult,
-    velocity,
-    savedScenarios,
-    applyExploratoryFields,
-    changeExploratoryField,
-    describeScenario,
-    setSavedScenarios,
-  } = useSizingPageContext();
-
-  return (
-    <ExploratoryPanel
-      config={sizingExploratory}
-      state={{
-        applyFields: applyExploratoryFields,
-        changeField: changeExploratoryField,
-        describeScenario,
-      }}
-      onScenariosChange={setSavedScenarios}
-    >
-      {(scenarios) =>
-        calculatedResult ? (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Perfil ao vivo
-            </p>
-            <VelocityProfileChart
-              velocity={Number(velocity) || 0}
-              diameterMm={calculatedResult.value}
-              scenarios={savedScenarios}
-            />
-            {scenarios.length > 0 ? (
-              <ul className="mt-3 space-y-1">
-                {scenarios.map((scenario) => (
-                  <li key={scenario.id} className="flex items-center gap-2 text-xs text-slate-600">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: scenario.color }}
-                    />
-                    {scenario.name}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ) : null
-      }
-    </ExploratoryPanel>
-  );
-}
-
-export { SizingCalculatedDiameterTab, SizingExploratoryTab, SizingRealDiameterTab };
+export { SizingCalculatedDiameterTab, SizingRealDiameterTab };

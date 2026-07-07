@@ -459,7 +459,7 @@ test("balance recycle guided exercise completes in the browser", async ({ page }
       splits?: Array<{ parent_stream: string; fraction: number }>;
     };
 
-    if (body.streams?.some((stream) => stream.name === "Reactor_Out")) {
+    if (body.streams?.some((stream) => stream.name === "Saida_Do_Reator")) {
       await route.fulfill({
         json: {
           metrics: {
@@ -468,11 +468,11 @@ test("balance recycle guided exercise completes in the browser", async ({ page }
             recycle_ratio: 0.6,
           },
           results: {
-            Fresh_Feed: {
+            Alimentacao_Fresca: {
               flow_rate: 100,
               compositions: { A: 1, B: 0 },
             },
-            Recycle: {
+            Reciclo: {
               flow_rate: 60,
               compositions: { A: 0.24, B: 0.76 },
             },
@@ -490,7 +490,7 @@ test("balance recycle guided exercise completes in the browser", async ({ page }
       await route.fulfill({
         json: {
           results: {
-            Feed: {
+            Alimentacao_Fresca: {
               flow_rate: 100,
               compositions: { A: 1, B: 0 },
             },
@@ -511,7 +511,7 @@ test("balance recycle guided exercise completes in the browser", async ({ page }
     await route.fulfill({
       json: {
         yields: {
-          B_from_A: 80,
+          B_a_partir_de_A: 80,
         },
         results: {
           Produto: {
@@ -564,7 +564,8 @@ test("balance purge guided exercise completes in the browser", async ({ page }) 
     };
 
     if (body.streams?.some((stream) => stream.name === "Purga_Produto")) {
-      const fraction = body.splits?.find((split) => split.parent_stream === "Reactor_Out")?.fraction ?? 0.6;
+      const fraction =
+        body.splits?.find((split) => split.parent_stream === "Saida_Do_Reator")?.fraction ?? 0.6;
 
       if (fraction > 0.95) {
         await route.fulfill({
@@ -575,11 +576,11 @@ test("balance purge guided exercise completes in the browser", async ({ page }) 
               recycle_ratio: 0.999,
             },
             results: {
-              Feed: {
+              Alimentacao_Fresca: {
                 flow_rate: 100,
                 compositions: { A: 0.8, B: 0, I: 0.2 },
               },
-              Recycle: {
+              Reciclo: {
                 flow_rate: 99.9,
                 compositions: { A: 0.05, B: 0.03, I: 0.92 },
               },
@@ -594,22 +595,22 @@ test("balance purge guided exercise completes in the browser", async ({ page }) 
       }
 
       await route.fulfill({
-        json: {
-          metrics: {
-            fresh_feed: 100,
-            product_flow: 40,
-            recycle_ratio: 0.6,
-          },
-          results: {
-            Feed: {
-              flow_rate: 100,
-              compositions: { A: 0.8, B: 0, I: 0.2 },
+          json: {
+            metrics: {
+              fresh_feed: 100,
+              product_flow: 40,
+              recycle_ratio: 0.6,
             },
-            Recycle: {
-              flow_rate: 60,
-              compositions: { A: 0.1, B: 0.65, I: 0.25 },
-            },
-            Purga_Produto: {
+            results: {
+              Alimentacao_Fresca: {
+                flow_rate: 100,
+                compositions: { A: 0.8, B: 0, I: 0.2 },
+              },
+              Reciclo: {
+                flow_rate: 60,
+                compositions: { A: 0.1, B: 0.65, I: 0.25 },
+              },
+              Purga_Produto: {
               flow_rate: 40,
               compositions: { A: 0.1, B: 0.65, I: 0.25 },
             },
@@ -626,7 +627,7 @@ test("balance purge guided exercise completes in the browser", async ({ page }) 
     await route.fulfill({
       json: {
         yields: {
-          B_from_A: 68,
+          B_a_partir_de_A: 68,
         },
         results: {
           Purga_Produto: {
@@ -651,7 +652,7 @@ test("balance purge guided exercise completes in the browser", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Exercícios Integrados" })).toBeVisible();
 
   await page.getByRole("button", { name: /Abrir Reciclo com Purga \(Inerte\)/i }).click();
-  await expect(page.getByText(/feed: A = 0,8; I = 0,2/i)).toBeVisible();
+  await expect(page.getByText(/Alimentação fresca: A = 0,8; I = 0,2/i)).toBeVisible();
   await page.getByRole("button", { name: /Simular sem purga/i }).click();
   await expect(page.getByText(/Sem purga: I no reciclo = 0.9200/i)).toBeVisible();
 

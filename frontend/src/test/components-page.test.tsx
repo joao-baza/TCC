@@ -246,6 +246,7 @@ const getRoutes = (() => {
 
 const notifyMock = vi.hoisted(() => ({
   error: vi.fn(),
+  success: vi.fn(),
 }));
 
 vi.mock("@/lib/notify", () => ({
@@ -268,20 +269,90 @@ function mockComponentsRequests(options?: {
     const method = init?.method ?? "GET";
 
     if (url.endsWith("/api/components/list") && method === "GET") {
-      return Response.json(["Water", "Ethanol", "Propane"]);
+      return Response.json([
+        "Air",
+        "Water",
+        "Ethanol",
+        "Methanol",
+        "Acetone",
+        "R1234ze(E)",
+        "Propane",
+      ]);
     }
 
     if (url.endsWith("/api/components/property-names") && method === "GET") {
       return Response.json({
+        C: "Specific heat [J/(kg·K)]",
         D: "Density [kg/m³]",
         V: "Viscosity [Pa·s]",
+        Z: "Compressibility factor [-]",
+        M: "Molar mass [kg/mol]",
       });
     }
 
     if (url.endsWith("/api/components/property-mixture-names") && method === "GET") {
       return Response.json({
         D: "Density [kg/m³]",
-        Z: "Compressibility factor [-]",
+        M: "Molar mass [kg/mol]",
+        V: "Viscosity [Pa·s]",
+        C: "Calor específico [J/(kg·K)]",
+      });
+    }
+
+    if (url.endsWith("/api/components/example") && method === "GET") {
+      return Response.json({
+        pure_fluid: {
+          fluid: "Air",
+          property_names: ["C", "D", "V", "Z", "M"],
+          temperature: 353.15,
+          pressure: 101325,
+        },
+        mixtures: {
+          fluid_fractions: {
+            Water: 0.7,
+            Ethanol: 0.29,
+            Methanol: 0.01,
+          },
+          temperature: 303.15,
+          pressure: 101325,
+          properties: ["D", "M", "V", "C"],
+        },
+        ternary_diagram: {
+          component_a: "Water",
+          component_b: "Ethanol",
+          component_c: "Methanol",
+          fraction_a: 0.7,
+          fraction_b: 0.29,
+          fraction_c: 0.1,
+        },
+        binary_vle: {
+          fluid1: "Acetone",
+          fluid2: "Water",
+          pressure: 101325,
+          sample_count: 30,
+        },
+        mccabe_thiele: {
+          distillate_composition: 0.95,
+          bottoms_composition: 0.05,
+          feed_composition: 0.7,
+          reflux_ratio: 3,
+          q_value: 1,
+          max_stages: 10,
+        },
+        property_surface: {
+          fluid: "Ethanol",
+          property_name: "C",
+          temperature_min: 263.15,
+          temperature_max: 383.15,
+          pressure_min: 50662.5,
+          pressure_max: 101326,
+          temperature_samples: 20,
+          pressure_samples: 20,
+        },
+        phase_envelope: {
+          fluid: "R1234ze(E)",
+          sample_count: 40,
+        },
       });
     }
 
@@ -418,8 +489,8 @@ function mockComponentsRequests(options?: {
 
       return Response.json({
         properties: {
-          D: { value: 812.5, units: "kilogram / meter ** 3" },
-          Z: { value: 0.98, units: "dimensionless" },
+          density: { value: 812.5, units: "kilogram / meter ** 3" },
+          molecular_weight: { value: 0.018, units: "kilogram / mole" },
         },
       });
     }
@@ -463,6 +534,10 @@ async function selectComboboxOption(label: RegExp, query: string, optionName: Re
   fireEvent.click(input);
   fireEvent.focus(input);
   fireEvent.change(input, { target: { value: query } });
+  await waitFor(() => {
+    expect(screen.queryAllByRole("option", { hidden: true }).length).toBeGreaterThan(0);
+  }, { timeout: 3000 });
+
   const listbox = screen
     .queryAllByRole("listbox", { hidden: true })
     .find((candidate) =>
@@ -483,10 +558,18 @@ async function selectComboboxOption(label: RegExp, query: string, optionName: Re
   return input;
 }
 
+async function openComponentsTab(name: RegExp) {
+  fireEvent.click(screen.getByRole("tab", { name }));
+  await waitFor(() => {
+    expect(screen.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
+  });
+}
+
 describe("ComponentsPage", () => {
   beforeEach(() => {
     fetchMock.mockReset();
     notifyMock.error.mockReset();
+    notifyMock.success.mockReset();
     vi.stubGlobal("fetch", fetchMock);
   });
 
@@ -494,64 +577,100 @@ describe("ComponentsPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it(
-    "loads component catalogs and calculates critical, pure, and mixture properties",
-    async () => {
-    const propertyRequests: Array<Record<string, unknown>> = [];
+  it("renders mixture properties using semantic response keys", async () => {
     const mixtureRequests: Array<Record<string, unknown>> = [];
-    const stateRequests: Array<Record<string, unknown>> = [];
 
     fetchMock.mockImplementation(async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/components/list") && method === "GET") {
-        return Response.json(["Water", "Ethanol", "Propane"]);
-      }
+    if (url.endsWith("/api/components/list") && method === "GET") {
+      return Response.json([
+        "Air",
+        "Water",
+        "Ethanol",
+        "Methanol",
+        "Acetone",
+        "R1234ze(E)",
+        "Propane",
+      ]);
+    }
 
-      if (url.endsWith("/api/components/property-names") && method === "GET") {
-        return Response.json({
-          D: "Density [kg/m³]",
-          V: "Viscosity [Pa·s]",
-        });
-      }
+    if (url.endsWith("/api/components/property-names") && method === "GET") {
+      return Response.json({
+        C: "Specific heat [J/(kg·K)]",
+        D: "Density [kg/m³]",
+        V: "Viscosity [Pa·s]",
+        Z: "Compressibility factor [-]",
+        M: "Molar mass [kg/mol]",
+      });
+    }
 
-      if (url.endsWith("/api/components/property-mixture-names") && method === "GET") {
-        return Response.json({
-          D: "Density [kg/m³]",
-          Z: "Compressibility factor [-]",
-        });
-      }
+    if (url.endsWith("/api/components/property-mixture-names") && method === "GET") {
+      return Response.json({
+        D: "Density [kg/m³]",
+        M: "Massa molar [kg/mol]",
+        V: "Viscosity [Pa·s]",
+        C: "Calor específico [J/(kg·K)]",
+      });
+    }
 
-      if (url.endsWith("/api/components/critical-properties") && method === "POST") {
-        return Response.json({
-          critical_temperature: 647.1,
-          critical_temperature_units: "kelvin",
-          critical_pressure: 22064000,
-          critical_pressure_units: "pascal",
-          critical_density: 322,
-          critical_density_units: "kilogram / meter ** 3",
-          triple_point_temperature: 273.16,
-          triple_point_temperature_units: "kelvin",
-          triple_point_pressure: 611.657,
-          triple_point_pressure_units: "pascal",
-        });
-      }
-
-      if (url.endsWith("/api/components/property") && method === "POST") {
-        const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
-        propertyRequests.push(body);
-
-        if (body.property_name === "D") {
-          return Response.json({ value: 997, units: "kilogram / meter ** 3" });
-        }
-
-        if (body.property_name === "V") {
-          return Response.json({ value: 0.00089, units: "pascal * second" });
-        }
-
-        throw new Error(`Unhandled property request: ${JSON.stringify(body)}`);
-      }
+    if (url.endsWith("/api/components/example") && method === "GET") {
+      return Response.json({
+        pure_fluid: {
+          fluid: "Air",
+          property_names: ["C", "D", "V", "Z", "M"],
+          temperature: 353.15,
+          pressure: 101325,
+        },
+        mixtures: {
+          fluid_fractions: {
+            Water: 0.7,
+            Ethanol: 0.29,
+            Methanol: 0.01,
+          },
+          temperature: 303.15,
+          pressure: 101325,
+          properties: ["D", "M", "V", "C"],
+        },
+        ternary_diagram: {
+          component_a: "Water",
+          component_b: "Ethanol",
+          component_c: "Methanol",
+          fraction_a: 0.7,
+          fraction_b: 0.29,
+          fraction_c: 0.1,
+        },
+        binary_vle: {
+          fluid1: "Acetone",
+          fluid2: "Water",
+          pressure: 101325,
+          sample_count: 30,
+        },
+        mccabe_thiele: {
+          distillate_composition: 0.95,
+          bottoms_composition: 0.05,
+          feed_composition: 0.7,
+          reflux_ratio: 3,
+          q_value: 1,
+          max_stages: 10,
+        },
+        property_surface: {
+          fluid: "Ethanol",
+          property_name: "C",
+          temperature_min: 263.15,
+          temperature_max: 383.15,
+          pressure_min: 50662.5,
+          pressure_max: 101326,
+          temperature_samples: 20,
+          pressure_samples: 20,
+        },
+        phase_envelope: {
+          fluid: "R1234ze(E)",
+          sample_count: 40,
+        },
+      });
+    }
 
       if (url.endsWith("/api/components/mixture-properties") && method === "POST") {
         const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
@@ -559,128 +678,62 @@ describe("ComponentsPage", () => {
 
         return Response.json({
           properties: {
-            D: { value: 812.5, units: "kilogram / meter ** 3" },
-            Z: { value: 0.98, units: "dimensionless" },
+            density: { value: 812.5, units: "kilogram / meter ** 3" },
+            molecular_weight: { value: 0.018, units: "kilogram / mole" },
           },
         });
-      }
-
-      if (url.endsWith("/api/components/props-by-state") && method === "POST") {
-        const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
-        stateRequests.push(body);
-
-        return Response.json({ value: 191000, units: "J/kg" });
       }
 
       throw new Error(`Unhandled request: ${method} ${url}`);
     });
 
-    const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
+    const router = createMemoryRouter(await getRoutes(), {
+      initialEntries: ["/components/mixtures"],
+    });
 
     render(<RouterProvider router={router} />);
 
-    expect(
-      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: /Diagrama Ternário/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: /^Misturas$/i })).toBeInTheDocument();
 
-    await selectComboboxOption(/Fluido crítico/i, "wat", "Water");
-    fireEvent.click(screen.getByRole("button", { name: /Obter propriedades críticas/i }));
-
-    await selectComboboxOption(/Fluido puro/i, "wat", "Water");
-    await selectComboboxOption(/Propriedades do fluido/i, "den", /Densidade/i);
-    await selectComboboxOption(/Propriedades do fluido/i, "vis", /Viscosidade/i);
-    fireEvent.change(screen.getByLabelText(/Temperatura do fluido/i), {
-      target: { value: "298.15" },
-    });
-    fireEvent.change(screen.getByLabelText(/Pressão do fluido/i), {
-      target: { value: "101325" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^Calcular propriedades$/i }));
-    expect(propertyRequests).toEqual([
-      {
-        fluid: "Water",
-        property_name: "D",
-        temperature: 298.15,
-        pressure: 101325,
-      },
-      {
-        fluid: "Water",
-        property_name: "V",
-        temperature: 298.15,
-        pressure: 101325,
-      },
-    ]);
-
+    await openComponentsTab(/Misturas/i);
     await selectComboboxOption(/Mistura componente 1/i, "wat", "Water");
     fireEvent.change(screen.getByLabelText(/Fração molar 1/i), {
       target: { value: "0.7" },
     });
     await selectComboboxOption(/Mistura componente 2/i, "eth", "Ethanol");
     fireEvent.change(screen.getByLabelText(/Fração molar 2/i), {
-      target: { value: "0.2" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /Adicionar fluido/i }));
-    await selectComboboxOption(/Mistura componente 3/i, "pro", "Propane");
-    fireEvent.change(screen.getByLabelText(/Fração molar 3/i), {
-      target: { value: "0.1" },
+      target: { value: "0.3" },
     });
     fireEvent.change(screen.getByLabelText(/Temperatura da mistura/i), {
-      target: { value: "300" },
+      target: { value: "303.15" },
     });
     fireEvent.change(screen.getByLabelText(/Pressão da mistura/i), {
       target: { value: "101325" },
     });
     await selectComboboxOption(/Propriedades da mistura/i, "den", /Densidade/i);
-    await selectComboboxOption(/Propriedades da mistura/i, "comp", /Fator de compressibilidade/i);
+    await selectComboboxOption(/Propriedades da mistura/i, "mol", /Massa molar/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular mistura/i }));
 
-    expect(await screen.findByText(/Composição da mistura/i)).toBeInTheDocument();
-    expect(screen.getByText(/Water: 0.7/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ethanol: 0.2/i)).toBeInTheDocument();
-    expect(screen.getByText(/Propane: 0.1/i)).toBeInTheDocument();
     expect(mixtureRequests).toEqual([
       {
         fluid_fractions: {
           Water: 0.7,
-          Ethanol: 0.2,
-          Propane: 0.1,
+          Ethanol: 0.3,
         },
-        temperature: 300,
+        temperature: 303.15,
         pressure: 101325,
-        properties: ["D", "Z"],
+        properties: ["D", "M"],
       },
     ]);
 
-    await selectComboboxOption(/Fluido de estado/i, "wat", "Water");
-    await selectComboboxOption(/Variável 1/i, "pre", /Pressão \(P\)/i);
-    fireEvent.change(screen.getByLabelText(/Valor 1/i), {
-      target: { value: "10000" },
-    });
-    await selectComboboxOption(/Variável 2/i, "tit", /Título \(Q\)/i);
-    fireEvent.change(screen.getByLabelText(/Valor 2/i), {
-      target: { value: "0" },
-    });
-    await selectComboboxOption(/Propriedade de saída/i, "ent", /Entalpia \(H\)/i);
-    fireEvent.click(screen.getByRole("button", { name: /Calcular por estado/i }));
+    expect(await screen.findByText(/Composição da mistura/i)).toBeInTheDocument();
+    expect(screen.getByText(/Water: 0.7/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ethanol: 0.3/i)).toBeInTheDocument();
+    await expectRowValueMath(/Densidade/i, "812,5");
+    await expectRowValueMath(/Massa molar/i, "0,018");
+  });
 
-    await expectRowValueMath(/^Entalpia$/i);
-    expectRowUnitText(/^Entalpia$/i, "J/kg");
-    expect(stateRequests).toEqual([
-      {
-        fluid: "Water",
-        input1: "P",
-        value1: 10000,
-        input2: "Q",
-        value2: 0,
-        output: "H",
-      },
-    ]);
-    },
-    10000,
-  );
-
-  it("traces the saturation envelope and renders the vapor pressure curve", async () => {
+  it("loads a representative example across the component module without calculating anything", async () => {
     mockComponentsRequests();
 
     const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
@@ -690,15 +743,65 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Traçar envelope/i }));
+    await openComponentsTab(/Propriedades Críticas/i);
+    fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
-    const phaseEnvelope = await screen.findByTestId("phase-envelope-chart");
-    const vaporPressure = screen.getByTestId("vapor-pressure-curve");
+    await openComponentsTab(/Fluido Puro/i);
+    expect(screen.getByLabelText(/Temperatura do fluido/i)).toHaveValue(353.15);
+    expect(screen.getByLabelText(/Pressão do fluido/i)).toHaveValue(101325);
+    expect(screen.getByRole("button", { name: /Remover Calor específico/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Remover Densidade/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Remover Viscosidade/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Remover Fator de compressibilidade/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Remover Massa molar/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("combobox", { name: /^Fluido$/i })).toHaveValue("Etanol");
+      expect(screen.getByRole("combobox", { name: /^Propriedade$/i })).toHaveValue(
+        "Calor específico [J/(kg·K)]",
+      );
+      expect(screen.getByLabelText(/Temperatura mínima/i)).toHaveValue(263.15);
+      expect(screen.getByLabelText(/Temperatura máxima/i)).toHaveValue(383.15);
+      expect(screen.getByLabelText(/Pressão mínima/i)).toHaveValue(50662.5);
+      expect(screen.getByLabelText(/Pressão máxima/i)).toHaveValue(101326);
+      expect(screen.getByLabelText(/Amostras T/i)).toHaveValue(20);
+      expect(screen.getByLabelText(/Amostras P/i)).toHaveValue(20);
+    });
 
-    expect(phaseEnvelope.querySelector('[data-chart-label="x"]')?.textContent).toMatch(/Entropia/i);
-    expect(phaseEnvelope.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/Temperatura \(K\)/i);
-    expect(vaporPressure.querySelector('[data-chart-label="x"]')?.textContent).toMatch(/Temperatura \(K\)/i);
-    expect(vaporPressure.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/log10\(P\)/i);
+    await openComponentsTab(/Misturas/i);
+    expect(screen.getByLabelText(/Mistura componente 1/i)).toHaveValue("Água");
+    expect(screen.getByLabelText(/Mistura componente 2/i)).toHaveValue("Etanol");
+    expect(screen.getByLabelText(/Mistura componente 3/i)).toHaveValue("Methanol");
+    expect(screen.getByLabelText(/Fração molar 1/i)).toHaveValue(0.7);
+    expect(screen.getByLabelText(/Fração molar 2/i)).toHaveValue(0.29);
+    expect(screen.getByLabelText(/Fração molar 3/i)).toHaveValue(0.01);
+    expect(screen.getByLabelText(/Componente A/i)).toHaveValue("Água");
+    expect(screen.getByLabelText(/Componente B/i)).toHaveValue("Etanol");
+    expect(screen.getByLabelText(/Componente C/i)).toHaveValue("Methanol");
+    expect(screen.getByLabelText(/Fração A/i)).toHaveValue(0.7);
+    expect(screen.getByLabelText(/Fração B/i)).toHaveValue(0.29);
+    expect(screen.getByLabelText(/Fração C/i)).toHaveValue(0.1);
+    expect(screen.getByLabelText(/Nome da corrente/i)).toHaveValue("Corrente atual");
+
+    await openComponentsTab(/Equilíbrio Binário/i);
+    expect(screen.getByLabelText(/Componente 1/i)).toHaveValue("Acetone");
+    expect(screen.getByLabelText(/Componente 2/i)).toHaveValue("Água");
+    expect(screen.getByLabelText(/Pressão \(Pa\)/i)).toHaveValue(101325);
+    expect(screen.getByLabelText(/Amostras por curva/i)).toHaveValue(30);
+    expect(screen.getByLabelText(/^xD$/i)).toHaveValue(0.95);
+    expect(screen.getByLabelText(/^xB$/i)).toHaveValue(0.05);
+    expect(screen.getByLabelText(/^zF$/i)).toHaveValue(0.7);
+    expect(screen.getByLabelText(/Refluxo/i)).toHaveValue(3);
+    expect(screen.getByLabelText(/^q$/i)).toHaveValue(1);
+    expect(screen.getByLabelText(/Máx\. estágios/i)).toHaveValue(10);
+    expect(screen.getByRole("button", { name: /Gerar McCabe-Thiele/i })).toBeInTheDocument();
+
+    await openComponentsTab(/Envelope de Fase/i);
+    expect(screen.getByLabelText(/Fluido do envelope/i)).toHaveValue("R1234ze(E)");
+    expect(screen.getByLabelText(/Quantidade de pontos/i)).toHaveValue(40);
+
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
   });
 
   it("generates the binary T-x-y / y-x diagram from the selected pure components", async () => {
@@ -711,11 +814,20 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Equilíbrio Binário/i);
+    await selectComboboxOption(/^Componente 1$/i, "ace", "Acetone");
+    await selectComboboxOption(/^Componente 2$/i, "wat", "Water");
+    fireEvent.change(screen.getByLabelText(/Pressão \(Pa\)/i), {
+      target: { value: "101325" },
+    });
+    fireEvent.change(screen.getByLabelText(/Amostras por curva/i), {
+      target: { value: "30" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /Gerar diagrama/i }));
 
     const binaryChart = await screen.findByTestId("binary-vle-chart");
     expect(binaryChart).toBeInTheDocument();
-    expect(within(binaryChart).getByRole("img", { name: /Diagrama T-x-y/i })).toBeInTheDocument();
+    expect(within(binaryChart).getByRole("img", { name: /Equilíbrio Binário/i })).toBeInTheDocument();
     expect(within(binaryChart).getAllByText(/Water/i).length).toBeGreaterThan(0);
     expect(within(binaryChart).getAllByText(/Ethanol/i).length).toBeGreaterThan(0);
     expect(binaryChart.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/Temperatura \(K\)/i);
@@ -731,16 +843,70 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
-    await selectComboboxOption(/^Componente 1$/i, "wat", "Water");
-    await selectComboboxOption(/^Componente 2$/i, "eth", "Ethanol");
+    await openComponentsTab(/Equilíbrio Binário/i);
+    await selectComboboxOption(/^Componente 1$/i, "ace", "Acetone");
+    await selectComboboxOption(/^Componente 2$/i, "wat", "Water");
+    fireEvent.change(screen.getByLabelText(/Pressão \(Pa\)/i), {
+      target: { value: "101325" },
+    });
+    fireEvent.change(screen.getByLabelText(/Amostras por curva/i), {
+      target: { value: "30" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /Gerar diagrama/i }));
+
+    const binaryChart = await screen.findByTestId("binary-vle-chart");
+    expect(binaryChart).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/^xD$/i), {
+      target: { value: "0.95" },
+    });
+    fireEvent.change(screen.getByLabelText(/^xB$/i), {
+      target: { value: "0.05" },
+    });
+    fireEvent.change(screen.getByLabelText(/^zF$/i), {
+      target: { value: "0.7" },
+    });
+    fireEvent.change(screen.getByLabelText(/Refluxo/i), {
+      target: { value: "3" },
+    });
+    fireEvent.change(screen.getByLabelText(/^q$/i), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByLabelText(/Máx\. estágios/i), {
+      target: { value: "10" },
+    });
+    expect(screen.queryByTestId("mccabe-thiele-chart")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Gerar McCabe-Thiele/i }));
 
     const mccabeChart = await screen.findByTestId("mccabe-thiele-chart");
     expect(within(mccabeChart).getByRole("img", { name: /McCabe-Thiele/i })).toBeInTheDocument();
     expect(within(mccabeChart).getAllByText(/xD/i).length).toBeGreaterThan(0);
     expect(within(mccabeChart).getAllByText(/xB/i).length).toBeGreaterThan(0);
-    expect(mccabeChart.querySelector('[data-chart-label="x"]')?.textContent).toMatch(/x\s*\(líquido\)/i);
-    expect(mccabeChart.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/y\s*\(vapor\)/i);
+    expect(mccabeChart.querySelector('[data-chart-label="x"]')?.textContent).toMatch(/x\s*\(líquido/i);
+    expect(mccabeChart.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/y\s*\(vapor/i);
+  });
+
+  it("redirects the legacy McCabe-Thiele path to the binary equilibrium tab", async () => {
+    mockComponentsRequests();
+
+    const router = createMemoryRouter(await getRoutes(), {
+      initialEntries: ["/components/mccabe-thiele"],
+    });
+    render(<RouterProvider router={router} />);
+
+    expect(
+      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/components/binary-vle");
+    });
+    expect(screen.queryByRole("tab", { name: /McCabe-Thiele/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
+    await openComponentsTab(/Equilíbrio Binário/i);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Componente 1/i)).toHaveValue("Acetone");
+      expect(screen.getByLabelText(/^xD$/i)).toHaveValue(0.95);
+    });
   });
 
   it("generates the property surface heatmap from the selected fluid and property", async () => {
@@ -753,6 +919,7 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Fluido Puro/i);
     await selectComboboxOption(/^Fluido$/i, "wat", "Water");
     await selectComboboxOption(/^Propriedade$/i, "den", /Densidade/i);
     fireEvent.change(screen.getByLabelText(/Temperatura mínima/i), {
@@ -770,64 +937,9 @@ describe("ComponentsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Gerar superfície/i }));
 
     const surface = await screen.findByTestId("property-surface-heatmap");
-    expect(within(surface).getByRole("img", { name: /Superfície de propriedades/i })).toBeInTheDocument();
+    expect(within(surface).getByRole("img", { name: /Superfície T-P/i })).toBeInTheDocument();
     expect(within(surface).getAllByText(/Water/i).length).toBeGreaterThan(0);
     expect(within(surface).getAllByText(/Densidade/i).length).toBeGreaterThan(0);
-  });
-
-  it("shows the didactic accordions for critical, pure, and mixture properties", async () => {
-    fetchMock.mockImplementation(async (input, init) => {
-      const url = String(input);
-      const method = init?.method ?? "GET";
-
-      if (url.endsWith("/api/components/list") && method === "GET") {
-        return Response.json(["Water", "Ethanol", "Propane"]);
-      }
-
-      if (url.endsWith("/api/components/property-names") && method === "GET") {
-        return Response.json({
-          D: "Density [kg/m³]",
-          V: "Viscosity [Pa·s]",
-        });
-      }
-
-      if (url.endsWith("/api/components/property-mixture-names") && method === "GET") {
-        return Response.json({
-          D: "Density [kg/m³]",
-          Z: "Compressibility factor [-]",
-        });
-      }
-
-      throw new Error(`Unhandled request: ${method} ${url}`);
-    });
-
-    const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
-    render(<RouterProvider router={router} />);
-
-    expect(
-      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /Como funciona - Propriedades Críticas/i }),
-    );
-    expect(
-      await screen.findByText(/ponto acima do qual a distinção entre fase líquida e vapor desaparece/i),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /Como funciona - Propriedades do Fluido/i }),
-    );
-    expect(
-      await screen.findByText(/Calcula propriedades termodinâmicas e de transporte de fluidos puros/i),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /Como funciona - Propriedades de Mistura/i }),
-    );
-    expect(
-      await screen.findByText(/frações molares devem somar exatamente 1,0/i),
-    ).toBeInTheDocument();
   });
 
   it("clears calculated outputs when dependent component inputs change", async () => {
@@ -840,10 +952,12 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Propriedades Críticas/i);
     await selectComboboxOption(/Fluido crítico/i, "wat", "Water");
     fireEvent.click(screen.getByRole("button", { name: /Obter propriedades críticas/i }));
     await selectComboboxOption(/Fluido crítico/i, "eth", "Ethanol");
 
+    await openComponentsTab(/Fluido Puro/i);
     await selectComboboxOption(/Fluido puro/i, "wat", "Water");
     await selectComboboxOption(/Propriedades do fluido/i, "den", /Densidade/i);
     fireEvent.change(screen.getByLabelText(/Temperatura do fluido/i), {
@@ -858,6 +972,7 @@ describe("ComponentsPage", () => {
       target: { value: "300" },
     });
 
+    await openComponentsTab(/Misturas/i);
     await selectComboboxOption(/Mistura componente 1/i, "wat", "Water");
     fireEvent.change(screen.getByLabelText(/Fração molar 1/i), {
       target: { value: "0.7" },
@@ -878,85 +993,6 @@ describe("ComponentsPage", () => {
     });
   });
 
-  it("clears the state-property result when a dependent state input changes", async () => {
-    mockComponentsRequests();
-
-    const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
-    render(<RouterProvider router={router} />);
-
-    expect(
-      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
-    ).toBeInTheDocument();
-
-    await selectComboboxOption(/Fluido de estado/i, "wat", "Water");
-    await selectComboboxOption(/Variável 1/i, "pre", /Pressão \(P\)/i);
-    fireEvent.change(screen.getByLabelText(/Valor 1/i), {
-      target: { value: "10000" },
-    });
-    await selectComboboxOption(/Variável 2/i, "tit", /Título \(Q\)/i);
-    fireEvent.change(screen.getByLabelText(/Valor 2/i), {
-      target: { value: "0" },
-    });
-    await selectComboboxOption(/Propriedade de saída/i, "ent", /Entalpia \(H\)/i);
-    fireEvent.click(screen.getByRole("button", { name: /Calcular por estado/i }));
-
-    await expectRowValueMath(/^Entalpia$/i);
-    expectRowUnitText(/^Entalpia$/i, "J/kg");
-
-    fireEvent.change(screen.getByLabelText(/Valor 1/i), {
-      target: { value: "12000" },
-    });
-
-    expect(getRowContaining(/^Entalpia$/i)).toBeUndefined();
-  });
-
-  it("shows an error notification when state-property lookup fails", async () => {
-    mockComponentsRequests({ stateError: "Falha no backend por estado" });
-
-    const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
-    render(<RouterProvider router={router} />);
-
-    expect(
-      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
-    ).toBeInTheDocument();
-
-    await selectComboboxOption(/Fluido de estado/i, "wat", "Water");
-    await selectComboboxOption(/Variável 1/i, "pre", /Pressão \(P\)/i);
-    fireEvent.change(screen.getByLabelText(/Valor 1/i), {
-      target: { value: "10000" },
-    });
-    await selectComboboxOption(/Variável 2/i, "tit", /Título \(Q\)/i);
-    fireEvent.change(screen.getByLabelText(/Valor 2/i), {
-      target: { value: "0" },
-    });
-    await selectComboboxOption(/Propriedade de saída/i, "ent", /Entalpia \(H\)/i);
-    fireEvent.click(screen.getByRole("button", { name: /Calcular por estado/i }));
-
-    await waitFor(() => {
-      expect(notifyMock.error).toHaveBeenCalledWith(
-        "Erro ao obter propriedade por estado: Falha no backend por estado",
-      );
-    });
-  });
-
-  it("rejects the state-property form when required fields are missing", async () => {
-    mockComponentsRequests();
-
-    const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
-    render(<RouterProvider router={router} />);
-
-    expect(
-      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /Calcular por estado/i }));
-
-    expect(notifyMock.error).toHaveBeenCalledWith("Preencha fluido, variáveis e valores.");
-    expect(
-      fetchMock.mock.calls.some(([input]) => String(input).endsWith("/api/components/props-by-state")),
-    ).toBe(false);
-  });
-
   it("ignores delayed mixture responses after the mixture inputs change", async () => {
     const componentsRequests = mockComponentsRequests({ delayMixture: true });
 
@@ -967,6 +1003,7 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Misturas/i);
     await selectComboboxOption(/Mistura componente 1/i, "wat", "Water");
     fireEvent.change(screen.getByLabelText(/Fração molar 1/i), {
       target: { value: "0.7" },
@@ -1065,9 +1102,10 @@ describe("ComponentsPage", () => {
     render(<RouterProvider router={router} />);
 
     expect(
-      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
+    await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Fluido Puro/i);
     await selectComboboxOption(/Fluido puro/i, "wat", "Water");
     await selectComboboxOption(/Propriedades do fluido/i, "den", /Densidade/i);
     fireEvent.change(screen.getByLabelText(/Temperatura do fluido/i), {
@@ -1095,6 +1133,7 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Fluido Puro/i);
     await selectComboboxOption(/Fluido puro/i, "wat", "Water");
     fireEvent.click(screen.getByRole("button", { name: /^Calcular propriedades$/i }));
 
@@ -1109,9 +1148,10 @@ describe("ComponentsPage", () => {
     render(<RouterProvider router={router} />);
 
     expect(
-      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
+    await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Misturas/i);
     await selectComboboxOption(/Mistura componente 1/i, "wat", "Water");
     fireEvent.change(screen.getByLabelText(/Fração molar 1/i), {
       target: { value: "0.7" },
@@ -1145,6 +1185,7 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Misturas/i);
     fireEvent.change(screen.getByLabelText(/Temperatura da mistura/i), {
       target: { value: "300" },
     });
@@ -1169,6 +1210,7 @@ describe("ComponentsPage", () => {
       await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
     ).toBeInTheDocument();
 
+    await openComponentsTab(/Misturas/i);
     await selectComboboxOption(/Mistura componente 1/i, "wat", "Water");
     fireEvent.change(screen.getByLabelText(/Fração molar 1/i), {
       target: { value: "0.7" },

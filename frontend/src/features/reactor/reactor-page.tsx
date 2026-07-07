@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { NumberField } from "@/components/number-field";
@@ -12,10 +12,12 @@ import { ResultTableSection } from "@/components/result-table-section";
 import { LevenspielChart } from "@/components/viz/levenspiel-chart";
 import { ArrheniusPlot } from "@/components/viz/arrhenius-plot";
 import { PfrProfileChart } from "@/components/viz/pfr-profile-chart";
-import { ExploratoryPanel } from "@/features/exploratory/exploratory-panel";
-import type { Scenario } from "@/features/exploratory/types";
-import { reactorExploratory } from "@/features/exploratory/templates";
-import { CstrHowItWorks, PfrHowItWorks } from "@/features/reactor/didactics";
+import { PfrRecycleDaChart } from "@/components/viz/pfr-recycle-da-chart";
+import {
+  CstrHowItWorks,
+  PfrHowItWorks,
+  PfrRecycleDaHowItWorks,
+} from "@/features/reactor/didactics";
 import { reactorWorkedExample } from "@/features/reactor/presets";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
@@ -69,6 +71,11 @@ type LevenspielPoint = {
   pfrVolume: number;
 };
 
+type ReactorOperatingPoint = {
+  conversion: number;
+  volume: number;
+};
+
 type ReactorComparableBasis = {
   components: Array<{
     state: ReactorComponentState["state"];
@@ -86,6 +93,22 @@ type ReactorComparableBasis = {
     finalPressure: string;
   };
 };
+
+const reactorResultKeyGroups: ReadonlyArray<ReadonlyArray<string>> = [
+  ["volume"],
+  ["reaction_rate", "taxa_de_reacao"],
+  ["outlet_concentrations", "concentracoes_de_saida"],
+  ["dilution_factor", "fator_de_diluicao"],
+  ["molar_rate_inlet_(limitant)", "vazao_molar_entrada_(limitante)"],
+  ["flow_rate_outlet", "vazao_de_saida"],
+  ["residence_time", "tempo_de_residencia"],
+  ["conversion", "conversao"],
+  [
+    "dilution_factor_(1+e * P0*T)",
+    "fator_de_diluicao_(1+e * P0*T)",
+    "fator_de_diluicao_(1+e * P0*T/P*T0)",
+  ],
+] as const;
 
 const inputClassName =
   "mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400";
@@ -158,6 +181,17 @@ function formatLabel(key: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function isQuantityWithUnits(value: unknown): value is { value: number; units: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "value" in value &&
+    "units" in value &&
+    typeof (value as { value?: unknown }).value === "number" &&
+    typeof (value as { units?: unknown }).units === "string"
+  );
+}
+
 function getResultValue(result: ReactorResult, ...keys: string[]) {
   for (const key of keys) {
     if (key in result) {
@@ -172,14 +206,11 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Falha ao processar a solicitação.";
 }
 
-function formatResultRow(value: ReactorResultValue): Pick<PropertyRow, "value" | "units"> {
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "value" in value &&
-    "units" in value
-  ) {
-    return { value: value.value, units: value.units };
+function formatResultRow(
+  value: ReactorResultValue,
+): Pick<PropertyRow, "value" | "units" | "unitMode"> {
+  if (isQuantityWithUnits(value)) {
+    return { value: value.value, units: value.units, unitMode: "latex" };
   }
 
   if (typeof value === "number" || typeof value === "string") {
@@ -187,6 +218,67 @@ function formatResultRow(value: ReactorResultValue): Pick<PropertyRow, "value" |
   }
 
   return { value: "—" };
+}
+
+function buildConcentrationRows(label: string, value: unknown): PropertyRow[] {
+  if (typeof value !== "object" || value === null) {
+    return [];
+  }
+
+  return Object.entries(value as Record<string, ReactorResultValue>).map(([key, nestedValue]) => ({
+    label: `${label} [${key}]`,
+    ...formatResultRow(nestedValue),
+  }));
+}
+
+function buildReactorResultRows(result: ReactorResult): PropertyRow[] {
+  const consumedKeys = new Set<string>();
+  const rows: PropertyRow[] = [];
+
+  for (const [key, value] of Object.entries(result)) {
+    if (consumedKeys.has(key)) {
+      continue;
+    }
+
+    const matchingGroup = reactorResultKeyGroups.find((group) => group.includes(key));
+    if (matchingGroup) {
+      matchingGroup.forEach((groupKey) => consumedKeys.add(groupKey));
+
+      const primaryKey = matchingGroup[0];
+      const primaryValue = result[primaryKey] ?? value;
+
+      if (primaryKey === "outlet_concentrations") {
+        const children = buildConcentrationRows(formatLabel(primaryKey), primaryValue);
+
+        if (children.length > 0) {
+          rows.push(...children);
+          continue;
+        }
+      }
+
+      rows.push({
+        label: formatLabel(primaryKey),
+        ...formatResultRow(primaryValue),
+      });
+      continue;
+    }
+
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      const children = buildConcentrationRows(formatLabel(key), value);
+
+      if (children.length > 0) {
+        rows.push(...children);
+        continue;
+      }
+    }
+
+    rows.push({
+      label: formatLabel(key),
+      ...formatResultRow(value),
+    });
+  }
+
+  return rows;
 }
 
 function extractQuantityValue(value: ReactorResultValue) {
@@ -402,20 +494,6 @@ function buildReactorPayload(form: ReactorFormState) {
   return payload;
 }
 
-type ExploratoryBinding = {
-  group: "cstr" | "pfr" | "plot";
-  key: string;
-};
-
-const exploratoryFieldBindings: Record<string, ExploratoryBinding> = {
-  "cstr-conversion": { group: "cstr", key: "conversion" },
-  "cstr-rate-constant": { group: "cstr", key: "rateConstant" },
-  "pfr-conversion": { group: "pfr", key: "conversion" },
-  "pfr-rate-constant": { group: "pfr", key: "rateConstant" },
-  "plot-rate-constant": { group: "plot", key: "rateConstant" },
-  "plot-max-conversion": { group: "plot", key: "maxConversion" },
-};
-
 function ReactorFormCard({
   title,
   calculationTypes,
@@ -433,6 +511,7 @@ function ReactorFormCard({
   onReactionOrderChange,
   onFieldChange,
   onSubmit,
+  extraContent,
 }: {
   title: string;
   calculationTypes: ReactorCalculationType[];
@@ -454,6 +533,7 @@ function ReactorFormCard({
   onReactionOrderChange: (index: number, value: string) => void;
   onFieldChange: (field: keyof ReactorFormState, value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  extraContent?: ReactNode;
 }) {
   const didactic = title === "CSTR" ? <CstrHowItWorks /> : <PfrHowItWorks />;
 
@@ -609,6 +689,7 @@ function ReactorFormCard({
                       id={`${title}-flow-${index}`}
                       label="Vazão de entrada"
                       min="0"
+                      unit="m³/s"
                       value={component.flow_rate_inlet}
                       onChange={(value) => onComponentChange(index, "flow_rate_inlet", value)}
                     />
@@ -616,6 +697,7 @@ function ReactorFormCard({
                       id={`${title}-concentration-${index}`}
                       label="Concentração molar"
                       min="0"
+                      unit="mol/L"
                       value={component.molar_concentration_inlet}
                       onChange={(value) =>
                         onComponentChange(index, "molar_concentration_inlet", value)
@@ -647,17 +729,60 @@ function ReactorFormCard({
         <ResultTableSection
           title={`Resultado ${title}`}
           emptyLabel={`Execute o cálculo para visualizar ${title.toLowerCase()}.`}
-          rows={
-            result
-              ? Object.entries(result).map(([key, value]) => ({
-                  label: formatLabel(key),
-                  ...formatResultRow(value),
-                }))
-              : []
-          }
+          rows={result ? buildReactorResultRows(result) : []}
           error={error}
           showTitleWhenEmpty={false}
         />
+
+        {extraContent ?? null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function LevenspielTabContent({
+  chartData,
+  cstrOperatingPoint,
+  pfrOperatingPoint,
+  comparableForms,
+}: {
+  chartData: { maxConversion: number; points: LevenspielPoint[] };
+  cstrOperatingPoint: ReactorOperatingPoint | null;
+  pfrOperatingPoint: ReactorOperatingPoint | null;
+  comparableForms: boolean;
+}) {
+  const hasOperatingPoints = Boolean(cstrOperatingPoint && pfrOperatingPoint);
+  const hasChartData = chartData.points.length > 0;
+
+  return (
+    <Card>
+      <CardHeader
+        title="Levenspiel"
+        subtitle="Diagrama comparativo entre CSTR e PFR calculado com os resultados do frontend."
+      />
+      <CardContent className="space-y-4">
+        {!hasOperatingPoints ? (
+          <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+            Calcule CSTR e PFR para gerar o diagrama comparativo no frontend.
+          </div>
+        ) : !comparableForms ? (
+          <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">
+            Alinhe conversão, cinética e alimentação entre CSTR e PFR para gerar o diagrama
+            comparativo no frontend.
+          </div>
+        ) : !hasChartData ? (
+          <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+            Defina dados válidos de conversão, vazão e cinética para gerar o diagrama comparativo
+            no frontend.
+          </div>
+        ) : (
+          <LevenspielChart
+            points={chartData.points}
+            cstrOperatingPoint={cstrOperatingPoint}
+            pfrOperatingPoint={pfrOperatingPoint}
+            maxConversion={chartData.maxConversion}
+          />
+        )}
       </CardContent>
     </Card>
   );
@@ -679,7 +804,6 @@ export function ReactorPage() {
   const [pfrResult, setPfrResult] = useState<ReactorResult | null>(null);
   const [cstrError, setCstrError] = useState<string | null>(null);
   const [pfrError, setPfrError] = useState<string | null>(null);
-  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
   const cstrSessionRef = useRef(0);
   const pfrSessionRef = useRef(0);
   const activeTab = pathname.startsWith("/reactor/")
@@ -882,61 +1006,16 @@ export function ReactorPage() {
     }
   }
 
-  function applyExploratoryFields(fields: Record<string, string>) {
-    clearDerived();
-    setCstrForm((current) => ({
-      ...current,
-      conversion: fields["cstr-conversion"] ?? current.conversion,
-      rateConstant: fields["cstr-rate-constant"] ?? current.rateConstant,
-    }));
-    setPfrForm((current) => ({
-      ...current,
-      conversion: fields["pfr-conversion"] ?? current.conversion,
-      rateConstant: fields["pfr-rate-constant"] ?? current.rateConstant,
-      recyclingRatio: "0",
-    }));
-    setPlotForm((current) => ({
-      rateConstant: fields["plot-rate-constant"] ?? current.rateConstant,
-      maxConversion: fields["plot-max-conversion"] ?? current.maxConversion,
-      activationEnergy: current.activationEnergy,
-      referenceTemperature: current.referenceTemperature,
-    }));
-  }
-
-  function changeExploratoryField(field: string, value: string) {
-    const binding = exploratoryFieldBindings[field];
-
-    if (!binding) {
-      return;
-    }
-
-    if (binding.group === "cstr") {
-      setCstrForm((current) => ({ ...current, [binding.key]: value }));
-      return;
-    }
-
-    if (binding.group === "pfr") {
-      setPfrForm((current) => ({ ...current, [binding.key]: value, recyclingRatio: "0" }));
-      return;
-    }
-
-    setPlotForm((current) => ({ ...current, [binding.key]: value }));
-  }
-
-  function describeScenario() {
-    return `X=${pfrForm.conversion || "—"} · k=${plotForm.rateConstant || pfrForm.rateConstant || "—"}`;
-  }
-
   const chartData = buildPlotPoints(pfrForm, plotForm);
   const comparableForms = formsSharePlotBasis(cstrForm, pfrForm);
-  const cstrOperatingPoint =
+  const cstrOperatingPoint: ReactorOperatingPoint | null =
     cstrResult && extractQuantityValue(cstrResult.volume) !== null
       ? {
           conversion: clampConversion(Number(cstrForm.conversion)),
           volume: extractQuantityValue(cstrResult.volume) ?? 0,
         }
       : null;
-  const pfrOperatingPoint =
+  const pfrOperatingPoint: ReactorOperatingPoint | null =
     pfrResult && extractQuantityValue(pfrResult.volume) !== null
       ? {
           conversion: clampConversion(Number(pfrForm.conversion)),
@@ -997,8 +1076,7 @@ export function ReactorPage() {
       ) : null}
 
       {activeTab === "pfr" ? (
-        <>
-          <ReactorFormCard
+        <ReactorFormCard
           calculationTypes={pfrTypes}
           componentOptions={componentOptions}
           error={pfrError}
@@ -1025,43 +1103,33 @@ export function ReactorPage() {
           showRecyclingRatio
           submitLabel="Calcular PFR"
           title="PFR"
-          />
-          {pfrResult && pfrProfileSeries.length > 0 ? (
-            <PfrProfileChart
-              concentrationSeries={pfrProfileSeries}
-              temperature={{
-                inlet: Number(pfrForm.initialTemperature),
-                outlet: Number(pfrForm.finalTemperature),
-              }}
-            />
-          ) : null}
-        </>
-      ) : null}
-
-      {activeTab === "exploratory" ? (
-        <ExploratoryPanel
-          config={reactorExploratory}
-          state={{
-            applyFields: applyExploratoryFields,
-            changeField: changeExploratoryField,
-            describeScenario,
-          }}
-          onScenariosChange={setSavedScenarios}
-        >
-          {() =>
-            comparableForms && cstrOperatingPoint && pfrOperatingPoint && chartData.points.length > 0 ? (
-              <div className="mt-4">
-                <LevenspielChart
-                  cstrOperatingPoint={cstrOperatingPoint}
-                  maxConversion={chartData.maxConversion}
-                  pfrOperatingPoint={pfrOperatingPoint}
-                  points={chartData.points}
-                  scenarios={savedScenarios}
-                />
+          extraContent={
+            pfrResult ? (
+              <div className="space-y-6">
+                {pfrProfileSeries.length > 0 ? (
+                  <PfrProfileChart
+                    concentrationSeries={pfrProfileSeries}
+                    temperature={{
+                      inlet: Number(pfrForm.initialTemperature),
+                      outlet: Number(pfrForm.finalTemperature),
+                    }}
+                  />
+                ) : null}
+                <PfrRecycleDaHowItWorks />
+                <PfrRecycleDaChart />
               </div>
             ) : null
           }
-        </ExploratoryPanel>
+        />
+      ) : null}
+
+      {activeTab === "levenspiel" ? (
+        <LevenspielTabContent
+          chartData={chartData}
+          cstrOperatingPoint={cstrOperatingPoint}
+          pfrOperatingPoint={pfrOperatingPoint}
+          comparableForms={comparableForms}
+        />
       ) : null}
 
       {activeTab === "arrhenius" ? (
@@ -1103,18 +1171,6 @@ export function ReactorPage() {
         </Card>
       ) : null}
 
-      {activeTab === "cstr" && cstrOperatingPoint && pfrOperatingPoint && !comparableForms ? (
-        <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">
-          Alinhe conversão, cinética e alimentação entre CSTR e PFR para gerar o diagrama
-          comparativo no frontend.
-        </div>
-      ) : null}
-
-      {activeTab === "cstr" && (!cstrOperatingPoint || !pfrOperatingPoint) ? (
-        <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-          Calcule CSTR e PFR para gerar o diagrama comparativo no frontend.
-        </div>
-      ) : null}
     </ModuleTabsLayout>
   );
 }

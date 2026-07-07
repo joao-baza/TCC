@@ -1,4 +1,5 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
 
 type CurvePoint = {
   flowRate: number;
@@ -8,8 +9,6 @@ type CurvePoint = {
 type PumpEfficiencyMapProps = {
   operatingPoint: CurvePoint;
   systemCurve: CurvePoint[];
-  availableNpsh?: number | null;
-  requiredNpsh?: number | null;
   title?: string;
 };
 
@@ -20,7 +19,7 @@ type PlotPoint = {
 
 const width = 820;
 const height = 420;
-const padding = { top: 28, right: 28, bottom: 48, left: 72 };
+const padding = { top: 28, right: 28, bottom: 48, left: 112 };
 
 function scale(value: number, min: number, max: number, start: number, end: number) {
   if (min === max) {
@@ -36,10 +35,6 @@ function buildPath(points: PlotPoint[]) {
   }
 
   return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
-}
-
-function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
 }
 
 function interpolate(from: number, to: number, ratio: number) {
@@ -67,9 +62,7 @@ function buildEfficiency(flow: number, head: number, bepFlow: number, bepHead: n
 export function PumpEfficiencyMap({
   operatingPoint,
   systemCurve,
-  availableNpsh,
-  requiredNpsh,
-  title = "Mapa de eficiência da bomba e BEP",
+  title = "Eficiência e BEP",
 }: PumpEfficiencyMapProps) {
   const sortedCurve = [...systemCurve].sort((left, right) => left.flowRate - right.flowRate);
   const maxFlow = Math.max(operatingPoint.flowRate, ...sortedCurve.map((point) => point.flowRate), 1);
@@ -120,12 +113,9 @@ export function PumpEfficiencyMap({
     }
   }
 
-  const npshMargin =
-    availableNpsh != null && requiredNpsh != null ? availableNpsh - requiredNpsh : null;
-
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="pump-efficiency-map"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -135,13 +125,30 @@ export function PumpEfficiencyMap({
             Mapa sintético para leitura didática da região de melhor eficiência e faixa de cavitação.
           </p>
         </div>
-        <div className="text-sm font-medium text-slate-700">
-          <div>Q = {toFixedLabel(operatingPoint.flowRate)}</div>
-          <div>H = {toFixedLabel(operatingPoint.head)}</div>
-        </div>
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
+      <HowItWorks title="Como funciona - Eficiência e BEP">
+        <p>
+          Este mapa ajuda a localizar a região de maior eficiência da bomba e a comparar o ponto
+          de operação com o melhor rendimento possível.
+        </p>
+        <p>
+          A mancha colorida representa a eficiência relativa, enquanto a curva e o ponto vermelho
+          mostram como o sistema está se comportando na condição atual.
+        </p>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Quão perto a operação está do ponto de melhor eficiência.</li>
+            <li>Se o regime atual tende a operar com maior perda interna e menor rendimento.</li>
+            <li>Se a bomba está em uma faixa mais estável ou mais suscetível a cavitação.</li>
+            <li>Como a condição operacional se desloca quando a curva do sistema muda.</li>
+          </ul>
+        </div>
+        <TheoryRef>Ref.: Karassik et al., Pump Handbook, 4a ed., McGraw-Hill.</TheoryRef>
+      </HowItWorks>
+
+      <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
         <NumericChartGrid
           xDomain={xDomain}
           yDomain={yDomain}
@@ -214,33 +221,6 @@ export function PumpEfficiencyMap({
         <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
           Faixa de cavitacao aproximada
         </span>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            BEP aproximado
-          </p>
-          <p className="mt-1 text-sm text-slate-900">Q = {toFixedLabel(bepFlow)} · H = {toFixedLabel(bepHead)}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Ponto operacional
-          </p>
-          <p className="mt-1 text-sm text-slate-900">
-            Q = {toFixedLabel(operatingPoint.flowRate)} · H = {toFixedLabel(operatingPoint.head)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Margem NPSH
-          </p>
-          <p className="mt-1 text-sm text-slate-900">
-            {npshMargin == null
-              ? "Calcule o NPSH para comparar a margem."
-              : `${toFixedLabel(npshMargin)} m de margem`}
-          </p>
-        </div>
       </div>
     </section>
   );

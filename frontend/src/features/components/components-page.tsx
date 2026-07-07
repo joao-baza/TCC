@@ -18,12 +18,9 @@ import { PhaseEnvelopeChart } from "@/components/viz/phase-envelope-chart";
 import { PropertySurfaceHeatmap } from "@/components/viz/property-surface-heatmap";
 import { TernaryDiagram } from "@/components/viz/ternary-diagram";
 import { VaporPressureCurve } from "@/components/viz/vapor-pressure-curve";
-import { ExploratoryPanel } from "@/features/exploratory/exploratory-panel";
-import type { Scenario } from "@/features/exploratory/types";
-import { componentsExploratory } from "@/features/components/presets";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
-import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
+import { toSelectOption, type SelectOption } from "@/lib/select-option";
 import type { PropertyRow } from "@/components/property-table";
 import { componentsTabs } from "@/features/components/components-tabs";
 
@@ -168,6 +165,62 @@ type PropertySurfaceFormState = {
   pressureSamples: string;
 };
 
+type PhaseEnvelopeFormState = {
+  fluid: string;
+  sampleCount: string;
+};
+
+type ComponentsExampleResponse = {
+  pure_fluid: {
+    fluid: string;
+    property_names: string[];
+    temperature: number;
+    pressure: number;
+  };
+  mixtures: {
+    fluid_fractions: Record<string, number>;
+    temperature: number;
+    pressure: number;
+    properties: string[];
+  };
+  ternary_diagram: {
+    component_a: string;
+    component_b: string;
+    component_c: string;
+    fraction_a: number;
+    fraction_b: number;
+    fraction_c: number;
+  };
+  binary_vle: {
+    fluid1: string;
+    fluid2: string;
+    pressure: number;
+    sample_count: number;
+  };
+  mccabe_thiele: {
+    distillate_composition: number;
+    bottoms_composition: number;
+    feed_composition: number;
+    reflux_ratio: number;
+    q_value: number;
+    max_stages: number;
+  };
+  property_surface: {
+    fluid: string;
+    property_name: string;
+    temperature_min: number;
+    temperature_max: number;
+    pressure_min: number;
+    pressure_max: number;
+    temperature_samples: number;
+    pressure_samples: number;
+  };
+  phase_envelope: {
+    fluid: string;
+    sample_count: number;
+  };
+};
+
 const propertySurfaceKeys = new Set(["D", "C", "V", "L", "H", "S", "U", "A", "Z"]);
 
 const propertyLabelsPt: Record<string, string> = {
@@ -275,9 +328,10 @@ function buildPropertyRows(
   propertyKeys: string[],
   propertyMap: Record<string, QuantityResult>,
   propertyNames: PropertyNamesResponse,
+  resolveResultKey: (propertyKey: string) => string = (propertyKey) => propertyKey,
 ): PropertyRow[] {
   return propertyKeys.flatMap((propertyKey) => {
-    const result = propertyMap[propertyKey];
+    const result = propertyMap[resolveResultKey(propertyKey)] ?? propertyMap[propertyKey];
     if (!result) {
       return [];
     }
@@ -295,6 +349,23 @@ function buildPropertyRows(
 
 function buildComponentOptions(components: SelectOption[]) {
   return components;
+}
+
+function resolveMixturePropertyResultKey(propertyKey: string) {
+  const mixtureKeyMap: Record<string, string> = {
+    D: "density",
+    C: "specific_heat",
+    V: "viscosity",
+    L: "thermal_conductivity",
+    H: "enthalpy",
+    S: "entropy",
+    M: "molecular_weight",
+    I: "surface_tension",
+    P: "pressure",
+    T: "temperature",
+  };
+
+  return mixtureKeyMap[propertyKey] ?? propertyKey;
 }
 
 function buildPropertyOptions(propertyNames: PropertyNamesResponse) {
@@ -360,6 +431,8 @@ type ComponentsPageContextValue = {
   handleBinaryVleFieldChange: (field: keyof BinaryVleFormState, value: string) => void;
   mccabeForm: MccabeFormState;
   handleMccabeFieldChange: (field: keyof MccabeFormState, value: string) => void;
+  mccabeRequested: boolean;
+  handleMcCabeGenerate: () => void;
   propertySurfaceForm: PropertySurfaceFormState;
   propertySurfaceResult: PropertySurfaceResponse | null;
   isLoadingPropertySurface: boolean;
@@ -368,14 +441,11 @@ type ComponentsPageContextValue = {
     field: keyof PropertySurfaceFormState,
     value: string,
   ) => void;
+  phaseEnvelopeForm: PhaseEnvelopeFormState;
   saturationEnvelope: SaturationEnvelopeResponse | null;
   isLoadingEnvelope: boolean;
   handleSaturationEnvelopeSubmit: () => void;
-  savedScenarios: Scenario[];
-  handleSavedScenariosChange: (scenarios: Scenario[]) => void;
-  applyExploratoryFields: (fields: Record<string, string>) => void;
-  changeExploratoryField: (field: string, value: string) => void;
-  describeScenario: () => string;
+  handlePhaseEnvelopeFieldChange: (field: keyof PhaseEnvelopeFormState, value: string) => void;
 };
 
 const ComponentsPageContext = createContext<ComponentsPageContextValue | null>(null);
@@ -402,31 +472,36 @@ export function ComponentsPage() {
   const [saturationEnvelope, setSaturationEnvelope] =
     useState<SaturationEnvelopeResponse | null>(null);
   const [isLoadingEnvelope, setIsLoadingEnvelope] = useState(false);
+  const [phaseEnvelopeForm, setPhaseEnvelopeForm] = useState<PhaseEnvelopeFormState>({
+    fluid: "",
+    sampleCount: "",
+  });
   const [binaryVleForm, setBinaryVleForm] = useState({
     fluid1: "",
     fluid2: "",
-    pressure: "101325",
-    sampleCount: "21",
+    pressure: "",
+    sampleCount: "",
   });
   const [binaryVleResult, setBinaryVleResult] = useState<BinaryVleResponse | null>(null);
   const [isLoadingBinaryVle, setIsLoadingBinaryVle] = useState(false);
   const [mccabeForm, setMccabeForm] = useState({
-    distillateComposition: "0.95",
-    bottomsComposition: "0.05",
-    feedComposition: "0.5",
-    refluxRatio: "2.5",
-    qValue: "1",
-    maxStages: "10",
+    distillateComposition: "",
+    bottomsComposition: "",
+    feedComposition: "",
+    refluxRatio: "",
+    qValue: "",
+    maxStages: "",
   });
+  const [mccabeRequested, setMccabeRequested] = useState(false);
   const [propertySurfaceForm, setPropertySurfaceForm] = useState({
     fluid: "",
-    propertyName: "D",
-    temperatureMin: "273.15",
-    temperatureMax: "600",
-    pressureMin: "100000",
-    pressureMax: "5000000",
-    temperatureSamples: "12",
-    pressureSamples: "10",
+    propertyName: "",
+    temperatureMin: "",
+    temperatureMax: "",
+    pressureMin: "",
+    pressureMax: "",
+    temperatureSamples: "",
+    pressureSamples: "",
   });
   const [propertySurfaceResult, setPropertySurfaceResult] =
     useState<PropertySurfaceResponse | null>(null);
@@ -435,14 +510,13 @@ export function ComponentsPage() {
     componentA: "",
     componentB: "",
     componentC: "",
-    fractionA: "0.33",
-    fractionB: "0.33",
-    fractionC: "0.34",
-    streamName: "Corrente atual",
+    fractionA: "",
+    fractionB: "",
+    fractionC: "",
+    streamName: "",
   });
   const criticalSessionRef = useRef(0);
   const propertySurfaceSessionRef = useRef(0);
-  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
 
   useEffect(() => {
     if (pathname === "/components") {
@@ -482,21 +556,27 @@ export function ComponentsPage() {
   });
   const [stateResult, setStateResult] = useState<StatePropertyResponse | null>(null);
   const stateSessionRef = useRef(0);
+  const envelopeSessionRef = useRef(0);
 
   function clearDerivedResults() {
     criticalSessionRef.current += 1;
     propertySessionRef.current += 1;
     mixtureSessionRef.current += 1;
     propertySurfaceSessionRef.current += 1;
+    setMccabeRequested(false);
     setCriticalResult(null);
-    setSaturationEnvelope(null);
     setBinaryVleResult(null);
-    setIsLoadingEnvelope(false);
     setIsLoadingBinaryVle(false);
     setIsLoadingPropertySurface(false);
     setPropertyResult({});
     setMixtureResult(null);
     setPropertySurfaceResult(null);
+  }
+
+  function clearEnvelopeResult() {
+    envelopeSessionRef.current += 1;
+    setSaturationEnvelope(null);
+    setIsLoadingEnvelope(false);
   }
 
   function clearStateResult() {
@@ -520,48 +600,9 @@ export function ComponentsPage() {
           return;
         }
 
-        const getComponentValue = (index: number, fallback = "") =>
-          componentResponse[index] ? selectOptionValue(componentResponse[index]) : fallback;
-
         setComponents(componentResponse.map(toSelectOption));
         setPropertyNames(propertyNamesResponse);
         setMixturePropertyNames(mixtureNamesResponse);
-        setPropertyForm((current) => ({
-          ...current,
-          fluid: getComponentValue(0),
-          propertyNames: Object.keys(propertyNamesResponse).slice(0, 1),
-        }));
-        setCriticalFluid(getComponentValue(0));
-        setBinaryVleForm((current) => ({
-          ...current,
-          fluid1: getComponentValue(0, current.fluid1),
-          fluid2: getComponentValue(1, getComponentValue(0, current.fluid2)),
-        }));
-        setPropertySurfaceForm((current) => ({
-          ...current,
-          fluid: getComponentValue(0, current.fluid),
-          propertyName:
-            Object.keys(propertyNamesResponse).find((key) => propertySurfaceKeys.has(key)) ??
-            current.propertyName,
-        }));
-        setTernaryForm((current) => ({
-          ...current,
-          componentA: getComponentValue(0, current.componentA),
-          componentB: getComponentValue(1, getComponentValue(0, current.componentB)),
-          componentC: getComponentValue(2, getComponentValue(1, getComponentValue(0, current.componentC))),
-        }));
-        setMixtureRows([
-          { id: 1, component: getComponentValue(0), fraction: "" },
-          { id: 2, component: getComponentValue(1, getComponentValue(0)), fraction: "" },
-        ]);
-        setMixtureForm((current) => ({
-          ...current,
-          propertyNames: Object.keys(mixtureNamesResponse),
-        }));
-        setStateForm((current) => ({
-          ...current,
-          fluid: getComponentValue(0),
-        }));
         setNextMixtureRowId(3);
       } catch (error) {
         if (!ignore) {
@@ -576,6 +617,83 @@ export function ComponentsPage() {
       ignore = true;
     };
   }, []);
+
+  function loadExample() {
+    void (async () => {
+      try {
+        const response = await apiClient.get<ComponentsExampleResponse>("/components/example");
+
+        clearDerivedResults();
+        clearStateResult();
+        clearEnvelopeResult();
+
+        setCriticalFluid(response.pure_fluid.fluid);
+        setPropertyForm({
+          fluid: response.pure_fluid.fluid,
+          propertyNames: response.pure_fluid.property_names,
+          temperature: String(response.pure_fluid.temperature),
+          pressure: String(response.pure_fluid.pressure),
+        });
+        setMixtureRows(
+          Object.entries(response.mixtures.fluid_fractions).map(([component, fraction], index) => ({
+            id: index + 1,
+            component,
+            fraction: String(fraction),
+          })),
+        );
+        setNextMixtureRowId(
+          Object.keys(response.mixtures.fluid_fractions).length + 1,
+        );
+        setMixtureForm({
+          temperature: String(response.mixtures.temperature),
+          pressure: String(response.mixtures.pressure),
+          propertyNames: response.mixtures.properties,
+        });
+        setTernaryForm({
+          componentA: response.ternary_diagram.component_a,
+          componentB: response.ternary_diagram.component_b,
+          componentC: response.ternary_diagram.component_c,
+          fractionA: String(response.ternary_diagram.fraction_a),
+          fractionB: String(response.ternary_diagram.fraction_b),
+          fractionC: String(response.ternary_diagram.fraction_c),
+          streamName: "Corrente atual",
+        });
+        setBinaryVleForm({
+          fluid1: response.binary_vle.fluid1,
+          fluid2: response.binary_vle.fluid2,
+          pressure: String(response.binary_vle.pressure),
+          sampleCount: String(response.binary_vle.sample_count),
+        });
+        setMccabeRequested(false);
+        setMccabeForm({
+          distillateComposition: String(response.mccabe_thiele.distillate_composition),
+          bottomsComposition: String(response.mccabe_thiele.bottoms_composition),
+          feedComposition: String(response.mccabe_thiele.feed_composition),
+          refluxRatio: String(response.mccabe_thiele.reflux_ratio),
+          qValue: String(response.mccabe_thiele.q_value),
+          maxStages: String(response.mccabe_thiele.max_stages),
+        });
+        setPropertySurfaceForm({
+          fluid: response.property_surface.fluid,
+          propertyName: response.property_surface.property_name,
+          temperatureMin: String(response.property_surface.temperature_min),
+          temperatureMax: String(response.property_surface.temperature_max),
+          pressureMin: String(response.property_surface.pressure_min),
+          pressureMax: String(response.property_surface.pressure_max),
+          temperatureSamples: String(response.property_surface.temperature_samples),
+          pressureSamples: String(response.property_surface.pressure_samples),
+        });
+        setPhaseEnvelopeForm({
+          fluid: response.phase_envelope.fluid,
+          sampleCount: String(response.phase_envelope.sample_count),
+        });
+
+        notify.success("Exemplo carregado com sucesso.");
+      } catch (error) {
+        notify.error(`Erro ao carregar exemplo: ${getErrorMessage(error)}`);
+      }
+    })();
+  }
 
   async function handleCriticalSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -616,6 +734,7 @@ export function ComponentsPage() {
 
   function handleBinaryVleFieldChange(field: keyof BinaryVleFormState, value: string) {
     setBinaryVleResult(null);
+    setMccabeRequested(false);
     setBinaryVleForm((current) => ({ ...current, [field]: value }));
   }
 
@@ -624,162 +743,16 @@ export function ComponentsPage() {
     setPropertySurfaceForm((current) => ({ ...current, [field]: value }));
   }
 
-  function applyExploratoryFields(fields: Record<string, string>) {
-    clearDerivedResults();
-
-    if (fields["surface-fluid"] !== undefined) {
-      setPropertySurfaceForm((current) => ({ ...current, fluid: fields["surface-fluid"] }));
-      setCriticalFluid(fields["surface-fluid"]);
-      setPropertyForm((current) => ({ ...current, fluid: fields["surface-fluid"] }));
-      setStateForm((current) => ({ ...current, fluid: fields["surface-fluid"] }));
-    }
-
-    if (fields["surface-property"] !== undefined) {
-      setPropertySurfaceForm((current) => ({ ...current, propertyName: fields["surface-property"] }));
-    }
-
-    if (fields["surface-temperature-min"] !== undefined) {
-      setPropertySurfaceForm((current) => ({
-        ...current,
-        temperatureMin: fields["surface-temperature-min"],
-      }));
-    }
-
-    if (fields["surface-temperature-max"] !== undefined) {
-      setPropertySurfaceForm((current) => ({
-        ...current,
-        temperatureMax: fields["surface-temperature-max"],
-      }));
-    }
-
-    if (fields["surface-pressure-min"] !== undefined) {
-      setPropertySurfaceForm((current) => ({
-        ...current,
-        pressureMin: fields["surface-pressure-min"],
-      }));
-    }
-
-    if (fields["surface-pressure-max"] !== undefined) {
-      setPropertySurfaceForm((current) => ({
-        ...current,
-        pressureMax: fields["surface-pressure-max"],
-      }));
-    }
-
-    if (fields["surface-temp-samples"] !== undefined) {
-      setPropertySurfaceForm((current) => ({
-        ...current,
-        temperatureSamples: fields["surface-temp-samples"],
-      }));
-    }
-
-    if (fields["surface-pressure-samples"] !== undefined) {
-      setPropertySurfaceForm((current) => ({
-        ...current,
-        pressureSamples: fields["surface-pressure-samples"],
-      }));
-    }
-
-    if (fields["binary-fluid-1"] !== undefined || fields["binary-fluid-2"] !== undefined) {
-      setBinaryVleForm((current) => ({
-        ...current,
-        fluid1: fields["binary-fluid-1"] ?? current.fluid1,
-        fluid2: fields["binary-fluid-2"] ?? current.fluid2,
-      }));
-    }
-
-    if (fields["binary-vle-pressure"] !== undefined) {
-      setBinaryVleForm((current) => ({
-        ...current,
-        pressure: fields["binary-vle-pressure"],
-      }));
-    }
-
-    if (fields["binary-vle-samples"] !== undefined) {
-      setBinaryVleForm((current) => ({
-        ...current,
-        sampleCount: fields["binary-vle-samples"],
-      }));
-    }
-
-    if (fields["mccabe-distillate"] !== undefined) {
-      setMccabeForm((current) => ({
-        ...current,
-        distillateComposition: fields["mccabe-distillate"],
-      }));
-    }
-
-    if (fields["mccabe-bottoms"] !== undefined) {
-      setMccabeForm((current) => ({
-        ...current,
-        bottomsComposition: fields["mccabe-bottoms"],
-      }));
-    }
-
-    if (fields["mccabe-feed"] !== undefined) {
-      setMccabeForm((current) => ({
-        ...current,
-        feedComposition: fields["mccabe-feed"],
-      }));
-    }
-
-    if (fields["mccabe-reflux"] !== undefined) {
-      setMccabeForm((current) => ({
-        ...current,
-        refluxRatio: fields["mccabe-reflux"],
-      }));
-    }
-
-    if (fields["mccabe-q"] !== undefined) {
-      setMccabeForm((current) => ({
-        ...current,
-        qValue: fields["mccabe-q"],
-      }));
-    }
-
-    if (fields["mccabe-max-stages"] !== undefined) {
-      setMccabeForm((current) => ({
-        ...current,
-        maxStages: fields["mccabe-max-stages"],
-      }));
-    }
-  }
-
-  function changeExploratoryField(field: string, value: string) {
-    clearDerivedResults();
-
-    if (field === "surface-pressure-max") {
-      setPropertySurfaceForm((current) => ({ ...current, pressureMax: value }));
-      return;
-    }
-
-    if (field === "binary-vle-pressure") {
-      setBinaryVleForm((current) => ({ ...current, pressure: value }));
-      return;
-    }
-
-    if (field === "mccabe-reflux") {
-      setMccabeForm((current) => ({ ...current, refluxRatio: value }));
-      return;
-    }
-
-    if (field === "mccabe-q") {
-      setMccabeForm((current) => ({ ...current, qValue: value }));
-      return;
-    }
-  }
-
-  function describeScenario() {
-    return `VLE ${binaryVleForm.fluid1 || "—"} / ${binaryVleForm.fluid2 || "—"} · R=${mccabeForm.refluxRatio || "—"} · fluido ${propertySurfaceForm.fluid || "—"}`;
-  }
-
-  function handleSavedScenariosChange(scenarios: Scenario[]) {
-    setSavedScenarios(scenarios);
+  function handlePhaseEnvelopeFieldChange(field: keyof PhaseEnvelopeFormState, value: string) {
+    clearEnvelopeResult();
+    setPhaseEnvelopeForm((current) => ({ ...current, [field]: value }));
   }
 
   async function handleSaturationEnvelopeSubmit() {
-    if (!criticalFluid) {
-      notify.error("Selecione um fluido");
+    const sessionId = envelopeSessionRef.current;
+
+    if (!phaseEnvelopeForm.fluid || !phaseEnvelopeForm.sampleCount.trim()) {
+      notify.error("Selecione um fluido e informe a quantidade de pontos");
       return;
     }
 
@@ -789,25 +762,42 @@ export function ComponentsPage() {
       const response = await apiClient.post<SaturationEnvelopeResponse>(
         "/components/saturation-envelope",
         {
-          fluid: criticalFluid,
+          fluid: phaseEnvelopeForm.fluid,
+          sample_count: Number(phaseEnvelopeForm.sampleCount),
         },
       );
 
+      if (sessionId !== envelopeSessionRef.current) {
+        return;
+      }
+
       setSaturationEnvelope(response);
     } catch (error) {
+      if (sessionId !== envelopeSessionRef.current) {
+        return;
+      }
+
       notify.error(`Erro ao obter envelope de fase: ${getErrorMessage(error)}`);
     } finally {
-      setIsLoadingEnvelope(false);
+      if (sessionId === envelopeSessionRef.current) {
+        setIsLoadingEnvelope(false);
+      }
     }
   }
 
   async function handleBinaryVleSubmit() {
-    if (!binaryVleForm.fluid1 || !binaryVleForm.fluid2) {
-      notify.error("Selecione dois fluidos");
+    if (
+      !binaryVleForm.fluid1 ||
+      !binaryVleForm.fluid2 ||
+      !binaryVleForm.pressure.trim() ||
+      !binaryVleForm.sampleCount.trim()
+    ) {
+      notify.error("Selecione dois fluidos e informe pressão e quantidade de pontos");
       return;
     }
 
     setIsLoadingBinaryVle(true);
+    setMccabeRequested(false);
 
     try {
       const response = await apiClient.post<BinaryVleResponse>("/components/binary-vle", {
@@ -827,6 +817,38 @@ export function ComponentsPage() {
 
   function handleMccabeFieldChange(field: keyof MccabeFormState, value: string) {
     setMccabeForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleMcCabeGenerate() {
+    if (!binaryVleResult) {
+      notify.error("Gere primeiro o diagrama T-x-y / y-x");
+      return;
+    }
+
+    const distillateComposition = Number(mccabeForm.distillateComposition);
+    const bottomsComposition = Number(mccabeForm.bottomsComposition);
+    const feedComposition = Number(mccabeForm.feedComposition);
+    const refluxRatio = Number(mccabeForm.refluxRatio);
+    const qValue = Number(mccabeForm.qValue);
+    const maxStages = Number(mccabeForm.maxStages);
+
+    if (
+      !mccabeForm.distillateComposition.trim() ||
+      !mccabeForm.bottomsComposition.trim() ||
+      !mccabeForm.feedComposition.trim() ||
+      !mccabeForm.refluxRatio.trim() ||
+      !mccabeForm.qValue.trim() ||
+      !mccabeForm.maxStages.trim() ||
+      [distillateComposition, bottomsComposition, feedComposition, refluxRatio, qValue, maxStages].some(
+        (value) => !Number.isFinite(value),
+      ) ||
+      maxStages < 1
+    ) {
+      notify.error("Preencha os campos do McCabe-Thiele");
+      return;
+    }
+
+    setMccabeRequested(true);
   }
 
   async function handlePropertySurfaceSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -1076,9 +1098,27 @@ export function ComponentsPage() {
   const activeTabPath = pathname.startsWith("/components/")
     ? pathname.slice("/components/".length).split("/")[0] || "critical-properties"
     : "critical-properties";
-  const activeTab = componentsTabs.some((tab) => tab.to === activeTabPath)
-    ? activeTabPath
+  const normalizedActiveTabPath =
+    activeTabPath === "ternary-diagram"
+      ? "mixtures"
+      : activeTabPath === "property-surface"
+        ? "pure-fluid"
+        : activeTabPath === "mccabe-thiele"
+          ? "binary-vle"
+          : activeTabPath;
+  const activeTab = componentsTabs.some((tab) => tab.to === normalizedActiveTabPath)
+    ? normalizedActiveTabPath
     : "critical-properties";
+
+  useEffect(() => {
+    if (pathname === "/components/ternary-diagram") {
+      navigate("/components/mixtures", { replace: true });
+    } else if (pathname === "/components/property-surface") {
+      navigate("/components/pure-fluid", { replace: true });
+    } else if (pathname === "/components/mccabe-thiele") {
+      navigate("/components/binary-vle", { replace: true });
+    }
+  }, [navigate, pathname]);
 
   const contextValue: ComponentsPageContextValue = {
     components,
@@ -1119,37 +1159,41 @@ export function ComponentsPage() {
     handleBinaryVleFieldChange,
     mccabeForm,
     handleMccabeFieldChange,
+    mccabeRequested,
+    handleMcCabeGenerate,
     propertySurfaceForm,
     propertySurfaceResult,
     isLoadingPropertySurface,
     handlePropertySurfaceSubmit,
     handlePropertySurfaceFieldChange,
+    phaseEnvelopeForm,
     saturationEnvelope,
     isLoadingEnvelope,
     handleSaturationEnvelopeSubmit,
-    savedScenarios,
-    handleSavedScenariosChange,
-    applyExploratoryFields,
-    changeExploratoryField,
-    describeScenario,
+    handlePhaseEnvelopeFieldChange,
   };
 
   return (
     <ComponentsPageContext.Provider value={contextValue}>
       <ModuleTabsLayout
         title="Propriedades de Componentes"
-        subtitle={
-          <>
-            <p>
-              Consulte propriedades críticas, propriedades de fluidos puros e propriedades de
-              misturas usando os serviços já expostos pela API.
-            </p>
-            {pageError ? <p className="text-red-600">{pageError}</p> : null}
-          </>
-        }
-        tabs={componentsTabs}
-      >
-        {renderComponentsTab(activeTab)}
+      subtitle={
+        <>
+          <p>
+            Consulte propriedades críticas, fluidos puros, misturas e equilíbrio binário usando os
+            serviços já expostos pela API.
+          </p>
+          {pageError ? <p className="text-red-600">{pageError}</p> : null}
+        </>
+      }
+      action={
+        <Button type="button" variant="outline" onClick={loadExample}>
+          Carregar exemplo
+        </Button>
+      }
+      tabs={componentsTabs}
+    >
+      {renderComponentsTab(activeTab)}
       </ModuleTabsLayout>
     </ComponentsPageContext.Provider>
   );
@@ -1158,23 +1202,23 @@ export function ComponentsPage() {
 function renderComponentsTab(activeTab: string) {
   switch (activeTab) {
     case "pure-fluid":
-      return <ComponentsPureFluidTab />;
-    case "state-properties":
-      return <ComponentsStatePropertiesTab />;
+      return (
+        <div className="space-y-4">
+          <ComponentsPureFluidTab />
+          <ComponentsPropertySurfaceTab />
+        </div>
+      );
     case "mixtures":
-      return <ComponentsMixturesTab />;
-    case "ternary-diagram":
-      return <ComponentsTernaryDiagramTab />;
+      return (
+        <div className="space-y-4">
+          <ComponentsMixturesTab />
+          <ComponentsTernaryDiagramTab />
+        </div>
+      );
     case "binary-vle":
       return <ComponentsBinaryVleTab />;
-    case "mccabe-thiele":
-      return <ComponentsMcCabeThieleTab />;
-    case "property-surface":
-      return <ComponentsPropertySurfaceTab />;
     case "phase-envelope":
       return <ComponentsPhaseEnvelopeTab />;
-    case "exploratory":
-      return <ComponentsExploratoryTab />;
     case "critical-properties":
     default:
       return <ComponentsCriticalPropertiesTab />;
@@ -1289,98 +1333,6 @@ function ComponentsPureFluidTab() {
   );
 }
 
-function ComponentsStatePropertiesTab() {
-  const {
-    components,
-    stateForm,
-    stateResult,
-    handleStateFormChange,
-    handleStateSubmit,
-  } = useComponentsPageContext();
-  const componentOptions = buildComponentOptions(components);
-
-  return (
-    <Card>
-      <CardHeader title="Propriedades por Estado" />
-      <CardContent>
-        <form className="space-y-4" onSubmit={handleStateSubmit}>
-          <Combobox
-            label="Fluido de estado"
-            options={componentOptions}
-            value={stateForm.fluid}
-            onValueChange={(value) => handleStateFormChange("fluid", value)}
-            placeholder="Selecione um fluido"
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Combobox
-              label="Variável 1"
-              options={stateVariableComboboxOptions}
-              value={stateForm.input1}
-              onValueChange={(value) => handleStateFormChange("input1", value)}
-              placeholder="Selecione uma variável"
-            />
-            <label className="block text-sm font-medium text-slate-800" htmlFor="state-value1">
-              Valor 1
-              <input
-                id="state-value1"
-                className={inputClassName}
-                type="number"
-                step="any"
-                value={stateForm.value1}
-                onChange={(event) => handleStateFormChange("value1", event.target.value)}
-              />
-            </label>
-            <Combobox
-              label="Variável 2"
-              options={stateVariableComboboxOptions}
-              value={stateForm.input2}
-              onValueChange={(value) => handleStateFormChange("input2", value)}
-              placeholder="Selecione uma variável"
-            />
-            <label className="block text-sm font-medium text-slate-800" htmlFor="state-value2">
-              Valor 2
-              <input
-                id="state-value2"
-                className={inputClassName}
-                type="number"
-                step="any"
-                value={stateForm.value2}
-                onChange={(event) => handleStateFormChange("value2", event.target.value)}
-              />
-            </label>
-          </div>
-
-          <Combobox
-            label="Propriedade de saída"
-            options={stateVariableComboboxOptions}
-            value={stateForm.output}
-            onValueChange={(value) => handleStateFormChange("output", value)}
-            placeholder="Selecione uma variável"
-          />
-
-          <Button type="submit">Calcular por estado</Button>
-        </form>
-
-        {stateResult ? (
-          <ResultTableSection
-            title="Resultado"
-            emptyLabel="Calcule por estado para visualizar o resultado."
-            rows={[
-              {
-                label: getStateVariableLabel(stateForm.output),
-                value: stateResult.value,
-                units: stateResult.units,
-              },
-            ]}
-            showTitleWhenEmpty={false}
-          />
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-}
-
 function ComponentsMixturesTab() {
   const {
     components,
@@ -1402,6 +1354,7 @@ function ComponentsMixturesTab() {
     mixtureForm.propertyNames,
     mixtureResult?.properties ?? {},
     mixturePropertyNames,
+    resolveMixturePropertyResultKey,
   );
   const mixtureComposition = mixtureRows
     .filter((row) => row.component && row.fraction !== "")
@@ -1654,87 +1607,97 @@ function ComponentsBinaryVleTab() {
   const componentOptions = buildComponentOptions(components);
 
   return (
-    <Card>
-      <CardHeader title="Diagrama T-x-y / y-x" />
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Visualização binária ideal de Raoult para dois fluidos. Útil para leitura de equilíbrio
-          líquido-vapor sem criar um módulo completo de destilação.
-        </p>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <Combobox
-            label="Componente 1"
-            options={componentOptions}
-            value={binaryVleForm.fluid1}
-            onValueChange={(value) => handleBinaryVleFieldChange("fluid1", value)}
-            placeholder="Selecione um fluido"
-          />
-          <Combobox
-            label="Componente 2"
-            options={componentOptions}
-            value={binaryVleForm.fluid2}
-            onValueChange={(value) => handleBinaryVleFieldChange("fluid2", value)}
-            placeholder="Selecione um fluido"
-          />
-          <label className="block text-sm font-medium text-slate-800" htmlFor="binary-vle-pressure">
-            Pressão (Pa)
-            <input
-              id="binary-vle-pressure"
-              className={inputClassName}
-              type="number"
-              step="any"
-              value={binaryVleForm.pressure}
-              onChange={(event) => handleBinaryVleFieldChange("pressure", event.target.value)}
-            />
-          </label>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-[1fr_180px]">
-          <label className="block text-sm font-medium text-slate-800" htmlFor="binary-vle-samples">
-            Amostras por curva
-            <input
-              id="binary-vle-samples"
-              className={inputClassName}
-              type="number"
-              min="5"
-              max="60"
-              step="1"
-              value={binaryVleForm.sampleCount}
-              onChange={(event) => handleBinaryVleFieldChange("sampleCount", event.target.value)}
-            />
-          </label>
-          <div className="flex items-end">
-            <Button
-              type="button"
-              disabled={isLoadingBinaryVle}
-              onClick={() => void handleBinaryVleSubmit()}
-            >
-              {isLoadingBinaryVle ? "Gerando..." : "Gerar diagrama"}
-            </Button>
-          </div>
-        </div>
-
-        {binaryVleResult ? (
-          <BinaryVleChart
-            fluid1={binaryVleResult.fluid1}
-            fluid2={binaryVleResult.fluid2}
-            pressure={binaryVleResult.pressure}
-            bubblePoints={binaryVleResult.bubble_points}
-            dewPoints={binaryVleResult.dew_points}
-          />
-        ) : (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader title="Equilíbrio Binário" />
+        <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            O diagrama aparecerá após a geração das curvas.
+            Visualização binária ideal de Raoult para dois fluidos. Útil para leitura de equilíbrio
+            líquido-vapor sem criar um módulo completo de destilação.
           </p>
-        )}
-      </CardContent>
-    </Card>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <Combobox
+              label="Componente 1"
+              options={componentOptions}
+              value={binaryVleForm.fluid1}
+              onValueChange={(value) => handleBinaryVleFieldChange("fluid1", value)}
+              placeholder="Selecione um fluido"
+            />
+            <Combobox
+              label="Componente 2"
+              options={componentOptions}
+              value={binaryVleForm.fluid2}
+              onValueChange={(value) => handleBinaryVleFieldChange("fluid2", value)}
+              placeholder="Selecione um fluido"
+            />
+            <label className="block text-sm font-medium text-slate-800" htmlFor="binary-vle-pressure">
+              Pressão (Pa)
+              <input
+                id="binary-vle-pressure"
+                className={inputClassName}
+                type="number"
+                step="any"
+                value={binaryVleForm.pressure}
+                onChange={(event) => handleBinaryVleFieldChange("pressure", event.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-[1fr_180px]">
+            <label className="block text-sm font-medium text-slate-800" htmlFor="binary-vle-samples">
+              Amostras por curva
+              <input
+                id="binary-vle-samples"
+                className={inputClassName}
+                type="number"
+                min="5"
+                max="60"
+                step="1"
+                value={binaryVleForm.sampleCount}
+                onChange={(event) => handleBinaryVleFieldChange("sampleCount", event.target.value)}
+              />
+            </label>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                disabled={isLoadingBinaryVle}
+                onClick={() => void handleBinaryVleSubmit()}
+              >
+                {isLoadingBinaryVle ? "Gerando..." : "Gerar diagrama"}
+              </Button>
+            </div>
+          </div>
+
+          {binaryVleResult ? (
+            <BinaryVleChart
+              fluid1={binaryVleResult.fluid1}
+              fluid2={binaryVleResult.fluid2}
+              pressure={binaryVleResult.pressure}
+              bubblePoints={binaryVleResult.bubble_points}
+              dewPoints={binaryVleResult.dew_points}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              O diagrama aparecerá após a geração das curvas.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <ComponentsMcCabeThieleCard />
+    </div>
   );
 }
 
-function ComponentsMcCabeThieleTab() {
-  const { binaryVleResult, handleMccabeFieldChange, mccabeForm } = useComponentsPageContext();
+function ComponentsMcCabeThieleCard() {
+  const {
+    binaryVleResult,
+    handleMcCabeGenerate,
+    handleMccabeFieldChange,
+    mccabeForm,
+    mccabeRequested,
+  } = useComponentsPageContext();
   const mccabeEquilibriumPoints = binaryVleResult?.bubble_points ?? [];
 
   return (
@@ -1742,8 +1705,9 @@ function ComponentsMcCabeThieleTab() {
       <CardHeader title="McCabe-Thiele" />
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Construção didática de estágios teóricos usando o equilíbrio binário já gerado acima.
-          O objetivo aqui é visualizar a lógica do método sem criar um módulo completo de destilação.
+          Construção didática de estágios teóricos usando o equilíbrio binário gerado acima, na
+          mesma aba. O objetivo aqui é visualizar a lógica do método sem criar um módulo completo
+          de destilação.
         </p>
 
         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -1826,7 +1790,22 @@ function ComponentsMcCabeThieleTab() {
           </label>
         </div>
 
-        {binaryVleResult ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            disabled={!binaryVleResult}
+            onClick={handleMcCabeGenerate}
+          >
+            {mccabeRequested ? "Atualizar McCabe-Thiele" : "Gerar McCabe-Thiele"}
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            {binaryVleResult
+              ? "O equilíbrio binário acima é a base do traçado dos estágios."
+              : "Gere primeiro o equilíbrio binário para liberar este gráfico."}
+          </p>
+        </div>
+
+        {mccabeRequested && binaryVleResult ? (
           <McCabeThieleChart
             fluid1={binaryVleResult.fluid1}
             fluid2={binaryVleResult.fluid2}
@@ -1840,7 +1819,7 @@ function ComponentsMcCabeThieleTab() {
           />
         ) : (
           <p className="text-sm text-muted-foreground">
-            Gere primeiro o diagrama T-x-y / y-x para reutilizar o equilíbrio binário.
+            Preencha os campos acima e clique em Gerar McCabe-Thiele para montar o diagrama.
           </p>
         )}
       </CardContent>
@@ -1863,7 +1842,7 @@ function ComponentsPropertySurfaceTab() {
 
   return (
     <Card>
-      <CardHeader title="Superfície de Propriedades" />
+      <CardHeader title="Superfície T-P" />
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
           Mapa T-P para uma propriedade termodinâmica do CoolProp. Útil para ver variações de
@@ -2003,8 +1982,15 @@ function ComponentsPropertySurfaceTab() {
 }
 
 function ComponentsPhaseEnvelopeTab() {
-  const { criticalFluid, isLoadingEnvelope, handleSaturationEnvelopeSubmit, saturationEnvelope } =
-    useComponentsPageContext();
+  const {
+    components,
+    phaseEnvelopeForm,
+    handlePhaseEnvelopeFieldChange,
+    isLoadingEnvelope,
+    handleSaturationEnvelopeSubmit,
+    saturationEnvelope,
+  } = useComponentsPageContext();
+  const componentOptions = buildComponentOptions(components);
 
   return (
     <Card>
@@ -2014,21 +2000,46 @@ function ComponentsPhaseEnvelopeTab() {
           Gere o domo de saturação T-s do fluido selecionado usando o ponto tríplice e o ponto
           crítico da base termodinâmica.
         </p>
+        <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+          <Combobox
+            label="Fluido do envelope"
+            options={componentOptions}
+            value={phaseEnvelopeForm.fluid}
+            onValueChange={(value) => handlePhaseEnvelopeFieldChange("fluid", value)}
+            placeholder="Selecione um fluido"
+          />
+          <label
+            className="block text-sm font-medium text-slate-800"
+            htmlFor="phase-envelope-samples"
+          >
+            Quantidade de pontos
+            <input
+              id="phase-envelope-samples"
+              className={inputClassName}
+              type="number"
+              min="10"
+              max="200"
+              step="1"
+              value={phaseEnvelopeForm.sampleCount}
+              onChange={(event) =>
+                handlePhaseEnvelopeFieldChange("sampleCount", event.target.value)
+              }
+            />
+          </label>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
-            disabled={!criticalFluid || isLoadingEnvelope}
+            disabled={!phaseEnvelopeForm.fluid || !phaseEnvelopeForm.sampleCount.trim() || isLoadingEnvelope}
             onClick={() => void handleSaturationEnvelopeSubmit()}
           >
             {isLoadingEnvelope ? "Traçando..." : "Traçar envelope"}
           </Button>
-          {criticalFluid ? (
-            <span className="text-sm text-muted-foreground">
-              Fluido selecionado: {criticalFluid}
+          {!phaseEnvelopeForm.fluid ? (
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-muted-foreground">
+              Selecione um fluido acima.
             </span>
-          ) : (
-            <span className="text-sm text-muted-foreground">Selecione um fluido acima.</span>
-          )}
+          ) : null}
         </div>
 
         {saturationEnvelope ? (
@@ -2057,22 +2068,5 @@ function ComponentsPhaseEnvelopeTab() {
         ) : null}
       </CardContent>
     </Card>
-  );
-}
-
-function ComponentsExploratoryTab() {
-  const { applyExploratoryFields, changeExploratoryField, describeScenario, handleSavedScenariosChange } =
-    useComponentsPageContext();
-
-  return (
-    <ExploratoryPanel
-      config={componentsExploratory}
-      state={{
-        applyFields: applyExploratoryFields,
-        changeField: changeExploratoryField,
-        describeScenario,
-      }}
-      onScenariosChange={handleSavedScenariosChange}
-    />
   );
 }

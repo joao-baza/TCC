@@ -1,3 +1,5 @@
+import { formatTableNumberText } from "@/lib/table-number";
+
 type RecyclePurgeSplit = {
   parentStream: string;
   recycleStream: string;
@@ -18,7 +20,7 @@ function scaleFraction(value: number) {
 }
 
 function formatFraction(value: number) {
-  return value.toFixed(2);
+  return formatTableNumberText(value);
 }
 
 function buildCurve(startX: number, startY: number, endX: number, endY: number) {
@@ -35,7 +37,7 @@ export function RecyclePurgeMap({
 
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="recycle-purge-map"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -109,7 +111,17 @@ export function RecyclePurgeMap({
                     x={parentX - 90}
                     y={parentY}
                   />
-                  <text fill="#1e3a8a" fontSize="14" fontWeight="600" textAnchor="middle" x={parentX} y={parentY + 25}>
+                  <text
+                    fill="#1e3a8a"
+                    fontSize="14"
+                    fontWeight="600"
+                    paintOrder="stroke"
+                    stroke="#f8fafc"
+                    strokeWidth="3"
+                    textAnchor="middle"
+                    x={parentX}
+                    y={parentY + 25}
+                  >
                     {split.parentStream}
                   </text>
 
@@ -123,7 +135,17 @@ export function RecyclePurgeMap({
                     x={splitX - 90}
                     y={splitY}
                   />
-                  <text fill="#9a3412" fontSize="14" fontWeight="600" textAnchor="middle" x={splitX} y={splitY + 25}>
+                  <text
+                    fill="#9a3412"
+                    fontSize="14"
+                    fontWeight="600"
+                    paintOrder="stroke"
+                    stroke="#f8fafc"
+                    strokeWidth="3"
+                    textAnchor="middle"
+                    x={splitX}
+                    y={splitY + 25}
+                  >
                     Divisão
                   </text>
 
@@ -137,7 +159,17 @@ export function RecyclePurgeMap({
                     x={recycleX - recycleWidth / 2}
                     y={recycleY}
                   />
-                  <text fill="#0f766e" fontSize="14" fontWeight="600" textAnchor="middle" x={recycleX} y={recycleY + 25}>
+                  <text
+                    fill="#0f766e"
+                    fontSize="14"
+                    fontWeight="600"
+                    paintOrder="stroke"
+                    stroke="#f8fafc"
+                    strokeWidth="3"
+                    textAnchor="middle"
+                    x={recycleX}
+                    y={recycleY + 25}
+                  >
                     {split.recycleStream}
                   </text>
 
@@ -151,7 +183,17 @@ export function RecyclePurgeMap({
                     x={purgeX - purgeWidth / 2}
                     y={purgeY}
                   />
-                  <text fill="#166534" fontSize="14" fontWeight="600" textAnchor="middle" x={purgeX} y={purgeY + 25}>
+                  <text
+                    fill="#166534"
+                    fontSize="14"
+                    fontWeight="600"
+                    paintOrder="stroke"
+                    stroke="#f8fafc"
+                    strokeWidth="3"
+                    textAnchor="middle"
+                    x={purgeX}
+                    y={purgeY + 25}
+                  >
                     {split.purgeStream}
                   </text>
 
@@ -177,10 +219,28 @@ export function RecyclePurgeMap({
                     strokeWidth={Math.max(4, purgeRatio * 10)}
                   />
 
-                  <text fill="#475569" fontSize="12" textAnchor="middle" x={splitX - 95} y={126}>
+                  <text
+                    fill="#475569"
+                    fontSize="12"
+                    paintOrder="stroke"
+                    stroke="#f8fafc"
+                    strokeWidth="3"
+                    textAnchor="middle"
+                    x={splitX - 95}
+                    y={126}
+                  >
                     Reciclo = {formatFraction(recycleRatio)}
                   </text>
-                  <text fill="#475569" fontSize="12" textAnchor="middle" x={splitX + 95} y={126}>
+                  <text
+                    fill="#475569"
+                    fontSize="12"
+                    paintOrder="stroke"
+                    stroke="#f8fafc"
+                    strokeWidth="3"
+                    textAnchor="middle"
+                    x={splitX + 95}
+                    y={126}
+                  >
                     Purga = {formatFraction(purgeRatio)}
                   </text>
                 </svg>

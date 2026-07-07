@@ -9,22 +9,20 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RemoveButton } from "@/components/remove-button";
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { ResultTableSection } from "@/components/result-table-section";
-import { EnergyGradeLineChart } from "@/components/viz/energy-grade-line-chart";
 import { HeadBreakdownChart } from "@/components/viz/head-breakdown-chart";
 import { HeadlossCurve } from "@/components/viz/headloss-curve";
 import { PumpSystemCurve } from "@/components/viz/pump-system-curve";
 import { PumpEfficiencyMap } from "@/components/viz/pump-efficiency-map";
-import { PressureProfileChart } from "@/components/viz/pressure-profile-chart";
 import { NpshGauge } from "@/components/viz/npsh-gauge";
-import { ExploratoryPanel } from "@/features/exploratory/exploratory-panel";
-import type { Scenario } from "@/features/exploratory/types";
-import { pumpExploratory } from "@/features/exploratory/templates";
 import {
   HeadHowItWorks,
   HeadlossHowItWorks,
   NpshHowItWorks,
 } from "@/features/pump/didactics";
-import { pumpWorkedExample } from "@/features/pump/presets";
+import {
+  mapPumpExampleToFormInputs,
+  type PumpExamplePayload,
+} from "@/features/pump/example";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
@@ -295,7 +293,6 @@ export function PumpPage() {
   const headlossSessionRef = useRef(0);
   const npshSessionRef = useRef(0);
   const headSessionRef = useRef(0);
-  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
   const activeTab = pathname.startsWith("/pump/")
     ? pathname.slice("/pump/".length).split("/")[0] || "headloss"
     : "headloss";
@@ -350,24 +347,41 @@ export function PumpPage() {
     };
   }, []);
 
-  function applyWorkedExample() {
+  async function applyWorkedExample() {
     headlossSessionRef.current += 1;
     npshSessionRef.current += 1;
     headSessionRef.current += 1;
-    setHeadlossForm({
-      ...initialHeadlossForm,
-      ...pumpWorkedExample.headloss,
-      method: pumpWorkedExample.headloss.method as HeadlossMethod,
-    });
-    setNpshForm({ ...initialNpshForm, ...pumpWorkedExample.npsh });
-    setHeadForm({ ...initialHeadForm, ...pumpWorkedExample.head });
-    setHeadlossSource("manual");
-    setFittingRows([createFittingRow("fitting-0")]);
-    setHeadlossResult(null);
-    setNpshResult(null);
-    setHeadResult(null);
-    setHeadTerms([]);
-    notify.success("Exemplo carregado com sucesso.");
+    try {
+      const example = await apiClient.get<PumpExamplePayload>("/pump/example");
+      const mapped = mapPumpExampleToFormInputs(example);
+
+      setPageError(null);
+      clearSelectedMaterialDetails();
+      setHeadlossForm({
+        ...initialHeadlossForm,
+        ...mapped.headloss,
+        method: mapped.headloss.method,
+      });
+      setHeadlossSource("material");
+      setFittingRows(
+        mapped.fittings.length > 0
+          ? mapped.fittings.map((row, index) => ({
+              id: `example-fitting-${index}`,
+              fitting: row.fitting,
+              quantity: row.quantity,
+            }))
+          : [createFittingRow("fitting-0")],
+      );
+      setNpshForm({ ...initialNpshForm, ...mapped.npsh });
+      setHeadForm({ ...initialHeadForm, ...mapped.head });
+      setHeadlossResult(null);
+      setNpshResult(null);
+      setHeadResult(null);
+      setHeadTerms([]);
+      notify.success("Exemplo carregado com sucesso.");
+    } catch (error) {
+      notify.error(getErrorMessage(error));
+    }
   }
 
   function clearHeadlossDerived() {
@@ -485,59 +499,6 @@ export function PumpPage() {
   function addFittingRow() {
     setFittingRows((current) => [...current, createFittingRow()]);
     clearHeadlossDerived();
-  }
-
-  function loadExploratoryFields(fields: Record<string, string>) {
-    setHeadlossForm((current) => ({
-      ...current,
-      method: "Darcy-Weisbach",
-      pipeLength: fields["pipe-length"] ?? current.pipeLength,
-      diameter: fields["headloss-diameter"] ?? current.diameter,
-      flowRate: fields["headloss-flow-rate"] ?? current.flowRate,
-      frictionFactor: fields["headloss-friction-factor"] ?? current.frictionFactor,
-      velocity: fields["headloss-velocity"] ?? current.velocity,
-      composition: "",
-      reynolds: "",
-      frictionMethod: current.frictionMethod,
-    }));
-    setNpshForm((current) => ({
-      ...current,
-      atmosphericPressure: fields["atmospheric-pressure"] ?? current.atmosphericPressure,
-      vaporPressure: fields["vapor-pressure"] ?? current.vaporPressure,
-      density: fields["specific-mass"] ?? current.density,
-      frictionFactor: fields["npsh-friction-factor"] ?? current.frictionFactor,
-      pumpInletVelocity: fields["pump-inlet-velocity"] ?? current.pumpInletVelocity,
-      gaugeElevation: fields["gauge-elevation"] ?? current.gaugeElevation,
-      required: fields["npsh-required"] ?? current.required,
-    }));
-    setHeadForm((current) => ({
-      ...current,
-      pressure1: fields.pressure1 ?? current.pressure1,
-      pressure2: fields.pressure2 ?? current.pressure2,
-      elevation1: fields.elevation1 ?? current.elevation1,
-      elevation2: fields.elevation2 ?? current.elevation2,
-      velocity1: fields.velocity1 ?? current.velocity1,
-      velocity2: fields.velocity2 ?? current.velocity2,
-      density: fields["head-specific-mass"] ?? current.density,
-      frictionFactor: fields["head-friction-factor"] ?? current.frictionFactor,
-    }));
-    setHeadlossSource("manual");
-    clearAllDerived();
-  }
-
-  function changeExploratoryField(field: string, value: string) {
-    if (field === "pipe-length") {
-      setHeadlossField("pipeLength", value);
-    } else if (field === "headloss-flow-rate") {
-      setHeadlossField("flowRate", value);
-    } else if (field === "gauge-elevation") {
-      setNpshField("gaugeElevation", value);
-    }
-    clearAllDerived();
-  }
-
-  function describeScenario() {
-    return `L=${headlossForm.pipeLength || "—"} m, Q=${headlossForm.flowRate || "—"} m3/s`;
   }
 
   async function resolveHeadlossInput() {
@@ -737,19 +698,6 @@ export function PumpPage() {
     Number(headlossForm.flowRate),
     headlossResult?.value ?? Number.NaN,
   );
-  const resolvedHeadlossFlow = resolveHeadlossFlowVelocity(headlossForm);
-  const pressureProfileItems = [
-    {
-      label: "Tubulacao",
-      quantity: Math.max(Number(headlossForm.pipeLength) || 0, 1),
-    },
-    ...fittingRows
-      .filter((row) => row.fitting && Number(row.quantity) > 0)
-      .map((row) => ({
-        label: row.fitting,
-        quantity: Number(row.quantity),
-      })),
-  ];
 
   return (
     <ModuleTabsLayout
@@ -949,14 +897,12 @@ export function PumpPage() {
 
             {headlossResult && curvePoints.length > 0 ? (
               <div className="space-y-4">
-                <HeadlossCurve
-                  method={headlossForm.method}
+              <HeadlossCurve
                   points={curvePoints}
                   operationalPoint={{
                     flowRate: Number(headlossForm.flowRate),
                     headloss: headlossResult.value,
                   }}
-                  scenarios={savedScenarios}
                 />
                 <PumpSystemCurve
                   operatingPoint={{
@@ -969,21 +915,14 @@ export function PumpPage() {
                   }))}
                 />
                 <PumpEfficiencyMap
-                  availableNpsh={npshResult?.value ?? null}
                   operatingPoint={{
                     flowRate: Number(headlossForm.flowRate),
                     head: headlossResult.value,
                   }}
-                  requiredNpsh={npshForm.required ? Number(npshForm.required) : null}
                   systemCurve={curvePoints.map((point) => ({
                     flowRate: point.flowRate,
                     head: point.headloss,
                   }))}
-                />
-                <EnergyGradeLineChart
-                  length={Number(headlossForm.pipeLength) || 0}
-                  totalHeadLoss={headlossResult.value}
-                  velocity={resolvedHeadlossFlow.velocity}
                 />
               </div>
             ) : null}
@@ -1166,34 +1105,6 @@ export function PumpPage() {
         </Card>
       ) : null}
 
-      {activeTab === "pressure-profile" && headlossResult ? (
-        <Card>
-          <CardHeader title="Perfil de pressão" />
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Decomposição didática da perda de carga ao longo da linha e dos
-              acessórios informados.
-            </p>
-            <PressureProfileChart
-              items={pressureProfileItems}
-              length={Number(headlossForm.pipeLength) || 0}
-              totalDrop={headlossResult.value}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {activeTab === "exploratory" ? (
-        <ExploratoryPanel
-          config={pumpExploratory}
-          state={{
-            applyFields: loadExploratoryFields,
-            changeField: changeExploratoryField,
-            describeScenario,
-          }}
-          onScenariosChange={setSavedScenarios}
-        />
-      ) : null}
     </ModuleTabsLayout>
   );
 }

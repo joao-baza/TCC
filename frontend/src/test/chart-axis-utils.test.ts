@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import {
   buildAxisTicks,
   expandNumericDomain,
+  formatAxisTick,
   placeSafeLabel,
 } from "@/components/viz/chart-axis-utils";
 import { NumericChartGrid } from "@/components/viz/chart-grid";
@@ -53,6 +54,12 @@ describe("chart axis utilities", () => {
     const second = buildAxisTicks(-10, -8.5, 5);
 
     expect(Math.abs(first.length - second.length)).toBeLessThanOrEqual(1);
+  });
+
+  it("formats axis ticks with comma decimals and scientific notation when needed", () => {
+    expect(formatAxisTick(12.5)).toBe("12,5");
+    expect(formatAxisTick(0.00008949025483876957)).toBe("8,94903 × 10^-5");
+    expect(formatAxisTick(1234567)).toBe("1,23457 × 10^6");
   });
 
   it("moves labels away from overlapping boxes", () => {

@@ -22,7 +22,7 @@ describe("VariablesTable", () => {
     expect(screen.getByText("DN (Diametro Nominal)")).toBeInTheDocument();
   });
 
-  it("renders units with KaTeX when present", () => {
+  it("renders literal units when the unit string is already human readable", () => {
     const { container } = render(
       <VariablesTable
         rows={[
@@ -37,7 +37,7 @@ describe("VariablesTable", () => {
 
     const unitCell = container.querySelector("tbody td:last-child");
 
-    expect(unitCell?.querySelector(".katex")).not.toBeNull();
-    expect(unitCell).toHaveTextContent("m");
+    expect(unitCell?.querySelector(".katex")).toBeNull();
+    expect(unitCell).toHaveTextContent("meter ** 2");
   });
 });

@@ -1,3 +1,5 @@
+import { formatTableNumberText } from "@/lib/table-number";
+
 type ProcessSankeyStream = {
   name: string;
   direction: string;
@@ -18,13 +20,13 @@ type Point = {
 const width = 1020;
 
 function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
+  return formatTableNumberText(value);
 }
 
 function formatCompositionSummary(compositions: Record<string, number>) {
   return Object.entries(compositions)
     .slice(0, 2)
-    .map(([component, value]) => `${component}: ${value.toFixed(4)}`)
+    .map(([component, value]) => `${component}: ${formatTableNumberText(value)}`)
     .join(" · ");
 }
 
@@ -69,7 +71,7 @@ export function ProcessSankey({ streams, title = "Sankey de massa e energia" }: 
 
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="process-sankey"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -105,6 +107,9 @@ export function ProcessSankey({ streams, title = "Sankey de massa e energia" }: 
           fill="#0f172a"
           fontSize="15"
           fontWeight="600"
+          paintOrder="stroke"
+          stroke="#f8fafc"
+          strokeWidth="3"
           textAnchor="middle"
           x={centerX}
           y={processTop + processHeight / 2 - 2}
@@ -114,6 +119,9 @@ export function ProcessSankey({ streams, title = "Sankey de massa e energia" }: 
         <text
           fill="#64748b"
           fontSize="12"
+          paintOrder="stroke"
+          stroke="#f8fafc"
+          strokeWidth="3"
           textAnchor="middle"
           x={centerX}
           y={processTop + processHeight / 2 + 18}
@@ -151,13 +159,38 @@ export function ProcessSankey({ streams, title = "Sankey de massa e energia" }: 
               />
               <circle cx={start.x} cy={start.y} fill="#2563eb" r={6} />
               <circle cx={end.x} cy={end.y} fill="#2563eb" r={4.5} />
-              <text fill="#0f172a" fontSize="13" fontWeight="600" x={24} y={start.y - 2}>
+              <text
+                fill="#0f172a"
+                fontSize="13"
+                fontWeight="600"
+                paintOrder="stroke"
+                stroke="#f8fafc"
+                strokeWidth="3"
+                x={24}
+                y={start.y - 2}
+              >
                 {stream.name}
               </text>
-              <text fill="#64748b" fontSize="11" x={24} y={start.y + 14}>
+              <text
+                fill="#64748b"
+                fontSize="11"
+                paintOrder="stroke"
+                stroke="#f8fafc"
+                strokeWidth="3"
+                x={24}
+                y={start.y + 14}
+              >
                 {stream.direction} · {toFixedLabel(stream.flowRate)}
               </text>
-              <text fill="#475569" fontSize="11" x={24} y={start.y + 28}>
+              <text
+                fill="#475569"
+                fontSize="11"
+                paintOrder="stroke"
+                stroke="#f8fafc"
+                strokeWidth="3"
+                x={24}
+                y={start.y + 28}
+              >
                 {formatCompositionSummary(stream.compositions)}
               </text>
             </g>
@@ -177,13 +210,41 @@ export function ProcessSankey({ streams, title = "Sankey de massa e energia" }: 
               />
               <circle cx={start.x} cy={start.y} fill="#059669" r={6} />
               <circle cx={end.x} cy={end.y} fill="#059669" r={4.5} />
-              <text fill="#0f172a" fontSize="13" fontWeight="600" textAnchor="end" x={width - 24} y={start.y - 2}>
+              <text
+                fill="#0f172a"
+                fontSize="13"
+                fontWeight="600"
+                paintOrder="stroke"
+                stroke="#f8fafc"
+                strokeWidth="3"
+                textAnchor="end"
+                x={width - 24}
+                y={start.y - 2}
+              >
                 {stream.name}
               </text>
-              <text fill="#64748b" fontSize="11" textAnchor="end" x={width - 24} y={start.y + 14}>
+              <text
+                fill="#64748b"
+                fontSize="11"
+                paintOrder="stroke"
+                stroke="#f8fafc"
+                strokeWidth="3"
+                textAnchor="end"
+                x={width - 24}
+                y={start.y + 14}
+              >
                 {stream.direction} · {toFixedLabel(stream.flowRate)}
               </text>
-              <text fill="#475569" fontSize="11" textAnchor="end" x={width - 24} y={start.y + 28}>
+              <text
+                fill="#475569"
+                fontSize="11"
+                paintOrder="stroke"
+                stroke="#f8fafc"
+                strokeWidth="3"
+                textAnchor="end"
+                x={width - 24}
+                y={start.y + 28}
+              >
                 {formatCompositionSummary(stream.compositions)}
               </text>
             </g>

@@ -19,10 +19,13 @@ import { BalancePage } from "@/features/balance/balance-page";
 import { ReactorPage } from "@/features/reactor/reactor-page";
 import {
   SizingCalculatedDiameterTab,
-  SizingExploratoryTab,
   SizingPage,
   SizingRealDiameterTab,
 } from "@/features/sizing/sizing-page";
+
+function EmptyRoute() {
+  return null;
+}
 
 export const routes = [
   {
@@ -50,7 +53,6 @@ export const routes = [
               { index: true, element: <Navigate to="calculated-diameter" replace /> },
               { path: "calculated-diameter", element: <SizingCalculatedDiameterTab /> },
               { path: "real-diameter", element: <SizingRealDiameterTab /> },
-              { path: "exploratory", element: <SizingExploratoryTab /> },
             ],
           },
           {
@@ -58,10 +60,9 @@ export const routes = [
             element: <FlowPage />,
             children: [
               { index: true, element: <Navigate to="reynolds" replace /> },
-              { path: "reynolds" },
-              { path: "friction-factor" },
-              { path: "hydraulic-diameter" },
-              { path: "exploratory" },
+              { path: "reynolds", element: <EmptyRoute /> },
+              { path: "friction-factor", element: <EmptyRoute /> },
+              { path: "hydraulic-diameter", element: <EmptyRoute /> },
             ],
           },
           {
@@ -69,11 +70,9 @@ export const routes = [
             element: <PumpPage />,
             children: [
               { index: true, element: <Navigate to="headloss" replace /> },
-              { path: "headloss" },
-              { path: "npsh-available" },
-              { path: "manometric-head" },
-              { path: "pressure-profile" },
-              { path: "exploratory" },
+              { path: "headloss", element: <EmptyRoute /> },
+              { path: "npsh-available", element: <EmptyRoute /> },
+              { path: "manometric-head", element: <EmptyRoute /> },
             ],
           },
           {
@@ -81,16 +80,15 @@ export const routes = [
             element: <ComponentsPage />,
             children: [
               { index: true, element: <Navigate to="critical-properties" replace /> },
-              { path: "critical-properties" },
-              { path: "pure-fluid" },
-              { path: "state-properties" },
-              { path: "mixtures" },
-              { path: "ternary-diagram" },
-              { path: "binary-vle" },
-              { path: "mccabe-thiele" },
-              { path: "property-surface" },
-              { path: "phase-envelope" },
-              { path: "exploratory" },
+              { path: "critical-properties", element: <EmptyRoute /> },
+              { path: "pure-fluid", element: <EmptyRoute /> },
+              { path: "state-properties", element: <EmptyRoute /> },
+              { path: "mixtures", element: <EmptyRoute /> },
+              { path: "ternary-diagram", element: <EmptyRoute /> },
+              { path: "binary-vle", element: <EmptyRoute /> },
+              { path: "mccabe-thiele", element: <EmptyRoute /> },
+              { path: "property-surface", element: <EmptyRoute /> },
+              { path: "phase-envelope", element: <EmptyRoute /> },
             ],
           },
           {
@@ -98,10 +96,10 @@ export const routes = [
             element: <ReactorPage />,
             children: [
               { index: true, element: <Navigate to="cstr" replace /> },
-              { path: "cstr" },
-              { path: "pfr" },
-              { path: "arrhenius" },
-              { path: "exploratory" },
+              { path: "cstr", element: <EmptyRoute /> },
+              { path: "pfr", element: <EmptyRoute /> },
+              { path: "levenspiel", element: <EmptyRoute /> },
+              { path: "arrhenius", element: <EmptyRoute /> },
             ],
           },
           {
@@ -109,14 +107,13 @@ export const routes = [
             element: <BalancePage />,
             children: [
               { index: true, element: <Navigate to="components" replace /> },
-              { path: "components" },
-              { path: "actions" },
-              { path: "streams" },
-              { path: "reactions" },
-              { path: "splits-recycle" },
-              { path: "results" },
-              { path: "yields" },
-              { path: "exploratory" },
+              { path: "components", element: <EmptyRoute /> },
+              { path: "actions", element: <EmptyRoute /> },
+              { path: "streams", element: <EmptyRoute /> },
+              { path: "reactions", element: <EmptyRoute /> },
+              { path: "splits-recycle", element: <EmptyRoute /> },
+              { path: "results", element: <EmptyRoute /> },
+              { path: "yields", element: <EmptyRoute /> },
             ],
           },
           {
@@ -124,7 +121,7 @@ export const routes = [
             element: <GlossaryPage />,
             children: [
               { index: true, element: <Navigate to="terms" replace /> },
-              { path: "terms" },
+              { path: "terms", element: <EmptyRoute /> },
             ],
           },
           {
@@ -132,7 +129,7 @@ export const routes = [
             element: <ExercisesPage />,
             children: [
               { index: true, element: <Navigate to="catalog" replace /> },
-              { path: "catalog" },
+              { path: "catalog", element: <EmptyRoute /> },
             ],
           },
         ],

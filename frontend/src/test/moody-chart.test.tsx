@@ -8,29 +8,18 @@ describe("MoodyChart", () => {
       <MoodyChart reynolds={50000} frictionFactor={0.0215} roughness={0.045} />,
     );
 
-    expect(screen.getByText("Ponto operacional")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Ponto operacional/i })).toBeInTheDocument();
     expect(screen.getByText("Re = 50000")).toBeInTheDocument();
-    expect(screen.getByText("f = 0.0215")).toBeInTheDocument();
-    expect(screen.getByText("e/D = 0.045")).toBeInTheDocument();
+    expect(screen.getByText("f = 0,0215")).toBeInTheDocument();
+    expect(screen.getAllByText("e/D = 0,045").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Curva laminar/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Faixa de transição/i).length).toBeGreaterThan(1);
+    expect(screen.getAllByText("0,005").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0,01").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll("path").length).toBeGreaterThan(10);
+    expect(container.querySelectorAll('[data-axis-tick="x"]')[0]).toHaveTextContent("10^3");
+    expect(container.querySelectorAll('[data-axis-tick="y"]').length).toBeGreaterThanOrEqual(5);
     expect(container.querySelector("svg")).not.toBeNull();
-  });
-
-  it("renders saved scenarios as a contextual legend", () => {
-    render(
-      <MoodyChart
-        reynolds={50000}
-        frictionFactor={0.0215}
-        roughness={0.045}
-        scenarios={[
-          { id: "flow-1", name: "Cenário base", color: "#2563EB" },
-          { id: "flow-2", name: "Cenário viscoso", color: "#D97706" },
-        ]}
-      />,
-    );
-
-    expect(screen.getByText("Cenários salvos")).toBeInTheDocument();
-    expect(screen.getByText("Cenário base")).toBeInTheDocument();
-    expect(screen.getByText("Cenário viscoso")).toBeInTheDocument();
   });
 
   it("renders a safe fallback for invalid input", () => {

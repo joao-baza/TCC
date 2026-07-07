@@ -1,4 +1,4 @@
-import { formatTableNumber } from "@/lib/table-number";
+import { formatTableNumber, formatTableNumberText } from "@/lib/table-number";
 
 describe("table-number", () => {
   it("preserves zero", () => {
@@ -18,7 +18,13 @@ describe("table-number", () => {
 
   it("keeps ordinary table values in fixed-point format", () => {
     expect(formatTableNumber(126.16)).toBe("\\text{126,16}");
-    expect(formatTableNumber(0.0001)).toBe("\\text{0,0001}");
+    expect(formatTableNumber(0.0001)).toBe("\\text{1} \\times 10^{-4}");
     expect(formatTableNumber(99999.99)).toBe("\\text{99999,99}");
+  });
+
+  it("formats plain text values with comma decimals and scientific notation", () => {
+    expect(formatTableNumberText(126.16)).toBe("126,16");
+    expect(formatTableNumberText(0.00008949025483876957)).toBe("8,94903 × 10^-5");
+    expect(formatTableNumberText(1234567)).toBe("1,23457 × 10^6");
   });
 });

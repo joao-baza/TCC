@@ -43,7 +43,7 @@ export function VariablesTable({
             <td className="py-1 pr-4 font-mono">{renderSymbol(row.symbol)}</td>
             <td className="py-1 pr-4">{row.description}</td>
             <td className="py-1">
-              <UnitMath units={row.unit} />
+              <UnitMath units={row.unit} mode="text" />
             </td>
           </tr>
         ))}

@@ -1,13 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useOutletContext } from "react-router-dom";
 
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
+import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PropertyTable, type PropertyRow } from "@/components/property-table";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { toSelectOption, type SelectOption } from "@/lib/select-option";
+import {
+  PipingCompositionsHowItWorks,
+  PipingConnectionsHowItWorks,
+  PipingSchedulesHowItWorks,
+} from "@/features/piping/didactics";
+import {
+  mapPipingExampleToFormInputs,
+  type PipingExamplePayload,
+} from "@/features/piping/example";
 import { pipingTabs } from "@/features/piping/piping-tabs";
 
 type Schedule = {
@@ -170,6 +180,7 @@ export function PipingPage() {
   const [diameterDetails, setDiameterDetails] = useState<DetailRecord | null>(null);
   const [fittingDetails, setFittingDetails] = useState<FittingDetails | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const pendingExampleDiameterRef = useRef<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -226,6 +237,24 @@ export function PipingPage() {
     };
   }, []);
 
+  function loadExample() {
+    void (async () => {
+      try {
+        const example = await apiClient.get<PipingExamplePayload>("/piping/example");
+        const mapped = mapPipingExampleToFormInputs(example);
+
+        pendingExampleDiameterRef.current = mapped.diameter;
+        setSelectedComposition(mapped.composition);
+        setSelectedSchedule(mapped.schedule);
+        setSelectedFitting(mapped.fitting);
+
+        notify.success("Exemplo carregado com sucesso.");
+      } catch (error) {
+        notify.error(getErrorMessage(error));
+      }
+    })();
+  }
+
   useEffect(() => {
     setCompositionDetails(null);
 
@@ -280,6 +309,20 @@ export function PipingPage() {
 
         if (!ignore) {
           setDiameters(Object.values(response));
+          const pendingExampleDiameter = pendingExampleDiameterRef.current;
+          if (pendingExampleDiameter != null) {
+            const availableDiameters = Object.values(response);
+            const exampleDiameter =
+              availableDiameters.find(
+                (diameter) => String(diameter.nominal_diameter) === pendingExampleDiameter,
+              ) ?? availableDiameters[0];
+
+            if (exampleDiameter) {
+              setSelectedDiameter(String(exampleDiameter.nominal_diameter));
+            }
+
+            pendingExampleDiameterRef.current = null;
+          }
         }
       } catch (error) {
         if (!ignore) {
@@ -396,6 +439,11 @@ export function PipingPage() {
           {catalogError ? <p className="text-destructive">{catalogError}</p> : null}
         </>
       }
+      action={
+        <Button type="button" variant="outline" onClick={loadExample}>
+          Carregar exemplo
+        </Button>
+      }
       tabs={pipingTabs}
     >
       <Outlet context={context} />
@@ -415,6 +463,7 @@ function PipingCompositionsTab() {
     <Card>
       <CardHeader title="Composições" />
       <CardContent className="space-y-4">
+        <PipingCompositionsHowItWorks />
         <Combobox
           label="Composição"
           options={compositions}
@@ -453,6 +502,7 @@ function PipingSchedulesDiametersTab() {
     <Card>
       <CardHeader title="Schedules e Diâmetros" />
       <CardContent className="space-y-4">
+        <PipingSchedulesHowItWorks />
         <Combobox
           label="Schedule"
           options={schedules.map((schedule) => ({
@@ -504,6 +554,7 @@ function PipingConnectionsTab() {
     <Card>
       <CardHeader title="Conexões" />
       <CardContent className="space-y-4">
+        <PipingConnectionsHowItWorks />
         <Combobox
           label="Conexão"
           options={fittings}

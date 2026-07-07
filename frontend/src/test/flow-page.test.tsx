@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 
 import { routes } from "@/app/router";
@@ -44,6 +44,19 @@ function expectTableUnitText(label: string | RegExp, expected: string) {
   expect(unitText).toBe(renderedExpected);
 }
 
+function expectFieldUnit(label: string, unit: string) {
+  const matches = screen.queryAllByText((_, element) => {
+    if (element?.tagName !== "LABEL") {
+      return false;
+    }
+
+    const text = element.textContent ?? "";
+    return text.includes(label) && text.includes(`(${unit})`);
+  });
+
+  expect(matches.length).toBeGreaterThan(0);
+}
+
 async function expectTableValueMath(label: string | RegExp, expected?: string) {
   await waitFor(() => {
     const row = getRowContaining(label);
@@ -85,6 +98,11 @@ function mockFlowRequests(options?: {
       composition: "Aço galvanizado",
       diameter_source: "custom",
       custom_diameter: 13.843,
+    },
+    hydraulic_diameter: {
+      shape: "circularCap",
+      diameter: 0.125,
+      height: 0.08333,
     },
   } as const;
 
@@ -186,7 +204,7 @@ function mockFlowRequests(options?: {
           headers: { "Content-Type": "application/json" },
         });
       }
-      return Response.json({ value: 66.67, units: "millimeter" });
+      return Response.json({ value: 0.06667, units: "meter" });
     }
 
     throw new Error(`Unhandled request: ${method} ${url}`);
@@ -216,7 +234,7 @@ describe("FlowPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads the worked example from the API into the Reynolds and friction forms", async () => {
+  it("loads the worked example from the API into the Reynolds, friction, and hydraulic diameter forms", async () => {
     mockFlowRequests();
     renderFlowPage();
 
@@ -247,27 +265,13 @@ describe("FlowPage", () => {
     expect(screen.getByLabelText(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
     expect(screen.queryByLabelText(/Rugosidade/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Diâmetro da linha/i)).toHaveValue(13.843);
-  });
 
-  it("shows the exploratory panel and applies the water PVC template fields", async () => {
-    mockFlowRequests();
-    renderFlowPage();
-
-    expect(
-      await screen.findByRole("heading", { name: /Escoamento Interno/i }),
-    ).toBeInTheDocument();
-    await openFlowTab(/Modo Exploratório/i);
-    expect(screen.getByRole("region", { name: /Painel Exploratório/i })).toBeInTheDocument();
-
-    fireEvent.change(await screen.findByLabelText(/Modo Exploratório/i), {
-      target: { value: "water-pvc-dn100" },
-    });
-
-    await openFlowTab(/Número de Reynolds/i);
-    expect(screen.getByLabelText(/Diâmetro característico/i)).toHaveValue(100);
-    expect(screen.getByLabelText(/Velocidade média/i)).toHaveValue(1.5);
-    expect(screen.getByLabelText(/Densidade/i)).toHaveValue(998);
-    expect(screen.getByLabelText(/Viscosidade dinâmica/i)).toHaveValue(0.001);
+    await openFlowTab(/Diâmetro Hidráulico/i);
+    expect(screen.getByRole("combobox", { name: /Forma geométrica/i })).toHaveValue("Canal circular");
+    expect(screen.getByDisplayValue("0.125")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("0.08333")).toBeInTheDocument();
+    expect(screen.getByText(/D = 0,125/i)).toBeInTheDocument();
+    expect(screen.getByText(/h = 0,08333/i)).toBeInTheDocument();
   });
 
   it("hides stale Reynolds and friction outputs after dependent input edits", async () => {
@@ -312,7 +316,7 @@ describe("FlowPage", () => {
 
     await expectTableValueMath(/^Fator de atrito$/i);
     expectTableUnitText(/^Fator de atrito$/i, "dimensionless");
-    expect(screen.getByText(/Ponto operacional/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Ponto operacional/i })).toBeInTheDocument();
 
     await openFlowTab(/Número de Reynolds/i);
     fireEvent.change(screen.getByLabelText(/Velocidade média/i), {
@@ -389,18 +393,21 @@ describe("FlowPage", () => {
       target: { value: "rectangular" },
     });
     fireEvent.change(screen.getByLabelText(/Largura/i), {
-      target: { value: "100" },
+      target: { value: "0.1" },
     });
     fireEvent.change(screen.getByLabelText(/Altura/i), {
-      target: { value: "50" },
+      target: { value: "0.05" },
     });
+    expect(screen.getByText(/Pré-visualização geométrica/i)).toBeInTheDocument();
+    expect(screen.getByText(/a = 0,1/i)).toBeInTheDocument();
+    expect(screen.getByText(/b = 0,05/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
     await expectTableValueMath(/^Diâmetro hidráulico$/i);
-    expectTableUnitText(/^Diâmetro hidráulico$/i, "millimeter");
+    expectTableUnitText(/^Diâmetro hidráulico$/i, "meter");
 
     fireEvent.change(screen.getByLabelText(/Largura/i), {
-      target: { value: "120" },
+      target: { value: "0.12" },
     });
 
     const hydraulicRow = getRowContaining(/^Diâmetro hidráulico$/i);
@@ -480,7 +487,7 @@ describe("FlowPage", () => {
       target: { value: "rectangular" },
     });
     fireEvent.change(screen.getByLabelText(/Largura/i), {
-      target: { value: "100" },
+      target: { value: "0.1" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
@@ -606,10 +613,10 @@ describe("FlowPage", () => {
       target: { value: "rectangular" },
     });
     fireEvent.change(screen.getByLabelText(/Largura/i), {
-      target: { value: "100" },
+      target: { value: "0.1" },
     });
     fireEvent.change(screen.getByLabelText(/Altura/i), {
-      target: { value: "50" },
+      target: { value: "0.05" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
@@ -644,26 +651,7 @@ describe("FlowPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Calcular fator de atrito/i }));
 
     await expectTableValueMath(/^Fator de atrito$/i);
-    expect(screen.getByText(/Ponto operacional/i)).toBeInTheDocument();
-  });
-
-  it("shows saved exploratory scenarios in the Moody chart legend", async () => {
-    mockFlowRequests();
-    renderFlowPage();
-
-    expect(
-      await screen.findByRole("heading", { name: /Escoamento Interno/i }),
-    ).toBeInTheDocument();
-    await openFlowTab(/Modo Exploratório/i);
-    fireEvent.change(await screen.findByLabelText(/Modo Exploratório/i), {
-      target: { value: "water-pvc-dn100" },
-    });
-
-    await openFlowTab(/Número de Reynolds/i);
-    expect(screen.getByLabelText(/Diâmetro característico/i)).toHaveValue(100);
-    expect(screen.getByLabelText(/Velocidade média/i)).toHaveValue(1.5);
-    expect(screen.getByLabelText(/Densidade/i)).toHaveValue(998);
-    expect(screen.getByLabelText(/Viscosidade dinâmica/i)).toHaveValue(0.001);
+    expect(screen.getByRole("heading", { name: /Ponto operacional/i })).toBeInTheDocument();
   });
 
   it("calculates Reynolds, friction factor, and hydraulic diameter", async () => {
@@ -690,8 +678,8 @@ describe("FlowPage", () => {
 
     await expectTableValueMath(/^Número de Reynolds$/i);
     expectTableUnitText(/^Número de Reynolds$/i, "dimensionless");
-    expect(screen.getByText(/Regime do escoamento/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Turbulento$/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Regime do escoamento/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/^Turbulento$/i).length).toBeGreaterThan(0);
 
     await openFlowTab(/Fator de Atrito/i);
     fireEvent.click(screen.getByLabelText(/Usar composição/i));
@@ -722,7 +710,7 @@ describe("FlowPage", () => {
         roughness: 0.045,
       }),
     );
-    expect(screen.getByText(/Ponto operacional/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Ponto operacional/i })).toBeInTheDocument();
     expect(screen.queryByText(/e\/D = 0.0009/i)).not.toBeInTheDocument();
 
     await openFlowTab(/Diâmetro Hidráulico/i);
@@ -731,16 +719,18 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "rectangular" },
     });
+    expectFieldUnit("Largura", "m");
+    expectFieldUnit("Altura", "m");
     fireEvent.change(screen.getByLabelText(/Largura/i), {
-      target: { value: "100" },
+      target: { value: "0.1" },
     });
     fireEvent.change(screen.getByLabelText(/Altura/i), {
-      target: { value: "50" },
+      target: { value: "0.05" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
     await expectTableValueMath(/^Diâmetro hidráulico$/i);
-    expectTableUnitText(/^Diâmetro hidráulico$/i, "millimeter");
+    expectTableUnitText(/^Diâmetro hidráulico$/i, "meter");
   });
 
   it("supports triangular geometry in the hydraulic diameter form", async () => {
@@ -755,24 +745,31 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "triangular" },
     });
+    expectFieldUnit("Lado A", "m");
+    expectFieldUnit("Lado B", "m");
+    expectFieldUnit("Lado C", "m");
     fireEvent.change(screen.getByLabelText(/Lado A/i), {
-      target: { value: "3" },
+      target: { value: "0.1" },
     });
     fireEvent.change(screen.getByLabelText(/Lado B/i), {
-      target: { value: "4" },
+      target: { value: "0.1" },
     });
     fireEvent.change(screen.getByLabelText(/Lado C/i), {
-      target: { value: "5" },
+      target: { value: "0.1" },
     });
+    expect(screen.getByText(/Pré-visualização geométrica/i)).toBeInTheDocument();
+    expect(screen.getByText(/a = 0,1/i)).toBeInTheDocument();
+    expect(screen.getByText(/b = 0,1/i)).toBeInTheDocument();
+    expect(screen.getByText(/c = 0,1/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
     await expectTableValueMath(/^Diâmetro hidráulico$/i);
-    expectTableUnitText(/^Diâmetro hidráulico$/i, "millimeter");
+    expectTableUnitText(/^Diâmetro hidráulico$/i, "meter");
     expect(requestBodiesFor("/api/flow/hydraulic-diameter")).toContainEqual({
       shape: "triangular",
-      side_a: 3,
-      side_b: 4,
-      side_c: 5,
+      side_a: 0.1,
+      side_b: 0.1,
+      side_c: 0.1,
     });
   });
 
@@ -786,24 +783,36 @@ describe("FlowPage", () => {
     await openFlowTab(/Diâmetro Hidráulico/i);
 
     fireEvent.focus(screen.getByRole("combobox", { name: /Forma geométrica/i }));
-    expect(await screen.findByRole("option", { name: /Circular Cap/i })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Canal circular/i })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "circularCap" },
     });
-    fireEvent.change(screen.getByLabelText(/^Diâmetro$/i), {
-      target: { value: "10" },
+    expectFieldUnit("Diâmetro", "m");
+    expectFieldUnit("Altura", "m");
+    fireEvent.change(screen.getByLabelText(/Diâmetro/i), {
+      target: { value: "0.1" },
     });
-    fireEvent.change(screen.getByLabelText(/^Altura$/i), {
-      target: { value: "4" },
+    fireEvent.change(screen.getByLabelText(/Altura/i), {
+      target: { value: "0.03" },
     });
+    expect(screen.getByText(/Pré-visualização geométrica/i)).toBeInTheDocument();
+    expect(screen.getByText(/D = 0,1/i)).toBeInTheDocument();
+    expect(screen.getByText(/h = 0,03/i)).toBeInTheDocument();
+
+    const previewSvg = screen.getByRole("img", { name: /Canal circular/i });
+    const filledPath = previewSvg.querySelector("path[fill=\"#0F5E9C\"]");
+    expect(filledPath).not.toBeNull();
+    const pathTokens = filledPath?.getAttribute("d")?.split(/\s+/) ?? [];
+    expect(pathTokens[8]).toBe("0");
+
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
     await expectTableValueMath(/^Diâmetro hidráulico$/i);
-    expectTableUnitText(/^Diâmetro hidráulico$/i, "millimeter");
+    expectTableUnitText(/^Diâmetro hidráulico$/i, "meter");
     expect(requestBodiesFor("/api/flow/hydraulic-diameter")).toContainEqual({
       shape: "circularCap",
-      diameter: 10,
-      height: 4,
+      diameter: 0.1,
+      height: 0.03,
     });
   });
 
@@ -820,10 +829,10 @@ describe("FlowPage", () => {
       target: { value: "annular" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro externo/i), {
-      target: { value: "10" },
+      target: { value: "0.1" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
-      target: { value: "10" },
+      target: { value: "0.1" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
@@ -846,13 +855,13 @@ describe("FlowPage", () => {
       target: { value: "triangular" },
     });
     fireEvent.change(screen.getByLabelText(/Lado A/i), {
-      target: { value: "2" },
+      target: { value: "0.2" },
     });
     fireEvent.change(screen.getByLabelText(/Lado B/i), {
-      target: { value: "3" },
+      target: { value: "0.3" },
     });
     fireEvent.change(screen.getByLabelText(/Lado C/i), {
-      target: { value: "6" },
+      target: { value: "0.6" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
@@ -874,11 +883,11 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "circularCap" },
     });
-    fireEvent.change(screen.getByLabelText(/^Diâmetro$/i), {
-      target: { value: "10" },
+    fireEvent.change(screen.getByLabelText(/Diâmetro/i), {
+      target: { value: "0.1" },
     });
-    fireEvent.change(screen.getByLabelText(/^Altura$/i), {
-      target: { value: "12" },
+    fireEvent.change(screen.getByLabelText(/Altura/i), {
+      target: { value: "0.12" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 

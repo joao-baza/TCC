@@ -47,7 +47,9 @@ describe("Toaster", () => {
         position: "top-right",
         toastOptions: {
           classNames: {
-            toast: "cn-toast",
+            toast: expect.stringContaining("backdrop-blur-md"),
+            info: expect.stringContaining("hsl(var(--primary)/0.10)"),
+            error: expect.stringContaining("bg-rose-50"),
           },
         },
       });
@@ -64,7 +66,7 @@ describe("Toaster", () => {
         position: "top-center",
         toastOptions: {
           classNames: {
-            toast: "cn-toast",
+            warning: expect.stringContaining("bg-amber-50"),
           },
         },
       });

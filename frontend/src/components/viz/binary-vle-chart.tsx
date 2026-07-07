@@ -1,5 +1,7 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
+import { formatTableNumberText } from "@/lib/table-number";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
 
 type BinaryVlePoint = {
   liquid_fraction: number;
@@ -34,7 +36,7 @@ function scale(value: number, min: number, max: number, start: number, end: numb
 }
 
 function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
+  return formatTableNumberText(value);
 }
 
 function buildPath(points: Point[]) {
@@ -74,7 +76,7 @@ export function BinaryVleChart({
   pressure,
   bubblePoints,
   dewPoints,
-  title = "Diagrama T-x-y / y-x",
+  title = "Equilíbrio Binário",
 }: BinaryVleChartProps) {
   const temperatureValues = [...bubblePoints, ...dewPoints].map((point) => point.temperature);
   const temperatureDomain = expandNumericDomain(temperatureValues);
@@ -102,7 +104,7 @@ export function BinaryVleChart({
 
   return (
     <section
-      className="space-y-5 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-5 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="binary-vle-chart"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -115,11 +117,37 @@ export function BinaryVleChart({
         <p className="text-sm font-medium text-slate-700">P = {toFixedLabel(pressure)} Pa</p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <HowItWorks title="Como funciona - Equilíbrio Binário">
+        <p>
+          O painel T-x-y mostra, a pressão fixa, as temperaturas de bolha e de orvalho ao longo
+          da composição. O painel y-x mostra o equilíbrio entre a fração molar no líquido
+          (<code>x</code>) e no vapor (<code>y</code>) do componente mais volátil.
+        </p>
+        <p>
+          A leitura conjunta dessas curvas serve para identificar quando uma mistura entra ou sai
+          da região bifásica e para antecipar a dificuldade de separação por destilação.
+        </p>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Temperatura de bolha e de orvalho para uma composição específica.</li>
+            <li>Curvatura da relação equilíbrio líquido-vapor e tendência de volatilidade relativa.</li>
+            <li>Presença de azeótropo ou aproximação entre as curvas em uma dada pressão.</li>
+            <li>Faixa de composição em que a separação por destilação fica mais ou menos favorável.</li>
+          </ul>
+        </div>
+        <p className="text-sm text-slate-800">
+          Finalidade: orientar a leitura de equilíbrio e a escolha da pressão de operação antes de
+          avançar para o dimensionamento da coluna.
+        </p>
+        <TheoryRef>Ref.: Seader, Henley e Roper, Separation Process Principles, 4a ed., Wiley; DeVoe, Phase Diagrams- Binary Systems, LibreTexts.</TheoryRef>
+      </HowItWorks>
+
+      <div className="space-y-4">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <p className="mb-2 text-sm font-medium text-slate-800">T-x-y</p>
           <div
-            className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            className="relative mx-auto w-full max-w-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
             style={{ aspectRatio: `${width} / ${height}` }}
           >
             <NumericChartGrid
@@ -132,7 +160,7 @@ export function BinaryVleChart({
               yLabel="Temperatura (K)"
             />
             <svg
-              aria-label="Diagrama T-x-y"
+              aria-label={title}
               className="absolute inset-0 block h-full w-full overflow-hidden"
               preserveAspectRatio="xMidYMid meet"
               role="img"
@@ -176,7 +204,7 @@ export function BinaryVleChart({
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <p className="mb-2 text-sm font-medium text-slate-800">y-x</p>
           <div
-            className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            className="relative mx-auto w-full max-w-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
             style={{ aspectRatio: `${width} / ${height}` }}
           >
             <NumericChartGrid
@@ -229,32 +257,6 @@ export function BinaryVleChart({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Componente 1
-          </p>
-          <p className="mt-1 text-sm text-slate-900">{fluid1}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Componente 2
-          </p>
-          <p className="mt-1 text-sm text-slate-900">{fluid2}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Pontos bolha
-          </p>
-          <p className="mt-1 text-sm text-slate-900">{bubblePoints.length}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Pontos orvalho
-          </p>
-          <p className="mt-1 text-sm text-slate-900">{dewPoints.length}</p>
-        </div>
-      </div>
     </section>
   );
 }

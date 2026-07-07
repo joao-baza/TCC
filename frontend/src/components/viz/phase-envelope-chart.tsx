@@ -1,5 +1,7 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
+import { formatTableNumberText } from "@/lib/table-number";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
 
 type SaturationEnvelopePoint = {
   temperature: number;
@@ -42,7 +44,7 @@ function scale(value: number, min: number, max: number, start: number, end: numb
 }
 
 function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
+  return formatTableNumberText(value);
 }
 
 function buildPath(points: Point[]) {
@@ -114,7 +116,7 @@ export function PhaseEnvelopeChart({
 
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="phase-envelope-chart"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -124,13 +126,36 @@ export function PhaseEnvelopeChart({
             Dome de saturação T-s com regiões de líquido e vapor para {fluid}.
           </p>
         </div>
-        <p className="text-sm font-medium text-slate-700">
-          {points.length} pontos amostrados
-        </p>
       </div>
 
+      <HowItWorks title="Como funciona - Envelope de Fase">
+        <p>
+          O domo de saturação separa as regiões de líquido comprimido, coexistência líquido-vapor e
+          vapor superaquecido. As bordas são as curvas de saturação que ligam o ponto tríplice ao
+          ponto crítico.
+        </p>
+        <p>
+          A leitura do envelope mostra como o fluido se aproxima da mudança de fase e se um caminho
+          de processo cruza a região bifásica.
+        </p>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Ponto tríplice, ponto crítico e a largura da região de coexistência.</li>
+            <li>Margem de segurança entre o estado operacional e a transição de fase.</li>
+            <li>Se o caminho termodinâmico entra em região bifásica ou permanece monofásico.</li>
+            <li>Tendência de aproximação ao crítico, onde propriedades mudam rapidamente.</li>
+          </ul>
+        </div>
+        <p className="text-sm text-slate-800">
+          Finalidade: operar com margem térmica e de pressão suficiente para evitar mudanças de fase
+          indesejadas.
+        </p>
+        <TheoryRef>Ref.: NIST/ASME Steam Properties Users&apos; Guide; Cambridge, Phase Equilibria, Phase Diagrams and Phase Transformations.</TheoryRef>
+      </HowItWorks>
+
       <div
-        className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+        className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
         style={{ aspectRatio: `${width} / ${height}` }}
       >
         <NumericChartGrid

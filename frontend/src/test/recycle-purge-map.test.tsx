@@ -31,7 +31,7 @@ describe("RecyclePurgeMap", () => {
     expect(splitCard.querySelector("svg")).not.toBeNull();
     expect(screen.getByText(/^Recycle$/i)).toBeInTheDocument();
     expect(screen.getByText(/^Purga_Produto$/i)).toBeInTheDocument();
-    expect(screen.getByText(/R = 0.60/i)).toBeInTheDocument();
+    expect(screen.getByText(/R = 0,6/i)).toBeInTheDocument();
     expect(container.querySelector("svg")).not.toBeNull();
   });
 

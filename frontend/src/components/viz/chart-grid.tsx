@@ -188,7 +188,7 @@ export function NumericChartGrid({
       {yLabel ? (
         <text
           data-chart-label="y"
-          transform={`translate(${16}, ${padding.top + plotHeight / 2}) rotate(-90)`}
+          transform={`translate(${8}, ${padding.top + plotHeight / 2}) rotate(-90)`}
           fill="#475569"
           fontSize="13"
           textAnchor="middle"

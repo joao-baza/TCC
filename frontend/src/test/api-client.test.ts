@@ -7,7 +7,7 @@ describe("ApiClient", () => {
   });
 
   it("prefixes all requests with /api and returns parsed JSON", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValueOnce(
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

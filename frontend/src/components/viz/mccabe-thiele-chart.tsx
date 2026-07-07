@@ -1,4 +1,8 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
+import { formatTableNumberText } from "@/lib/table-number";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
+import { MathBlock } from "@/components/math-block";
+import { VariablesTable } from "@/components/variables-table";
 
 type EquilibriumPoint = {
   liquid_fraction: number;
@@ -46,10 +50,6 @@ function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
 }
 
-function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
-}
-
 function buildPath(points: Point[]) {
   if (points.length === 0) {
     return "";
@@ -63,7 +63,7 @@ function buildLinePath(line: Array<Point | null>) {
 }
 
 function formatComposition(value: number) {
-  return `${toFixedLabel(clamp01(value))}`;
+  return formatTableNumberText(clamp01(value));
 }
 
 function sortEquilibriumPoints(points: EquilibriumPoint[]) {
@@ -142,7 +142,7 @@ export function McCabeThieleChart({
   refluxRatio,
   qValue,
   maxStages = 10,
-  title = "Diagrama McCabe-Thiele",
+  title = "McCabe-Thiele",
 }: McCabeThieleChartProps) {
   const cleanPoints = sortEquilibriumPoints(equilibriumPoints);
   const compositionDomain = { min: 0, max: 1 };
@@ -254,7 +254,7 @@ export function McCabeThieleChart({
 
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="mccabe-thiele-chart"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -265,13 +265,56 @@ export function McCabeThieleChart({
           </p>
         </div>
         <div className="text-sm font-medium text-slate-700">
-          <div>N teórico ≈ {stageCount}</div>
-          <div>q = {toFixedLabel(q)} · R = {toFixedLabel(reflux)}</div>
+          <div>N teórico ≈ {formatTableNumberText(stageCount)}</div>
+          <div>q = {formatTableNumberText(q)} · R = {formatTableNumberText(reflux)}</div>
         </div>
       </div>
 
+      <HowItWorks title="Como funciona - McCabe-Thiele">
+        <p>
+          O método transforma o equilíbrio líquido-vapor em um caminho gráfico por estágios
+          teóricos. O objetivo é estimar quantos pratos seriam necessários para atingir a
+          especificação de topo e fundo.
+        </p>
+        <p>
+          <code>xD</code> é a composição do destilado, <code>xB</code> é a composição do fundo,
+          <code>zF</code> é a composição da alimentação, <code>R</code> é a razão de refluxo e
+          <code>q</code> descreve o estado térmico da corrente de alimentação.
+        </p>
+        <MathBlock expression={"y = \\dfrac{R}{R+1}x + \\dfrac{x_D}{R+1}"} />
+        <MathBlock expression={"y = \\dfrac{q}{q-1}x - \\dfrac{z_F}{q-1}"} />
+        <VariablesTable
+          rows={[
+            { symbol: "x_D", description: "Composição de destilado (topo)", unit: "fração molar" },
+            { symbol: "x_B", description: "Composição de fundo (bottoms)", unit: "fração molar" },
+            { symbol: "z_F", description: "Composição da alimentação", unit: "fração molar" },
+            { symbol: "R", description: "Razão de refluxo", unit: "adimensional" },
+            { symbol: "q", description: "Estado térmico da alimentação", unit: "adimensional" },
+          ]}
+        />
+        <p>
+          Interpretação de <code>q</code>: 1 indica líquido saturado; 0 indica vapor saturado;
+          entre 0 e 1 a alimentação está parcialmente vaporizada; acima de 1 a corrente está
+          sub-resfriada.
+        </p>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Número de estágios teóricos necessários para a separação.</li>
+            <li>Ponto de alimentação mais compatível com a linha q e com a mudança de seção.</li>
+            <li>Impacto do refluxo na inclinação da linha operatória e no esforço de separação.</li>
+            <li>Regiões de pinch e aproximação do limite de separação.</li>
+          </ul>
+        </div>
+        <p className="text-sm text-slate-800">
+          Finalidade: ligar especificação de produto, estado da alimentação e compromisso entre
+          energia e número de estágios.
+        </p>
+        <TheoryRef>Ref.: Seader, Henley e Roper, Separation Process Principles, 4a ed., Wiley; University of Utah, Distillation design notes.</TheoryRef>
+      </HowItWorks>
+
       <div
-        className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+        className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
         style={{ aspectRatio: `${width} / ${height}` }}
       >
         <NumericChartGrid
@@ -280,8 +323,8 @@ export function McCabeThieleChart({
           width={width}
           height={height}
           padding={padding}
-          xLabel="x (líquido)"
-          yLabel="y (vapor)"
+          xLabel="x (líquido, fração molar)"
+          yLabel="y (vapor, fração molar)"
         />
 
         <svg
@@ -422,6 +465,24 @@ export function McCabeThieleChart({
         </span>
       </div>
 
+      <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+          Diagonal y = x
+        </span>
+        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+          Curva de equilíbrio
+        </span>
+        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+          Linha de enriquecimento
+        </span>
+        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+          Linha de esgotamento
+        </span>
+        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+          Linha q
+        </span>
+      </div>
+
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Componente leve</p>
@@ -440,7 +501,7 @@ export function McCabeThieleChart({
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Alimentação</p>
           <p className="mt-1 text-sm text-slate-900">
-            zF={formatComposition(feed)} · q={toFixedLabel(q)}
+            zF={formatComposition(feed)} · q={formatTableNumberText(q)}
           </p>
         </div>
       </div>

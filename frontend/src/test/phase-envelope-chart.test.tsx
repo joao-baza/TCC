@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { PhaseEnvelopeChart } from "@/components/viz/phase-envelope-chart";
 
@@ -38,10 +38,16 @@ describe("PhaseEnvelopeChart", () => {
       />,
     );
 
-    expect(screen.getByText(/Envelope de fase/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Envelope de fase$/i })).toBeInTheDocument();
     expect(screen.getByText(/Water/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ponto tríplice/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ponto crítico/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Como funciona - Envelope de Fase/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Como funciona - Envelope de Fase/i }));
+    expect(screen.getByText(/regiões de líquido comprimido, coexistência líquido-vapor/i)).toBeInTheDocument();
+    expect(screen.getByText(/O que você pode extrair daqui/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ponto tríplice, ponto crítico/i)).toBeInTheDocument();
+    expect(screen.getByText(/NIST\/ASME Steam Properties Users/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Ponto tríplice$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Ponto crítico$/i)).toBeInTheDocument();
     expect(container.querySelector('[data-chart-label="x"]')?.textContent).toMatch(/Entropia/i);
     expect(container.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/Temperatura \(K\)/i);
     expect(container.querySelectorAll("[data-axis-tick='x']")).toHaveLength(5);

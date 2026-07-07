@@ -1,4 +1,4 @@
-import type { Scenario } from "@/features/exploratory/types";
+import { formatTableNumberText } from "@/lib/table-number";
 
 export type Regime = "laminar" | "transition" | "turbulent";
 
@@ -98,11 +98,9 @@ export function buildVelocityProfile(
 export function VelocityProfileChart({
   velocity,
   diameterMm,
-  scenarios = [],
 }: {
   velocity: number;
   diameterMm: number;
-  scenarios?: Scenario[];
 }) {
   const profile = buildVelocityProfile(velocity, diameterMm);
   const centerY = 70;
@@ -111,7 +109,7 @@ export function VelocityProfileChart({
   const bottom = centerY + halfRadius;
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-200 p-3">
+    <div className="mx-auto mt-3 w-full max-w-[760px] rounded-xl border border-slate-200 p-3">
       <div className="mb-2 text-sm font-medium text-slate-800">
         Perfil de Velocidade - Duto Circular
       </div>
@@ -125,10 +123,26 @@ export function VelocityProfileChart({
         <rect x="0" y={top} width="400" height={halfRadius * 2} fill="rgba(59,130,246,0.06)" />
         <line x1="0" y1={top} x2="400" y2={top} stroke="#1F2937" strokeWidth={3} />
         <line x1="0" y1={bottom} x2="400" y2={bottom} stroke="#1F2937" strokeWidth={3} />
-        <text x="6" y={top - 3} fontSize="9" fill="#6B7280">
+        <text
+          x="6"
+          y={top - 3}
+          fontSize="9"
+          fill="#6B7280"
+          paintOrder="stroke"
+          stroke="#f8fafc"
+          strokeWidth="2.5"
+        >
           parede
         </text>
-        <text x="6" y={bottom + 10} fontSize="9" fill="#6B7280">
+        <text
+          x="6"
+          y={bottom + 10}
+          fontSize="9"
+          fill="#6B7280"
+          paintOrder="stroke"
+          stroke="#f8fafc"
+          strokeWidth="2.5"
+        >
           parede
         </text>
         {profile.arrows.map((arrow, index) => (
@@ -158,35 +172,14 @@ export function VelocityProfileChart({
             borderColor: `${profile.color}50`,
           }}
         >
-          {profile.label} - Re ~= {profile.reynolds.toFixed(0)}
+          {profile.label} - Re ≈ {formatTableNumberText(profile.reynolds)}
         </span>
         <span className="text-xs text-muted-foreground">
-          Perfil estimado para agua a 20 C - D = {profile.diameterMm.toFixed(1)} mm - V ={" "}
-          {profile.velocity} m/s
+          Perfil estimado para agua a 20 C - D = {formatTableNumberText(profile.diameterMm)} mm - V ={" "}
+          {formatTableNumberText(profile.velocity)} m/s
         </span>
       </div>
 
-      {scenarios.length > 0 ? (
-        <div className="mt-3 border-t border-slate-200 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
-            Cenários salvos
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {scenarios.map((scenario) => (
-              <span
-                key={scenario.id}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
-              >
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: scenario.color }}
-                />
-                {scenario.name}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

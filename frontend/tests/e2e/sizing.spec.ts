@@ -1,15 +1,21 @@
 import { expect, test } from "@playwright/test";
 
-test("sizing module loads the example, calculates diameters, and shows exploratory controls", async ({
+async function selectComboboxOption(page, label, query) {
+  const input = page.getByRole("combobox", { name: label });
+  await input.fill(query);
+  await input.press("Enter");
+}
+
+test("sizing module loads the example and calculates diameters", async ({
   page,
 }) => {
   await page.route("**/api/piping/schedules", async (route) => {
     await route.fulfill({
       json: [
         {
-          name: "STD",
-          diameters: [25, 40],
-          description: "Schedule padrao",
+          name: "SCH40",
+          diameters: [125],
+          description: "Schedule padrão.",
         },
       ],
     });
@@ -31,21 +37,28 @@ test("sizing module loads the example, calculates diameters, and shows explorato
   await expect(page.getByRole("heading", { name: /Dimensionamento de Tubulação/i })).toBeVisible();
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await expect(page.getByLabel(/Vazão/i)).toHaveValue("0.01");
+  await expect(page.getByLabel(/Vazão/i)).toHaveValue("0.0166667");
   await expect(page.getByLabel(/Velocidade de projeto/i)).toHaveValue("1.5");
 
+  const calculatedResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/sizing/calculated-diameter") &&
+      response.request().method() === "POST",
+  );
+  const realResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/sizing/real-diameter") &&
+      response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: /Calcular diâmetro/i }).click();
-  await expect(page.getByText(/126.16 mm/i)).toBeVisible();
+  await calculatedResponse;
+  await realResponse;
+  await expect(page.locator("table").filter({ hasText: "Diâmetro calculado" }).first()).toContainText("126,16");
+
+  await page.getByRole("tab", { name: /Diâmetro Real/i }).click();
   await expect(page.getByLabel(/Diâmetro calculado/i)).toHaveValue("126.16");
-
-  await page.getByLabel(/Schedule/i).selectOption("STD");
   await page.getByRole("button", { name: /Obter diâmetro real/i }).click();
-  await expect(page.getByText(/150 mm/i)).toBeVisible();
-
-  await page.getByLabel("Modo Exploratório").selectOption("process-line");
-  await expect(page.getByText(/Roteiro de exploração/i)).toBeVisible();
-  await expect(page.getByText(/Qual e a maior vazao/i)).toBeVisible();
-  await expect(page.getByText(/Perfil ao vivo/i)).toBeVisible();
+  await expect(page.locator("table").filter({ hasText: "Diâmetro real" }).first()).toContainText("150");
 });
 
 test("sizing module surfaces an error when the schedules catalog fails to load", async ({
@@ -60,6 +73,7 @@ test("sizing module surfaces an error when the schedules catalog fails to load",
 
   await page.goto("/sizing");
   await expect(page.getByRole("heading", { name: /Dimensionamento de Tubulação/i })).toBeVisible();
+  await page.getByRole("tab", { name: /Diâmetro Real/i }).click();
   await expect(page.locator("form").getByText(/Falha no backend de schedules/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /Obter diâmetro real/i })).toBeDisabled();
 });
@@ -71,9 +85,9 @@ test("sizing module surfaces an error when the calculated diameter request fails
     await route.fulfill({
       json: [
         {
-          name: "STD",
-          diameters: [25, 40],
-          description: "Schedule padrao",
+          name: "SCH40",
+          diameters: [125],
+          description: "Schedule padrão.",
         },
       ],
     });
@@ -104,9 +118,9 @@ test("sizing module surfaces an error when the real diameter request fails", asy
     await route.fulfill({
       json: [
         {
-          name: "STD",
-          diameters: [25, 40],
-          description: "Schedule padrao",
+          name: "SCH40",
+          diameters: [125],
+          description: "Schedule padrão.",
         },
       ],
     });
@@ -130,7 +144,8 @@ test("sizing module surfaces an error when the real diameter request fails", asy
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
   await page.getByRole("button", { name: /Calcular diâmetro/i }).click();
-  await page.getByLabel(/Schedule/i).selectOption("STD");
+  await page.getByRole("tab", { name: /Diâmetro Real/i }).click();
+  await selectComboboxOption(page, "Schedule", "SCH40");
   await page.getByRole("button", { name: /Obter diâmetro real/i }).click();
 
   await expect(page.getByText(/Falha no backend do diâmetro real/i).first()).toBeVisible();

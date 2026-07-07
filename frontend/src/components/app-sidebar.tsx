@@ -42,7 +42,7 @@ export function AppSidebar({
               Dimensionamento Computacional de Operações Unitárias
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Engenharia Química — UFMS
+              Engenharia Química - UFMS
             </p>
           </div>
         </div>

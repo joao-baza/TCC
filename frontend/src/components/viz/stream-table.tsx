@@ -1,3 +1,5 @@
+import { formatTableNumberText } from "@/lib/table-number";
+
 type StreamTableRow = {
   name: string;
   direction: string;
@@ -11,13 +13,13 @@ type StreamTableProps = {
 };
 
 function formatFlow(value: number) {
-  return `${value.toFixed(2)} u. cons.`;
+  return `${formatTableNumberText(value)} u. cons.`;
 }
 
 function formatCompositionSummary(compositions: Record<string, number>) {
   const summary = Object.entries(compositions)
     .slice(0, 3)
-    .map(([component, value]) => `${component}: ${value.toFixed(4)}`)
+    .map(([component, value]) => `${component}: ${formatTableNumberText(value)}`)
     .join(" · ");
 
   return summary || "—";

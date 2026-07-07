@@ -1,5 +1,7 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
+import { formatTableNumberText } from "@/lib/table-number";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
 
 type PropertySurfaceHeatmapProps = {
   fluid: string;
@@ -26,7 +28,7 @@ function scale(value: number, min: number, max: number, start: number, end: numb
 }
 
 function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
+  return formatTableNumberText(value);
 }
 
 function formatTemperature(value: number) {
@@ -74,7 +76,7 @@ export function PropertySurfaceHeatmap({
   values,
   valueMin,
   valueMax,
-  title = "Superfície de propriedades",
+  title = "Superfície T-P",
 }: PropertySurfaceHeatmapProps) {
   const gridWidth = width - padding.left - padding.right;
   const gridHeight = height - padding.top - padding.bottom;
@@ -92,7 +94,7 @@ export function PropertySurfaceHeatmap({
 
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="property-surface-heatmap"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -108,10 +110,36 @@ export function PropertySurfaceHeatmap({
         </div>
       </div>
 
+      <HowItWorks title="Como funciona - Superfície T-P">
+        <p>
+          O mapa cruza temperatura e pressão para calcular uma propriedade termodinâmica em cada
+          ponto da malha. A cor de cada célula representa o valor interpolado da propriedade
+          selecionada.
+        </p>
+        <p>
+          Ele serve para enxergar rapidamente onde a propriedade muda mais, onde a variação é mais
+          suave e quais regiões exigem maior cuidado de interpolação ou de controle.
+        </p>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Faixas de alta sensibilidade da propriedade em relação a temperatura e pressão.</li>
+            <li>Regiões onde a resposta é quase linear e onde a curvatura fica mais forte.</li>
+            <li>Estimativa rápida de valores intermediários por interpolação visual.</li>
+            <li>Comparação do mesmo fluido em condições diferentes de processo.</li>
+          </ul>
+        </div>
+        <p className="text-sm text-slate-800">
+          Finalidade: apoiar simulação, análise de sensibilidade e leitura de tendências
+          termodinâmicas sem sair da interface.
+        </p>
+        <TheoryRef>Ref.: NIST/ASME Steam Properties Users' Guide; Cambridge, Thermodynamics with Chemical Engineering Applications.</TheoryRef>
+      </HowItWorks>
+
       {temperatures.length && pressures.length && values.length ? (
         <>
           <div
-            className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+            className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
             style={{ aspectRatio: `${width} / ${height}` }}
           >
             <NumericChartGrid

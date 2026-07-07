@@ -1,3 +1,5 @@
+import { formatTableNumberText } from "@/lib/table-number";
+
 export type NumericDomain = {
   min: number;
   max: number;
@@ -130,8 +132,7 @@ export function buildAxisTicks(min: number, max: number, targetCount = 5) {
 }
 
 export function formatAxisTick(value: number) {
-  const formatted = Number(value).toFixed(6).replace(/\.?0+$/, "");
-  return formatted === "-0" ? "0" : formatted;
+  return formatTableNumberText(value);
 }
 
 export function placeSafeLabel({
