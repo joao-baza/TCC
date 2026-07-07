@@ -21,6 +21,21 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
     def __init__(self) -> None:
         self.ureg = UnitRegistry()
 
+    def _translate_result_keys(self, result):
+        key_map = {
+            "conversion": "conversao",
+            "molar_rate_inlet_(limitant)": "vazao_molar_entrada_(limitante)",
+            "flow_rate_outlet": "vazao_de_saida",
+            "reaction_rate": "taxa_de_reacao",
+            "outlet_concentrations": "concentracoes_de_saida",
+            "dilution_factor_(1+e * P0*T)": "fator_de_diluicao_(1+e * P0*T)",
+            "dilution_factor_(1+e * P0*T/P*T0)": "fator_de_diluicao_(1+e * P0*T/P*T0)",
+            "residence_time": "tempo_de_residencia",
+            "dilution_factor": "fator_de_diluicao",
+        }
+
+        return {key_map.get(key, key): value for key, value in result.items()}
+
     # ------------------------------------------------------------------ #
     #                         PRIVATE HELPERS                            #
     # ------------------------------------------------------------------ #
@@ -193,7 +208,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         residence_time = V / q_vol
         
         # Return the volume with the unit in cubic meters
-        return {
+        return self._translate_result_keys({
             "volume": V,
             "reaction_rate": r,
             "outlet_concentrations": outlet_concentrations,
@@ -202,7 +217,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "flow_rate_outlet": q_vol,
             "residence_time": residence_time,
             "conversion": X,
-            }
+            })
 
     def _volume_and_kinetics_in_cstr(self, parameters):
         """Calculates the conversion of a CSTR based on volume and kinetics."""
@@ -254,7 +269,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             limiting, C0_i, C_lim0, X, dilution_factor
         )
     
-        return {
+        return self._translate_result_keys({
             "conversion": X,
             "reaction_rate": r,
             "outlet_concentrations": outlet_concentrations,
@@ -263,7 +278,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "flow_rate_outlet": q_vol,
             "residence_time": V / q_vol,
             "volume": V,
-        }
+        })
 
     def _residence_time_and_kinetics_in_cstr(self, parameters):
         """Calculates the conversion of a CSTR based on residence time and kinetics."""
@@ -319,7 +334,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
                 limiting, C0_i, C_lim0, X, dilution_factor
             )
         
-        return {
+        return self._translate_result_keys({
             "conversion": X,
             "molar_rate_inlet_(limitant)": F_A0,
             "flow_rate_outlet": q_vol,
@@ -329,7 +344,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "dilution_factor_(1+e * P0*T/P*T0)": dilution_factor * self.ureg.dimensionless,
             "residence_time": V / q_vol,
             "dilution_factor": epsilon * self.ureg.dimensionless
-        }
+        })
 
     # ------------------------------------------------------------------ #
     #                         PFR FUNCTIONS                              #
@@ -378,7 +393,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             limiting, C0_i, C_lim0, X, dilution_factor
         )
 
-        return {
+        return self._translate_result_keys({
             "volume": V,
             "conversion": X,
             "molar_rate_inlet_(limitant)": F_A0,
@@ -388,7 +403,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
             "residence_time": V / q_vol,
             "dilution_factor": epsilon * self.ureg.dimensionless
-        }
+        })
 
     def _volume_and_kinetics_in_pfr(self, parameters):
         """Calculates the conversion of a PFR based on volume and kinetics."""
@@ -454,7 +469,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             limiting, C0_i, C_lim0, X, dilution_factor
         )
 
-        return {
+        return self._translate_result_keys({
             "conversion": X,
             "molar_rate_inlet_(limitant)": F_A0,
             "flow_rate_outlet": q_vol,
@@ -464,7 +479,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
             "residence_time": V / q_vol,
             "dilution_factor": epsilon * self.ureg.dimensionless
-        }
+        })
 
     def _residence_time_and_kinetics_in_pfr(self, parameters):
         """Calculates the conversion of a PFR based on residence time and kinetics."""
@@ -528,7 +543,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
                 limiting, C0_i, C_lim0, X, dilution_factor
             )
 
-        return {
+        return self._translate_result_keys({
             "conversion": X,
             "molar_rate_inlet_(limitant)": F_A0,
             "flow_rate_outlet": q_vol,
@@ -538,7 +553,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "dilution_factor_(1+e * P0*T)": dilution_factor * self.ureg.dimensionless,
             "residence_time": V / q_vol,
             "dilution_factor": epsilon * self.ureg.dimensionless
-        }
+        })
 
     # ------------------------------------------------------------------ #
     #                              PUBLIC                                #

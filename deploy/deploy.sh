@@ -70,7 +70,7 @@ if [[ "${SKIP_BUILD:-0}" == "1" ]]; then
     fi
   done
   if [[ "$missing" -eq 1 ]]; then
-    echo "Imagens pré-buildadas não encontradas. Execute deploy_app.sh ou faça docker load no host." >&2
+      echo "Imagens pré-buildadas não encontradas. Execute os builds locais ou faça docker load no host." >&2
     exit 1
   fi
 else
@@ -94,8 +94,8 @@ else
   docker build -t "$IMAGE_NAME" -f deploy/Dockerfile.api .
 
   echo "==> Buildando imagem ${FRONTEND_IMAGE_NAME}..."
-  # Frontend é só COPY estático — sem --no-cache o Docker reutiliza camadas antigas
-  # mesmo após rsync/deploy (tag :latest idêntica, conteúdo desatualizado).
+  # Sem --no-cache o Docker pode reutilizar camadas antigas mesmo após
+  # sincronização/deploy com a mesma tag :latest.
   docker build --no-cache -t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .
 fi
 

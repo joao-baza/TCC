@@ -1,25 +1,30 @@
 import { render, screen } from "@testing-library/react";
-import { HomePage } from "@/features/shell/home-page";
+import { RouterProvider, createMemoryRouter } from "react-router-dom";
 
-describe("HomePage IA", () => {
-  it("prioritizes the main dashboard hero and entry actions", () => {
-    render(<HomePage />);
+import { routes } from "@/app/router";
 
-    expect(
-      screen.getByRole("heading", { name: /Operações unitárias/ })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Iniciar uma simulação" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Seguir uma trilha" })
-    ).toBeInTheDocument();
+it("shows the sidebar groups and learning trails on the home page", async () => {
+  const router = createMemoryRouter(routes, {
+    initialEntries: ["/"],
   });
 
-  it("surfaces docência and recursos blocks", () => {
-    render(<HomePage />);
+  render(<RouterProvider router={router} />);
 
-    expect(screen.getByText("Recursos de Apoio")).toBeInTheDocument();
-    expect(screen.getByText("Para Docência")).toBeInTheDocument();
-  });
+  expect(
+    await screen.findByRole("navigation", { name: /Navegação principal/i }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: /Universidade Federal de Mato Grosso do Sul/i })).toBeInTheDocument();
+  expect(screen.getByText("Dimensionamento Computacional de Operações Unitárias")).toBeInTheDocument();
+  expect(screen.getByText(/Hidráulica & Escoamento/i)).toBeInTheDocument();
+  expect(
+    screen
+      .getAllByRole("link", { name: /Tubulações/i })
+      .some((link) => link.getAttribute("href") === "/piping"),
+  ).toBe(true);
+  expect(
+    screen
+      .getAllByRole("link", { name: /Exercícios Integrados/i })
+      .some((link) => link.getAttribute("href") === "/exercises"),
+  ).toBe(true);
+  expect(screen.getByText(/Trilhas de Aprendizagem/i)).toBeInTheDocument();
 });

@@ -1,4 +1,13 @@
 import type { PropertyRecord, ValueWithUnits } from "@/lib/api";
+import { InlineMath } from "@/lib/katex";
+import { formatTableNumber } from "@/lib/table-number";
+import { UnitMath } from "@/components/unit-math";
+
+export type PropertyRow = {
+  label: string;
+  value: number | string;
+  units?: string;
+};
 
 function isValueWithUnits(value: unknown): value is ValueWithUnits {
   return (
@@ -15,16 +24,24 @@ function formatLabel(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function formatValue(value: number | string | null) {
+function escapeLatexText(value: string) {
+  return value.replace(/([\\{}#$%&_~^])/g, "\\$1");
+}
+
+function formatValueLatex(value: number | string | null) {
   if (value === null) {
-    return "—";
+    return "\\text{—}";
   }
 
   if (typeof value === "number") {
-    return value.toFixed(4);
+    return formatTableNumber(value);
   }
 
-  return value;
+  return `\\text{${escapeLatexText(value)}}`;
+}
+
+function ValueMath({ value }: { value: number | string | null }) {
+  return <InlineMath math={formatValueLatex(value)} />;
 }
 
 function isPrimitiveValue(value: unknown): value is number | string | null {
@@ -33,44 +50,88 @@ function isPrimitiveValue(value: unknown): value is number | string | null {
   );
 }
 
-export function PropertyTable({ data }: { data: PropertyRecord }) {
-  const rows = Object.entries(data).flatMap(([key, value]) => {
-    if (isValueWithUnits(value) || typeof value !== "object" || value === null) {
-      return [[key, value] as const];
+type PropertyTableProps =
+  | {
+      data: PropertyRecord;
+      rows?: never;
     }
+  | {
+      rows: PropertyRow[];
+      data?: never;
+    };
 
-    return Object.entries(value).map(([nestedKey, nestedValue]) => [
-      `${key} ${nestedKey}`,
-      nestedValue
-    ]) as Array<readonly [string, unknown]>;
-  });
+export function PropertyTable(props: PropertyTableProps) {
+  const rows =
+    "data" in props
+      ? Object.entries(props.data as PropertyRecord).flatMap(([key, value]) => {
+          if (
+            isValueWithUnits(value) ||
+            typeof value !== "object" ||
+            value === null
+          ) {
+            return [[key, value] as const];
+          }
+
+          return Object.entries(value).map(([nestedKey, nestedValue]) => [
+            `${key} ${nestedKey}`,
+            nestedValue,
+          ]) as Array<readonly [string, unknown]>;
+        })
+      : props.rows.map((row) => [row.label, row.value, row.units] as const);
+
+  const isLegacyData = "data" in props;
 
   return (
-    <table className="property-table">
+    <table className="w-full border-collapse text-sm">
       <thead>
         <tr>
-          <th>Propriedade</th>
-          <th>Valor</th>
-          <th>Unidade</th>
+          <th className="border-b border-border py-1 pr-4 text-left font-medium">
+            Propriedade
+          </th>
+          <th className="border-b border-border py-1 pr-4 text-center font-medium">
+            Valor
+          </th>
+          <th className="border-b border-border py-1 pr-4 text-center font-medium">
+            Unidade
+          </th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(([key, value]) => {
-          if (isValueWithUnits(value)) {
+        {rows.map(([key, value, units]) => {
+          if (isLegacyData && isValueWithUnits(value)) {
             return (
-              <tr key={key}>
-                <td>{formatLabel(key)}</td>
-                <td>{formatValue(value.value)}</td>
-                <td>{value.units}</td>
+              <tr key={key} className="border-b border-border last:border-0">
+                <td className="py-2 pr-4 text-muted-foreground">
+                  {formatLabel(key)}
+                </td>
+                <td className="py-2 text-center font-medium tabular-nums text-foreground">
+                  <ValueMath value={value.value} />
+                </td>
+                <td className="py-2 text-center text-foreground">
+                  <UnitMath units={value.units} />
+                </td>
               </tr>
             );
           }
 
+          const renderedValue = isPrimitiveValue(value) ? value : String(value);
+          const renderedLabel = isLegacyData ? formatLabel(key) : key;
+
           return (
-            <tr key={key}>
-              <td>{formatLabel(key)}</td>
-              <td>{formatValue(isPrimitiveValue(value) ? value : String(value))}</td>
-              <td>-</td>
+            <tr key={key} className="border-b border-border last:border-0">
+              <td className="py-2 pr-4 text-muted-foreground">
+                {renderedLabel}
+              </td>
+              <td className="py-2 text-center font-medium tabular-nums text-foreground">
+                <ValueMath value={renderedValue} />
+              </td>
+              <td className="py-2 text-center text-foreground">
+                {isLegacyData ? (
+                  isValueWithUnits(value) ? <UnitMath units={value.units} /> : "-"
+                ) : (
+                  <UnitMath units={units} />
+                )}
+              </td>
             </tr>
           );
         })}
@@ -81,7 +142,7 @@ export function PropertyTable({ data }: { data: PropertyRecord }) {
 
 export function ValueWithUnitsTable({
   label,
-  data
+  data,
 }: {
   label: string;
   data: ValueWithUnits;

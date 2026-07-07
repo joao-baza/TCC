@@ -1,0 +1,21 @@
+appId: br.com.ufms.dcou
+productName: DCOU
+directories:
+  output: release
+files:
+  - electron/**/*
+  - package.json
+  - "!tests/**"
+extraResources:
+  - from: ../frontend/dist
+    to: frontend
+  - from: ./dist/backend
+    to: backend
+mac:
+  target: dmg
+win:
+  target: nsis
+linux:
+  target:
+    - AppImage
+
