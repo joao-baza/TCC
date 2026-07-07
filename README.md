@@ -58,6 +58,7 @@ Isso gera:
 - Linux: `.AppImage`
 
 O empacotamento desktop reaproveita o frontend compilado e o backend Python congelado como executável local.
+Os scripts de build resolvem o Python automaticamente, preferindo a `.venv` do projeto e caindo para `python3` ou `python` quando necessário.
 
 ## Testes
 
@@ -115,9 +116,7 @@ cd frontend
 npm run build
 
 cd ../desktop
-python -m pip install -r requirements-build.txt
-python scripts/build-backend.py
-npx electron-builder --config electron-builder.yml
+npm run dist
 ```
 
 O backend desktop expõe `GET /health` para o host local validar a inicialização antes de abrir a janela principal.
