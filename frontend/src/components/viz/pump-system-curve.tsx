@@ -1,4 +1,5 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
 
 type CurvePoint = {
   flowRate: number;
@@ -13,7 +14,7 @@ type PumpSystemCurveProps = {
 
 const width = 760;
 const height = 360;
-const padding = { top: 28, right: 28, bottom: 44, left: 68 };
+const padding = { top: 28, right: 28, bottom: 44, left: 104 };
 
 function scale(value: number, min: number, max: number, start: number, end: number) {
   if (min === max) {
@@ -31,14 +32,10 @@ function buildPath(points: Array<{ x: number; y: number }>) {
   return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
-function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
-}
-
 function buildPumpCurve(operatingPoint: CurvePoint, maxFlowRate: number) {
-  const effectiveFlow = Math.max(operatingPoint.flowRate, maxFlowRate * 0.35, 0.5);
+  const effectiveFlow = Math.max(operatingPoint.flowRate * 1.15, maxFlowRate * 0.85, 0.05);
   const shutoffHead = Math.max(operatingPoint.head * 1.22, operatingPoint.head + 2, 5);
-  const coefficient = (shutoffHead - operatingPoint.head) / Math.max(effectiveFlow ** 2, 1);
+  const coefficient = (shutoffHead - operatingPoint.head) / Math.max(effectiveFlow ** 2, 1e-6);
   const sampleRates = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ratio * maxFlowRate);
 
   return sampleRates.map((flowRate) => ({
@@ -50,20 +47,21 @@ function buildPumpCurve(operatingPoint: CurvePoint, maxFlowRate: number) {
 export function PumpSystemCurve({
   operatingPoint,
   systemPoints,
-  title = "Curva da bomba vs curva do sistema",
+  title = "Curva da bomba e do sistema",
 }: PumpSystemCurveProps) {
   const sortedSystemPoints = [...systemPoints].sort((left, right) => left.flowRate - right.flowRate);
-  const maxFlowRate = Math.max(
+  const dataMaxFlowRate = Math.max(
     operatingPoint.flowRate,
     ...sortedSystemPoints.map((point) => point.flowRate),
-    1,
+    0,
   );
-  const pumpPoints = buildPumpCurve(operatingPoint, maxFlowRate * 1.15);
+  const domainMaxFlowRate = Math.max(dataMaxFlowRate * 1.15, operatingPoint.flowRate * 1.25, 0.08);
+  const pumpPoints = buildPumpCurve(operatingPoint, domainMaxFlowRate);
   const allPoints = [...sortedSystemPoints, ...pumpPoints, operatingPoint];
-  const minFlowRate = Math.min(...allPoints.map((point) => point.flowRate));
+  const minFlowRate = Math.min(0, ...allPoints.map((point) => point.flowRate));
   const maxHead = Math.max(...allPoints.map((point) => point.head));
   const minHead = Math.min(...allPoints.map((point) => point.head));
-  const xDomain: [number, number] = [minFlowRate, maxFlowRate * 1.15];
+  const xDomain: [number, number] = [minFlowRate, domainMaxFlowRate];
   const yDomain: [number, number] = [minHead, maxHead];
 
   const systemPath = buildPath(
@@ -94,12 +92,9 @@ export function PumpSystemCurve({
     padding.top,
   );
 
-  const pumpShutoffHead = Math.max(operatingPoint.head * 1.22, operatingPoint.head + 2, 5);
-  const bepFlow = operatingPoint.flowRate > 0 ? operatingPoint.flowRate : maxFlowRate * 0.55;
-
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="pump-system-curve"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -109,13 +104,30 @@ export function PumpSystemCurve({
             A bomba local usa uma aproximação quadrática para mostrar o ponto de operação.
           </p>
         </div>
-        <div className="text-sm font-medium text-slate-700">
-          <div>Q = {toFixedLabel(operatingPoint.flowRate)}</div>
-          <div>H = {toFixedLabel(operatingPoint.head)}</div>
-        </div>
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
+      <HowItWorks title="Como funciona - Curva da bomba e do sistema">
+        <p>
+          Esta visualização mostra onde a curva da bomba cruza a curva do sistema e ajuda a
+          entender a vazão de operação resultante.
+        </p>
+        <p>
+          O traço da bomba é uma aproximação didática, enquanto o ponto vermelho marca a condição
+          atual de trabalho do sistema.
+        </p>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>O ponto de operação em que bomba e sistema se equilibram.</li>
+            <li>Se a instalação está mais restritiva ou mais permissiva para a mesma bomba.</li>
+            <li>A tendência de vazão se a resistência da linha aumentar ou diminuir.</li>
+            <li>Uma leitura rápida da folga entre a condição atual e a região de maior rendimento.</li>
+          </ul>
+        </div>
+        <TheoryRef>Ref.: Fox, McDonald e Pritchard, Introdução à Mecânica dos Fluidos.</TheoryRef>
+      </HowItWorks>
+
+      <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
         <NumericChartGrid
           xDomain={xDomain}
           yDomain={yDomain}
@@ -180,29 +192,6 @@ export function PumpSystemCurve({
           />
           <circle cx={operatingX} cy={operatingY} fill="#1d4ed8" r="6" />
         </svg>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Bomba
-          </p>
-          <p className="mt-1 text-slate-900">Bomba didatica. H0 ≈ {toFixedLabel(pumpShutoffHead)} m</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Sistema
-          </p>
-          <p className="mt-1 text-slate-900">Curva de perda total calculada pelo backend.</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Operacao
-          </p>
-          <p className="mt-1 text-slate-900">
-            Interseccao no ponto de vazao atual. BEP aprox. em Q = {toFixedLabel(bepFlow)}
-          </p>
-        </div>
       </div>
     </section>
   );

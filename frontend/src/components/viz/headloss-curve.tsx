@@ -1,6 +1,6 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
-import type { Scenario } from "@/features/exploratory/types";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
 
 type HeadlossCurvePoint = {
   flowRate: number;
@@ -8,15 +8,13 @@ type HeadlossCurvePoint = {
 };
 
 type HeadlossCurveProps = {
-  method: string;
   points: HeadlossCurvePoint[];
   operationalPoint: HeadlossCurvePoint;
-  scenarios?: Scenario[];
 };
 
-const width = 320;
-const height = 180;
-const padding = { top: 20, right: 20, bottom: 40, left: 44 };
+const width = 760;
+const height = 360;
+const padding = { top: 28, right: 28, bottom: 44, left: 104 };
 
 function scaleValue(value: number, min: number, max: number, start: number, end: number) {
   if (min === max) {
@@ -34,12 +32,7 @@ function buildPath(points: Array<{ x: number; y: number }>) {
   return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
-export function HeadlossCurve({
-  method,
-  points,
-  operationalPoint,
-  scenarios = [],
-}: HeadlossCurveProps) {
+export function HeadlossCurve({ points, operationalPoint }: HeadlossCurveProps) {
   const sortedPoints = [...points].sort((left, right) => left.flowRate - right.flowRate);
   const allPoints = [...sortedPoints, operationalPoint];
   const flowDomain = expandNumericDomain(allPoints.map((point) => point.flowRate));
@@ -68,21 +61,33 @@ export function HeadlossCurve({
   );
 
   return (
-    <section className="mt-3 rounded-xl border border-slate-200 p-3">
-      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-medium text-slate-800">Perda de Carga × Vazão</h3>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span>Q = {operationalPoint.flowRate}</span>
-            <span>h_f = {operationalPoint.headloss}</span>
-          </div>
-        </div>
-        <span className="rounded-full border border-slate-200 px-2 py-0.5 text-xs text-slate-700">
-          {method}
-        </span>
+    <section className="mx-auto mt-3 w-full max-w-[760px] rounded-xl border border-slate-200 p-3">
+      <div className="mb-2">
+        <h3 className="text-sm font-medium text-slate-800">Perda de Carga × Vazão</h3>
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
+      <HowItWorks title="Como funciona - Perda de Carga">
+        <p>
+          Este gráfico ajuda a visualizar como a perda de carga cresce com a vazão e onde o sistema
+          começa a exigir mais da bomba.
+        </p>
+        <p>
+          A curva usa o método selecionado no formulário e o ponto vermelho marca a condição atual
+          de operação.
+        </p>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Vazão em que a perda de carga começa a crescer de forma mais sensível.</li>
+            <li>Comparação visual entre a condição atual e outras vazões possíveis.</li>
+            <li>Impacto agregado do método, do diâmetro e dos acessórios no sistema.</li>
+            <li>Base para estimar a altura que a bomba precisa fornecer ao circuito.</li>
+          </ul>
+        </div>
+        <TheoryRef>Ref.: White, Mecânica dos Fluidos, 8a ed., McGraw-Hill, 2018.</TheoryRef>
+      </HowItWorks>
+
+      <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
         <NumericChartGrid
           xDomain={[flowDomain.min, flowDomain.max]}
           yDomain={[headlossDomain.min, headlossDomain.max]}
@@ -97,7 +102,7 @@ export function HeadlossCurve({
           viewBox={`0 0 ${width} ${height}`}
           className="absolute inset-0 block h-full w-full"
           role="img"
-          aria-label={`Curva de perda de carga pelo metodo ${method}`}
+          aria-label="Curva de perda de carga"
           preserveAspectRatio="xMidYMid meet"
         >
           {pathData ? <path d={pathData} fill="none" stroke="#2563EB" strokeWidth="2.5" /> : null}
@@ -108,24 +113,6 @@ export function HeadlossCurve({
         </svg>
       </div>
 
-      {scenarios.length > 0 ? (
-        <div className="mt-3 border-t border-slate-200 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
-            Cenários salvos
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {scenarios.map((scenario) => (
-              <span
-                key={scenario.id}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
-              >
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: scenario.color }} />
-                {scenario.name}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }

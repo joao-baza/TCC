@@ -1,5 +1,6 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
+import { formatTableNumberText } from "@/lib/table-number";
 
 type VaporPressurePoint = {
   temperature: number;
@@ -46,7 +47,7 @@ function buildPath(points: ChartPoint[]) {
 }
 
 function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
+  return formatTableNumberText(value);
 }
 
 function formatPressure(value: number) {
@@ -95,7 +96,7 @@ export function VaporPressureCurve({
 
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="vapor-pressure-curve"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -109,7 +110,7 @@ export function VaporPressureCurve({
       </div>
 
       <div
-        className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+        className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
         style={{ aspectRatio: `${width} / ${height}` }}
       >
         <NumericChartGrid

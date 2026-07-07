@@ -18,10 +18,10 @@ describe("LevenspielChart", () => {
     );
 
     expect(screen.getByText(/Diagrama de Levenspiel/i)).toBeInTheDocument();
-    expect(screen.getByText(/X máx = 0.97/i)).toBeInTheDocument();
+    expect(screen.getByText(/X máx = 0,97/i)).toBeInTheDocument();
     expect(screen.getByText(/CSTR operacional/i)).toBeInTheDocument();
     expect(screen.getByText(/PFR operacional/i)).toBeInTheDocument();
-    expect(screen.getByText(/V = 1.23 m³/i)).toBeInTheDocument();
-    expect(screen.getByText(/V = 0.91 m³/i)).toBeInTheDocument();
+    expect(screen.getByText(/V = 1,23 m³/i)).toBeInTheDocument();
+    expect(screen.getByText(/V = 0,91 m³/i)).toBeInTheDocument();
   });
 });

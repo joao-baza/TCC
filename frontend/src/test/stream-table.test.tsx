@@ -29,8 +29,8 @@ describe("StreamTable", () => {
     const rows = screen.getAllByRole("row");
     expect(within(rows[1]).getByText("Fresh Feed")).toBeInTheDocument();
     expect(within(rows[1]).getByText("Entrada")).toBeInTheDocument();
-    expect(within(rows[1]).getByText("100.00 u. cons.")).toBeInTheDocument();
-    expect(within(rows[1]).getByText(/A: 0.8000/)).toBeInTheDocument();
+    expect(within(rows[1]).getByText("100 u. cons.")).toBeInTheDocument();
+    expect(within(rows[1]).getByText(/A: 0,8/)).toBeInTheDocument();
     expect(within(rows[2]).getByText("Product")).toBeInTheDocument();
   });
 

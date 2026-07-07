@@ -58,10 +58,24 @@ function mockSizingRequests(options?: { delayRealDiameter?: boolean }) {
       return new Response(
         JSON.stringify([
           { name: "STD", diameters: [25, 40], description: "Schedule padrao" },
+          { name: "SCH40", diameters: [25, 40], description: "Schedule comercial" },
           { name: "SCH80", diameters: [25, 40], description: "Schedule reforcado" },
         ]),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
+    }
+
+    if (url.endsWith("/api/sizing/example") && method === "GET") {
+      return Response.json({
+        calculated_diameter: {
+          flow_rate: 0.0166667,
+          velocity: 1.5,
+        },
+        real_diameter: {
+          calculated_diameter: 118.94,
+          schedule: "SCH40",
+        },
+      });
     }
 
     if (url.endsWith("/api/sizing/calculated-diameter") && method === "POST") {
@@ -119,114 +133,36 @@ describe("SizingPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("loads the worked example into the calculated diameter form", async () => {
+  it("loads the worked example into the calculated diameter form without triggering calculations", async () => {
     mockSizingRequests();
     renderSizingPage();
 
     await screen.findByRole("heading", { name: /Dimensionamento de Tubulação/i });
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
-    expect(screen.getByLabelText(/Vazão/i)).toHaveValue(0.01);
-    expect(screen.getByLabelText(/Velocidade de projeto/i)).toHaveValue(1.5);
-  });
-
-  it("shows the exploratory panel and applies a template", async () => {
-    mockSizingRequests();
-    renderSizingPage("/sizing/exploratory");
-
-    await screen.findByRole("heading", { name: /Dimensionamento de Tubulação/i });
-
-    const template = screen.getByRole("combobox", { name: /Modo Exploratório/i });
-    fireEvent.focus(template);
-    fireEvent.change(template, { target: { value: "processo" } });
-    fireEvent.keyDown(template, { key: "Enter", code: "Enter" });
-
-    await openSizingTab(/Diâmetro Calculado/i);
-
-    expect(screen.getByLabelText(/Vazão/i)).toHaveValue(0.01);
-    expect(screen.getByLabelText(/Velocidade de projeto/i)).toHaveValue(1.5);
-  });
-
-  it("shows saved exploratory scenarios in the velocity profile chart", async () => {
-    mockSizingRequests();
-    renderSizingPage();
-
-    expect(
-      await screen.findByRole("heading", { name: /Dimensionamento de Tubulação/i }),
-    ).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText(/Vazão/i), {
-      target: { value: "0.01" },
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Vazão/i)).toHaveValue(0.0166667);
+      expect(screen.getByLabelText(/Velocidade de projeto/i)).toHaveValue(1.5);
     });
-    fireEvent.change(screen.getByLabelText(/Velocidade de projeto/i), {
-      target: { value: "1.5" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro/i }));
 
-    await expectRowValueMath(/^Diâmetro calculado$/i);
-
-    await openSizingTab(/Modo Exploratório/i);
-
-    const template = screen.getByRole("combobox", { name: /Modo Exploratório/i });
-    fireEvent.focus(template);
-    fireEvent.change(template, { target: { value: "processo" } });
-    fireEvent.keyDown(template, { key: "Enter", code: "Enter" });
-
-    fireEvent.click(screen.getByRole("button", { name: /Salvar cenário/i }));
-
-    expect(await screen.findByText(/Comparação de cenários/i)).toBeInTheDocument();
-    expect((await screen.findAllByText(/Q=0.01 m3\/s, v=1.5 m\/s/i)).length).toBeGreaterThan(0);
+    expect(requestBodiesFor("/api/sizing/calculated-diameter")).toHaveLength(0);
+    expect(requestBodiesFor("/api/sizing/real-diameter")).toHaveLength(0);
   });
 
-  it("auto-calculates the real diameter when an exploratory slider changes and a schedule is selected", async () => {
+  it("loads the worked example into the real diameter form without triggering calculations", async () => {
     mockSizingRequests();
     renderSizingPage("/sizing/real-diameter");
 
-    expect(
-      await screen.findByRole("heading", { name: /Dimensionamento de Tubulação/i }),
-    ).toBeInTheDocument();
-
-    const schedule = screen.getByRole("combobox", { name: /Schedule/i });
-    fireEvent.focus(schedule);
-    fireEvent.change(schedule, { target: { value: "STD" } });
-    fireEvent.keyDown(schedule, { key: "Enter", code: "Enter" });
-
-    await openSizingTab(/Modo Exploratório/i);
-
-    const template = screen.getByRole("combobox", { name: /Modo Exploratório/i });
-    fireEvent.focus(template);
-    fireEvent.change(template, { target: { value: "processo" } });
-    fireEvent.keyDown(template, { key: "Enter", code: "Enter" });
-
-    fireEvent.change(screen.getByRole("slider", { name: /Vazao/i }), {
-      target: { value: "0.02" },
-    });
+    await screen.findByRole("heading", { name: /Dimensionamento de Tubulação/i });
+    fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
     await waitFor(() => {
-      expect(requestBodiesFor("/api/sizing/calculated-diameter")).toContainEqual({
-        flow_rate: 0.02,
-        velocity: 1.5,
-      });
-      expect(requestBodiesFor("/api/sizing/real-diameter")).toContainEqual({
-        calculated_diameter: 126.16,
-        schedule: "STD",
-      });
+      expect(screen.getByLabelText(/Diâmetro calculado/i)).toHaveValue(118.94);
+      expect(screen.getByLabelText(/^Schedule$/i)).toHaveValue("SCH40");
     });
-  });
 
-  it("saves an exploratory scenario and shows it in the list", async () => {
-    mockSizingRequests();
-    renderSizingPage("/sizing/exploratory");
-
-    await screen.findByRole("heading", { name: /Dimensionamento de Tubulação/i });
-
-    const template = screen.getByRole("combobox", { name: /Modo Exploratório/i });
-    fireEvent.focus(template);
-    fireEvent.change(template, { target: { value: "processo" } });
-    fireEvent.keyDown(template, { key: "Enter", code: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: /Salvar cenário/i }));
-
-    expect(await screen.findByText(/Q=0.01/)).toBeInTheDocument();
+    expect(requestBodiesFor("/api/sizing/calculated-diameter")).toHaveLength(0);
+    expect(requestBodiesFor("/api/sizing/real-diameter")).toHaveLength(0);
   });
 
   it("loads schedules and completes the diameter sizing flow", async () => {

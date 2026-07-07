@@ -74,11 +74,11 @@ describe("route-backed tabs", () => {
   });
 
   it("navigates directly to a child tab from the URL", async () => {
-    const router = createMemoryRouter(routes, { initialEntries: ["/sizing/exploratory"] });
+    const router = createMemoryRouter(routes, { initialEntries: ["/sizing/real-diameter"] });
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByRole("tab", { selected: true })).toHaveTextContent(
-      "Modo Exploratório",
+      "Diâmetro Real",
     );
     expect(screen.getByRole("tabpanel")).toBeInTheDocument();
   });

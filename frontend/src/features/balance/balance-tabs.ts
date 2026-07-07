@@ -6,5 +6,4 @@ export const balanceTabs = [
   { to: "splits-recycle", label: "Splits / Reciclo" },
   { to: "results", label: "Resultados" },
   { to: "yields", label: "Rendimentos" },
-  { to: "exploratory", label: "Modo Exploratório" },
 ] as const;

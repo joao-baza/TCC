@@ -28,9 +28,9 @@ describe("StreamGraph", () => {
     expect(screen.getByText(/Product/i)).toBeInTheDocument();
     expect(screen.getByText(/Entrada/i)).toBeInTheDocument();
     expect(screen.getByText(/Saída/i)).toBeInTheDocument();
-    expect(screen.getByText(/100.00 u\. cons\./i)).toBeInTheDocument();
-    expect(screen.getByText(/40.00 u\. cons\./i)).toBeInTheDocument();
-    expect(screen.getByText(/A: 0.8000 · B: 0.2000/i)).toBeInTheDocument();
-    expect(screen.getByText(/A: 0.1000 · B: 0.0500/i)).toBeInTheDocument();
+    expect(screen.getByText(/100 u\. cons\./i)).toBeInTheDocument();
+    expect(screen.getByText(/40 u\. cons\./i)).toBeInTheDocument();
+    expect(screen.getByText(/A: 0,8 · B: 0,2/i)).toBeInTheDocument();
+    expect(screen.getByText(/A: 0,1 · B: 0,05/i)).toBeInTheDocument();
   });
 });

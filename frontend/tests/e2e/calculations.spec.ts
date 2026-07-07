@@ -74,6 +74,10 @@ async function mockReactorPage(
         volume: { value: 0.91, units: "m³" },
         conversion: 0.8,
         limiting_reagent: "A",
+        outlet_concentrations: {
+          A: { value: 0.4, units: "mol/L" },
+          B: { value: 1.6, units: "mol/L" },
+        },
       },
     });
   });
@@ -81,52 +85,43 @@ async function mockReactorPage(
   await page.goto("/reactor");
 }
 
-test("reactor route shows the Levenspiel panel", async ({ page }) => {
+test("reactor route calculates CSTR and PFR results", async ({ page }) => {
   await mockReactorPage(page);
   await expect(page.getByRole("heading", { name: /Cálculos de Reator/i })).toBeVisible();
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
   const cstrCard = page.getByTestId("reactor-cstr-card");
-  const pfrCard = page.getByTestId("reactor-pfr-card");
 
   await expect(page.locator("#CSTR-conversion")).toHaveValue("0.8");
-  await expect(page.locator("#PFR-conversion")).toHaveValue("0.8");
 
   const cstrResponse = page.waitForResponse(
     (response) => response.url().endsWith("/api/reactor/cstr") && response.request().method() === "POST",
   );
   await cstrCard.getByRole("button", { name: /Calcular CSTR/i }).click();
   await cstrResponse;
+  await expect(cstrCard.locator("table").filter({ hasText: "Volume" }).first()).toContainText("1,23");
+
+  await page.getByRole("tab", { name: /PFR/i }).click();
+  const pfrCard = page.getByTestId("reactor-pfr-card");
+  await expect(page.locator("#PFR-conversion")).toHaveValue("0.8");
 
   const pfrResponse = page.waitForResponse(
     (response) => response.url().endsWith("/api/reactor/pfr") && response.request().method() === "POST",
   );
   await pfrCard.getByRole("button", { name: /Calcular PFR/i }).click();
   await pfrResponse;
-  await expect(cstrCard.getByText(/1.23 m³/i)).toBeVisible();
-  await expect(pfrCard.getByText(/0.91 m³/i)).toBeVisible();
+  await expect(pfrCard.locator("table").filter({ hasText: "Volume" }).first()).toContainText("0,91");
+  await expect(page.getByTestId("pfr-profile-chart")).toBeVisible();
 });
 
-test("reactor route shows saved exploratory scenarios in the Levenspiel chart", async ({
-  page,
-}) => {
+test("reactor route shows the Arrhenius chart", async ({ page }) => {
   await mockReactorPage(page);
   await expect(page.getByRole("heading", { name: /Cálculos de Reator/i })).toBeVisible();
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await page.getByLabel("Modo Exploratório").selectOption("first-order");
+  await page.getByRole("tab", { name: /Arrhenius/i }).click();
 
-  const cstrCard = page.getByTestId("reactor-cstr-card");
-  const pfrCard = page.getByTestId("reactor-pfr-card");
-
-  await cstrCard.getByRole("button", { name: /Calcular CSTR/i }).click();
-  await pfrCard.getByRole("button", { name: /Calcular PFR/i }).click();
-
-  await expect(cstrCard.getByText(/1.23 m³/i)).toBeVisible();
-  await expect(pfrCard.getByText(/0.91 m³/i)).toBeVisible();
-
-  await page.getByRole("button", { name: /Salvar cenário/i }).click();
-
-  await expect(page.getByText(/X=0\.8\s*·\s*k=0\.5/i).nth(1)).toBeVisible();
+  await expect(page.getByTestId("arrhenius-plot")).toBeVisible();
+  await expect(page.getByRole("img", { name: /Arrhenius/i })).toBeVisible();
 });
 
 test("reactor route surfaces a bootstrap error when the module fails to load", async ({
@@ -138,7 +133,7 @@ test("reactor route surfaces a bootstrap error when the module fails to load", a
   await expect(page.getByText(/Falha no backend do reator/i)).toBeVisible();
 });
 
-test("reactor route clears calculated results after switching the exploratory template", async ({
+test("reactor route clears calculated results after editing the conversion input", async ({
   page,
 }) => {
   await mockReactorPage(page);
@@ -147,18 +142,21 @@ test("reactor route clears calculated results after switching the exploratory te
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
 
   const cstrCard = page.getByTestId("reactor-cstr-card");
-  const pfrCard = page.getByTestId("reactor-pfr-card");
 
   await cstrCard.getByRole("button", { name: /Calcular CSTR/i }).click();
+
+  await expect(cstrCard.locator("table").filter({ hasText: "Volume" }).first()).toContainText("1,23");
+
+  await page.getByRole("tab", { name: /PFR/i }).click();
+  const pfrCard = page.getByTestId("reactor-pfr-card");
   await pfrCard.getByRole("button", { name: /Calcular PFR/i }).click();
+  await expect(pfrCard.locator("table").filter({ hasText: "Volume" }).first()).toContainText("0,91");
 
-  await expect(cstrCard.getByText(/1.23 m³/i)).toBeVisible();
-  await expect(pfrCard.getByText(/0.91 m³/i)).toBeVisible();
+  await page.getByRole("tab", { name: /CSTR/i }).click();
+  await page.getByLabel("Conversão").fill("0.9");
 
-  await page.getByLabel("Modo Exploratório").selectOption("second-order");
-
-  await expect(cstrCard.getByText(/1.23 m³/i)).toHaveCount(0);
-  await expect(pfrCard.getByText(/0.91 m³/i)).toHaveCount(0);
+  await expect(cstrCard.locator("table").filter({ hasText: "Volume" }).first()).toHaveCount(0);
+  await expect(page.locator("table").filter({ hasText: "Volume" }).last()).toHaveCount(0);
 });
 
 test("reactor route surfaces a CSTR error message when the calculation fails", async ({ page }) => {
@@ -177,6 +175,7 @@ test("reactor route surfaces a PFR error message when the calculation fails", as
   await expect(page.getByRole("heading", { name: /Cálculos de Reator/i })).toBeVisible();
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
+  await page.getByRole("tab", { name: /PFR/i }).click();
   const pfrCard = page.getByTestId("reactor-pfr-card");
 
   await pfrCard.getByRole("button", { name: /Calcular PFR/i }).click();

@@ -371,7 +371,7 @@ export const glossaryEntries: GlossaryEntry[] = [
       "Representação em triângulo das frações de três componentes cuja soma é 1. Em engenharia química, ajuda a visualizar separações líquido-líquido, misturas e a composição de correntes em sistemas com três espécies dominantes.",
   },
   {
-    term: "Diagrama T-x-y / y-x",
+    term: "Equilíbrio binário (T-x-y / y-x)",
     category: "Termodinâmica",
     definition:
       "Curva de equilíbrio líquido-vapor para misturas binárias. Mostra a temperatura de bolha, a temperatura de orvalho e a relação entre composições líquidas e vapores em uma pressão fixa. É a base visual da destilação binária didática.",
@@ -413,7 +413,7 @@ export const glossaryEntries: GlossaryEntry[] = [
       "Relação entre altura manométrica e vazão da bomba, normalmente em forma decrescente. É a base para comparar o equipamento com a demanda do sistema.",
   },
   {
-    term: "Curva da bomba vs curva do sistema",
+    term: "Curva da bomba e do sistema",
     category: "Bombas",
     definition:
       "Gráfico que sobrepõe a curva H×Q da bomba e a curva de perda de carga do sistema. O ponto de interseção define a vazão e a altura manométrica de operação.",

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { BinaryVleChart } from "@/components/viz/binary-vle-chart";
 
@@ -22,7 +22,12 @@ describe("BinaryVleChart", () => {
       />,
     );
 
-    expect(screen.getByText(/Diagrama T-x-y/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Equilíbrio Binário$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Como funciona - Equilíbrio Binário/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Como funciona - Equilíbrio Binário/i }));
+    expect(screen.getByText(/temperatura de bolha e de orvalho/i)).toBeInTheDocument();
+    expect(screen.getByText(/Temperatura de bolha e de orvalho para uma composição específica/i)).toBeInTheDocument();
+    expect(screen.getByText(/Seader, Henley e Roper/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Fração molar/i).length).toBeGreaterThanOrEqual(2);
     expect(container.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/Temperatura \(K\)/i);
     expect(container.querySelectorAll("[data-axis-tick='x']")).toHaveLength(10);

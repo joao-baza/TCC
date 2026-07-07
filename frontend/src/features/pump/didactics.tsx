@@ -15,7 +15,7 @@ export function HeadlossHowItWorks() {
           { symbol: "h_f", description: "Perda de carga total", unit: "m" },
           { symbol: "f", description: "Fator de atrito de Darcy", unit: "adimensional" },
           { symbol: "L", description: "Comprimento da linha", unit: "m" },
-          { symbol: "D", description: "Diametro interno", unit: "mm ou m" },
+          { symbol: "D", description: "Diametro interno", unit: "m" },
           { symbol: "V", description: "Velocidade media", unit: "m/s" },
         ]}
       />

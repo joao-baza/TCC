@@ -5,7 +5,7 @@ import { routes } from "@/app/router";
 import { abbreviateUnit } from "@/lib/units";
 
 const fetchMock = vi.fn<typeof fetch>();
-const notifyMock = vi.hoisted(() => ({ error: vi.fn() }));
+const notifyMock = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
 
 vi.mock("@/lib/notify", () => ({
   notify: notifyMock,
@@ -27,7 +27,7 @@ function mockPipingRequests(options?: {
     const method = init?.method ?? "GET";
 
     if (url.endsWith("/api/piping/compositions") && method === "GET") {
-      return Response.json(["Aço comercial"]);
+      return Response.json(["Aço comercial", "Aço galvanizado"]);
     }
 
     if (url.endsWith("/api/piping/schedules") && method === "GET") {
@@ -37,7 +37,16 @@ function mockPipingRequests(options?: {
     }
 
     if (url.endsWith("/api/piping/fittings") && method === "GET") {
-      return Response.json(["Cotovelo 90° raio longo"]);
+      return Response.json(["Cotovelo 90° raio longo", "Válvula de esfera"]);
+    }
+
+    if (url.endsWith("/api/piping/example") && method === "GET") {
+      return Response.json({
+        composition: "Aço galvanizado",
+        schedule: "SCH40",
+        diameter: 125,
+        fitting: "Válvula de esfera",
+      });
     }
 
     if (
@@ -68,6 +77,21 @@ function mockPipingRequests(options?: {
       });
     }
 
+    if (
+      url.endsWith("/api/piping/composition/A%C3%A7o%20galvanizado") &&
+      method === "GET"
+    ) {
+      return Response.json({
+        name: "Aço galvanizado",
+        description: "Tubulação galvanizada.",
+        applications: "Sistemas de água potável, sprinklers e irrigação.",
+        specifications: {
+          roughness: { value: 0.15, units: "millimeter" },
+          roughness_coefficient: { value: 120, units: "dimensionless" },
+        },
+      });
+    }
+
     if (url.endsWith("/api/piping/schedule/SCH40/diameters") && method === "GET") {
       if (options?.scheduleDiametersError) {
         return new Response(JSON.stringify({ detail: options.scheduleDiametersError }), {
@@ -80,6 +104,11 @@ function mockPipingRequests(options?: {
         25: {
           nominal_diameter: 25,
           external_diameter: 33.4,
+          units: "mm",
+        },
+        125: {
+          nominal_diameter: 125,
+          external_diameter: 141.3,
           units: "mm",
         },
       });
@@ -111,6 +140,18 @@ function mockPipingRequests(options?: {
     }
 
     if (
+      url.endsWith("/api/piping/schedule/SCH40/diameter/125") &&
+      method === "GET"
+    ) {
+      return Response.json({
+        external_diameter: { value: 141.3, units: "millimeter" },
+        thickness: { value: 6.55, units: "millimeter" },
+        weight: { value: 21.77, units: "kilogram / meter" },
+        max_pressure: { value: 835000, units: "pascal" },
+      });
+    }
+
+    if (
       url.endsWith("/api/piping/fitting/Cotovelo%2090%C2%B0%20raio%20longo") &&
       method === "GET"
     ) {
@@ -127,6 +168,20 @@ function mockPipingRequests(options?: {
         usage: "Mudança de direção com menor perda.",
         specifications: {
           equivalentLength: { value: 30, units: "dimensionless" },
+        },
+      });
+    }
+
+    if (
+      url.endsWith("/api/piping/fitting/V%C3%A1lvula%20de%20esfera") &&
+      method === "GET"
+    ) {
+      return Response.json({
+        name: "Válvula de esfera",
+        description: "Válvula com esfera pivotante.",
+        usage: "Fechamento rápido com baixa perda de carga.",
+        specifications: {
+          equivalentLength: { value: 3, units: "dimensionless" },
         },
       });
     }
@@ -223,6 +278,7 @@ describe("PipingPage", () => {
   beforeEach(() => {
     fetchMock.mockReset();
     notifyMock.error.mockReset();
+    notifyMock.success.mockReset();
     vi.stubGlobal("fetch", fetchMock);
   });
 
@@ -238,6 +294,9 @@ describe("PipingPage", () => {
 
     expect(
       await screen.findByRole("heading", { name: /Tubulações e Acessórios/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Composições/i }),
     ).toBeInTheDocument();
 
     await selectOption(/Composição/i, "Aço comercial");
@@ -273,8 +332,11 @@ describe("PipingPage", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
 
     await openPipingTab(/Schedules e Diâmetros/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Schedules e Diâmetros/i }),
+    ).toBeInTheDocument();
     await selectOption(/^Schedule$/i, "SCH40");
-    await selectOption(/Diâmetro nominal/i, /25 mm/i);
+    await selectOption(/Diâmetro nominal/i, /^25 mm$/i);
     await waitFor(() => {
       expect(getRowContaining(/^External Diameter$/i)).toBeDefined();
     });
@@ -290,10 +352,13 @@ describe("PipingPage", () => {
     expectTableValueText(diameterTable as HTMLElement, /^Max Pressure$/i, /^1,01325$/i);
     expectTableUnitText(diameterTable as HTMLElement, /^External Diameter$/i, /mm/i);
     expectTableUnitText(diameterTable as HTMLElement, /^Thickness$/i, /mm/i);
-    expectTableUnitText(diameterTable as HTMLElement, /^Weight$/i, /kg\/?m/i);
+    expectTableUnitText(diameterTable as HTMLElement, /^Weight$/i, /kilogram \/ meter/i);
     expectTableUnitText(diameterTable as HTMLElement, /^Max Pressure$/i, /Pa/i);
 
     await openPipingTab(/Conexões/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Conexões/i }),
+    ).toBeInTheDocument();
     await selectOption(/Conexão/i, "Cotovelo 90° raio longo");
     await waitFor(() => {
       expect(getRowContaining(/^Equivalent Length$/i)).toBeDefined();
@@ -308,6 +373,42 @@ describe("PipingPage", () => {
       /^Equivalent Length$/i,
       /^(?:-|dimensionless)$/i,
     );
+  });
+
+  it("loads a representative example across the piping module", async () => {
+    mockPipingRequests();
+
+    const router = createMemoryRouter(routes, { initialEntries: ["/piping"] });
+    render(<RouterProvider router={router} />);
+
+    expect(
+      await screen.findByRole("heading", { name: /Tubulações e Acessórios/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Composições/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Composição/i)).toHaveValue("Aço galvanizado");
+    });
+
+    await openPipingTab(/Schedules e Diâmetros/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Schedules e Diâmetros/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Schedule$/i)).toHaveValue("SCH40");
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Diâmetro nominal/i)).toHaveValue("125 mm");
+      expect(getRowContaining(/^External Diameter$/i)).toBeDefined();
+    });
+
+    await openPipingTab(/Conexões/i);
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Conexões/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Conexão/i)).toHaveValue("Válvula de esfera");
   });
 
   it("clears stale detail panels immediately when the selected composition, schedule, or fitting changes", async () => {
@@ -333,7 +434,7 @@ describe("PipingPage", () => {
 
     await openPipingTab(/Schedules e Diâmetros/i);
     await selectOption(/^Schedule$/i, "SCH40");
-    await selectOption(/Diâmetro nominal/i, /25 mm/i);
+    await selectOption(/Diâmetro nominal/i, /^25 mm$/i);
     await waitFor(() => {
       expect(getRowContaining(/^External Diameter$/i)).toBeDefined();
     });
@@ -402,7 +503,7 @@ describe("PipingPage", () => {
 
     await openPipingTab(/Schedules e Diâmetros/i);
     await selectOption(/^Schedule$/i, "SCH40");
-    await selectOption(/Diâmetro nominal/i, /25 mm/i);
+    await selectOption(/Diâmetro nominal/i, /^25 mm$/i);
 
     fireEvent.change(screen.getByLabelText(/^Schedule$/i), {
       target: { value: "" },

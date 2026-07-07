@@ -24,7 +24,7 @@ function expectRowValueMath(label: string | RegExp, expected?: string) {
 describe("PropertyTable", () => {
   it("formats table numbers without collapsing small values to zero", () => {
     expect(formatTableNumber(0)).toBe("\\text{0}");
-    expect(formatTableNumber(0.0001)).toBe("\\text{0,0001}");
+    expect(formatTableNumber(0.0001)).toBe("\\text{1} \\times 10^{-4}");
     expect(formatTableNumber(0.00008949025483876957)).toBe("\\text{8,94903} \\times 10^{-5}");
     expect(formatTableNumber(100000)).toBe("\\text{1} \\times 10^{5}");
     expect(formatTableNumber(1234567)).toBe("\\text{1,23457} \\times 10^{6}");
@@ -111,7 +111,8 @@ describe("PropertyTable", () => {
     expect(largeRow).toHaveTextContent("1,23457");
     expect(largeRow).toHaveTextContent("10");
     expect(largeRow).toHaveTextContent("Pa");
-    expect(lowerBoundaryRow).toHaveTextContent("0,0001");
+    expect(lowerBoundaryRow).toHaveTextContent("10");
+    expect(lowerBoundaryRow).toHaveTextContent("-4");
     expect(lowerBoundaryRow).toHaveTextContent("-");
     expect(upperBoundaryRow).toHaveTextContent("1");
     expect(upperBoundaryRow).toHaveTextContent("10");
@@ -135,6 +136,18 @@ describe("PropertyTable", () => {
     expect(unitCell).toHaveClass("text-foreground");
     expect(valueCell).toHaveClass("text-center");
     expect(unitCell).toHaveClass("text-center");
+  });
+
+  it("renders textual units without forcing them through KaTeX", () => {
+    render(
+      <PropertyTable rows={[{ label: "Fração molar", value: 0.35, units: "fração molar" }]} />,
+    );
+
+    const row = getRowContaining("Fração molar");
+    const unitCell = row?.querySelector("td:nth-child(3)");
+
+    expect(unitCell).toHaveTextContent("fração molar");
+    expect(unitCell?.querySelector(".katex")).toBeNull();
   });
 
   it("centers value and unit headers and cells", () => {

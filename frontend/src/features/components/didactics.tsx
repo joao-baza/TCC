@@ -20,7 +20,7 @@ export function CriticalPropertiesHowItWorks() {
 
 export function PurePropertiesHowItWorks() {
   return (
-    <HowItWorks title="Como funciona - Propriedades do Fluido">
+    <HowItWorks title="Como funciona - Fluido Puro">
       <p>
         Calcula propriedades termodinâmicas e de transporte de fluidos puros nas
         condições de temperatura e pressão informadas.
@@ -42,7 +42,7 @@ export function PurePropertiesHowItWorks() {
 
 export function MixturePropertiesHowItWorks() {
   return (
-    <HowItWorks title="Como funciona - Propriedades de Mistura">
+    <HowItWorks title="Como funciona - Misturas">
       <p>
         Calcula propriedades termodinâmicas de misturas a partir das frações molares de
         cada componente.

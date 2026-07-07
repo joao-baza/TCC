@@ -12,13 +12,14 @@ describe("ArrheniusPlot", () => {
       />,
     );
 
-    expect(screen.getByText(/Arrhenius/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Arrhenius/i })).toBeInTheDocument();
     expect(screen.getByText(/Ea = 55000 J\/mol/i)).toBeInTheDocument();
-    expect(screen.getByText(/k_ref = 0.5/i)).toBeInTheDocument();
+    expect(screen.getByText(/k_ref = 0,5/i)).toBeInTheDocument();
     expect(container.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/ln\(k\)/i);
     expect(container.querySelector('[data-chart-label="x"]')?.textContent).toMatch(/1000 \/ T/i);
     expect(container.querySelectorAll("[data-axis-tick='x']")).toHaveLength(5);
     expect(container.querySelectorAll("[data-axis-tick='y']")).toHaveLength(5);
+    expect(screen.getByText(/Curva: ln\(k\) versus 1000 \/ T/i)).toBeInTheDocument();
     expect(container.querySelector("svg")).not.toBeNull();
   });
 });

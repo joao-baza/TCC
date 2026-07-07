@@ -78,10 +78,11 @@ test("piping module loads catalogs and shows composition, diameter, and fitting 
   const compositionTable = page.locator("table").filter({ hasText: "Roughness" }).first();
   await expect(compositionTable).toBeVisible();
   await expect(compositionTable).toContainText("Tubulação de aço carbono padrão");
-  await expect(compositionTable).toContainText("0,05");
+  await expect(compositionTable).toContainText("0,045");
   await expect(compositionTable).toContainText("mm");
   await expect(compositionTable).toContainText("130");
 
+  await page.getByRole("tab", { name: /Schedules e Diâmetros/i }).click();
   const scheduleInput = page.getByRole("combobox", { name: "Schedule" });
   await scheduleInput.fill("SCH40");
   await scheduleInput.press("Enter");
@@ -93,8 +94,9 @@ test("piping module loads catalogs and shows composition, diameter, and fitting 
   await expect(diameterTable).toContainText("33,4");
   await expect(diameterTable).toContainText("3,38");
   await expect(diameterTable).toContainText("2,5");
-  await expect(diameterTable).toContainText("kg");
+  await expect(diameterTable).toContainText("kilogram / meter");
 
+  await page.getByRole("tab", { name: /Conexões/i }).click();
   const fittingInput = page.getByRole("combobox", { name: "Conexão" });
   await fittingInput.fill("Cotovelo 90° raio longo");
   await fittingInput.press("Enter");
@@ -219,6 +221,7 @@ test("piping module clears the diameter details when the schedule changes", asyn
   });
 
   await page.goto("/piping");
+  await page.getByRole("tab", { name: /Schedules e Diâmetros/i }).click();
   const scheduleInput = page.getByRole("combobox", { name: "Schedule" });
   await scheduleInput.fill("SCH40");
   await scheduleInput.press("Enter");
@@ -337,6 +340,7 @@ test("piping module surfaces an error when schedule diameters fail to load", asy
   await page.goto("/piping");
   await expect(page.getByRole("heading", { name: /Tubulações e Acessórios/i })).toBeVisible();
 
+  await page.getByRole("tab", { name: /Schedules e Diâmetros/i }).click();
   const scheduleInput = page.getByRole("combobox", { name: "Schedule" });
   await scheduleInput.fill("SCH40");
   await scheduleInput.press("Enter");

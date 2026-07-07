@@ -1,3 +1,6 @@
+import { formatTableNumberText } from "@/lib/table-number";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
+
 type TernaryStream = {
   name: string;
   direction?: string;
@@ -19,10 +22,6 @@ const width = 760;
 const height = 420;
 const padding = { top: 34, right: 34, bottom: 48, left: 34 };
 
-function formatNumber(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
-}
-
 function safePoint(value: number) {
   return Number.isFinite(value) ? value : 0;
 }
@@ -32,7 +31,9 @@ function buildTrianglePath(left: Point, right: Point, top: Point) {
 }
 
 function formatCompositionSummary(compositions: Array<[string, number]>) {
-  return compositions.map(([component, value]) => `${component}: ${formatNumber(value)}`).join(" · ");
+  return compositions
+    .map(([component, value]) => `${component}: ${formatTableNumberText(value)}`)
+    .join(" · ");
 }
 
 export function TernaryDiagram({
@@ -46,7 +47,7 @@ export function TernaryDiagram({
   if (selectedComponents.length < 3 || !componentA || !componentB || !componentC) {
     return (
       <section
-        className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+        className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
         data-testid="ternary-diagram"
       >
         <div>
@@ -95,7 +96,7 @@ export function TernaryDiagram({
 
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="ternary-diagram"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -107,6 +108,28 @@ export function TernaryDiagram({
         </div>
         <p className="text-sm font-medium text-slate-700">{projectedStreams.length} ponto(s)</p>
       </div>
+
+      <HowItWorks title="Como funciona - Diagrama Ternário">
+        <p>
+          O triângulo representa três frações que sempre somam 1. Cada vértice corresponde a um
+          componente puro, cada lado representa uma mistura binária e o interior mostra a
+          composição ternária normalizada da corrente.
+        </p>
+        <p>
+          A projeção facilita comparar correntes, ler a dominância de cada componente e acompanhar
+          o deslocamento da mistura quando a formulação muda.
+        </p>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Qual componente domina a mistura e quão perto ela está de um vértice.</li>
+            <li>Se a corrente está próxima de uma mistura binária ou de uma formulação mais balanceada.</li>
+            <li>Como uma corrente se move quando é combinada com outra corrente no plano ternário.</li>
+            <li>Referência visual para balanços de massa, mistura e escolha de solvente.</li>
+          </ul>
+        </div>
+        <TheoryRef>Ref.: Seader, Henley e Roper, Separation Process Principles, 4a ed., Wiley; DeVoe, Thermodynamics and Chemistry, diagramas ternários.</TheoryRef>
+      </HowItWorks>
 
       <svg
         aria-label={title}
@@ -172,16 +195,22 @@ export function TernaryDiagram({
               fill="#0f172a"
               fontSize="12"
               fontWeight="600"
+              paintOrder="stroke"
               x={stream.point.x + 10}
               y={stream.point.y - 10 - index * 2}
+              stroke="#f8fafc"
+              strokeWidth="3"
             >
               {stream.name}
             </text>
             <text
               fill="#475569"
               fontSize="11"
+              paintOrder="stroke"
               x={stream.point.x + 10}
               y={stream.point.y + 6 - index * 2}
+              stroke="#f8fafc"
+              strokeWidth="3"
             >
               {stream.summary}
             </text>

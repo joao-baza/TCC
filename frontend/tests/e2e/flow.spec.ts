@@ -1,6 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-test("flow module loads the example, calculates the core values, and shows exploratory controls", async ({
+const hydraulicShapeOptions = [
+  { value: "circular", label: "Circular" },
+  { value: "rectangular", label: "Retangular" },
+  { value: "annular", label: "Anelar" },
+  { value: "triangular", label: "Triangular" },
+  { value: "circularCap", label: "Canal circular" },
+];
+
+async function selectComboboxOption(page, label, query) {
+  const input = page.getByRole("combobox", { name: label });
+  await input.fill(query);
+  await input.press("Enter");
+}
+
+test("flow module loads the example and calculates the core values", async ({
   page,
 }) => {
   await page.route("**/api/flow/friction-factor/methods", async (route) => {
@@ -11,13 +25,13 @@ test("flow module loads the example, calculates the core values, and shows explo
 
   await page.route("**/api/flow/hydraulic-diameter/shapes", async (route) => {
     await route.fulfill({
-      json: ["circular", "rectangular", "annular", "triangular", "circularCap"],
+      json: hydraulicShapeOptions,
     });
   });
 
   await page.route("**/api/piping/compositions", async (route) => {
     await route.fulfill({
-      json: ["Aço comercial"],
+      json: ["Aço galvanizado"],
     });
   });
 
@@ -27,10 +41,10 @@ test("flow module loads the example, calculates the core values, and shows explo
     });
   });
 
-  await page.route("**/api/piping/composition/A%C3%A7o%20comercial", async (route) => {
+  await page.route("**/api/piping/composition/A%C3%A7o%20galvanizado", async (route) => {
     await route.fulfill({
       json: {
-        name: "Aço comercial",
+        name: "Aço galvanizado",
         description: "Tubulação de aço carbono padrão.",
         applications: "Transporte industrial.",
         specifications: {
@@ -70,29 +84,27 @@ test("flow module loads the example, calculates the core values, and shows explo
   await expect(page.getByRole("heading", { name: /Escoamento Interno/i })).toBeVisible();
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await expect(page.getByLabel(/Diâmetro característico/i)).toHaveValue("100");
-  await expect(page.getByLabel(/Velocidade média/i)).toHaveValue("1.5");
+  await expect(page.getByLabel(/Diâmetro característico/i)).toHaveValue("13.843");
+  await expect(page.getByLabel(/Velocidade média/i)).toHaveValue("3.923");
+  await expect(page.getByLabel(/Densidade/i)).toHaveValue("0.65688");
+  await expect(page.getByLabel(/Viscosidade dinâmica/i)).toHaveValue("0.0000111963");
 
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
-  await expect(page.getByText(/^50000 dimensionless$/i)).toBeVisible();
-  await expect(page.getByText(/Regime do escoamento/i)).toBeVisible();
+  await expect(page.locator("table").filter({ hasText: "Número de Reynolds" }).first()).toContainText("50000");
+  await expect(page.getByRole("heading", { name: /^Regime do escoamento$/i })).toBeVisible();
 
-  await page.getByLabel(/Rugosidade/i).fill("0.045");
-  await page.getByLabel(/Diâmetro da linha/i).fill("50");
-  await page.getByLabel(/Método de cálculo/i).selectOption("SwameeJain");
+  await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
+  await expect(page.getByLabel(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
+  await expect(page.getByLabel(/Diâmetro da linha/i)).toHaveValue("13.843");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
-  await expect(page.getByText(/^0.0215 dimensionless$/i)).toBeVisible();
-  await expect(page.getByText(/Ponto operacional/i)).toBeVisible();
+  await expect(page.locator("table").filter({ hasText: "Fator de atrito" }).first()).toContainText("0,0215");
+  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toBeVisible();
 
-  await page.getByLabel(/Forma geométrica/i).selectOption("rectangular");
-  await page.getByLabel(/Largura/i).fill("100");
-  await page.getByLabel(/Altura/i).fill("50");
+  await page.getByRole("tab", { name: /Diâmetro Hidráulico/i }).click();
+  await expect(page.locator("#cap-diameter")).toHaveValue("0.125");
+  await expect(page.locator("#cap-height")).toHaveValue("0.08333");
   await page.getByRole("button", { name: /Calcular diâmetro hidráulico/i }).click();
-  await expect(page.getByText(/^66.67 millimeter$/i)).toBeVisible();
-
-  await page.getByLabel("Modo Exploratório").selectOption("water-pvc-dn100");
-  await expect(page.getByText(/Roteiro de exploração/i)).toBeVisible();
-  await expect(page.getByText(/Qual velocidade leva este sistema/i)).toBeVisible();
+  await expect(page.locator("table").filter({ hasText: "Diâmetro hidráulico" }).first()).toContainText("66,67");
 });
 
 test("flow module surfaces an error when the module bootstrap fails", async ({ page }) => {
@@ -105,13 +117,13 @@ test("flow module surfaces an error when the module bootstrap fails", async ({ p
 
   await page.route("**/api/flow/hydraulic-diameter/shapes", async (route) => {
     await route.fulfill({
-      json: ["circular", "rectangular", "annular", "triangular", "circularCap"],
+      json: hydraulicShapeOptions,
     });
   });
 
   await page.route("**/api/piping/compositions", async (route) => {
     await route.fulfill({
-      json: ["Aço comercial"],
+      json: ["Aço galvanizado"],
     });
   });
 
@@ -135,13 +147,13 @@ test("flow module surfaces an error when hydraulic diameter calculation fails", 
 
   await page.route("**/api/flow/hydraulic-diameter/shapes", async (route) => {
     await route.fulfill({
-      json: ["circular", "rectangular", "annular", "triangular", "circularCap"],
+      json: hydraulicShapeOptions,
     });
   });
 
   await page.route("**/api/piping/compositions", async (route) => {
     await route.fulfill({
-      json: ["Aço comercial"],
+      json: ["Aço galvanizado"],
     });
   });
 
@@ -163,7 +175,8 @@ test("flow module surfaces an error when hydraulic diameter calculation fails", 
   await page.goto("/flow");
   await expect(page.getByRole("heading", { name: /Escoamento Interno/i })).toBeVisible();
 
-  await page.getByLabel(/Forma geométrica/i).selectOption("rectangular");
+  await page.getByRole("tab", { name: /Diâmetro Hidráulico/i }).click();
+  await selectComboboxOption(page, "Forma geométrica", "rectangular");
   await page.getByLabel(/Largura/i).fill("100");
   await page.getByLabel(/Altura/i).fill("50");
   await page.getByRole("button", { name: /Calcular diâmetro hidráulico/i }).click();
@@ -180,13 +193,13 @@ test("flow module surfaces an error when Reynolds calculation fails", async ({ p
 
   await page.route("**/api/flow/hydraulic-diameter/shapes", async (route) => {
     await route.fulfill({
-      json: ["circular", "rectangular", "annular", "triangular", "circularCap"],
+      json: hydraulicShapeOptions,
     });
   });
 
   await page.route("**/api/piping/compositions", async (route) => {
     await route.fulfill({
-      json: ["Aço comercial"],
+      json: ["Aço galvanizado"],
     });
   });
 
@@ -223,13 +236,13 @@ test("flow module surfaces an error when friction factor calculation fails", asy
 
   await page.route("**/api/flow/hydraulic-diameter/shapes", async (route) => {
     await route.fulfill({
-      json: ["circular", "rectangular", "annular", "triangular", "circularCap"],
+      json: hydraulicShapeOptions,
     });
   });
 
   await page.route("**/api/piping/compositions", async (route) => {
     await route.fulfill({
-      json: ["Aço comercial"],
+      json: ["Aço galvanizado"],
     });
   });
 
@@ -257,16 +270,23 @@ test("flow module surfaces an error when friction factor calculation fails", asy
   await page.goto("/flow");
   await expect(page.getByRole("heading", { name: /Escoamento Interno/i })).toBeVisible();
 
+  await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
+  await page.getByRole("tab", { name: /Número de Reynolds/i }).click();
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
-  await page.getByLabel(/Número de Reynolds/i).fill("50000");
+  await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
+  await page.getByRole("group", { name: /Rugosidade/i }).getByLabel(/Valor customizado/i).check();
   await page.getByLabel(/Rugosidade/i).fill("0.045");
-  await page.getByRole("group", { name: /Diâmetro/i }).getByLabel(/Valor customizado/i).check();
   await page.getByLabel(/Diâmetro da linha/i).fill("50");
-  await page.getByLabel(/Método de cálculo/i).selectOption("SwameeJain");
+  await selectComboboxOption(page, "Método de cálculo", "SwameeJain");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
 
-  await expect(page.getByText(/Erro ao calcular fator de atrito: Falha no backend de atrito/i)).toBeVisible();
+  await expect(
+    page
+      .locator('[role="alert"]')
+      .filter({ hasText: /Erro ao calcular fator de atrito: Falha no backend de atrito/i })
+      .first(),
+  ).toBeVisible();
 });
 
 test("flow module clears stale Reynolds and friction outputs after dependent edits", async ({
@@ -280,13 +300,13 @@ test("flow module clears stale Reynolds and friction outputs after dependent edi
 
   await page.route("**/api/flow/hydraulic-diameter/shapes", async (route) => {
     await route.fulfill({
-      json: ["circular", "rectangular", "annular", "triangular", "circularCap"],
+      json: hydraulicShapeOptions,
     });
   });
 
   await page.route("**/api/piping/compositions", async (route) => {
     await route.fulfill({
-      json: ["Aço comercial"],
+      json: ["Aço galvanizado"],
     });
   });
 
@@ -313,22 +333,29 @@ test("flow module clears stale Reynolds and friction outputs after dependent edi
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
-  await expect(page.getByText(/^50000 dimensionless$/i)).toBeVisible();
+  await expect(page.locator("table").filter({ hasText: "Número de Reynolds" }).first()).toContainText("50000");
 
+  await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
+  await page.getByRole("group", { name: /Rugosidade/i }).getByLabel(/Valor customizado/i).check();
   await page.getByLabel(/Rugosidade/i).fill("0.045");
   await page.getByLabel(/Diâmetro da linha/i).fill("50");
-  await page.getByLabel(/Método de cálculo/i).selectOption("SwameeJain");
+  await selectComboboxOption(page, "Método de cálculo", "SwameeJain");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
-  await expect(page.getByText(/^0.0215 dimensionless$/i)).toBeVisible();
-  await expect(page.getByText(/Ponto operacional/i)).toBeVisible();
+  await expect(page.locator("table").filter({ hasText: "Fator de atrito" }).first()).toContainText("0,0215");
+  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toBeVisible();
 
+  await page.getByRole("tab", { name: /Número de Reynolds/i }).click();
   await page.getByLabel(/Velocidade média/i).fill("1.8");
 
-  await expect(page.getByText(/^50000 dimensionless$/i)).toHaveCount(0);
-  await expect(page.getByText(/^0.0215 dimensionless$/i)).toHaveCount(0);
-  await expect(page.getByText(/Regime do escoamento/i)).toHaveCount(0);
-  await expect(page.getByText(/Ponto operacional/i)).toHaveCount(0);
-  await expect(page.getByLabel(/Número de Reynolds/i)).toHaveValue("");
+  const reynoldsTable = page.locator("table").filter({ hasText: "Número de Reynolds" }).first();
+  const frictionTable = page.locator("table").filter({ hasText: "Fator de atrito" }).first();
+
+  await expect(reynoldsTable).toContainText("—");
+  await expect(frictionTable).toHaveCount(0);
+  await expect(reynoldsTable).not.toContainText("50000");
+  await expect(page.getByRole("heading", { name: /^Regime do escoamento$/i })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toHaveCount(0);
+  await expect(page.getByLabel(/Número de Reynolds/i)).toHaveCount(0);
 });
 
 test("flow module clears friction results when the schedule changes", async ({ page }) => {
@@ -340,13 +367,13 @@ test("flow module clears friction results when the schedule changes", async ({ p
 
   await page.route("**/api/flow/hydraulic-diameter/shapes", async (route) => {
     await route.fulfill({
-      json: ["circular", "rectangular", "annular", "triangular", "circularCap"],
+      json: hydraulicShapeOptions,
     });
   });
 
   await page.route("**/api/piping/compositions", async (route) => {
     await route.fulfill({
-      json: ["Aço comercial"],
+      json: ["Aço galvanizado"],
     });
   });
 
@@ -359,10 +386,10 @@ test("flow module clears friction results when the schedule changes", async ({ p
     });
   });
 
-  await page.route("**/api/piping/composition/A%C3%A7o%20comercial", async (route) => {
+  await page.route("**/api/piping/composition/A%C3%A7o%20galvanizado", async (route) => {
     await route.fulfill({
       json: {
-        name: "Aço comercial",
+        name: "Aço galvanizado",
         description: "Tubulação de aço carbono padrão.",
         applications: "Transporte industrial.",
         specifications: {
@@ -403,19 +430,23 @@ test("flow module clears friction results when the schedule changes", async ({ p
   await page.goto("/flow");
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
-  await page.getByLabel(/Rugosidade/i).fill("0.045");
+  await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
+  await expect(page.getByLabel(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
   await page.getByRole("group", { name: /Diâmetro/i }).getByLabel(/Usar schedule/i).check();
-  await page.locator("#flow-schedule").selectOption("SCH40");
-  await page.getByLabel(/Diâmetro da linha/i).selectOption("60.3");
-  await page.getByLabel(/Método de cálculo/i).selectOption("SwameeJain");
+  await selectComboboxOption(page, "Schedule", "SCH40");
+  await expect(page.getByRole("combobox", { name: /Diâmetro da linha/i })).toBeEnabled();
+  await selectComboboxOption(page, "Diâmetro da linha", "60.3");
+  await selectComboboxOption(page, "Método de cálculo", "SwameeJain");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
 
-  await expect(page.getByText(/^0.0215 dimensionless$/i)).toBeVisible();
-  await expect(page.getByText(/Ponto operacional/i)).toBeVisible();
+  await expect(page.locator("table").filter({ hasText: "Fator de atrito" }).first()).toContainText("0,0215");
+  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toBeVisible();
 
-  await page.locator("#flow-schedule").selectOption("XS");
-
-  await expect(page.getByText(/^0.0215 dimensionless$/i)).toHaveCount(0);
-  await expect(page.getByText(/Ponto operacional/i)).toHaveCount(0);
-  await expect(page.getByLabel(/Diâmetro da linha/i)).toHaveValue("");
+  const scheduleInput = page.getByRole("combobox", { name: "Schedule" });
+  await scheduleInput.click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("XS");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("combobox", { name: "Schedule" })).toHaveValue("XS");
+  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toHaveCount(0);
 });

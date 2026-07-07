@@ -1,5 +1,6 @@
 import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
 import { NumericChartGrid } from "@/components/viz/chart-grid";
+import { formatTableNumberText } from "@/lib/table-number";
 
 type HeatExchangerThermalChartsProps = {
   fluid: string;
@@ -36,7 +37,7 @@ function scale(value: number, min: number, max: number, start: number, end: numb
 }
 
 function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
+  return formatTableNumberText(value);
 }
 
 function safeNumber(value: number | null | undefined, fallback = 0) {
@@ -168,7 +169,7 @@ export function HeatExchangerThermalCharts({
   const dutySummary =
     heatDuty == null
       ? null
-      : `${Math.abs(heatDuty).toFixed(2)} kW ${heatDuty >= 0 ? "fornecidos" : "retirados"}`;
+      : `${formatTableNumberText(Math.abs(heatDuty))} kW ${heatDuty >= 0 ? "fornecidos" : "retirados"}`;
   const enthalpySpan =
     inletEnthalpy == null || outletEnthalpy == null
       ? null
@@ -183,7 +184,7 @@ export function HeatExchangerThermalCharts({
 
   return (
     <section
-      className="space-y-5 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-5 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="heat-exchanger-thermal-charts"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -232,7 +233,7 @@ export function HeatExchangerThermalCharts({
             <p className="text-xs text-muted-foreground">ΔTmin estimado pela diferença térmica do exercício</p>
           </div>
           <div
-            className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
             style={{ aspectRatio: `${width} / ${compositeHeight}` }}
           >
             <NumericChartGrid
@@ -300,7 +301,7 @@ export function HeatExchangerThermalCharts({
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <p className="mb-3 text-sm font-medium text-slate-800">Perfil quente/frio ao longo do trocador</p>
           <div
-            className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
             style={{ aspectRatio: `${width} / ${profileHeight}` }}
           >
             <NumericChartGrid

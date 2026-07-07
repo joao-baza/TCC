@@ -17,14 +17,14 @@ describe("HeadBreakdownChart", () => {
     );
 
     expect(screen.getByText("Decomposição")).toBeInTheDocument();
-    expect(screen.getByText("H = 18.200 m")).toBeInTheDocument();
+    expect(screen.getByText("H total = 18,2 m")).toBeInTheDocument();
     expect(screen.getByText("ΔP/(ρg)")).toBeInTheDocument();
     expect(screen.getByText("Δz")).toBeInTheDocument();
     expect(screen.getByText("ΔV²/(2g)")).toBeInTheDocument();
     expect(screen.getByText("-h_f")).toBeInTheDocument();
-    expect(screen.getByText("12.4")).toBeInTheDocument();
-    expect(screen.getByText("5.1")).toBeInTheDocument();
-    expect(screen.getByText("1.3")).toBeInTheDocument();
-    expect(screen.getByText("-0.6")).toBeInTheDocument();
+    expect(screen.getAllByText("12,4").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("5,1").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("1,3").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("-0,6").length).toBeGreaterThan(1);
   });
 });

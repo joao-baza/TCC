@@ -1,8 +1,5 @@
 const toastMocks = vi.hoisted(() => ({
-  success: vi.fn(),
-  error: vi.fn(),
-  info: vi.fn(),
-  warning: vi.fn(),
+  custom: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -13,21 +10,32 @@ import { notify } from "@/lib/notify";
 
 describe("notify", () => {
   beforeEach(() => {
-    toastMocks.success.mockReset();
-    toastMocks.error.mockReset();
-    toastMocks.info.mockReset();
-    toastMocks.warning.mockReset();
+    toastMocks.custom.mockReset();
   });
 
-  it("delegates semantic messages to sonner", () => {
+  it("delegates semantic messages to custom toast callouts", () => {
     notify.success("ok");
     notify.error("falhou");
     notify.info("info");
     notify.warning("atenção");
 
-    expect(toastMocks.success).toHaveBeenCalledWith("ok");
-    expect(toastMocks.error).toHaveBeenCalledWith("falhou");
-    expect(toastMocks.info).toHaveBeenCalledWith("info");
-    expect(toastMocks.warning).toHaveBeenCalledWith("atenção");
+    expect(toastMocks.custom).toHaveBeenCalledTimes(4);
+
+    const renderedToasts = toastMocks.custom.mock.calls.map(([renderToast]) =>
+      (renderToast as (id: number) => { props: { variant: string; message: string } })(1),
+    );
+
+    expect(renderedToasts.map((toast) => toast.props.variant)).toEqual([
+      "success",
+      "error",
+      "info",
+      "warning",
+    ]);
+    expect(renderedToasts.map((toast) => toast.props.message)).toEqual([
+      "ok",
+      "falhou",
+      "info",
+      "atenção",
+    ]);
   });
 });

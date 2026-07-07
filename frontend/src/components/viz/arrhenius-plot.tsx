@@ -1,5 +1,6 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
+import { formatTableNumberText } from "@/lib/table-number";
 
 type ArrheniusPlotProps = {
   activationEnergy: number;
@@ -31,10 +32,6 @@ function buildPath(points: Array<{ x: number; y: number }>) {
   return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
-function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
-}
-
 export function ArrheniusPlot({
   activationEnergy,
   referenceTemperature,
@@ -45,7 +42,7 @@ export function ArrheniusPlot({
 }: ArrheniusPlotProps) {
   if (!(activationEnergy > 0) || !(referenceTemperature > 0) || !(referenceRateConstant > 0)) {
     return (
-      <section className="mt-3 rounded-xl border border-slate-200 p-3">
+      <section className="mx-auto mt-3 w-full max-w-[760px] rounded-xl border border-slate-200 p-3">
         <h3 className="text-sm font-medium text-slate-800">{title}</h3>
         <p className="mt-1 text-xs text-muted-foreground">
           Forneca energia de ativacao, temperatura de referencia e k para mostrar a curva.
@@ -87,24 +84,24 @@ export function ArrheniusPlot({
 
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="arrhenius-plot"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
           <p className="text-sm text-muted-foreground">
-            Curva semilog local para mostrar a sensibilidade da constante de velocidade com a temperatura.
+            Curva semilog de Arrhenius: eixo X mostra 1000 / T e eixo Y mostra ln(k).
           </p>
         </div>
         <div className="text-sm font-medium text-slate-700">
-          <div>Ea = {toFixedLabel(activationEnergy)} J/mol</div>
-          <div>k_ref = {toFixedLabel(referenceRateConstant)}</div>
+          <div>Ea = {formatTableNumberText(activationEnergy)} J/mol</div>
+          <div>k_ref = {formatTableNumberText(referenceRateConstant)}</div>
         </div>
       </div>
 
       <div
-        className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+        className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
         style={{ aspectRatio: `${width} / ${height}` }}
       >
         <NumericChartGrid
@@ -113,7 +110,7 @@ export function ArrheniusPlot({
           width={width}
           height={height}
           padding={padding}
-          xLabel="1000 / T"
+          xLabel="1000 / T (10^3 K^-1)"
           yLabel="ln(k)"
         />
 
@@ -142,15 +139,20 @@ export function ArrheniusPlot({
               r="3.5"
             />
           ))}
-
           <circle cx={referencePoint.x} cy={referencePoint.y} fill="#1d4ed8" r="6" />
-          <text fill="#64748b" fontSize="11" x={padding.left + 6} y={padding.top + 16}>
-            A = {toFixedLabel(preExponentialFactor)}
-          </text>
-          <text fill="#64748b" fontSize="11" x={padding.left + 6} y={padding.top + 30}>
-            T_ref = {toFixedLabel(referenceTemperature)} K
-          </text>
         </svg>
+      </div>
+
+      <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+          Curva: ln(k) versus 1000 / T
+        </span>
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+          A = {formatTableNumberText(preExponentialFactor)}
+        </span>
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+          T_ref = {formatTableNumberText(referenceTemperature)} K
+        </span>
       </div>
     </section>
   );

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { PropertyRecord, ValueWithUnits } from "@/lib/api";
 import { InlineMath } from "@/lib/katex";
 import { formatTableNumber } from "@/lib/table-number";
@@ -7,6 +9,8 @@ export type PropertyRow = {
   label: string;
   value: number | string;
   units?: string;
+  unitMode?: "auto" | "latex" | "text";
+  children?: PropertyRow[];
 };
 
 function isValueWithUnits(value: unknown): value is ValueWithUnits {
@@ -50,6 +54,75 @@ function isPrimitiveValue(value: unknown): value is number | string | null {
   );
 }
 
+function normalizeRowsFromData(data: PropertyRecord): PropertyRow[] {
+  return Object.entries(data).flatMap(([key, value]) => {
+    if (isValueWithUnits(value)) {
+      return [
+        {
+          label: formatLabel(key),
+          value: value.value,
+          units: value.units,
+        },
+      ];
+    }
+
+    if (isPrimitiveValue(value)) {
+      return [
+        {
+          label: formatLabel(key),
+          value: value ?? "—",
+        },
+      ];
+    }
+
+    if (typeof value === "object" && value !== null) {
+      return [
+        {
+          label: formatLabel(key),
+          value: "—",
+          children: normalizeRowsFromData(value as PropertyRecord),
+        },
+      ];
+    }
+
+    return [
+      {
+        label: formatLabel(key),
+        value: "—",
+      },
+    ];
+  });
+}
+
+function renderRows(rows: PropertyRow[], depth = 0): ReactNode[] {
+  return rows.flatMap((row, index) => {
+    const key = `${depth}-${index}-${row.label}`;
+    const hasUnits = row.units != null;
+
+    return [
+      <tr key={key} className="border-b border-border last:border-0">
+        <td
+          className={[
+            "py-2 pr-4 text-muted-foreground",
+            depth > 0 ? "pl-6 text-sm" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {row.label}
+        </td>
+        <td className="py-2 text-center font-medium tabular-nums text-foreground">
+          <ValueMath value={isPrimitiveValue(row.value) ? row.value : String(row.value)} />
+        </td>
+        <td className="py-2 text-center text-foreground">
+          {hasUnits ? <UnitMath units={row.units} mode={row.unitMode} /> : "-"}
+        </td>
+      </tr>,
+      ...(row.children?.length ? renderRows(row.children, depth + 1) : []),
+    ];
+  });
+}
+
 type PropertyTableProps =
   | {
       data: PropertyRecord;
@@ -61,25 +134,7 @@ type PropertyTableProps =
     };
 
 export function PropertyTable(props: PropertyTableProps) {
-  const rows =
-    "data" in props
-      ? Object.entries(props.data as PropertyRecord).flatMap(([key, value]) => {
-          if (
-            isValueWithUnits(value) ||
-            typeof value !== "object" ||
-            value === null
-          ) {
-            return [[key, value] as const];
-          }
-
-          return Object.entries(value).map(([nestedKey, nestedValue]) => [
-            `${key} ${nestedKey}`,
-            nestedValue,
-          ]) as Array<readonly [string, unknown]>;
-        })
-      : props.rows.map((row) => [row.label, row.value, row.units] as const);
-
-  const isLegacyData = "data" in props;
+  const rows = "data" in props ? normalizeRowsFromData(props.data as PropertyRecord) : props.rows;
 
   return (
     <table className="w-full border-collapse text-sm">
@@ -96,46 +151,7 @@ export function PropertyTable(props: PropertyTableProps) {
           </th>
         </tr>
       </thead>
-      <tbody>
-        {rows.map(([key, value, units]) => {
-          if (isLegacyData && isValueWithUnits(value)) {
-            return (
-              <tr key={key} className="border-b border-border last:border-0">
-                <td className="py-2 pr-4 text-muted-foreground">
-                  {formatLabel(key)}
-                </td>
-                <td className="py-2 text-center font-medium tabular-nums text-foreground">
-                  <ValueMath value={value.value} />
-                </td>
-                <td className="py-2 text-center text-foreground">
-                  <UnitMath units={value.units} />
-                </td>
-              </tr>
-            );
-          }
-
-          const renderedValue = isPrimitiveValue(value) ? value : String(value);
-          const renderedLabel = isLegacyData ? formatLabel(key) : key;
-
-          return (
-            <tr key={key} className="border-b border-border last:border-0">
-              <td className="py-2 pr-4 text-muted-foreground">
-                {renderedLabel}
-              </td>
-              <td className="py-2 text-center font-medium tabular-nums text-foreground">
-                <ValueMath value={renderedValue} />
-              </td>
-              <td className="py-2 text-center text-foreground">
-                {isLegacyData ? (
-                  isValueWithUnits(value) ? <UnitMath units={value.units} /> : "-"
-                ) : (
-                  <UnitMath units={units} />
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
+      <tbody>{renderRows(rows)}</tbody>
     </table>
   );
 }

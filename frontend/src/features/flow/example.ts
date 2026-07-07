@@ -12,6 +12,11 @@ export type FlowExamplePayload = {
     diameter_source: "custom" | "schedule";
     custom_diameter: number;
   };
+  hydraulic_diameter: {
+    shape: string;
+    diameter: number;
+    height: number;
+  };
 };
 
 export type FlowExampleFormInputs = {
@@ -25,6 +30,10 @@ export type FlowExampleFormInputs = {
     method: string;
     composition: string;
     customDiameter: string;
+  };
+  hydraulicDiameter: {
+    shape: string;
+    parameters: Record<string, string>;
   };
   roughnessSource: FlowExamplePayload["friction"]["roughness_source"];
   diameterSource: FlowExamplePayload["friction"]["diameter_source"];
@@ -46,6 +55,13 @@ export function mapFlowExampleToFormInputs(example: FlowExamplePayload): FlowExa
       method: example.friction.method,
       composition: example.friction.composition,
       customDiameter: toInputValue(example.friction.custom_diameter),
+    },
+    hydraulicDiameter: {
+      shape: example.hydraulic_diameter.shape,
+      parameters: {
+        diameter: toInputValue(example.hydraulic_diameter.diameter),
+        height: toInputValue(example.hydraulic_diameter.height),
+      },
     },
     roughnessSource: example.friction.roughness_source,
     diameterSource: example.friction.diameter_source,

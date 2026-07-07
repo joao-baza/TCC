@@ -8,11 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { ResultTableSection } from "@/components/result-table-section";
+import { HydraulicDiameterPreview } from "@/components/viz/hydraulic-diameter-preview";
 import { MoodyChart } from "@/components/viz/moody-chart";
 import { RegimeRuler } from "@/components/viz/regime-ruler";
-import { ExploratoryPanel } from "@/features/exploratory/exploratory-panel";
-import type { Scenario } from "@/features/exploratory/types";
-import { flowExploratory } from "@/features/exploratory/templates";
 import {
   FrictionFactorHowItWorks,
   HydraulicDiameterHowItWorks,
@@ -85,12 +83,6 @@ type FrictionContext = {
 const inputClassName =
   "mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400";
 
-function shapeLabel(shape: string) {
-  return shape
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
 function isSupportedShape(shape: string): shape is Shape {
   return supportedShapes.includes(shape as Shape);
 }
@@ -114,11 +106,31 @@ function buildResultRows(label: string, result: QuantityResult | null): Property
   ];
 }
 
+type HydraulicShapeFieldProps = {
+  id: string;
+  label: string;
+  value: string | undefined;
+  onChange: (value: string) => void;
+};
+
+function HydraulicShapeField({ id, label, value, onChange }: HydraulicShapeFieldProps) {
+  return (
+    <NumberField
+      id={id}
+      label={label}
+      unit="m"
+      rule="nonneg"
+      value={value ?? ""}
+      onChange={onChange}
+    />
+  );
+}
+
 export function FlowPage() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [methods, setMethods] = useState<SelectOption[]>([]);
-  const [shapes, setShapes] = useState<string[]>([]);
+  const [shapes, setShapes] = useState<SelectOption[]>([]);
   const [compositions, setCompositions] = useState<SelectOption[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [diameters, setDiameters] = useState<DiameterOption[]>([]);
@@ -157,7 +169,6 @@ export function FlowPage() {
   const [hydraulicResult, setHydraulicResult] = useState<QuantityResult | null>(null);
   const [hydraulicError, setHydraulicError] = useState<string | null>(null);
   const hydraulicSessionRef = useRef(0);
-  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
 
   const [pageError, setPageError] = useState<string | null>(null);
   const activeTab = useMemo(() => {
@@ -194,12 +205,7 @@ export function FlowPage() {
         }
 
         setMethods(methodResponse.map(toSelectOption));
-        setShapes(
-          shapeResponse
-            .map(toSelectOption)
-            .map((option) => option.value)
-            .filter(isSupportedShape),
-        );
+        setShapes(shapeResponse.map(toSelectOption).filter((option) => isSupportedShape(option.value)));
         setCompositions(compositionResponse.map(toSelectOption));
         setSchedules(
           scheduleResponse.map((schedule) => {
@@ -285,36 +291,6 @@ export function FlowPage() {
     clearFrictionDerived();
   }
 
-  function applyReynoldsFields(fields: Record<string, string>) {
-    setReynoldsForm({
-      characteristicDiameter: fields["characteristic-diameter"] ?? "",
-      velocity: fields["reynolds-velocity"] ?? "",
-      density: fields.density ?? "",
-      dynamicViscosity: fields["dynamic-viscosity"] ?? "",
-      kinematicViscosity: fields["kinematic-viscosity"] ?? "",
-    });
-    setFrictionForm((current) => ({
-      ...current,
-      customDiameter: fields["characteristic-diameter"] ?? current.customDiameter,
-    }));
-    clearReynoldsDerived();
-  }
-
-  function changeExploratoryField(field: string, value: string) {
-    if (field === "characteristic-diameter") {
-      setReynoldsForm((current) => ({ ...current, characteristicDiameter: value }));
-      setFrictionForm((current) => ({ ...current, customDiameter: value }));
-    } else if (field === "reynolds-velocity") {
-      setReynoldsForm((current) => ({ ...current, velocity: value }));
-    } else if (field === "density") {
-      setReynoldsForm((current) => ({ ...current, density: value }));
-    } else if (field === "dynamic-viscosity") {
-      setReynoldsForm((current) => ({ ...current, dynamicViscosity: value }));
-    }
-
-    clearReynoldsDerived();
-  }
-
   function setReynoldsField<K extends keyof typeof reynoldsForm>(
     field: K,
     value: (typeof reynoldsForm)[K],
@@ -348,17 +324,16 @@ export function FlowPage() {
         schedule: "",
         scheduleDiameter: "",
       }));
+      setShape(mapped.hydraulicDiameter.shape as Shape);
+      setShapeParams(mapped.hydraulicDiameter.parameters);
       setRoughnessSource(mapped.roughnessSource);
       setDiameterSource(mapped.diameterSource);
       clearReynoldsDerived();
+      clearHydraulicDerived();
       notify.success("Exemplo carregado com sucesso.");
     } catch (error) {
       notify.error(`Erro ao carregar exemplo: ${getErrorMessage(error)}`);
     }
-  }
-
-  function describeScenario() {
-    return `D=${reynoldsForm.characteristicDiameter || "—"} mm, v=${reynoldsForm.velocity || "—"} m/s`;
   }
 
   async function handleReynoldsSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -808,13 +783,12 @@ export function FlowPage() {
               rows={buildResultRows("Fator de atrito", frictionResult)}
             />
             {frictionResult && frictionContext ? (
-              <MoodyChart
-                reynolds={frictionContext.reynolds}
-                frictionFactor={frictionResult.value}
-                roughness={frictionContext.relativeRoughness}
-                scenarios={savedScenarios}
-              />
-            ) : null}
+            <MoodyChart
+              reynolds={frictionContext.reynolds}
+              frictionFactor={frictionResult.value}
+              roughness={frictionContext.relativeRoughness}
+            />
+          ) : null}
           </CardContent>
         </Card>
       ) : null}
@@ -827,10 +801,7 @@ export function FlowPage() {
             <form className="space-y-4" onSubmit={handleHydraulicSubmit}>
               <Combobox
                 label="Forma geométrica"
-                options={shapes.map((availableShape) => ({
-                  value: availableShape,
-                  label: shapeLabel(availableShape),
-                }))}
+                options={shapes}
                 value={shape}
                 onValueChange={(value) => {
                   if (!value) {
@@ -845,176 +816,127 @@ export function FlowPage() {
               />
 
               {shape === "circular" ? (
-                <label className="block text-sm font-medium text-slate-800" htmlFor="shape-diameter">
-                  Diâmetro
-                  <input
-                    id="shape-diameter"
-                    className={inputClassName}
-                    type="number"
-                    step="any"
-                    value={shapeParams.diameter ?? ""}
-                    onChange={(event) => {
-                      setShapeParams((current) => ({ ...current, diameter: event.target.value }));
-                      clearHydraulicDerived();
-                    }}
-                  />
-                </label>
+                <HydraulicShapeField
+                  id="shape-diameter"
+                  label="Diâmetro"
+                  value={shapeParams.diameter}
+                  onChange={(value) => {
+                    setShapeParams((current) => ({ ...current, diameter: value }));
+                    clearHydraulicDerived();
+                  }}
+                />
               ) : null}
 
               {shape === "rectangular" ? (
                 <>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="shape-width">
-                    Largura
-                    <input
-                      id="shape-width"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.width ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({ ...current, width: event.target.value }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="shape-height">
-                    Altura
-                    <input
-                      id="shape-height"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.height ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({ ...current, height: event.target.value }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
+                  <HydraulicShapeField
+                    id="shape-width"
+                    label="Largura"
+                    value={shapeParams.width}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({ ...current, width: value }));
+                      clearHydraulicDerived();
+                    }}
+                  />
+                  <HydraulicShapeField
+                    id="shape-height"
+                    label="Altura"
+                    value={shapeParams.height}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({ ...current, height: value }));
+                      clearHydraulicDerived();
+                    }}
+                  />
                 </>
               ) : null}
 
               {shape === "annular" ? (
                 <>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="outer-diameter">
-                    Diâmetro externo
-                    <input
-                      id="outer-diameter"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.outer_diameter ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({
-                          ...current,
-                          outer_diameter: event.target.value,
-                        }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="inner-diameter">
-                    Diâmetro interno
-                    <input
-                      id="inner-diameter"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.inner_diameter ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({
-                          ...current,
-                          inner_diameter: event.target.value,
-                        }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
+                  <HydraulicShapeField
+                    id="outer-diameter"
+                    label="Diâmetro externo"
+                    value={shapeParams.outer_diameter}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({
+                        ...current,
+                        outer_diameter: value,
+                      }));
+                      clearHydraulicDerived();
+                    }}
+                  />
+                  <HydraulicShapeField
+                    id="inner-diameter"
+                    label="Diâmetro interno"
+                    value={shapeParams.inner_diameter}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({
+                        ...current,
+                        inner_diameter: value,
+                      }));
+                      clearHydraulicDerived();
+                    }}
+                  />
                 </>
               ) : null}
 
               {shape === "triangular" ? (
                 <>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="side-a">
-                    Lado A
-                    <input
-                      id="side-a"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.side_a ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({ ...current, side_a: event.target.value }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="side-b">
-                    Lado B
-                    <input
-                      id="side-b"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.side_b ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({ ...current, side_b: event.target.value }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="side-c">
-                    Lado C
-                    <input
-                      id="side-c"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.side_c ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({ ...current, side_c: event.target.value }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
+                  <HydraulicShapeField
+                    id="side-a"
+                    label="Lado A"
+                    value={shapeParams.side_a}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({ ...current, side_a: value }));
+                      clearHydraulicDerived();
+                    }}
+                  />
+                  <HydraulicShapeField
+                    id="side-b"
+                    label="Lado B"
+                    value={shapeParams.side_b}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({ ...current, side_b: value }));
+                      clearHydraulicDerived();
+                    }}
+                  />
+                  <HydraulicShapeField
+                    id="side-c"
+                    label="Lado C"
+                    value={shapeParams.side_c}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({ ...current, side_c: value }));
+                      clearHydraulicDerived();
+                    }}
+                  />
                 </>
               ) : null}
 
               {shape === "circularCap" ? (
                 <>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="cap-diameter">
-                    Diâmetro
-                    <input
-                      id="cap-diameter"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.diameter ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({ ...current, diameter: event.target.value }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-slate-800" htmlFor="cap-height">
-                    Altura
-                    <input
-                      id="cap-height"
-                      className={inputClassName}
-                      type="number"
-                      step="any"
-                      value={shapeParams.height ?? ""}
-                      onChange={(event) => {
-                        setShapeParams((current) => ({ ...current, height: event.target.value }));
-                        clearHydraulicDerived();
-                      }}
-                    />
-                  </label>
+                  <HydraulicShapeField
+                    id="cap-diameter"
+                    label="Diâmetro"
+                    value={shapeParams.diameter}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({ ...current, diameter: value }));
+                      clearHydraulicDerived();
+                    }}
+                  />
+                  <HydraulicShapeField
+                    id="cap-height"
+                    label="Altura"
+                    value={shapeParams.height}
+                    onChange={(value) => {
+                      setShapeParams((current) => ({ ...current, height: value }));
+                      clearHydraulicDerived();
+                    }}
+                  />
                 </>
               ) : null}
 
               <Button type="submit">Calcular diâmetro hidráulico</Button>
             </form>
+            <HydraulicDiameterPreview shape={shape} parameters={shapeParams} />
             {hydraulicError ? <p className="mt-3 text-sm text-red-600">{hydraulicError}</p> : null}
 
             <ResultTableSection
@@ -1026,17 +948,6 @@ export function FlowPage() {
         </Card>
       ) : null}
 
-      {activeTab === "exploratory" ? (
-        <ExploratoryPanel
-          config={flowExploratory}
-          state={{
-            applyFields: applyReynoldsFields,
-            changeField: changeExploratoryField,
-            describeScenario,
-          }}
-          onScenariosChange={setSavedScenarios}
-        />
-      ) : null}
     </ModuleTabsLayout>
   );
 }

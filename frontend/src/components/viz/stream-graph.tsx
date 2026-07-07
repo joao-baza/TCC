@@ -1,4 +1,4 @@
-import type { Scenario } from "@/features/exploratory/types";
+import { formatTableNumberText } from "@/lib/table-number";
 
 type StreamDatum = {
   name: string;
@@ -8,29 +8,27 @@ type StreamDatum = {
 };
 
 function formatFlow(value: number) {
-  return `${value.toFixed(2)} u. cons.`;
+  return `${formatTableNumberText(value)} u. cons.`;
 }
 
 function formatCompositionSummary(compositions: Record<string, number>) {
   return Object.entries(compositions)
     .slice(0, 2)
-    .map(([component, value]) => `${component}: ${value.toFixed(4)}`)
+    .map(([component, value]) => `${component}: ${formatTableNumberText(value)}`)
     .join(" · ");
 }
 
 export function StreamGraph({
   streams,
-  scenarios = [],
 }: {
   streams: StreamDatum[];
-  scenarios?: Scenario[];
 }) {
   const sortedStreams = [...streams].sort((left, right) => right.flowRate - left.flowRate);
   const maxFlow = Math.max(...sortedStreams.map((stream) => stream.flowRate), 1);
 
   return (
     <div
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="stream-graph"
     >
       <div className="flex items-end justify-between gap-3">
@@ -69,25 +67,6 @@ export function StreamGraph({
         ))}
       </div>
 
-      {scenarios.length > 0 ? (
-        <div className="border-t border-slate-200 pt-3" data-testid="saved-scenarios">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
-            Cenários salvos
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {scenarios.map((scenario) => (
-              <span
-                key={scenario.id}
-                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700"
-                data-testid="saved-scenario"
-                style={{ boxShadow: `inset 0 0 0 1px ${scenario.color}` }}
-              >
-                {scenario.name}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

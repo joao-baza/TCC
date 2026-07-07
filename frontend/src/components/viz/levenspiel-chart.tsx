@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { formatTableNumberText } from "@/lib/table-number";
 
 type LevenspielPoint = {
   conversion: number;
@@ -11,12 +12,6 @@ type OperatingPoint = {
   volume: number;
 };
 
-type ScenarioChip = {
-  id: string;
-  name: string;
-  color: string;
-};
-
 type ChartPoint = {
   x: number;
   y: number;
@@ -27,7 +22,7 @@ const height = 360;
 const padding = { top: 24, right: 24, bottom: 42, left: 56 };
 
 function toFixedLabel(value: number) {
-  return value.toFixed(2).replace(/\.00$/, "");
+  return formatTableNumberText(value);
 }
 
 function buildLinePath(points: ChartPoint[]) {
@@ -79,14 +74,16 @@ export function LevenspielChart({
   cstrOperatingPoint,
   pfrOperatingPoint,
   maxConversion,
-  scenarios = [],
 }: {
   points: LevenspielPoint[];
-  cstrOperatingPoint: OperatingPoint;
-  pfrOperatingPoint: OperatingPoint;
+  cstrOperatingPoint: OperatingPoint | null;
+  pfrOperatingPoint: OperatingPoint | null;
   maxConversion: number;
-  scenarios?: ScenarioChip[];
 }) {
+  if (!cstrOperatingPoint || !pfrOperatingPoint) {
+    return null;
+  }
+
   const sortedPoints = [...points].sort((left, right) => left.conversion - right.conversion);
   const maxVolume = Math.max(
     cstrOperatingPoint.volume,
@@ -116,7 +113,7 @@ export function LevenspielChart({
   return (
     <div
       aria-label="Diagrama de Levenspiel"
-      className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
+      className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
       data-testid="levenspiel-chart"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -234,28 +231,6 @@ export function LevenspielChart({
         />
       </div>
 
-      {scenarios.length > 0 ? (
-        <div className="border-t border-slate-200 pt-3" data-testid="saved-scenarios">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
-            Cenários salvos
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {scenarios.map((scenario) => (
-              <span
-                key={scenario.id}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
-                data-testid="saved-scenario"
-              >
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: scenario.color }}
-                />
-                {scenario.name}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

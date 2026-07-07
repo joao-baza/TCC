@@ -155,6 +155,13 @@ function renderBalancePage() {
   render(<RouterProvider router={router} />);
 }
 
+async function openBalanceTab(name: string | RegExp) {
+  fireEvent.click(screen.getByRole("tab", { name }));
+  await waitFor(() => {
+    expect(screen.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
+  });
+}
+
 describe("BalancePage", () => {
   beforeEach(() => {
     fetchMock.mockReset();
@@ -167,41 +174,44 @@ describe("BalancePage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows the didactic accordion, loads the worked example, calculates balance and yields, and renders the frontend stream graph", async () => {
+  it("shows the didactic accordion, loads the worked example, calculates balance and yields", async () => {
     mockBalanceRequests();
     renderBalancePage();
 
     expect(
       await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
     ).toBeInTheDocument();
+
+    await openBalanceTab(/^Ações$/i);
     expect(
       screen.getByRole("button", { name: /Como funciona - Balanço de Massa/i }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
+    await openBalanceTab(/^Correntes$/i);
     expect(await screen.findByDisplayValue("Alimentacao_Fresca")).toBeInTheDocument();
     expect(screen.getAllByDisplayValue("Saida_Do_Reator").length).toBeGreaterThan(0);
+    await openBalanceTab(/^Splits \/ Reciclo$/i);
     expect(screen.getByDisplayValue("0.6")).toBeInTheDocument();
 
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular Balanço de Massa/i }));
 
+    await openBalanceTab(/^Resultados$/i);
     expect(await screen.findByText(/Taxa de reciclo/i)).toBeInTheDocument();
-    expect(screen.getByTestId("stream-graph")).toBeInTheDocument();
-    expect(screen.getByTestId("process-sankey")).toBeInTheDocument();
-    expect(screen.getByTestId("ternary-diagram")).toBeInTheDocument();
-    expect(screen.getByTestId("recycle-purge-map")).toBeInTheDocument();
-    expect(screen.getByTestId("stream-table")).toBeInTheDocument();
     expect(screen.getAllByText(/Alimentacao_Fresca/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Reciclo/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Produto/i).length).toBeGreaterThan(0);
 
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular Rendimentos/i }));
+    await openBalanceTab(/^Rendimentos$/i);
     expect(await screen.findByText(/C a partir de A/i)).toBeInTheDocument();
     expect(screen.getByText(/81.25%/i)).toBeInTheDocument();
   });
 
-  it("shows saved exploratory scenarios in the stream graph", async () => {
+  it("generates the balance results from the dedicated action button", async () => {
     mockBalanceRequests();
     renderBalancePage();
 
@@ -209,39 +219,14 @@ describe("BalancePage", () => {
       await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
-    const template = screen.getByRole("combobox", { name: /Modo Exploratório/i });
-    fireEvent.focus(template);
-    fireEvent.change(template, { target: { value: "simples" } });
-    fireEvent.keyDown(template, { key: "Enter", code: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: /Calcular Balanço de Massa/i }));
-
-    expect(await screen.findByText(/Taxa de reciclo/i)).toBeInTheDocument();
-    expect(screen.getByTestId("stream-graph")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /Salvar cenário/i }));
-
-    const graph = screen.getByTestId("stream-graph");
-    expect(within(graph).getByTestId("saved-scenarios")).toBeInTheDocument();
-    expect(within(graph).getAllByTestId("saved-scenario")).toHaveLength(1);
-    expect(within(graph).getByTestId("saved-scenario")).toHaveTextContent(/R=/i);
-  });
-
-  it("generates the stream graph from the dedicated action button", async () => {
-    mockBalanceRequests();
-    renderBalancePage();
-
-    expect(
-      await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
-    ).toBeInTheDocument();
-
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
     fireEvent.click(screen.getByRole("button", { name: /Gerar Gráfico de Correntes/i }));
 
-    const graph = await screen.findByTestId("stream-graph");
-    expect(graph).toBeInTheDocument();
-    expect(within(graph).getByText(/Alimentacao_Fresca/i)).toBeInTheDocument();
-    expect(within(graph).getByText(/Reciclo/i)).toBeInTheDocument();
+    await openBalanceTab(/^Resultados$/i);
+    expect(await screen.findByText(/Taxa de reciclo/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Alimentacao_Fresca/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Reciclo/i).length).toBeGreaterThan(0);
   });
 
   it("shows a success notification when loading the worked example", async () => {
@@ -266,22 +251,28 @@ describe("BalancePage", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
     ).toBeInTheDocument();
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular Balanço de Massa/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Calcular Rendimentos/i }));
-
+    await openBalanceTab(/^Resultados$/i);
     expect(await screen.findByText(/Taxa de reciclo/i)).toBeInTheDocument();
-    expect(await screen.findByText(/C a partir de A/i)).toBeInTheDocument();
-    expect(screen.getByTestId("stream-graph")).toBeInTheDocument();
 
+    await openBalanceTab(/^Ações$/i);
+    fireEvent.click(screen.getByRole("button", { name: /Calcular Rendimentos/i }));
+    await openBalanceTab(/^Rendimentos$/i);
+    expect(await screen.findByText(/C a partir de A/i)).toBeInTheDocument();
+
+    await openBalanceTab(/^Splits \/ Reciclo$/i);
     fireEvent.change(screen.getByLabelText(/Fração de reciclo \(0-1\)/i), {
       target: { value: "0.5" },
     });
 
+    await openBalanceTab(/^Resultados$/i);
     expect(screen.queryByText(/Taxa de reciclo/i)).not.toBeInTheDocument();
+    await openBalanceTab(/^Rendimentos$/i);
     expect(screen.queryByText(/C a partir de A/i)).not.toBeInTheDocument();
-    expect(screen.queryByTestId("stream-graph")).not.toBeInTheDocument();
   });
 
   it("ignores delayed balance responses after dependent input edits", async () => {
@@ -291,9 +282,12 @@ describe("BalancePage", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
     ).toBeInTheDocument();
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular Balanço de Massa/i }));
+    await openBalanceTab(/^Splits \/ Reciclo$/i);
     fireEvent.change(screen.getByLabelText(/Fração de reciclo \(0-1\)/i), {
       target: { value: "0.5" },
     });
@@ -324,7 +318,6 @@ describe("BalancePage", () => {
 
     await waitFor(() => {
       expect(screen.queryByText(/Taxa de reciclo/i)).not.toBeInTheDocument();
-      expect(screen.queryByTestId("stream-graph")).not.toBeInTheDocument();
     });
   });
 
@@ -351,58 +344,6 @@ describe("BalancePage", () => {
     });
   });
 
-  it("shows the exploratory panel and applies the recycle template", async () => {
-    mockBalanceRequests();
-    renderBalancePage();
-
-    expect(
-      await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: /Painel Exploratório/i })).toBeInTheDocument();
-
-    const template = screen.getByRole("combobox", { name: /Modo Exploratório/i });
-    fireEvent.focus(template);
-    fireEvent.change(template, { target: { value: "reciclo" } });
-    fireEvent.keyDown(template, { key: "Enter", code: "Enter" });
-
-    expect(await screen.findByDisplayValue("Alimentacao_Fresca")).toBeInTheDocument();
-    expect(screen.getAllByDisplayValue("Reciclo").length).toBeGreaterThan(0);
-    expect(screen.getAllByDisplayValue("Produto").length).toBeGreaterThan(0);
-    expect(screen.getAllByDisplayValue("0.5").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Roteiro de exploração/i)).toBeInTheDocument();
-  });
-
-  it("clears balance outputs when the exploratory recycle slider changes", async () => {
-    mockBalanceRequests();
-    renderBalancePage();
-
-    expect(
-      await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
-    const template = screen.getByRole("combobox", { name: /Modo Exploratório/i });
-    fireEvent.focus(template);
-    fireEvent.change(template, { target: { value: "reciclo" } });
-    fireEvent.keyDown(template, { key: "Enter", code: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: /Calcular Balanço de Massa/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Calcular Rendimentos/i }));
-
-    expect(await screen.findByText(/Taxa de reciclo/i)).toBeInTheDocument();
-    expect(await screen.findByText(/C a partir de A/i)).toBeInTheDocument();
-    expect(screen.getByTestId("stream-graph")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByRole("slider", { name: /Razao de reciclo/i }), {
-      target: { value: "0.6" },
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByText(/Alimentação fresca/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/C a partir de A/i)).not.toBeInTheDocument();
-      expect(screen.queryByTestId("stream-graph")).not.toBeInTheDocument();
-    });
-  });
-
   it("shows an error notification when the mass balance calculation fails", async () => {
     mockBalanceRequests({ balanceError: "Falha no backend do balanço" });
     renderBalancePage();
@@ -411,7 +352,9 @@ describe("BalancePage", () => {
       await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
     ).toBeInTheDocument();
 
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular Balanço de Massa/i }));
 
     await waitFor(() => {
@@ -429,7 +372,9 @@ describe("BalancePage", () => {
       await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
     ).toBeInTheDocument();
 
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
+    await openBalanceTab(/^Ações$/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular Rendimentos/i }));
 
     await waitFor(() => {
