@@ -199,14 +199,14 @@ class TestHydraulicComprehensive:
 
     def test_hydraulic_diameter_shapes(self, hydraulic):
         # Rectangular
-        res = hydraulic.hydraulic_diameter({"shape": "rectangular", "width": 100, "height": 50})
-        # 4A/P = 4(5000)/300 = 200/3 = 66.66
-        assert pytest.approx(res.magnitude, 0.1) == 66.666
+        res = hydraulic.hydraulic_diameter({"shape": "rectangular", "width": 0.1, "height": 0.05})
+        # 4A/P = 4(0.005)/0.3 = 0.06666 m
+        assert res.magnitude == pytest.approx(0.06666666666666667, rel=1e-6)
 
         # Annular
-        res = hydraulic.hydraulic_diameter({"shape": "annular", "outer_diameter": 100, "inner_diameter": 50})
-        # Do - Di = 50
-        assert res.magnitude == 50
+        res = hydraulic.hydraulic_diameter({"shape": "annular", "outer_diameter": 0.1, "inner_diameter": 0.05})
+        # Do - Di = 0.05 m
+        assert res.magnitude == 0.05
 
     def test_get_calculated_diameter(self, hydraulic):
         # D = sqrt(4Q / pi V)
@@ -308,31 +308,31 @@ class TestHydraulicEdgeCases:
     def test_hydraulic_diameter_annular_inner_equals_outer_raises(self, hydraulic):
         with pytest.raises(ValueError, match="Inner diameter must be smaller"):
             hydraulic.hydraulic_diameter(
-                {"shape": "annular", "outer_diameter": 100, "inner_diameter": 100}
+                {"shape": "annular", "outer_diameter": 0.1, "inner_diameter": 0.1}
             )
 
     def test_hydraulic_diameter_annular_inner_gt_outer_raises(self, hydraulic):
         with pytest.raises(ValueError, match="Inner diameter must be smaller"):
             hydraulic.hydraulic_diameter(
-                {"shape": "annular", "outer_diameter": 50, "inner_diameter": 100}
+                {"shape": "annular", "outer_diameter": 0.05, "inner_diameter": 0.1}
             )
 
     def test_hydraulic_diameter_degenerate_triangle_raises(self, hydraulic):
         with pytest.raises(ValueError, match="Invalid triangle"):
             hydraulic.hydraulic_diameter(
-                {"shape": "triangular", "side_a": 1, "side_b": 2, "side_c": 10}
+                {"shape": "triangular", "side_a": 0.1, "side_b": 0.2, "side_c": 1.0}
             )
 
     def test_hydraulic_diameter_circular_cap_zero_height_raises(self, hydraulic):
         with pytest.raises(ValueError, match="Height must be greater than 0"):
             hydraulic.hydraulic_diameter(
-                {"shape": "circularCap", "diameter": 100, "height": 0}
+                {"shape": "circularCap", "diameter": 0.1, "height": 0}
             )
 
     def test_hydraulic_diameter_circular_cap_height_gt_diameter_raises(self, hydraulic):
         with pytest.raises(ValueError, match="Height cannot be greater than diameter"):
             hydraulic.hydraulic_diameter(
-                {"shape": "circularCap", "diameter": 50, "height": 60}
+                {"shape": "circularCap", "diameter": 0.05, "height": 0.06}
             )
 
     def test_hydraulic_diameter_invalid_shape_raises(self, hydraulic):
@@ -340,7 +340,7 @@ class TestHydraulicEdgeCases:
             hydraulic.hydraulic_diameter({"shape": "hexagonal", "diameter": 100})
 
     def test_hydraulic_diameter_rectangular_zero_dimensions(self, hydraulic):
-        result = hydraulic.hydraulic_diameter({"shape": "rectangular", "width": 0, "height": 50})
+        result = hydraulic.hydraulic_diameter({"shape": "rectangular", "width": 0, "height": 0.05})
         assert result.magnitude == 0
 
     def test_hydraulic_diameter_circular_zero_diameter(self, hydraulic):
@@ -348,18 +348,27 @@ class TestHydraulicEdgeCases:
         assert result.magnitude == 0
 
     def test_hydraulic_diameter_triangular_valid(self, hydraulic):
-        """Equilateral triangle has hydraulic diameter side / sqrt(3)."""
+        """Equilateral triangle has hydraulic diameter side / sqrt(3) in meters."""
         result = hydraulic.hydraulic_diameter(
-            {"shape": "triangular", "side_a": 100, "side_b": 100, "side_c": 100}
+            {"shape": "triangular", "side_a": 0.1, "side_b": 0.1, "side_c": 0.1}
         )
-        assert result.magnitude == pytest.approx(100 / (3 ** 0.5), rel=1e-6)
+        assert result.magnitude == pytest.approx(0.1 / (3 ** 0.5), rel=1e-6)
 
     def test_hydraulic_diameter_circular_cap_valid(self, hydraulic):
-        """Valid circular cap (height < diameter) returns a positive diameter."""
+        """Valid circular cap (height < diameter) returns a positive diameter in meters."""
         result = hydraulic.hydraulic_diameter(
-            {"shape": "circularCap", "diameter": 100, "height": 30}
+            {"shape": "circularCap", "diameter": 0.1, "height": 0.03}
         )
-        assert result.magnitude == pytest.approx(84.354, abs=0.1)
+        assert result.magnitude == pytest.approx(0.038187, abs=1e-6)
+        assert str(result.units) == "meter"
+
+    def test_hydraulic_diameter_circular_cap_full_pipe_matches_circular(self, hydraulic):
+        """A fully filled circular cap must reduce to the circular diameter in meters."""
+        result = hydraulic.hydraulic_diameter(
+            {"shape": "circularCap", "diameter": 1.0, "height": 1.0}
+        )
+        assert result.magnitude == pytest.approx(1.0, rel=1e-6)
+        assert str(result.units) == "meter"
 
 
 class TestHydraulicHead:

@@ -5,17 +5,17 @@ from typing import Any
 
 ERROR_TRANSLATIONS = {
     "Either dynamic viscosity or kinematic viscosity must be provided": "Informe a viscosidade dinâmica ou a viscosidade cinemática.",
-    "Shape must be 'circular', 'rectangular', 'annular', 'triangular', or 'circularCap'": "A forma deve ser 'circular', 'rectangular', 'annular', 'triangular' ou 'circularCap'.",
+    "Shape must be 'circular', 'rectangular', 'annular', 'triangular', or 'circularCap'": "A forma deve ser 'circular', 'retangular', 'anelar', 'triangular' ou 'canal circular'.",
     "Diameter is required for circular shape": "Informe o diâmetro para a forma circular.",
     "Width is required for rectangular shape": "Informe a largura para a forma retangular.",
     "Height is required for rectangular shape": "Informe a altura para a forma retangular.",
-    "Outer diameter is required for annular shape": "Informe o diâmetro externo para a forma anular.",
-    "Inner diameter is required for annular shape": "Informe o diâmetro interno para a forma anular.",
+    "Outer diameter is required for annular shape": "Informe o diâmetro externo para a forma anelar.",
+    "Inner diameter is required for annular shape": "Informe o diâmetro interno para a forma anelar.",
     "Side A is required for triangular shape": "Informe o lado A para a forma triangular.",
     "Side B is required for triangular shape": "Informe o lado B para a forma triangular.",
     "Side C is required for triangular shape": "Informe o lado C para a forma triangular.",
-    "Diameter is required for circular cap": "Informe o diâmetro para a tampa circular.",
-    "Height is required for circular cap": "Informe a altura para a tampa circular.",
+    "Diameter is required for circular cap": "Informe o diâmetro para o canal circular.",
+    "Height is required for circular cap": "Informe a altura para o canal circular.",
     "Input type must be 'conversion_and_kinetics', 'volume_and_kinetics', or 'residence_time_and_kinetics'": "O tipo de cálculo deve ser 'conversion_and_kinetics', 'volume_and_kinetics' ou 'residence_time_and_kinetics'.",
     "Reaction rate parameters must include 'k'": "Os parâmetros da taxa de reação devem incluir 'k'.",
     "Reaction rate parameters must include 'reaction_orders'": "Os parâmetros da taxa de reação devem incluir 'reaction_orders'.",
@@ -29,13 +29,22 @@ ERROR_TRANSLATIONS = {
     "Method for calculating friction factor": "Método para calcular o fator de atrito",
     "Invalid method. Use \"Darcy-Weisbach\" or \"Hazen-Williams\".": "Método inválido. Use \"Darcy-Weisbach\" ou \"Hazen-Williams\".",
     "Invalid friction factor method.": "Método de fator de atrito inválido.",
-    "Invalid shape. Use 'circular', 'rectangular', 'annular', 'triangular', or 'circularCap'.": "Forma inválida. Use 'circular', 'rectangular', 'annular', 'triangular' ou 'circularCap'.",
+    "Invalid shape. Use 'circular', 'rectangular', 'annular', 'triangular', or 'circularCap'.": "Forma inválida. Use 'circular', 'retangular', 'anelar', 'triangular' ou 'canal circular'.",
     "Colebrook equation solver failed to converge.": "O solucionador da equação de Colebrook não convergiu.",
     "Use only liquid or only gaseous components": "Use apenas componentes líquidos ou apenas gasosos.",
     "Components and stoichiometric coefficients must have the same length.": "Os componentes e os coeficientes estequiométricos devem ter o mesmo comprimento.",
     "No limiting reagent found. Check stoichiometric coefficients and components.": "Nenhum reagente limitante foi encontrado. Verifique os coeficientes estequiométricos e os componentes.",
     "The reaction rate cannot be zero.": "A taxa de reação não pode ser zero.",
     "Failed to converge to a valid conversion value.": "Não foi possível convergir para um valor válido de conversão.",
+    "Either 'conversion' or 'X' must be provided.": "Informe 'conversion' ou 'X'.",
+    "Negative flow rate detected in stream": "Vazão negativa detectada na corrente",
+    "Negative composition detected for component": "Composição negativa detectada para o componente",
+    "The component fractions in stream": "As frações dos componentes na corrente",
+    "do not sum to approximately 1": "não somam aproximadamente 1",
+    "Missing flow rate for stream": "Vazão ausente na corrente",
+    "Missing compositions for stream": "Composições ausentes na corrente",
+    "The system is underdetermined": "O sistema está subdeterminado",
+    "Check the degrees of freedom.": "Verifique os graus de liberdade.",
     "Temperature max must be greater than temperature min.": "A temperatura máxima deve ser maior que a temperatura mínima.",
     "Pressure max must be greater than pressure min.": "A pressão máxima deve ser maior que a pressão mínima.",
     "Unsupported property for the surface map.": "Propriedade não suportada para o mapa de superfície.",
@@ -77,9 +86,9 @@ METHOD_LABELS = {
 SHAPE_LABELS = {
     "circular": "Circular",
     "rectangular": "Retangular",
-    "annular": "Anular",
+    "annular": "Anelar",
     "triangular": "Triangular",
-    "circularCap": "Tampa circular",
+    "circularCap": "Canal circular",
 }
 
 REACTOR_TYPE_LABELS = {
@@ -135,7 +144,7 @@ def translate_error_message(message: str) -> str:
     for source, translation in ERROR_TRANSLATIONS.items():
         if source == "Fluid '{fluid}' not found" and "Fluid '" in trimmed and " not found" in trimmed:
             return trimmed.replace("Fluid '", "Fluido '").replace(" not found", " não encontrado")
-        if source in trimmed and trimmed.startswith(source):
+        if source in trimmed:
             return trimmed.replace(source, translation, 1)
 
     return trimmed

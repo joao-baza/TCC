@@ -9,7 +9,7 @@ from schemas import (
     ReynoldsRequest,
 )
 from .utils import serialize
-from .i18n import catalog_options
+from .i18n import SHAPE_LABELS, catalog_options
 
 router = APIRouter(prefix="/flow", tags=["Flow"])
 hydraulic = Hydraulic()
@@ -35,6 +35,11 @@ FLOW_EXAMPLE_RESPONSE = {
         "diameter_source": "custom",
         "custom_diameter": 13.843,
     },
+    "hydraulic_diameter": {
+        "shape": "circularCap",
+        "diameter": 0.125,
+        "height": 0.08333,
+    },
 }
 
 def validate_flow_example_catalogs() -> None:
@@ -48,11 +53,6 @@ def validate_flow_example_catalogs() -> None:
 @router.get("/example", response_model=FlowExampleResponse)
 def get_flow_example():
     return FLOW_EXAMPLE_RESPONSE
-
-
-@router.on_event("startup")
-def validate_flow_example_catalogs_on_startup() -> None:
-    validate_flow_example_catalogs()
 
 
 @router.post("/reynolds")
@@ -103,16 +103,7 @@ def calculate_friction_factor(payload: FrictionFactorRequest):
 
 @router.get("/hydraulic-diameter/shapes")
 def get_hydraulic_diameter_shapes():
-    return catalog_options(
-        hydraulic.hydraulic_diameter({}),
-        {
-            "circular": "Circular",
-            "rectangular": "Retangular",
-            "annular": "Anular",
-            "triangular": "Triangular",
-            "circularCap": "Tampa circular",
-        },
-    )
+    return catalog_options(hydraulic.hydraulic_diameter({}), SHAPE_LABELS)
 
 
 @router.post("/hydraulic-diameter")
@@ -122,7 +113,7 @@ def calculate_hydraulic_diameter(payload: HydraulicDiameterRequest):
             "shape": payload.shape
         }
         
-        # Add parameters based on shape
+        # Add parameters based on shape; this endpoint works in meters.
         if payload.shape == "circular":
             params["diameter"] = payload.diameter
         

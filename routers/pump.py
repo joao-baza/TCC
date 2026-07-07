@@ -1,11 +1,71 @@
 from fastapi import APIRouter, HTTPException
 from models.hydraulic import Hydraulic
-from schemas import HeadLossRequest, NPSHAvailableRequest, HeadRequest
+from schemas import (
+    HeadLossRequest,
+    HeadRequest,
+    NPSHAvailableRequest,
+    PumpExampleResponse,
+)
 from .utils import serialize
 from .i18n import catalog_options
 
 router = APIRouter(prefix="/pump", tags=["Pump"])
 hydraulic = Hydraulic()
+
+
+def validate_pump_example_catalogs() -> None:
+    if "Aço galvanizado" not in hydraulic.piping.compositions():
+        raise RuntimeError("Composition 'Aço galvanizado' not found")
+    available_fittings = set(hydraulic.piping.fittings())
+    for fitting in ("Cotovelo 45°", "Saída de tanque", "Válvula de esfera"):
+        if fitting not in available_fittings:
+            raise RuntimeError(f"Fitting '{fitting}' not found")
+    available_methods = hydraulic.friction_factor({})
+    if "SwameeJain" not in available_methods:
+        raise RuntimeError("Friction method 'SwameeJain' not found")
+
+
+@router.get("/example", response_model=PumpExampleResponse)
+def get_pump_example():
+    validate_pump_example_catalogs()
+    return {
+        "headloss": {
+            "method": "Darcy-Weisbach",
+            "pipe_length": 100,
+            "diameter": 125,
+            "flow_rate": 0.04,
+            "velocity": 3.259493234522017,
+            "reynolds": 3186.1046722863807,
+            "friction_factor": 0.04495094389484752,
+            "friction_method": "SwameeJain",
+            "composition": "Aço galvanizado",
+            "fittings": [
+                {"fitting": "Cotovelo 45°", "quantity": 5},
+                {"fitting": "Saída de tanque", "quantity": 1},
+                {"fitting": "Válvula de esfera", "quantity": 2},
+            ],
+        },
+        "npsh": {
+            "manometric_pressure": 0,
+            "atmospheric_pressure": 1.033,
+            "vapor_pressure": 0.023,
+            "density": 1000,
+            "friction_factor": 10,
+            "pump_inlet_velocity": 1.5,
+            "gauge_elevation": 3,
+            "required": 3,
+        },
+        "head": {
+            "pressure1": 101325,
+            "pressure2": 101325,
+            "elevation1": 0,
+            "elevation2": 5,
+            "velocity1": 0,
+            "velocity2": 3,
+            "density": 1000,
+            "friction_factor": 2.55887,
+        },
+    }
 
 
 @router.get("/headloss/methods")

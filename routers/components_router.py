@@ -3,6 +3,7 @@ import numpy as np
 from fastapi import APIRouter, HTTPException
 from models.components import Components
 from schemas import (
+    ComponentsExampleResponse,
     BinaryVLERequest,
     FluidRequest,
     MixturePropertiesRequest,
@@ -29,6 +30,39 @@ PROPERTY_SURFACE_META = {
 }
 
 
+def validate_components_example_catalogs() -> None:
+    available_components = set(components_obj.list_all_components())
+    available_properties = set(components_obj.get_property_names().keys())
+    available_mixture_properties = set(components_obj.get_property_mixture_names().keys())
+
+    required_components = {
+        "Air",
+        "Acetone",
+        "Ethanol",
+        "Methanol",
+        "R1234ze(E)",
+        "Water",
+    }
+    required_properties = {"C", "D", "V", "Z", "M"}
+    required_mixture_properties = {"D", "M", "V", "C"}
+
+    missing_components = sorted(required_components - available_components)
+    missing_properties = sorted(required_properties - available_properties)
+    missing_mixture_properties = sorted(required_mixture_properties - available_mixture_properties)
+
+    if missing_components or missing_properties or missing_mixture_properties:
+        details = []
+        if missing_components:
+            details.append(f"Missing components: {', '.join(missing_components)}")
+        if missing_properties:
+            details.append(f"Missing properties: {', '.join(missing_properties)}")
+        if missing_mixture_properties:
+            details.append(
+                f"Missing mixture properties: {', '.join(missing_mixture_properties)}"
+            )
+        raise RuntimeError("; ".join(details))
+
+
 @router.get("/list")
 def list_components():
     return catalog_options(components_obj.list_all_components())
@@ -42,6 +76,65 @@ def get_property_names():
 @router.get("/property-mixture-names")
 def get_property_mixture_names():
     return components_obj.get_property_mixture_names()
+
+
+@router.get("/example", response_model=ComponentsExampleResponse)
+def get_components_example():
+    validate_components_example_catalogs()
+    return {
+        "pure_fluid": {
+            "fluid": "Air",
+            "property_names": ["C", "D", "V", "Z", "M"],
+            "temperature": 353.15,
+            "pressure": 101325,
+        },
+        "mixtures": {
+            "fluid_fractions": {
+                "Water": 0.7,
+                "Ethanol": 0.29,
+                "Methanol": 0.01,
+            },
+            "temperature": 303.15,
+            "pressure": 101325,
+            "properties": ["D", "M", "V", "C"],
+        },
+        "ternary_diagram": {
+            "component_a": "Water",
+            "component_b": "Ethanol",
+            "component_c": "Methanol",
+            "fraction_a": 0.7,
+            "fraction_b": 0.29,
+            "fraction_c": 0.1,
+        },
+        "binary_vle": {
+            "fluid1": "Acetone",
+            "fluid2": "Water",
+            "pressure": 101325,
+            "sample_count": 30,
+        },
+        "mccabe_thiele": {
+            "distillate_composition": 0.95,
+            "bottoms_composition": 0.05,
+            "feed_composition": 0.7,
+            "reflux_ratio": 3,
+            "q_value": 1,
+            "max_stages": 10,
+        },
+        "property_surface": {
+            "fluid": "Ethanol",
+            "property_name": "C",
+            "temperature_min": 263.15,
+            "temperature_max": 383.15,
+            "pressure_min": 50662.5,
+            "pressure_max": 101326,
+            "temperature_samples": 20,
+            "pressure_samples": 20,
+        },
+        "phase_envelope": {
+            "fluid": "R1234ze(E)",
+            "sample_count": 40,
+        },
+    }
 
 
 @router.post("/critical-properties")
