@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from models import Hydraulic
+from models.hydraulic import Hydraulic
 from schemas import HeadLossRequest, NPSHAvailableRequest, HeadRequest
 from .utils import serialize
+from .i18n import catalog_options
 
 router = APIRouter(prefix="/pump", tags=["Pump"])
 hydraulic = Hydraulic()
@@ -9,7 +10,13 @@ hydraulic = Hydraulic()
 
 @router.get("/headloss/methods")
 def get_headloss_methods():
-    return hydraulic.head_loss({})
+    return catalog_options(
+        hydraulic.head_loss({}),
+        {
+            "Darcy-Weisbach": "Darcy-Weisbach",
+            "Hazen-Williams": "Hazen-Williams",
+        },
+    )
 
 
 @router.post("/headloss")

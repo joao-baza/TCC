@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from models import Hydraulic
+from models.hydraulic import Hydraulic
 from schemas import CalculatedDiameterRequest, RealDiameterRequest
 from .utils import serialize
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
-from models import Piping
+from models.piping import Piping
 from .utils import serialize
+from .i18n import catalog_options, option
 
 router = APIRouter(prefix="/piping", tags=["Piping"])
 piping = Piping()
@@ -8,7 +9,7 @@ piping = Piping()
 
 @router.get("/compositions")
 def get_compositions():
-    return piping.compositions()
+    return catalog_options(piping.compositions())
 
 
 @router.get("/composition/{name}")
@@ -23,7 +24,15 @@ def get_composition_specifications(name: str):
 @router.get("/schedules")
 def get_schedules():
     # Returns an array of schedules with their available diameters
-    return piping.schedules()
+    return [
+        option(
+            schedule["name"],
+            schedule["name"].replace("SCH", "Schedule "),
+            diameters=schedule["diameters"],
+            description=schedule["description"],
+        )
+        for schedule in piping.schedules()
+    ]
 
 
 @router.get("/schedule/{schedule}/diameters")
@@ -45,7 +54,7 @@ def get_schedule_diameter_specifications(schedule: str, diameter: float):
 
 @router.get("/fittings")
 def get_fittings():
-    return piping.fittings()
+    return catalog_options(piping.fittings())
 
 
 @router.get("/fitting/{name}")

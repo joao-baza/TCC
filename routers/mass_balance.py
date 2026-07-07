@@ -7,7 +7,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-from models import MassBalance
+from models.mass_balance import MassBalance
 from schemas import MassBalanceRequest
 
 router = APIRouter(prefix="/mass-balance", tags=["Mass Balance"])
@@ -63,16 +63,22 @@ def calculate_mass_balance(payload: MassBalanceRequest):
             
             # Extra safety check for negative values - check again explicitly
             for stream_name, stream_data in results.items():
-                if stream_data["flow_rate"] < 0:
-                    raise ValueError(f"Negative flow rate detected for stream '{stream_name}': {stream_data['flow_rate']}")
+                if stream_data["vazao"] < 0:
+                    raise ValueError(f"Vazão negativa detectada na corrente '{stream_name}': {stream_data['vazao']}")
                 
-                for component, fraction in stream_data["compositions"].items():
+                for component, fraction in stream_data["composicoes"].items():
                     if fraction < 0:
-                        raise ValueError(f"Negative composition detected for component '{component}' in stream '{stream_name}': {fraction}")
+                        raise ValueError(
+                            f"Composição negativa detectada para o componente '{component}' na corrente "
+                            f"'{stream_name}': {fraction}"
+                        )
                 
-                sum_fractions = sum(stream_data["compositions"].values())
+                sum_fractions = sum(stream_data["composicoes"].values())
                 if not (0.99 <= sum_fractions <= 1.01):
-                    raise ValueError(f"Component fractions in stream '{stream_name}' do not sum to approximately 1: {sum_fractions}")
+                    raise ValueError(
+                        f"As frações dos componentes na corrente '{stream_name}' não somam aproximadamente 1: "
+                        f"{sum_fractions}"
+                    )
             
             # Fail fast if validation failed
             if not is_valid:
@@ -83,31 +89,44 @@ def calculate_mass_balance(payload: MassBalanceRequest):
             
             # Try to calculate common metrics if we have typical stream names
             try:
-                feed_streams = [s for s in payload.streams if "feed" in s.name.lower() and s.direction == 1]
-                product_streams = [s for s in payload.streams if "product" in s.name.lower() and s.direction == -1]
-                recycle_streams = [s for s in payload.streams if "recycle" in s.name.lower() and s.direction == 1]
+                feed_streams = [
+                    s
+                    for s in payload.streams
+                    if s.direction == 1
+                    and any(token in s.name.lower() for token in ("feed", "alimentacao", "alimentação"))
+                ]
+                product_streams = [
+                    s
+                    for s in payload.streams
+                    if s.direction == -1 and any(token in s.name.lower() for token in ("product", "produto"))
+                ]
+                recycle_streams = [
+                    s
+                    for s in payload.streams
+                    if s.direction == 1 and any(token in s.name.lower() for token in ("recycle", "reciclo"))
+                ]
                 
                 if feed_streams and product_streams:
                     feed_stream = feed_streams[0].name
                     product_stream = product_streams[0].name
                     
-                    fresh_feed = results[feed_stream]["flow_rate"]
-                    product_flow = results[product_stream]["flow_rate"]
+                    fresh_feed = results[feed_stream]["vazao"]
+                    product_flow = results[product_stream]["vazao"]
                     
-                    metrics["fresh_feed"] = fresh_feed
-                    metrics["product_flow"] = product_flow
+                    metrics["alimentacao_fresca"] = fresh_feed
+                    metrics["vazao_produto"] = product_flow
                     
                     if recycle_streams:
                         recycle_stream = recycle_streams[0].name
-                        recycle_ratio = results[recycle_stream]["flow_rate"] / fresh_feed
-                        metrics["recycle_ratio"] = recycle_ratio
-            except Exception as e:
+                        recycle_ratio = results[recycle_stream]["vazao"] / fresh_feed
+                        metrics["taxa_reciclo"] = recycle_ratio
+            except Exception:
                 # If we can't calculate metrics, just continue without them
                 pass
                 
             return {
-                "results": results,
-                "metrics": metrics
+                "resultados": results,
+                "metricas": metrics
             }
         except ValueError as validation_error:
             # Catch and properly raise validation errors
@@ -170,16 +189,22 @@ def plot_mass_balance(payload: MassBalanceRequest):
             
             # Extra safety check for negative values - check again explicitly
             for stream_name, stream_data in results.items():
-                if stream_data["flow_rate"] < 0:
-                    raise ValueError(f"Negative flow rate detected for stream '{stream_name}': {stream_data['flow_rate']}")
+                if stream_data["vazao"] < 0:
+                    raise ValueError(f"Vazão negativa detectada na corrente '{stream_name}': {stream_data['vazao']}")
                 
-                for component, fraction in stream_data["compositions"].items():
+                for component, fraction in stream_data["composicoes"].items():
                     if fraction < 0:
-                        raise ValueError(f"Negative composition detected for component '{component}' in stream '{stream_name}': {fraction}")
+                        raise ValueError(
+                            f"Composição negativa detectada para o componente '{component}' na corrente "
+                            f"'{stream_name}': {fraction}"
+                        )
                 
-                sum_fractions = sum(stream_data["compositions"].values())
+                sum_fractions = sum(stream_data["composicoes"].values())
                 if not (0.99 <= sum_fractions <= 1.01):
-                    raise ValueError(f"Component fractions in stream '{stream_name}' do not sum to approximately 1: {sum_fractions}")
+                    raise ValueError(
+                        f"As frações dos componentes na corrente '{stream_name}' não somam aproximadamente 1: "
+                        f"{sum_fractions}"
+                    )
             
             # Fail fast if validation failed
             if not is_valid:
@@ -190,12 +215,12 @@ def plot_mass_balance(payload: MassBalanceRequest):
             
             # Get stream names and flow rates
             streams = list(results.keys())
-            flow_rates = [results[s]["flow_rate"] for s in streams]
+            flow_rates = [results[s]["vazao"] for s in streams]
             
             # Plot flow rates
             ax1.bar(streams, flow_rates, color='skyblue')
-            ax1.set_title('Stream Flow Rates')
-            ax1.set_ylabel('Flow Rate (mass or mol/time)')
+            ax1.set_title('Vazões das correntes')
+            ax1.set_ylabel('Vazão (massa ou mol/tempo)')
             ax1.tick_params(axis='x', rotation=45)
             
             # Plot compositions for each stream
@@ -207,13 +232,13 @@ def plot_mass_balance(payload: MassBalanceRequest):
             offsets = np.linspace(-0.3, 0.3, len(components))
             
             for i, comp in enumerate(components):
-                comp_values = [results[s]["compositions"][comp] for s in streams]
+                comp_values = [results[s]["composicoes"][comp] for s in streams]
                 ax2.bar(x + offsets[i], comp_values, width, label=comp, color=colors[i % len(colors)])
             
-            ax2.set_title('Stream Compositions')
+            ax2.set_title('Composições das correntes')
             ax2.set_xticks(x)
             ax2.set_xticklabels(streams, rotation=45)
-            ax2.set_ylabel('Mass or Molar Fraction')
+            ax2.set_ylabel('Fração mássica ou molar')
             ax2.set_ylim(0, 1)
             ax2.legend()
             
@@ -221,8 +246,8 @@ def plot_mass_balance(payload: MassBalanceRequest):
             
             # Add a text annotation explaining units
             fig.text(0.5, 0.01, 
-                    'Note: Flow rates can be in any mass or molar units (consistent throughout).\n'
-                    'Compositions are mass fractions when using mass flow units or molar fractions when using molar flow units.',
+                    'Observação: as vazões podem estar em qualquer unidade de massa ou molar (desde que consistente).\n'
+                    'As composições são frações mássicas quando se usam vazões mássicas ou frações molares quando se usam vazões molares.',
                     ha='center', fontsize=8, style='italic')
             
             # Save the figure to a BytesIO object and encode as base64
@@ -235,7 +260,7 @@ def plot_mass_balance(payload: MassBalanceRequest):
             
             plt.close(fig)  # Close figure to free memory
             
-            return {"image_base64": image_base64}
+            return {"imagem_base64": image_base64}
         except ValueError as validation_error:
             # Catch and properly raise validation errors
             return JSONResponse(
@@ -258,25 +283,25 @@ def get_mass_balance_example():
         "components": ["A", "B", "C", "D"],
         "streams": [
             {
-                "name": "Fresh_Feed",
+                "name": "Alimentacao_Fresca",
                 "direction": 1,  # +1 for input
                 "flow_rate": 100,
                 "compositions": {"A": 0.8, "B": 0.2, "C": 0, "D": 0}
             },
             {
-                "name": "Reactor_Out",
+                "name": "Saida_Do_Reator",
                 "direction": -1,  # -1 for output
                 "flow_rate": None,
                 "compositions": {"A": None, "B": None, "C": None, "D": None}
             },
             {
-                "name": "Recycle",
+                "name": "Reciclo",
                 "direction": 1,  # +1 for input
                 "flow_rate": None,
                 "compositions": {"A": None, "B": None, "C": None, "D": None}
             },
             {
-                "name": "Product",
+                "name": "Produto",
                 "direction": -1,  # -1 for output
                 "flow_rate": None,
                 "compositions": {"A": None, "B": None, "C": None, "D": None}
@@ -296,9 +321,9 @@ def get_mass_balance_example():
         ],
         "splits": [
             {
-                "parent_stream": "Reactor_Out",
-                "recycle_stream": "Recycle",
-                "purge_stream": "Product",
+                "parent_stream": "Saida_Do_Reator",
+                "recycle_stream": "Reciclo",
+                "purge_stream": "Produto",
                 "fraction": 0.6
             }
         ]
@@ -360,16 +385,22 @@ def calculate_yields(payload: MassBalanceRequest):
             
             # Extra safety check for negative values - check again explicitly
             for stream_name, stream_data in results.items():
-                if stream_data["flow_rate"] < 0:
-                    raise ValueError(f"Negative flow rate detected for stream '{stream_name}': {stream_data['flow_rate']}")
+                if stream_data["vazao"] < 0:
+                    raise ValueError(f"Vazão negativa detectada na corrente '{stream_name}': {stream_data['vazao']}")
                 
-                for component, fraction in stream_data["compositions"].items():
+                for component, fraction in stream_data["composicoes"].items():
                     if fraction < 0:
-                        raise ValueError(f"Negative composition detected for component '{component}' in stream '{stream_name}': {fraction}")
+                        raise ValueError(
+                            f"Composição negativa detectada para o componente '{component}' na corrente "
+                            f"'{stream_name}': {fraction}"
+                        )
                 
-                sum_fractions = sum(stream_data["compositions"].values())
+                sum_fractions = sum(stream_data["composicoes"].values())
                 if not (0.99 <= sum_fractions <= 1.01):
-                    raise ValueError(f"Component fractions in stream '{stream_name}' do not sum to approximately 1: {sum_fractions}")
+                    raise ValueError(
+                        f"As frações dos componentes na corrente '{stream_name}' não somam aproximadamente 1: "
+                        f"{sum_fractions}"
+                    )
             
             # Fail fast if validation failed
             if not is_valid:
@@ -388,23 +419,23 @@ def calculate_yields(payload: MassBalanceRequest):
                     if comp_in != comp_out:  # Only calculate yield between different components
                         # Calculate total input of comp_in
                         comp_in_total = sum(
-                            results[s.name]["flow_rate"] * results[s.name]["compositions"][comp_in]
+                            results[s.name]["vazao"] * results[s.name]["composicoes"][comp_in]
                             for s in feed_streams if s.flow_rate is not None
                         )
                         
                         # Calculate total output of comp_out
                         comp_out_total = sum(
-                            -results[s.name]["flow_rate"] * results[s.name]["compositions"][comp_out]
+                            -results[s.name]["vazao"] * results[s.name]["composicoes"][comp_out]
                             for s in product_streams
                         )
                         
                         # Calculate yield if input is not zero
                         if comp_in_total > 0:
-                            yields[f"{comp_out}_from_{comp_in}"] = (comp_out_total / comp_in_total) * 100
+                            yields[f"{comp_out}_a_partir_de_{comp_in}"] = (comp_out_total / comp_in_total) * 100
             
             return {
-                "yields": yields,
-                "results": results
+                "rendimentos": yields,
+                "resultados": results
             }
         except ValueError as validation_error:
             # Catch and properly raise validation errors

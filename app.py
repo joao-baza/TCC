@@ -71,4 +71,4 @@ if __name__ == "__main__":
     import uvicorn
 
     host, port = get_runtime_config()
-    uvicorn.run("app:app", host=host, port=port, reload=False)
+    uvicorn.run(app, host=host, port=port, reload=False)
