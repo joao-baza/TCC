@@ -72,6 +72,21 @@ function mockFlowRequests(options?: {
   delayReynolds?: boolean;
 }) {
   let resolveReynolds: ((response: Response) => void) | undefined;
+  const exampleResponse = {
+    reynolds: {
+      characteristic_diameter: 13.843,
+      velocity: 3.923,
+      density: 0.65688,
+      dynamic_viscosity: 0.0000111963,
+    },
+    friction: {
+      method: "SwameeJain",
+      roughness_source: "composition",
+      composition: "Aço galvanizado",
+      diameter_source: "custom",
+      custom_diameter: 13.843,
+    },
+  } as const;
 
   fetchMock.mockImplementation(async (input, init) => {
     const url = String(input);
@@ -82,26 +97,7 @@ function mockFlowRequests(options?: {
     }
 
     if (url.endsWith("/api/flow/example") && method === "GET") {
-      return Response.json({
-        metadata: {
-          fluid: "Methane",
-          pressure: 101325,
-          regime: "transitional",
-        },
-        reynolds: {
-          characteristic_diameter: 13.843,
-          velocity: 3.923,
-          density: 0.65688,
-          dynamic_viscosity: 0.0000111963,
-        },
-        friction: {
-          method: "SwameeJain",
-          roughness_source: "composition",
-          composition: "Aço galvanizado",
-          diameter_source: "custom",
-          custom_diameter: 13.843,
-        },
-      });
+      return Response.json(exampleResponse);
     }
 
     if (url.endsWith("/api/flow/hydraulic-diameter/shapes") && method === "GET") {

@@ -3,6 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app import app
@@ -37,10 +38,12 @@ def test_flow_example_returns_transitional_reynolds_scenario():
     }
 
 
-def test_flow_example_returns_clear_error_when_fluid_is_missing(monkeypatch):
+def test_flow_example_catalog_validation_runs_at_startup(monkeypatch):
     monkeypatch.setattr(flow_router.components_obj, "list_all_components", lambda: [])
 
-    response = client.get("/flow/example")
+    with pytest.raises(RuntimeError, match="Fluid 'Methane' not found"):
+        flow_router.validate_flow_example_catalogs()
 
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Fluido 'Methane' não encontrado"}
+
+def test_flow_example_catalog_validation_is_registered_on_startup():
+    assert flow_router.validate_flow_example_catalogs_on_startup in flow_router.router.on_startup

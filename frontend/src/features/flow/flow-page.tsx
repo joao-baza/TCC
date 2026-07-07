@@ -19,7 +19,7 @@ import {
   ReynoldsHowItWorks,
 } from "@/features/flow/didactics";
 import {
-  mapFlowExampleToFormState,
+  mapFlowExampleToFormInputs,
   type FlowExamplePayload,
 } from "@/features/flow/example";
 import { apiClient } from "@/lib/api";
@@ -334,10 +334,20 @@ export function FlowPage() {
   async function loadExample() {
     try {
       const example = await apiClient.get<FlowExamplePayload>("/flow/example");
-      const mapped = mapFlowExampleToFormState(example);
+      const mapped = mapFlowExampleToFormInputs(example);
 
-      setReynoldsForm(mapped.reynoldsForm);
-      setFrictionForm(mapped.frictionForm);
+      setReynoldsForm((current) => ({
+        ...current,
+        ...mapped.reynolds,
+        kinematicViscosity: "",
+      }));
+      setFrictionForm((current) => ({
+        ...current,
+        ...mapped.friction,
+        customRoughness: "",
+        schedule: "",
+        scheduleDiameter: "",
+      }));
       setRoughnessSource(mapped.roughnessSource);
       setDiameterSource(mapped.diameterSource);
       clearReynoldsDerived();
