@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { NumberField } from "@/components/number-field";
 import type { PropertyRow } from "@/components/property-table";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { ResultTableSection } from "@/components/result-table-section";
 import { MoodyChart } from "@/components/viz/moody-chart";
 import { RegimeRuler } from "@/components/viz/regime-ruler";
@@ -16,6 +18,7 @@ import { flowWorkedExample } from "@/features/flow/presets";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
+import { flowTabs } from "@/features/flow/flow-tabs";
 
 type Schedule = {
   name: string;
@@ -105,6 +108,8 @@ function buildResultRows(label: string, result: QuantityResult | null): Property
 }
 
 export function FlowPage() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [methods, setMethods] = useState<SelectOption[]>([]);
   const [shapes, setShapes] = useState<string[]>([]);
   const [compositions, setCompositions] = useState<SelectOption[]>([]);
@@ -148,6 +153,20 @@ export function FlowPage() {
   const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
 
   const [pageError, setPageError] = useState<string | null>(null);
+  const activeTab = useMemo(() => {
+    if (!pathname.startsWith("/flow")) {
+      return "reynolds";
+    }
+
+    const tab = pathname.slice("/flow/".length).split("/")[0];
+    return tab || "reynolds";
+  }, [pathname]);
+
+  useEffect(() => {
+    if (pathname === "/flow") {
+      navigate("reynolds", { replace: true });
+    }
+  }, [navigate, pathname]);
 
   useEffect(() => {
     let ignore = false;
@@ -513,37 +532,32 @@ export function FlowPage() {
   }
 
   return (
-    <section className="space-y-8 overflow-x-hidden p-6 md:p-8">
-      <Card>
-        <CardHeader
-          level={1}
-          subtitle={
-            <>
-              <p>
-                Cálculo de Reynolds, fator de atrito e diâmetro hidráulico para apoiar a
-                análise de escoamento em dutos e geometrias não circulares.
-              </p>
-              {pageError ? <p className="text-red-600">{pageError}</p> : null}
-            </>
-          }
-          title="Escoamento Interno"
-          variant="hero"
-          action={
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                applyReynoldsFields(flowWorkedExample);
-                notify.success("Exemplo carregado com sucesso.");
-              }}
-            >
-              Carregar exemplo
-            </Button>
-          }
-        />
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-3">
+    <ModuleTabsLayout
+      title="Escoamento Interno"
+      subtitle={
+        <>
+          <p>
+            Cálculo de Reynolds, fator de atrito e diâmetro hidráulico para apoiar a análise de
+            escoamento em dutos e geometrias não circulares.
+          </p>
+          {pageError ? <p className="text-red-600">{pageError}</p> : null}
+        </>
+      }
+      action={
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            applyReynoldsFields(flowWorkedExample);
+            notify.success("Exemplo carregado com sucesso.");
+          }}
+        >
+          Carregar exemplo
+        </Button>
+      }
+      tabs={flowTabs}
+    >
+      {activeTab === "reynolds" ? (
         <Card>
           <CardHeader title="Número de Reynolds" />
           <CardContent className="space-y-4">
@@ -599,7 +613,9 @@ export function FlowPage() {
             {reynoldsResult ? <RegimeRuler reynolds={reynoldsResult.value} /> : null}
           </CardContent>
         </Card>
+      ) : null}
 
+      {activeTab === "friction-factor" ? (
         <Card>
           <CardHeader title="Fator de Atrito" />
           <CardContent>
@@ -765,16 +781,18 @@ export function FlowPage() {
               rows={buildResultRows("Fator de atrito", frictionResult)}
             />
             {frictionResult && frictionContext ? (
-            <MoodyChart
-              reynolds={frictionContext.reynolds}
-              frictionFactor={frictionResult.value}
-              roughness={frictionContext.relativeRoughness}
-              scenarios={savedScenarios}
-            />
-          ) : null}
+              <MoodyChart
+                reynolds={frictionContext.reynolds}
+                frictionFactor={frictionResult.value}
+                roughness={frictionContext.relativeRoughness}
+                scenarios={savedScenarios}
+              />
+            ) : null}
           </CardContent>
         </Card>
+      ) : null}
 
+      {activeTab === "hydraulic-diameter" ? (
         <Card>
           <CardHeader title="Diâmetro Hidráulico" />
           <CardContent>
@@ -978,17 +996,19 @@ export function FlowPage() {
             />
           </CardContent>
         </Card>
-      </div>
+      ) : null}
 
-      <ExploratoryPanel
-        config={flowExploratory}
-        state={{
-          applyFields: applyReynoldsFields,
-          changeField: changeExploratoryField,
-          describeScenario,
-        }}
-        onScenariosChange={setSavedScenarios}
-      />
-    </section>
+      {activeTab === "exploratory" ? (
+        <ExploratoryPanel
+          config={flowExploratory}
+          state={{
+            applyFields: applyReynoldsFields,
+            changeField: changeExploratoryField,
+            describeScenario,
+          }}
+          onScenariosChange={setSavedScenarios}
+        />
+      ) : null}
+    </ModuleTabsLayout>
   );
 }

@@ -30,25 +30,25 @@ function mockBalanceRequests(options?: MockBalanceOptions) {
         components: ["A", "B", "C", "D"],
         streams: [
           {
-            name: "Fresh_Feed",
+            name: "Alimentacao_Fresca",
             direction: 1,
             flow_rate: 100,
             compositions: { A: 0.8, B: 0.2, C: 0, D: 0 },
           },
           {
-            name: "Reactor_Out",
+            name: "Saida_Do_Reator",
             direction: -1,
             flow_rate: null,
             compositions: { A: null, B: null, C: null, D: null },
           },
           {
-            name: "Recycle",
+            name: "Reciclo",
             direction: 1,
             flow_rate: null,
             compositions: { A: null, B: null, C: null, D: null },
           },
           {
-            name: "Product",
+            name: "Produto",
             direction: -1,
             flow_rate: null,
             compositions: { A: null, B: null, C: null, D: null },
@@ -63,9 +63,9 @@ function mockBalanceRequests(options?: MockBalanceOptions) {
         ],
         splits: [
           {
-            parent_stream: "Reactor_Out",
-            recycle_stream: "Recycle",
-            purge_stream: "Product",
+            parent_stream: "Saida_Do_Reator",
+            recycle_stream: "Reciclo",
+            purge_stream: "Produto",
             fraction: 0.6,
           },
         ],
@@ -87,23 +87,23 @@ function mockBalanceRequests(options?: MockBalanceOptions) {
       }
 
       return Response.json({
-        metrics: {
-          fresh_feed: 100,
-          product_flow: 40,
-          recycle_ratio: 0.6,
+        metricas: {
+          alimentacao_fresca: 100,
+          vazao_produto: 40,
+          taxa_reciclo: 0.6,
         },
-        results: {
-          Fresh_Feed: {
-            flow_rate: 100,
-            compositions: { A: 0.8, B: 0.2, C: 0, D: 0 },
+        resultados: {
+          Alimentacao_Fresca: {
+            vazao: 100,
+            composicoes: { A: 0.8, B: 0.2, C: 0, D: 0 },
           },
-          Recycle: {
-            flow_rate: 60,
-            compositions: { A: 0.18, B: 0.05, C: 0.57, D: 0.2 },
+          Reciclo: {
+            vazao: 60,
+            composicoes: { A: 0.18, B: 0.05, C: 0.57, D: 0.2 },
           },
-          Product: {
-            flow_rate: 40,
-            compositions: { A: 0.1, B: 0.05, C: 0.65, D: 0.2 },
+          Produto: {
+            vazao: 40,
+            composicoes: { A: 0.1, B: 0.05, C: 0.65, D: 0.2 },
           },
         },
       });
@@ -124,14 +124,14 @@ function mockBalanceRequests(options?: MockBalanceOptions) {
       }
 
       return Response.json({
-        yields: {
-          C_from_A: 81.25,
-          D_from_B: 77.5,
+        rendimentos: {
+          C_a_partir_de_A: 81.25,
+          D_a_partir_de_B: 77.5,
         },
-        results: {
-          Product: {
-            flow_rate: 40,
-            compositions: { A: 0.1, B: 0.05, C: 0.65, D: 0.2 },
+        resultados: {
+          Produto: {
+            vazao: 40,
+            composicoes: { A: 0.1, B: 0.05, C: 0.65, D: 0.2 },
           },
         },
       });
@@ -174,12 +174,14 @@ describe("BalancePage", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: /^Balanço de Massa$/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Como funciona - Balanço de Massa/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Como funciona - Balanço de Massa/i }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
-    expect(await screen.findByDisplayValue("Fresh_Feed")).toBeInTheDocument();
-    expect(screen.getAllByDisplayValue("Reactor_Out").length).toBeGreaterThan(0);
+    expect(await screen.findByDisplayValue("Alimentacao_Fresca")).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("Saida_Do_Reator").length).toBeGreaterThan(0);
     expect(screen.getByDisplayValue("0.6")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Calcular Balanço de Massa/i }));
@@ -187,12 +189,15 @@ describe("BalancePage", () => {
     expect(await screen.findByText(/Taxa de reciclo/i)).toBeInTheDocument();
     expect(screen.getByTestId("stream-graph")).toBeInTheDocument();
     expect(screen.getByTestId("process-sankey")).toBeInTheDocument();
-    expect(screen.getAllByText(/Fresh_Feed/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Recycle/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Product/i).length).toBeGreaterThan(0);
+    expect(screen.getByTestId("ternary-diagram")).toBeInTheDocument();
+    expect(screen.getByTestId("recycle-purge-map")).toBeInTheDocument();
+    expect(screen.getByTestId("stream-table")).toBeInTheDocument();
+    expect(screen.getAllByText(/Alimentacao_Fresca/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Reciclo/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Produto/i).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: /Calcular Rendimentos/i }));
-    expect(await screen.findByText(/C from A/i)).toBeInTheDocument();
+    expect(await screen.findByText(/C a partir de A/i)).toBeInTheDocument();
     expect(screen.getByText(/81.25%/i)).toBeInTheDocument();
   });
 
@@ -235,8 +240,8 @@ describe("BalancePage", () => {
 
     const graph = await screen.findByTestId("stream-graph");
     expect(graph).toBeInTheDocument();
-    expect(within(graph).getByText(/Fresh_Feed/i)).toBeInTheDocument();
-    expect(within(graph).getByText(/Recycle/i)).toBeInTheDocument();
+    expect(within(graph).getByText(/Alimentacao_Fresca/i)).toBeInTheDocument();
+    expect(within(graph).getByText(/Reciclo/i)).toBeInTheDocument();
   });
 
   it("shows a success notification when loading the worked example", async () => {
@@ -267,7 +272,7 @@ describe("BalancePage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Calcular Rendimentos/i }));
 
     expect(await screen.findByText(/Taxa de reciclo/i)).toBeInTheDocument();
-    expect(await screen.findByText(/C from A/i)).toBeInTheDocument();
+    expect(await screen.findByText(/C a partir de A/i)).toBeInTheDocument();
     expect(screen.getByTestId("stream-graph")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Fração de reciclo \(0-1\)/i), {
@@ -275,7 +280,7 @@ describe("BalancePage", () => {
     });
 
     expect(screen.queryByText(/Taxa de reciclo/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/C from A/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/C a partir de A/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("stream-graph")).not.toBeInTheDocument();
   });
 
@@ -295,27 +300,27 @@ describe("BalancePage", () => {
 
     balanceRequests.resolveBalance(
       Response.json({
-        metrics: {
-          fresh_feed: 100,
-          product_flow: 40,
-          recycle_ratio: 0.6,
-        },
-        results: {
-          Fresh_Feed: {
-            flow_rate: 100,
-            compositions: { A: 0.8, B: 0.2, C: 0, D: 0 },
+          metricas: {
+            alimentacao_fresca: 100,
+            vazao_produto: 40,
+            taxa_reciclo: 0.6,
           },
-          Recycle: {
-            flow_rate: 60,
-            compositions: { A: 0.18, B: 0.05, C: 0.57, D: 0.2 },
+          resultados: {
+            Alimentacao_Fresca: {
+              vazao: 100,
+              composicoes: { A: 0.8, B: 0.2, C: 0, D: 0 },
+            },
+            Reciclo: {
+              vazao: 60,
+              composicoes: { A: 0.18, B: 0.05, C: 0.57, D: 0.2 },
+            },
+            Produto: {
+              vazao: 40,
+              composicoes: { A: 0.1, B: 0.05, C: 0.65, D: 0.2 },
+            },
           },
-          Product: {
-            flow_rate: 40,
-            compositions: { A: 0.1, B: 0.05, C: 0.65, D: 0.2 },
-          },
-        },
-      }),
-    );
+        }),
+      );
 
     await waitFor(() => {
       expect(screen.queryByText(/Taxa de reciclo/i)).not.toBeInTheDocument();
@@ -335,7 +340,7 @@ describe("BalancePage", () => {
       target: { value: "A" },
     });
     fireEvent.click(screen.getByRole("button", { name: /^Adicionar$/i }));
-    expect(await screen.findByRole("button", { name: /^A ×$/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Remover componente A/i })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Nome do componente/i), {
       target: { value: "A" },
     });
@@ -360,9 +365,9 @@ describe("BalancePage", () => {
     fireEvent.change(template, { target: { value: "reciclo" } });
     fireEvent.keyDown(template, { key: "Enter", code: "Enter" });
 
-    expect(await screen.findByDisplayValue("Fresh_Feed")).toBeInTheDocument();
-    expect(screen.getAllByDisplayValue("Recycle").length).toBeGreaterThan(0);
-    expect(screen.getAllByDisplayValue("Product").length).toBeGreaterThan(0);
+    expect(await screen.findByDisplayValue("Alimentacao_Fresca")).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("Reciclo").length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue("Produto").length).toBeGreaterThan(0);
     expect(screen.getAllByDisplayValue("0.5").length).toBeGreaterThan(0);
     expect(screen.getByText(/Roteiro de exploração/i)).toBeInTheDocument();
   });
@@ -384,7 +389,7 @@ describe("BalancePage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Calcular Rendimentos/i }));
 
     expect(await screen.findByText(/Taxa de reciclo/i)).toBeInTheDocument();
-    expect(await screen.findByText(/C from A/i)).toBeInTheDocument();
+    expect(await screen.findByText(/C a partir de A/i)).toBeInTheDocument();
     expect(screen.getByTestId("stream-graph")).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("slider", { name: /Razao de reciclo/i }), {
@@ -393,7 +398,7 @@ describe("BalancePage", () => {
 
     await waitFor(() => {
       expect(screen.queryByText(/Alimentação fresca/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/C from A/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/C a partir de A/i)).not.toBeInTheDocument();
       expect(screen.queryByTestId("stream-graph")).not.toBeInTheDocument();
     });
   });

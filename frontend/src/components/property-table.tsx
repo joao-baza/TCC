@@ -1,6 +1,7 @@
 import type { PropertyRecord, ValueWithUnits } from "@/lib/api";
 import { InlineMath } from "@/lib/katex";
 import { formatTableNumber } from "@/lib/table-number";
+import { UnitMath } from "@/components/unit-math";
 
 export type PropertyRow = {
   label: string;
@@ -87,10 +88,10 @@ export function PropertyTable(props: PropertyTableProps) {
           <th className="border-b border-border py-1 pr-4 text-left font-medium">
             Propriedade
           </th>
-          <th className="border-b border-border py-1 pr-4 text-left font-medium">
+          <th className="border-b border-border py-1 pr-4 text-center font-medium">
             Valor
           </th>
-          <th className="border-b border-border py-1 pr-4 text-left font-medium">
+          <th className="border-b border-border py-1 pr-4 text-center font-medium">
             Unidade
           </th>
         </tr>
@@ -103,11 +104,11 @@ export function PropertyTable(props: PropertyTableProps) {
                 <td className="py-2 pr-4 text-muted-foreground">
                   {formatLabel(key)}
                 </td>
-                <td className="py-2 text-right font-medium tabular-nums text-foreground">
+                <td className="py-2 text-center font-medium tabular-nums text-foreground">
                   <ValueMath value={value.value} />
                 </td>
-                <td className="py-2 text-foreground">
-                  {value.units}
+                <td className="py-2 text-center text-foreground">
+                  <UnitMath units={value.units} />
                 </td>
               </tr>
             );
@@ -121,11 +122,15 @@ export function PropertyTable(props: PropertyTableProps) {
               <td className="py-2 pr-4 text-muted-foreground">
                 {renderedLabel}
               </td>
-              <td className="py-2 text-right font-medium tabular-nums text-foreground">
+              <td className="py-2 text-center font-medium tabular-nums text-foreground">
                 <ValueMath value={renderedValue} />
               </td>
-              <td className="py-2 text-foreground">
-                {isLegacyData ? (isValueWithUnits(value) ? value.units : "-") : units ?? ""}
+              <td className="py-2 text-center text-foreground">
+                {isLegacyData ? (
+                  isValueWithUnits(value) ? <UnitMath units={value.units} /> : "-"
+                ) : (
+                  <UnitMath units={units} />
+                )}
               </td>
             </tr>
           );
