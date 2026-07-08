@@ -2,9 +2,6 @@ name: desktop-publish
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "v*"
 
 permissions:
   contents: write
@@ -16,7 +13,6 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - windows-latest
           - macos-latest
     runs-on: ${{ matrix.os }}
     steps:
@@ -47,9 +43,16 @@ jobs:
         working-directory: desktop
         run: npm test
 
+      - name: Install Wine for Windows packaging
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wine wine64
+          wine --version
+
       - name: Build desktop release artifacts
         working-directory: desktop
-        run: npm run dist
+        run: ${{ matrix.os == 'ubuntu-latest' && 'npm run dist:local' || 'npm run dist' }}
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
@@ -58,9 +61,3 @@ jobs:
           path: |
             desktop/release/**
           if-no-files-found: error
-
-      - name: Publish release assets
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: desktop/release/**
