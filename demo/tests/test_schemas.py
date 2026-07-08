@@ -533,6 +533,77 @@ class TestReactorSpatialProfileRequest:
 
         assert payload.axial_positions == [0.0, 0.25, 0.5, 0.75, 1.0]
 
+    def test_reactor_spatial_profile_request_rejects_missing_k(self):
+        with pytest.raises(ValidationError, match="must include 'k'"):
+            ReactorSpatialProfileRequest(
+                components=[
+                    {
+                        "state": "liquid",
+                        "component_name": "Water",
+                        "flow_rate_inlet": 1.2,
+                        "molar_concentration_inlet": 5000,
+                    }
+                ],
+                stoichiometric_coefficients=[-1],
+                reaction_rate_params={"reaction_orders": [1]},
+                operation_conditions={
+                    "initial_temperature": 300,
+                    "final_temperature": 450,
+                    "initial_pressure": 101325,
+                    "final_pressure": 101325,
+                },
+                volume=9.6,
+                recycling_ratio=2.0,
+                axial_positions=[0.0, 0.5, 1.0],
+            )
+
+    def test_reactor_spatial_profile_request_rejects_missing_reaction_orders(self):
+        with pytest.raises(ValidationError, match="must include 'reaction_orders'"):
+            ReactorSpatialProfileRequest(
+                components=[
+                    {
+                        "state": "liquid",
+                        "component_name": "Water",
+                        "flow_rate_inlet": 1.2,
+                        "molar_concentration_inlet": 5000,
+                    }
+                ],
+                stoichiometric_coefficients=[-1],
+                reaction_rate_params={"k": 0.5},
+                operation_conditions={
+                    "initial_temperature": 300,
+                    "final_temperature": 450,
+                    "initial_pressure": 101325,
+                    "final_pressure": 101325,
+                },
+                volume=9.6,
+                recycling_ratio=2.0,
+                axial_positions=[0.0, 0.5, 1.0],
+            )
+
+    def test_reactor_spatial_profile_request_rejects_missing_operation_condition(self):
+        with pytest.raises(ValidationError, match="must include 'final_pressure'"):
+            ReactorSpatialProfileRequest(
+                components=[
+                    {
+                        "state": "liquid",
+                        "component_name": "Water",
+                        "flow_rate_inlet": 1.2,
+                        "molar_concentration_inlet": 5000,
+                    }
+                ],
+                stoichiometric_coefficients=[-1],
+                reaction_rate_params={"k": 0.5, "reaction_orders": [1]},
+                operation_conditions={
+                    "initial_temperature": 300,
+                    "final_temperature": 450,
+                    "initial_pressure": 101325,
+                },
+                volume=9.6,
+                recycling_ratio=2.0,
+                axial_positions=[0.0, 0.5, 1.0],
+            )
+
     def test_reactor_spatial_profile_request_rejects_axial_positions_below_zero(self):
         with pytest.raises(ValidationError, match="Axial positions must be between 0 and 1"):
             ReactorSpatialProfileRequest(
@@ -606,7 +677,7 @@ class TestReactorSpatialProfileRequest:
             )
 
     def test_reactor_spatial_profile_request_rejects_too_few_axial_positions(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="List should have at least 2 items after validation, not 1"):
             ReactorSpatialProfileRequest(
                 components=[
                     {
