@@ -8,6 +8,85 @@ const hydraulicShapeOptions = [
   { value: "circularCap", label: "Canal circular" },
 ];
 
+const regimeVisualizationResponse = {
+  title: "Regime do escoamento",
+  description: "Escala linear de Reynolds de 100 a 10.000. O marcador mostra a posição atual.",
+  domain: { min: 100, max: 10_000 },
+  segments: [
+    { regime: "laminar", label: "Laminar", color: "#2563EB", x: 40, width: 151.52 },
+    { regime: "transition", label: "Transição", color: "#D97706", x: 191.52, width: 116.77 },
+    { regime: "turbulent", label: "Turbulento", color: "#DC2626", x: 308.29, width: 411.71 },
+  ],
+  ticks: [
+    { value: 100, label: "100", x: 40 },
+    { value: 500, label: "500", x: 67.47 },
+    { value: 1000, label: "1000", x: 101.82 },
+    { value: 2300, label: "2300", x: 191.52 },
+    { value: 4000, label: "4000", x: 308.29 },
+    { value: 6000, label: "6000", x: 445.66 },
+    { value: 8000, label: "8000", x: 583.03 },
+    { value: 10000, label: "10000", x: 720 },
+  ],
+  marker: {
+    x: 720,
+    label: "Re = 50000",
+    status: "acima da escala",
+    regime: "turbulent",
+    regime_label: "Turbulento",
+    color: "#DC2626",
+    text_anchor: "end",
+  },
+};
+
+const moodyChartResponse = {
+  id: "moody-chart",
+  title: "Diagrama de Moody",
+  subtitle: "Curvas calculadas no backend",
+  approximation_notice: "Payload bruto do backend.",
+  axes: {
+    x: {
+      scale: "log",
+      label: "Número de Reynolds",
+      units: "dimensionless",
+      domain: { min: 1000, max: 1_000_000 },
+      ticks: [1000, 10000, 100000, 1000000],
+      major_ticks: [1000, 10000, 100000, 1000000],
+    },
+    y: {
+      scale: "linear",
+      label: "Fator de atrito",
+      units: "dimensionless",
+      domain: { min: 0.01, max: 0.08 },
+      ticks: [0.02, 0.04, 0.06, 0.08],
+      major_ticks: [0.02, 0.04, 0.06, 0.08],
+    },
+  },
+  series: [
+    {
+      id: "moody-band",
+      name: "Faixa de referência",
+      kind: "band",
+      color: "#cbd5e1",
+      points: [
+        { x: 1000, y: 0.07 },
+        { x: 10000, y: 0.05 },
+        { x: 1000000, y: 0.03 },
+      ],
+    },
+  ],
+  markers: [
+    { id: "operating-point", x: 50000, y: 0.0215, label: "Ponto operacional", color: "#dc2626" },
+  ],
+  annotations: [{ id: "backend-note", text: "Curva de rugosidade backend", tone: "info" }],
+  metadata: {
+    version: "1.0",
+    units: {
+      x: "dimensionless",
+      y: "dimensionless",
+    },
+  },
+};
+
 async function selectComboboxOption(page, label, query) {
   const input = page.getByRole("combobox", { name: label });
   await input.fill(query);
@@ -95,9 +174,21 @@ test("flow module loads the example and calculates the core values", async ({
     });
   });
 
+  await page.route("**/api/flow/reynolds/regime-visualization", async (route) => {
+    await route.fulfill({
+      json: regimeVisualizationResponse,
+    });
+  });
+
   await page.route("**/api/flow/friction-factor", async (route) => {
     await route.fulfill({
       json: { value: 0.0215, units: "dimensionless" },
+    });
+  });
+
+  await page.route("**/api/flow/moody/chart", async (route) => {
+    await route.fulfill({
+      json: moodyChartResponse,
     });
   });
 
@@ -117,7 +208,7 @@ test("flow module loads the example and calculates the core values", async ({
 
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
   await expect(page.locator("table").filter({ hasText: "Número de Reynolds" }).first()).toContainText("50000");
-  await expect(page.getByRole("heading", { name: /^Regime do escoamento$/i })).toBeVisible();
+  await expect(page.getByText(/^Turbulento$/i).first()).toBeVisible();
 
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
   await page.getByLabel(/Rugosidade/i).fill("0.15");
