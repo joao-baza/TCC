@@ -146,8 +146,8 @@
         
    Trabalho aprovado. \imprimirlocal, 13 de julho de 2026:
 
-   \assinatura{\textbf{\imprimirorientador} \\ Orientador} 
-   \assinatura{\textbf{Danieli Cristine Anversa} \\ Prof. Dra.}
+   \assinatura{\textbf{\imprimirorientador} \\ Docente Orientador} 
+   \assinatura{\textbf{Danieli Cristine Anversa} \\ Docente Doutora}
    \assinatura{\textbf{Vinícius Basso de Godoy} \\ Mestre}
       
    \begin{center}
@@ -199,9 +199,9 @@ Aos meus pais, Cassiano e Jacquecislene, por me darem não apenas a vida, mas ta
 % resumo em português
 \setlength{\absparsep}{18pt} % ajusta o espaçamento dos parágrafos do resumo
 \begin{resumo}
-Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Computacional de Operações Unitárias}), um \textit{software} \textit{web} de código aberto concebido como ferramenta didática para o ensino de Engenharia Química. Além de automatizar cálculos de dimensionamento de operações unitárias a partir de equações consolidadas, contemplando escoamento, perdas de carga, bombas, reatores e balanços de massa. O sistema integra recursos voltados ao aprendizado conceitual: um glossário técnico com termos e equações, explicações teóricas embutidas em cada calculadora, visualizações interativas dos fenômenos físicos e exercícios guiados que encadeiam múltiplos módulos para reproduzir fluxos de trabalho reais de engenharia. A arquitetura cliente-servidor expõe os cálculos por meio de uma API (\textit{Application Programming Interface}) aberta, e o código permanece publicamente disponível, promovendo flexibilidade, colaboração e aprimoramento contínuo por parte da comunidade acadêmica.
+Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Computacional de Operações Unitárias}), um \textit{software} \textit{web} de código aberto concebido como ferramenta didática para o ensino de Engenharia Química. O sistema automatiza cálculos de operações unitárias a partir de equações consolidadas, contemplando módulos de tubulações, escoamento, bombas, propriedades termodinâmicas, reatores ideais e balanços de massa. Além dos resultados numéricos, a aplicação integra recursos voltados ao aprendizado conceitual, como glossário técnico com equações renderizadas, explicações teóricas embutidas em cada calculadora, cenários de exemplo fornecidos pelo \textit{backend} e visualizações interativas dos fenômenos físicos. A arquitetura cliente-servidor expõe os cálculos e os modelos de visualização por meio de uma \textit{API} (\textit{Application Programming Interface}) aberta, enquanto o \textit{frontend} moderno em \textit{React} organiza esses recursos em uma experiência navegável e responsiva, com adaptação consistente a diferentes tamanhos de tela, incluindo dispositivos móveis, desktops e monitores \textit{ultrawide}. O código permanece publicamente disponível, promovendo flexibilidade, colaboração e aprimoramento contínuo por parte da comunidade acadêmica.
 
- \textbf{Palavras-chave}: Ferramenta didática. Operações unitárias. Software educacional. Código aberto. Engenharia Química.
+ \textbf{Palavras-chave}: Ferramenta didática. Operações unitárias. \textit{Software educacional}. Código aberto. Engenharia Química.
 \end{resumo}
 
 % resumo em inglês
@@ -227,18 +227,47 @@ Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Compu
 
 \pdfbookmark[0]{\listadesiglasname}{las}
 \begin{siglas}
-  \item[API] Application Programming Interface
+  \item[\textit{API}] \textit{Application Programming Interface}
+  \item[\textit{ASGI}] \textit{Asynchronous Server Gateway Interface}
+  \item[\textit{BEP}] \textit{Best Efficiency Point}
+  \item[\textit{CD}] \textit{Continuous Delivery} / \textit{Continuous Deployment}
+  \item[\textit{CI}] \textit{Continuous Integration}
+  \item[\textit{CSS}] \textit{Cascading Style Sheets}
+  \item[\textit{CSTR}] \textit{Continuous Stirred Tank Reactor}
   \item[DCOU] Dimensionamento Computacional de Operações Unitárias
-  \item[HTML] HyperText Markup Language
-  \item[CSS] Cascading Style Sheets
   \item[EDO] Equação diferencial ordinária
-  \item[UI] User Interface
-  \item[UX] User Experience
-  \item[PFR] Plug Flow Reactor
-  \item[CSTR] Continuous Stirred Tank Reactor
-  \item[T] Temperatura
-  \item[P] Pressão
-  \item[NPSH] Net Positive Suction Head
+  \item[\textit{HTML}] \textit{HyperText Markup Language}
+  \item[\textit{LHS}] \textit{Left-Hand Side}
+  \item[\textit{PFR}] \textit{Plug Flow Reactor}
+  \item[\textit{NPSH}] \textit{Net Positive Suction Head}
+  \item[\textit{NPSHd}] \textit{Net Positive Suction Head} disponível
+  \item[\textit{NPSHr}] \textit{Net Positive Suction Head} requerido
+  \item[\textit{REST}] \textit{Representational State Transfer}
+  \item[\textit{RHS}] \textit{Right-Hand Side}
+  \item[\textit{SVG}] \textit{Scalable Vector Graphics}
+  \item[\textit{UI}] \textit{User Interface}
+  \item[\textit{UX}] \textit{User Experience}
+  \item[$Q$] Vazão volumétrica
+  \item[$D$] Diâmetro
+  \item[$D_h$] Diâmetro hidráulico
+  \item[$H$] Altura manométrica
+  \item[$Re$] Número de Reynolds
+  \item[$T$] Temperatura
+  \item[$P$] Pressão
+  \item[$P_c$] Pressão crítica
+  \item[$T_c$] Temperatura crítica
+  \item[$X$] Conversão
+  \item[$Z$] Fator de compressibilidade
+  \item[$h_f$] Perda de carga
+  \item[$k$] Constante cinética
+  \item[$\rho$] Massa específica do fluido
+  \item[$\gamma$] Peso específico do fluido
+  \item[$\mu$] Viscosidade dinâmica
+  \item[$\nu$] Viscosidade cinemática
+  \item[$\tau$] Tempo de residência
+  \item[$\varepsilon$] Coeficiente de expansão volumétrico
+  \item[$\psi$] Fator de diluição
+  \item[$g$] Aceleração da gravidade
 \end{siglas}
 \cleardoublepage
 
@@ -270,6 +299,7 @@ Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Compu
 \include{chapters/3-objetivos}
 \include{chapters/4-metodologia}
 \include{chapters/5-resultados}
+\include{chapters/6-guia-de-uso}
 \include{chapters/6-conclusoes}
 
 % ----------------------------------------------------------

@@ -1,10 +1,10 @@
 \section{Recursos Didáticos}
 
-Além dos módulos de cálculo, o DCOU incorpora uma camada de recursos voltados ao aprendizado conceitual, que diferenciam a ferramenta de uma simples calculadora. Esses recursos articulam cada resultado numérico ao seu fundamento teórico e ao fenômeno físico correspondente, apoiando estudantes e engenheiros em formação. As subseções a seguir descrevem o glossário técnico, as explicações teóricas embutidas, as visualizações interativas, os exercícios guiados e as trilhas de aprendizagem.
+Além dos módulos de cálculo, o DCOU incorpora uma camada de recursos voltados ao aprendizado conceitual, que diferenciam a ferramenta de uma simples calculadora. Esses recursos articulam cada resultado numérico ao seu fundamento teórico e ao fenômeno físico correspondente, apoiando estudantes e engenheiros em formação. As subseções a seguir descrevem o glossário técnico, as explicações teóricas embutidas, as visualizações interativas, os cenários de exemplo e as trilhas de aprendizagem.
 
 \subsection{Glossário}
 
-O glossário reúne 49 termos técnicos organizados em oito categorias (\textit{Hidráulica}, \textit{Dimensionamento}, \textit{Bombas}, \textit{Reatores}, \textit{Componentes}, \textit{Balanço}, \textit{Termodinâmica} e \textit{Transferência de calor}), cada um acompanhado de definição e, quando pertinente, da equação correspondente renderizada matematicamente por meio da biblioteca \textit{KaTeX}. Um campo de busca filtra os termos em tempo real, e as categorias se reorganizam dinamicamente conforme os resultados, permitindo que o estudante localize rapidamente conceitos como número de \textit{Reynolds}, fator de atrito de \textit{Darcy}, \textit{NPSH}, conversão em reatores ou equação de \textit{Antoine}. Na interface final, o glossário também passou a atuar como recurso de apoio ao fluxo de navegação, aparecendo integrado ao painel de recursos para que o usuário compreenda o papel dessa área sem sair da experiência principal.
+O glossário reúne 49 termos técnicos organizados em oito categorias (\textit{Hidráulica}, \textit{Dimensionamento}, \textit{Bombas}, \textit{Reatores}, \textit{Componentes}, \textit{Balanço}, \textit{Termodinâmica} e \textit{Transferência de calor}), cada um acompanhado de definição e, quando pertinente, da equação correspondente renderizada matematicamente por meio da biblioteca \textit{KaTeX}. Um campo de busca filtra os termos em tempo real, e as categorias se reorganizam dinamicamente conforme os resultados, permitindo que o estudante localize rapidamente conceitos como número de \textit{Reynolds}, fator de atrito de \textit{Darcy}, \textit{NPSH} ou equação de \textit{Antoine}. Na interface final, o glossário também passou a atuar como recurso de apoio ao fluxo de navegação, aparecendo integrado ao painel de recursos para que o usuário compreenda o papel dessa área sem sair da experiência principal.
 
 \begin{figure}[H]
     \centering
@@ -16,7 +16,7 @@ O glossário reúne 49 termos técnicos organizados em oito categorias (\textit{
 
 \subsection{Explicações Teóricas Embutidas}
 
-Cada calculadora dispõe de um bloco teórico retrátil (``Como funciona''), que apresenta a fundamentação do cálculo sem afastar o usuário da interface. Foram implementados oito blocos, cobrindo: cálculo de diâmetro, diâmetro nominal comercial, número de \textit{Reynolds}, fator de atrito de \textit{Darcy}, diâmetro hidráulico, perda de carga, \textit{NPSH} disponível e altura manométrica. Cada bloco reúne a equação utilizada, a interpretação física das variáveis e as referências bibliográficas correspondentes \cite{white2018, perry2007}, conectando o resultado numérico à teoria que o sustenta.
+Cada calculadora dispõe de blocos teóricos retráteis (``Como funciona''), que apresentam a fundamentação do cálculo sem afastar o usuário da interface. Na versão atual, esses blocos não se limitam às calculadoras escalares de diâmetro, número de \textit{Reynolds}, fator de atrito, diâmetro hidráulico, perda de carga, \textit{NPSH} disponível e altura manométrica: eles também acompanham visualizações específicas, como o diagrama de \textit{Moody}, as curvas de bomba, o mapa de eficiência com \textit{BEP}, o diagrama \textit{T-x-y} binário, o \textit{McCabe-Thiele}, o envelope de fase, a curva de pressão de vapor, o diagrama ternário e os painéis de reatores. Em conjunto, esses blocos reúnem equações, regras de leitura, interpretação física das variáveis e referências bibliográficas coerentes com cada fenômeno \cite{white2018,perry2007,fogler2009,smith2018,mccabe2005,poling2001,seader2016,karassik2008,bell2014}.
 
 \begin{figure}[H]
     \centering
@@ -28,57 +28,75 @@ Cada calculadora dispõe de um bloco teórico retrátil (``Como funciona''), que
 
 \subsection{Visualizações Interativas}
 
-Para tornar tangíveis os fenômenos físicos, o \textit{frontend} incorpora uma camada ampla de visualizações contextuais, construída com componentes reativos em \textit{SVG} e, em situações específicas, com \textit{Recharts}. Essa abordagem permite que os gráficos respondam imediatamente às alterações de entrada e se integrem à mesma arquitetura modular dos formulários e resultados. Atualmente, a aplicação reúne mais de vinte visualizações distribuídas entre gráficos numéricos com eixos padronizados, diagramas conceituais e indicadores de processo. Entre os exemplos, destacam-se o perfil de velocidade na seção do duto; o medidor de regime de escoamento e o diagrama de \textit{Moody}; as curvas de perda de carga em função da vazão, a margem de \textit{NPSH} e a decomposição da altura manométrica; os diagramas de \textit{Levenspiel}, \textit{T-x-y}, \textit{y-x}, envelope de fase e \textit{McCabe-Thiele}; além de representações de apoio como o gráfico de \textit{Arrhenius}, o perfil de pressão, os mapas de eficiência e os fluxos de reciclo e purga. Em conjunto, essas visualizações reforçam a leitura dos resultados e aproximam a interpretação numérica do comportamento físico representado.
+Para tornar tangíveis os fenômenos físicos, o \textit{frontend} incorpora uma camada ampla de visualizações contextuais construída em componentes reativos de \textit{SVG}. Essa abordagem permite que os gráficos respondam imediatamente às alterações de entrada e se integrem à mesma arquitetura modular dos formulários e resultados. Atualmente, a aplicação reúne mais de vinte visualizações distribuídas entre gráficos numéricos com eixos padronizados, diagramas conceituais, mapas de processo e indicadores de operação. Entre os exemplos, destacam-se o perfil de velocidade na seção do duto; a régua de regime de escoamento e o diagrama de \textit{Moody}; as curvas de perda de carga em função da vazão, a margem de \textit{NPSH} e a decomposição da altura manométrica; os diagramas de \textit{Levenspiel}, \textit{T-x-y}, \textit{y-x}, envelope de fase e \textit{McCabe-Thiele}; além de representações de apoio como o gráfico de \textit{Arrhenius}, o perfil espacial de \textit{PFR}, o mapa de eficiência da bomba, os diagramas ternários, a superfície de propriedades e os fluxos de reciclo e purga. Em conjunto, essas visualizações reforçam a leitura dos resultados e aproximam a interpretação numérica do comportamento físico representado.
+
+O valor didático dessa biblioteca de visualizações está em tornar observáveis relações que, em um cálculo puramente tabular, permaneceriam implícitas. No módulo de escoamento, por exemplo, o perfil de velocidade e a régua de regime ajudam a relacionar o número de \textit{Reynolds} com a forma do escoamento e com a mudança de correlações de atrito. No módulo de bombas, as curvas do sistema, a decomposição da altura manométrica, o indicador de \textit{NPSH} e o mapa de eficiência com destaque para o \textit{Best Efficiency Point} (\textit{BEP}) permitem discutir simultaneamente energia mecânica, perdas, faixa operacional e risco de cavitação. Nos módulos de propriedades e reatores, diagramas como \textit{McCabe-Thiele}, envelope de fase, curva de pressão de vapor, \textit{Levenspiel} e \textit{Arrhenius} transformam resultados intermediários do \textit{backend} em objetos gráficos que favorecem a interpretação física das equações, e não apenas a obtenção do valor final.
+
+\subsubsection{Diagrama de Moody}
+
+O diagrama de \textit{Moody} foi incorporado para tornar explícita a relação entre número de \textit{Reynolds}, rugosidade relativa e fator de atrito de \textit{Darcy}. Na interface, o usuário não recebe apenas o valor final de $f$: o ponto operacional é sobreposto à família de curvas, permitindo compreender por que materiais distintos e regimes distintos conduzem a perdas de carga diferentes. Como o \textit{backend} já devolve o \textit{Re} calculado, a rugosidade relativa e o fator de atrito coerentes com a correlação adotada, a visualização permanece rastreável ao modelo hidráulico e favorece a leitura do cálculo em chave física, e não apenas algorítmica \cite{white2018,colebrook1939,swamee1976,haaland1983}.
+
+\subsubsection{Curva da Bomba, Margem de \textit{NPSH} e Mapa de Eficiência}
+
+A curva da bomba e do sistema foi adicionada para discutir o ponto operacional como resultado do equilíbrio entre a energia fornecida pelo equipamento e a resistência hidráulica da instalação. Em vez de apresentar apenas uma altura manométrica calculada, a interface mostra como a interseção entre as curvas se desloca quando a vazão ou as perdas variam, o que reforça a interpretação operacional do problema \cite{fox2011}. Complementarmente, o gráfico de margem de \textit{NPSH} foi incluído para representar visualmente a folga entre \textit{NPSHd} e \textit{NPSHr}, permitindo discutir cavitação de modo imediato; já o mapa de eficiência com destaque para o \textit{Best Efficiency Point} (\textit{BEP}) evidencia se a condição corrente está próxima da região de melhor rendimento ou deslocada para uma faixa menos favorável, inclusive com indicação aproximada da região de cavitação. Nesses casos, o \textit{backend} devolve não apenas valores escalares, mas também a malha de eficiência relativa, a curva do sistema, o ponto de operação e os marcadores críticos que estruturam a leitura didática \cite{karassik2008,fox2011}.
+
+\subsubsection{Diagrama de Levenspiel}
+
+O diagrama de \textit{Levenspiel} foi mantido como peça central do módulo de reatores porque ele transforma a comparação entre \textit{CSTR} e \textit{PFR} em uma relação geométrica facilmente interpretável pelo estudante. Na implementação atual, o gráfico destaca os pontos operacionais de ambos os modelos e compara a demanda volumétrica associada a uma mesma conversão, deixando visível por que o \textit{PFR} tende a requerer menor volume em cinéticas positivas quando comparado ao \textit{CSTR}. Sua presença na monografia é particularmente importante porque ele não atua como ornamento visual: ele traduz em forma gráfica a própria equação de projeto dos reatores ideais, articulando diretamente cálculo e interpretação \cite{levenspiel2000,fogler2009}.
+
+\subsubsection{Gráfico de Arrhenius}
+
+O gráfico de \textit{Arrhenius} foi incluído para apoiar a compreensão da dependência da constante cinética com a temperatura. Ao linearizar a relação entre $k$ e $T$ no plano $1000/T$ versus $\ln(k)$, a visualização permite discutir sensibilidade térmica, energia de ativação e aceleração reacional sem exigir que o estudante permaneça apenas na manipulação simbólica da equação. Seu papel pedagógico é evidenciar que pequenas alterações de temperatura podem produzir mudanças expressivas na taxa de reação, o que se conecta diretamente à análise dos módulos de \textit{CSTR} e \textit{PFR} \cite{fogler2009}.
+
+\subsubsection{Perfis Espaciais no \textit{PFR}}
+
+Os perfis espaciais no \textit{PFR} foram adicionados para evitar uma leitura excessivamente agregada do reator tubular. Em vez de resumir o comportamento do sistema a um único ponto de saída, a interface exibe séries de concentração e temperatura ao longo do volume relativo do reator, acompanhadas de um esquema que marca estações intermediárias calculadas pelo \textit{backend}. Isso ajuda a consolidar a ideia de que o \textit{PFR} deve ser interpretado como um campo espacial de estados, no qual cada posição do reator opera sob composição distinta \cite{fogler2009,levenspiel2000}.
+
+\subsubsection{Diagrama \textit{T-x-y} Binário}
+
+O diagrama \textit{T-x-y} binário foi incluído para representar o equilíbrio líquido-vapor em misturas binárias a pressão fixa. A presença simultânea das curvas de bolha e de orvalho permite discutir início de vaporização, início de condensação, coexistência entre fases e volatilidade relativa sem depender apenas de tabelas termodinâmicas. Como o \textit{backend} calcula os pontos de equilíbrio e entrega as séries já estruturadas para renderização, o estudante observa o comportamento do sistema a partir de dados consistentes com o mesmo motor termodinâmico usado nas demais consultas de propriedades \cite{smith2018}.
+
+\subsubsection{Diagrama de McCabe-Thiele}
+
+O diagrama de \textit{McCabe-Thiele} foi incorporado para explicitar a construção gráfica do número teórico de estágios em uma separação binária por destilação. Na aplicação, a curva de equilíbrio, a diagonal, as linhas de enriquecimento e esgotamento, a linha $q$ e os degraus são todos montados a partir dos dados termodinâmicos e operacionais resolvidos no \textit{backend}, o que permite ao usuário relacionar composição de topo, composição de fundo, condição da alimentação e razão de refluxo com a contagem de estágios. O valor didático do gráfico está em mostrar que o resultado de projeto não emerge de uma ``caixa-preta'', mas de uma sequência geométrica interpretável \cite{mccabe2005,smith2018}.
+
+\subsubsection{Envelope de Fase e Curva de Pressão de Vapor}
+
+O envelope de fase e a curva de pressão de vapor foram adicionados para apoiar a leitura termodinâmica de limites de estabilidade e mudança de fase. O envelope destaca a fronteira entre regiões de líquido, vapor e coexistência, incluindo marcadores de ponto crítico e ponto tríplice; a curva de pressão de vapor, por sua vez, mostra como a pressão de saturação varia com a temperatura, auxiliando discussões sobre volatilidade, ebulição e risco de cavitação. Em ambos os casos, a utilidade pedagógica está em associar propriedades antes tratadas de forma tabular a regiões operacionais visualmente distinguíveis \cite{poling2001,smith2018}.
+
+\subsubsection{Diagrama Ternário}
+
+O diagrama ternário foi incorporado para representar composições de correntes com três componentes sem a necessidade de introduzir, neste estágio, um módulo completo de separações multicomponentes. Na implementação atual, o \textit{backend} normaliza as frações molares, projeta a corrente no plano ternário e devolve a geometria do triângulo, das linhas-guia e do ponto da corrente pronta para renderização. Didaticamente, isso permite mostrar que cada vértice representa um componente puro, cada lado uma mistura binária e o interior uma composição ternária, o que facilita a leitura de misturas e a preparação conceitual para problemas de extração e equilíbrio mais avançados \cite{seader2016,devoe2014}.
+
+\subsubsection{Superfície \textit{T-P} de Propriedades}
+
+Por fim, a superfície \textit{T-P} de propriedades foi adicionada para evidenciar que grandezas termodinâmicas não dependem de forma linear das variáveis de estado. Ao colorir e discretizar o valor de uma propriedade em função de temperatura e pressão, a visualização transforma uma consulta isolada em um campo interpretável, útil para comparar tendências, identificar regiões de maior gradiente e compreender a sensibilidade do modelo termodinâmico às condições impostas. Como essa superfície é construída a partir do mesmo núcleo de propriedades do \textit{CoolProp}, ela reforça a coerência entre cálculo puntual e exploração gráfica \cite{bell2014,poling2001}.
 
 \begin{figure}[H]
     \centering
     \caption{Diagrama de \textit{Moody} com o ponto operacional do problema destacado}
-    \imgouplaceholder{media/friction_factor.png}
+    \imgouplaceholder{media/cap4_diagrama_moody.png}
     \fonte{Autoria própria.}
     \label{fig:viz_moody}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \caption{Diagrama de \textit{Levenspiel} comparando reatores CSTR e PFR}
+    \caption{Diagrama de \textit{Levenspiel} comparando reatores \textit{CSTR} e \textit{PFR}}
     \imgouplaceholder{media/levenspiel.png}
     \fonte{Autoria própria.}
     \label{fig:viz_levenspiel}
 \end{figure}
 
-\subsection{Exercícios Integrados}
+\subsection{Cenários de Exemplo}
 
-O módulo de exercícios integrados oferece sete problemas guiados que encadeiam múltiplos módulos do sistema, reproduzindo fluxos de trabalho reais da engenharia química. Cada exercício é resolvido em etapas sequenciais, nas quais o usuário insere os dados, obtém o resultado parcial e recebe retorno imediato --- inclusive avisos sobre condições críticas, como mudança de fase em trocadores ou risco de erosão em turbinas. A Tabela \ref{tab:exercicios} resume os exercícios disponíveis.
+Além das visualizações, o sistema oferece cenários de exemplo providos pela própria \textit{API} para acelerar a exploração didática dos módulos. Em vez de armazenar resultados prontos no \textit{frontend}, esses \textit{endpoints} retornam conjuntos coerentes de entradas para escoamento, dimensionamento, bombas, propriedades de componentes e outros contextos, respeitando os catálogos e limites disponíveis no \textit{backend}. A interface utiliza esses dados para pré-preencher os formulários e, em seguida, executa o mesmo fluxo de cálculo usado em situações reais.
 
-\begin{table}[H]
-\centering
-\caption{Exercícios integrados disponíveis no DCOU}
-\label{tab:exercicios}
-\begin{tabular}{|>{\raggedright\arraybackslash}p{0.26\textwidth}|>{\raggedright\arraybackslash}p{0.30\textwidth}|c|>{\raggedright\arraybackslash}p{0.22\textwidth}|}
-\hline
-\textbf{Exercício} & \textbf{Operação unitária} & \textbf{Etapas} & \textbf{Módulos encadeados} \\ \hline
-Trocador de calor & Transferência de calor & 3 & Componentes \\ \hline
-Alimentação de reator & Linha de bombeamento e seleção de bomba & 5 & Componentes, Escoamento, Perda de carga, NPSH, Head \\ \hline
-Ciclo de \textit{Rankine} & Ciclo termodinâmico vapor/água & 5 & Componentes \\ \hline
-Reatores em série & Comparação PFR/CSTR & 6 & Reatores \\ \hline
-Balanço de massa simples & Balanço estequiométrico sem reciclo & 2 & Balanço de Massa \\ \hline
-Balanço com reciclo & Balanço com recirculação de corrente & 3 & Balanço de Massa \\ \hline
-Balanço com reciclo e purga & Balanço com recirculação e purga de inerte & 3 & Balanço de Massa \\ \hline
-\end{tabular}
-\fonte{Autoria própria.}
-\end{table}
-
-\begin{figure}[H]
-    \centering
-    \caption{Exercício integrado resolvido em etapas guiadas}
-    \imgouplaceholder{media/exercicio_integrado.png}
-    \fonte{Autoria própria.}
-    \label{fig:exercicio_integrado}
-\end{figure}
+Essa estratégia possui valor pedagógico relevante por dois motivos. Primeiro, reduz a barreira inicial para o estudante, que passa a observar um caso funcional antes de montar um cenário próprio do zero. Segundo, preserva a rastreabilidade entre entradas, equações e visualizações, pois os exemplos não contornam o motor computacional: eles apenas selecionam condições iniciais representativas, como um caso de transição em número de \textit{Reynolds}, um sistema com margem de \textit{NPSH} explícita ou uma separação binária que justifique a construção de um diagrama de \textit{McCabe-Thiele}.
 
 \subsection{Trilhas de Aprendizagem}
 
-A página inicial organiza o uso dos módulos em três trilhas de aprendizagem, que sugerem uma sequência didática de estudo: \textbf{Transporte de Fluidos} (Tubulações $\rightarrow$ Dimensionamento $\rightarrow$ Escoamento $\rightarrow$ Bombas); \textbf{Reatores Ideais} (Componentes $\rightarrow$ Reatores CSTR/PFR); e \textbf{Balanço de Massa} (Componentes $\rightarrow$ Balanço). As trilhas orientam o estudante a percorrer os módulos em uma ordem coerente com a construção dos conceitos, em vez de utilizá-los de forma isolada. No desenho mais recente da interface, essas trilhas convivem com os cartões de acesso rápido e com um conjunto de blocos de contexto para docentes e discentes, reforçando a intenção de uso de cada área antes da abertura do módulo.
+A página inicial organiza o uso dos módulos em três trilhas de aprendizagem, que sugerem uma sequência didática de estudo: \textbf{Transporte de Fluidos} (Tubulações $\rightarrow$ Dimensionamento $\rightarrow$ Escoamento $\rightarrow$ Bombas); \textbf{Reatores Ideais} (Componentes $\rightarrow$ Reatores \textit{CSTR}/\textit{PFR}); e \textbf{Balanço de Massa} (Componentes $\rightarrow$ Balanço). As trilhas orientam o estudante a percorrer os módulos em uma ordem coerente com a construção dos conceitos, em vez de utilizá-los de forma isolada. No desenho atual da interface, essas trilhas convivem com cartões de acesso rápido para os módulos principais, reforçando a intenção de uso de cada área antes da abertura do cálculo.
 
 \begin{figure}[H]
     \centering

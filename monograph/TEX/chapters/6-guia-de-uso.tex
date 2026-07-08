@@ -1,0 +1,164 @@
+\chapter{Guia de Uso da Ferramenta}
+
+Este capítulo apresenta um roteiro de uso do DCOU para discentes e docentes de Engenharia Química. A finalidade é mostrar, em sequência, como acessar a aplicação, navegar entre os módulos, carregar exemplos, executar cálculos e interpretar resultados numéricos e gráficos. As telas foram verificadas na aplicação local em ambiente desktop, no endereço \textit{web} local na data de 08/07/2026, podendo haver diferenças visuais e de funcionalidade conforme atualização no servidor produtivo.
+
+Em todos os módulos que disponibilizam o botão \textbf{Carregar exemplo}, as capturas deste capítulo foram feitas a partir dos exemplos fornecidos pela própria ferramenta. Quando a tela possuía botão de execução, como \textbf{Calcular Reynolds}, \textbf{Calcular CSTR}, \textbf{Calcular PFR} ou \textbf{Calcular Balanço de Massa}, o cálculo foi executado antes da captura. Dessa forma, o fluxo documentado reproduz o uso real esperado: carregar um caso coerente, observar as entradas, executar o cálculo e interpretar o resultado.
+
+\newcommand{\figuratelaguia}[3]{%
+\begin{figure}[H]
+    \centering
+    \caption{#1}
+    \includegraphics[width=\textwidth,height=0.66\textheight,keepaspectratio]{#2}
+    \fonte{Autoria própria.}
+    \label{#3}
+\end{figure}
+}
+
+\section{Acesso e Tela Inicial}
+
+O acesso local é feito abrindo o navegador e informando a URL (\texttt{http://localhost:5173} se localmente ou \texttt{https://tcc.joao.baza.dev.br} - nesse momento - se em produção). A tela inicial apresenta a identidade do DCOU, o menu lateral de módulos, as trilhas de aprendizagem e os cartões de acesso rápido. Para uma atividade de ensino, recomenda-se escolher a trilha compatível com o conteúdo da aula: transporte de fluidos, reatores ideais ou balanço de massa.
+
+\figuratelaguia{Tela inicial com trilhas de aprendizagem e cartões de acesso rápido}{media/cap7_01_tela_inicial_trilhas.png}{fig:guia_tela_inicial}
+
+Na leitura didática, o estudante deve observar que a aplicação não é organizada como uma calculadora única. Cada módulo representa uma etapa conceitual: catálogos de dados, dimensionamento, análise de regime, propriedades, reatores, balanço e glossário. Para o docente, essa organização permite conduzir uma aula por sequência de fenômenos, em vez de apresentar apenas resultados isolados.
+
+\section{Tubulações e Acessórios}
+
+O módulo \textbf{Tubulações} reúne dados usados posteriormente nos cálculos hidráulicos. Na aba \textbf{Composições}, o exemplo carregado seleciona uma composição de tubulação e mostra suas propriedades catalogadas. Essa tela deve ser usada antes de problemas de perda de carga para discutir como material e rugosidade afetam a modelagem.
+
+\figuratelaguia{Aba Composições do módulo de tubulações com exemplo carregado}{media/cap7_02_tubulacoes_composicoes_exemplo.png}{fig:guia_tubulacoes_composicoes}
+
+Na aba \textbf{Schedules e Diâmetros}, o usuário observa diâmetros nominais e dimensões comerciais. Essa etapa conecta o diâmetro calculado pelo modelo matemático com a seleção real de tubulações disponíveis.
+
+\figuratelaguia{Aba Schedules e Diâmetros com diâmetro comercial do exemplo}{media/cap7_03_tubulacoes_schedules_diametros_exemplo.png}{fig:guia_tubulacoes_schedules}
+
+Na aba \textbf{Conexões}, o exemplo mostra o cadastro de acessórios e seus coeficientes. A interpretação esperada é que válvulas, cotovelos, entradas e saídas de tanque não são detalhes secundários: eles entram diretamente no cálculo de perdas localizadas.
+
+\figuratelaguia{Aba Conexões com acessório carregado pelo exemplo}{media/cap7_04_tubulacoes_conexoes_exemplo.png}{fig:guia_tubulacoes_conexoes}
+
+\section{Dimensionamento}
+
+No módulo \textbf{Dimensionamento}, a aba \textbf{Diâmetro Calculado} solicita vazão volumétrica e velocidade de projeto. Com o exemplo carregado, o estudante pode acionar \textbf{Calcular diâmetro} e observar a tabela de resultado. A pergunta didática central é: o valor calculado é um requisito hidráulico, mas a escolha final ainda precisa ser compatibilizada com um diâmetro comercial.
+
+\figuratelaguia{Aba Diâmetro Calculado com exemplo executado}{media/cap7_05_dimensionamento_diametro_calculado_exemplo.png}{fig:guia_dimensionamento_calculado}
+
+Na aba \textbf{Diâmetro Real}, a ferramenta compara o diâmetro calculado com o schedule selecionado e retorna o diâmetro comercial imediatamente aplicável. O discente deve observar a diferença entre cálculo contínuo e seleção discreta de catálogo.
+
+\figuratelaguia{Aba Diâmetro Real com seleção de diâmetro comercial}{media/cap7_06_dimensionamento_diametro_real_exemplo.png}{fig:guia_dimensionamento_real}
+
+\section{Escoamento Interno}
+
+O módulo \textbf{Escoamento} começa pela aba \textbf{Número de Reynolds}. Depois de carregar o exemplo e executar o cálculo, a tela mostra o valor de Reynolds e a régua de regime. A interpretação não deve parar no número: o marcador indica se o escoamento é laminar, de transição ou turbulento, afetando as correlações posteriores.
+
+\figuratelaguia{Aba Número de Reynolds com resultado e régua de regime}{media/cap7_07_escoamento_reynolds_exemplo.png}{fig:guia_escoamento_reynolds}
+
+Na aba \textbf{Fator de Atrito}, o exemplo calcula o fator de Darcy e exibe o diagrama de \textit{Moody}. Essa tela deve ser usada para discutir a influência simultânea do número de Reynolds e da rugosidade relativa.
+
+\figuratelaguia{Aba Fator de Atrito com diagrama de Moody}{media/cap7_08_escoamento_fator_atrito_exemplo.png}{fig:guia_escoamento_atrito}
+
+Na aba \textbf{Diâmetro Hidráulico}, o exemplo evidencia que geometrias não circulares também podem ser tratadas por uma dimensão característica. O estudante deve observar a relação entre geometria, área molhada e perímetro molhado.
+
+\figuratelaguia{Aba Diâmetro Hidráulico com pré-visualização geométrica}{media/cap7_09_escoamento_diametro_hidraulico_exemplo.png}{fig:guia_escoamento_diametro_hidraulico}
+
+\section{Perda de Carga e Bombas}
+
+Na aba \textbf{Perda de Carga}, o exemplo combina comprimento de linha, diâmetro, vazão, material, Reynolds, método de fator de atrito e acessórios. Ao executar o cálculo, a ferramenta retorna a perda de carga e apresenta curvas didáticas do sistema. O docente pode explorar a tela alterando material, vazão ou conexões e observando o deslocamento do ponto de operação.
+
+\figuratelaguia{Aba Perda de Carga com exemplo e curva do sistema}{media/cap7_10_bombas_perda_carga_exemplo.png}{fig:guia_bombas_perda_carga}
+
+Na aba \textbf{NPSH Disponível}, o exemplo calcula a margem entre o \textit{NPSH} disponível e o requerido. O ponto de atenção para o estudante é a cavitação: valores próximos ao limite indicam risco operacional e exigem revisão das condições de sucção.
+
+\figuratelaguia{Aba NPSH Disponível com indicador de margem}{media/cap7_11_bombas_npsh_disponivel_exemplo.png}{fig:guia_bombas_npsh}
+
+Na aba \textbf{Altura Manométrica}, a ferramenta separa os termos de energia associados a pressão, elevação, velocidade e perdas. Essa decomposição ajuda a relacionar a equação de Bernoulli estendida com a seleção de bomba.
+
+\figuratelaguia{Aba Altura Manométrica com decomposição dos termos de energia}{media/cap7_12_bombas_altura_manometrica_exemplo.png}{fig:guia_bombas_altura}
+
+\section{Propriedades de Componentes}
+
+O módulo \textbf{Componentes} reúne consultas termodinâmicas e visualizações de equilíbrio. Na aba \textbf{Propriedades Críticas}, o exemplo recupera propriedades críticas do fluido selecionado. Essa tela é útil para introduzir limites de validade e regiões próximas ao ponto crítico.
+
+\figuratelaguia{Aba Propriedades Críticas com fluido do exemplo}{media/cap7_13_componentes_propriedades_criticas_exemplo.png}{fig:guia_componentes_criticas}
+
+Na aba \textbf{Fluido Puro}, o exemplo mostra propriedades de estado e, na mesma tela, a superfície \textit{T-P}. O discente deve observar que propriedades como densidade, entalpia e entropia variam com temperatura e pressão, não apenas com uma variável isolada.
+
+\figuratelaguia{Aba Fluido Puro com propriedades e superfície T-P}{media/cap7_14_componentes_fluido_puro_exemplo.png}{fig:guia_componentes_fluido_puro}
+
+Na aba \textbf{Misturas}, a ferramenta calcula propriedades de mistura e apresenta a visualização ternária quando aplicável. Essa tela apoia discussões sobre composição, normalização de frações e leitura de sistemas multicomponentes.
+
+\figuratelaguia{Aba Misturas com exemplo e diagrama ternário}{media/cap7_15_componentes_misturas_exemplo.png}{fig:guia_componentes_misturas}
+
+Na aba \textbf{Equilíbrio Binário}, o exemplo gera o diagrama de equilíbrio líquido-vapor. O estudante deve acompanhar as curvas de bolha e orvalho e relacioná-las às composições das fases em equilíbrio.
+
+\figuratelaguia{Aba Equilíbrio Binário com diagrama T-x-y}{media/cap7_16_componentes_equilibrio_binario_exemplo.png}{fig:guia_componentes_binario}
+
+Na mesma área de equilíbrio binário, o bloco \textbf{McCabe-Thiele} permite visualizar estágios teóricos de separação. A construção gráfica torna visíveis a curva de equilíbrio, linhas operacionais e degraus de separação.
+
+\figuratelaguia{Bloco McCabe-Thiele gerado a partir do exemplo binário}{media/cap7_17_componentes_mccabe_thiele_exemplo.png}{fig:guia_componentes_mccabe}
+
+Na aba \textbf{Envelope de Fase}, o exemplo apresenta a fronteira entre regiões de fase. Essa tela é adequada para discutir ponto crítico, mudança de fase e limites operacionais de um componente.
+
+\figuratelaguia{Aba Envelope de Fase com curva gerada pelo exemplo}{media/cap7_18_componentes_envelope_fase_exemplo.png}{fig:guia_componentes_envelope}
+
+\section{Reatores Ideais}
+
+O módulo \textbf{CSTR / PFR} deve ser usado após carregar o exemplo, pois o caso preenche componentes, estequiometria, ordem de reação e condições operacionais. Na aba \textbf{CSTR}, a ferramenta calcula conversão, taxa de reação, concentrações de saída, tempo de residência e volume. O discente deve observar que, no CSTR, a composição de saída representa a composição no interior do reator perfeitamente misturado.
+
+\figuratelaguia{Aba CSTR com exemplo calculado}{media/cap7_19_reatores_cstr_exemplo.png}{fig:guia_reatores_cstr}
+
+Na aba \textbf{PFR}, o exemplo calcula o reator tubular e apresenta resultados numéricos e perfis associados. A comparação com o CSTR deve enfatizar que o PFR descreve uma evolução espacial das variáveis, e não uma mistura perfeitamente uniforme.
+
+\figuratelaguia{Aba PFR com exemplo calculado}{media/cap7_20_reatores_pfr_exemplo.png}{fig:guia_reatores_pfr}
+
+Na aba \textbf{Levenspiel}, a aplicação compara graficamente CSTR e PFR para o mesmo caso. Essa tela ajuda a discutir por que áreas sob a curva se relacionam ao volume requerido e como a geometria do gráfico expressa a equação de projeto.
+
+\figuratelaguia{Aba Levenspiel comparando CSTR e PFR}{media/cap7_21_reatores_levenspiel_exemplo.png}{fig:guia_reatores_levenspiel}
+
+Na aba \textbf{Arrhenius}, o exemplo mostra a dependência da constante cinética com a temperatura. O objetivo didático é destacar que variações térmicas podem alterar fortemente a velocidade de reação.
+
+\figuratelaguia{Aba Arrhenius com curva semilogarítmica do exemplo}{media/cap7_22_reatores_arrhenius_exemplo.png}{fig:guia_reatores_arrhenius}
+
+\section{Balanço de Massa}
+
+O módulo \textbf{Balanço de Massa} é organizado como um fluxo de montagem do problema. A aba \textbf{Componentes} define as espécies presentes. Essa etapa deve ser conferida antes de montar correntes e reações, pois todas as demais abas dependem dessa lista.
+
+\figuratelaguia{Aba Componentes do balanço de massa com exemplo carregado}{media/cap7_23_balanco_componentes_exemplo.png}{fig:guia_balanco_componentes}
+
+Na aba \textbf{Correntes}, o exemplo lista entradas e saídas com vazões e composições. O estudante deve verificar sentido da corrente, vazão total e composição antes de avançar.
+
+\figuratelaguia{Aba Correntes com alimentação, produto e reciclo do exemplo}{media/cap7_24_balanco_correntes_exemplo.png}{fig:guia_balanco_correntes}
+
+Na aba \textbf{Reações}, a ferramenta organiza estequiometria e conversão. O docente pode usar essa tela para reforçar a diferença entre balanços com e sem reação química.
+
+\figuratelaguia{Aba Reações com estequiometria do exemplo}{media/cap7_25_balanco_reacoes_exemplo.png}{fig:guia_balanco_reacoes}
+
+Na aba \textbf{Splits / Reciclo}, o exemplo configura divisão de correntes e reciclo. Essa tela ajuda a discutir fluxos internos do processo, que normalmente dificultam a resolução manual.
+
+\figuratelaguia{Aba Splits / Reciclo com configuração do exemplo}{media/cap7_26_balanco_splits_reciclo_exemplo.png}{fig:guia_balanco_splits}
+
+Na aba \textbf{Resultados}, após executar \textbf{Calcular Balanço de Massa}, a ferramenta apresenta composição mássica das correntes, tabela de correntes calculadas e comparações detalhadas. A interpretação recomendada é verificar se as vazões fecham e se as frações dos componentes fazem sentido físico.
+
+\figuratelaguia{Aba Resultados do balanço de massa após cálculo do exemplo}{media/cap7_27_balanco_resultados_exemplo.png}{fig:guia_balanco_resultados}
+
+\section{Glossário e Validações}
+
+O \textbf{Glossário} apoia a leitura dos resultados durante o uso dos módulos. No exemplo de busca por \textit{Reynolds}, a ferramenta filtra o termo principal e conceitos relacionados, como viscosidade cinemática. O estudante deve usar essa tela quando precisar revisar rapidamente definições e equações.
+
+\figuratelaguia{Glossário com busca por Reynolds}{media/cap7_28_glossario_termos_reynolds.png}{fig:guia_glossario_reynolds}
+
+Além da consulta conceitual, a ferramenta possui validações de entrada. Campos obrigatórios, valores numéricos incompatíveis e combinações incompletas de parâmetros geram notificações, evitando que o usuário interprete ausência de dado como resultado físico. Em atividades didáticas, recomenda-se carregar o exemplo, executar o cálculo, registrar o resultado e então alterar apenas uma variável por vez. Essa prática permite comparar cenários mantendo rastreável a relação entre hipótese, entrada, equação e visualização.
+
+Como sequência mínima de uso em aula ou estudo dirigido, recomenda-se:
+
+\begin{enumerate}
+    \item abrir a tela inicial e escolher a trilha ou o módulo de interesse;
+    \item carregar o exemplo disponível no módulo;
+    \item conferir unidades, hipóteses e parâmetros preenchidos;
+    \item executar o cálculo ou geração gráfica da aba atual;
+    \item interpretar a tabela de resultados junto das visualizações;
+    \item navegar para as abas relacionadas, como CSTR/PFR, Levenspiel, Arrhenius, NPSH ou resultados de balanço;
+    \item alterar uma variável por vez para testar cenários;
+    \item consultar o glossário e os painéis \textbf{Como funciona} sempre que a interpretação física precisar ser reforçada.
+\end{enumerate}
+
+Assim, o DCOU pode ser usado como ambiente de exploração guiada. O valor didático está em manter, no mesmo fluxo, entradas, catálogos, cálculos, visualizações, validações e explicações conceituais.
