@@ -123,7 +123,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         # Calculate inlet molar flow rates and total volumetric flow rate
         for c in components:
             flow_rate = c["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
-            conc = (c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
+            conc = c["molar_concentration_inlet"] * self.ureg.mol / self.ureg.m**3
             F0_i.append(flow_rate * conc)
             q_vol += flow_rate
             
@@ -351,6 +351,104 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
     # ------------------------------------------------------------------ #
     #                         PFR FUNCTIONS                              #
     # ------------------------------------------------------------------ #
+    def _pfr_volume_integral(
+        self,
+        *,
+        x_in,
+        x_out,
+        components,
+        stoichiometric_coefficients,
+        reaction_rate_params,
+        limiting,
+        C0_i,
+        C_lim0,
+        epsilon,
+        expansion_factor,
+    ):
+        """Integrate dX / -r_A between two PFR conversion points."""
+        lower_limit = x_in.magnitude if hasattr(x_in, "magnitude") else x_in
+        upper_limit = x_out.magnitude if hasattr(x_out, "magnitude") else x_out
+
+        if upper_limit <= lower_limit:
+            return 0.0
+
+        def rate_at_x(x_val):
+            dilution_factor = (1 + (epsilon * x_val)) * expansion_factor
+            _, _, r = self._calculate_concentration_and_rate(
+                components,
+                stoichiometric_coefficients,
+                reaction_rate_params,
+                limiting,
+                C0_i,
+                C_lim0,
+                x_val,
+                dilution_factor,
+            )
+            return abs(stoichiometric_coefficients[limiting]) * r.to(
+                self.ureg.mol / self.ureg.m**3 / self.ureg.s
+            ).magnitude
+
+        integral_val, _ = quad(lambda x: 1 / rate_at_x(x), lower_limit, upper_limit, limit=200)
+        return integral_val
+
+    def _solve_pfr_local_conversion(
+        self,
+        *,
+        target_volume_ratio,
+        outlet_conversion,
+        recycle_ratio,
+        total_volume,
+        init_data,
+    ):
+        """Solve the local conversion at a partial PFR volume."""
+        target_ratio = float(target_volume_ratio)
+        if not 0.0 <= target_ratio <= 1.0:
+            raise ValueError("relative_volume values must be between 0 and 1.")
+
+        outlet_x = outlet_conversion.magnitude if hasattr(outlet_conversion, "magnitude") else outlet_conversion
+        recycle = recycle_ratio.magnitude if hasattr(recycle_ratio, "magnitude") else recycle_ratio
+        inlet_x = (recycle / (recycle + 1)) * outlet_x
+
+        if target_ratio == 0.0:
+            return inlet_x * self.ureg.dimensionless
+        if target_ratio == 1.0:
+            return outlet_x * self.ureg.dimensionless
+
+        components = init_data["components"]
+        stoichiometric_coefficients = init_data["stoichiometric_coefficients"]
+        reaction_rate_params = init_data["reaction_rate_params"]
+        limiting = init_data["limiting"]
+        F_A0 = init_data["F_A0"]
+        C0_i = init_data["C0_i"]
+        C_lim0 = init_data["C_lim0"]
+        epsilon = init_data["epsilon"]
+        expansion_factor = init_data["expansion_factor"]
+
+        target_volume = total_volume * target_ratio
+        f_a0_mag = F_A0.to(self.ureg.mol / self.ureg.s).magnitude
+
+        def objective(x_val):
+            partial_integral = self._pfr_volume_integral(
+                x_in=inlet_x,
+                x_out=x_val,
+                components=components,
+                stoichiometric_coefficients=stoichiometric_coefficients,
+                reaction_rate_params=reaction_rate_params,
+                limiting=limiting,
+                C0_i=C0_i,
+                C_lim0=C_lim0,
+                epsilon=epsilon,
+                expansion_factor=expansion_factor,
+            )
+            partial_volume = (recycle + 1) * f_a0_mag * partial_integral * self.ureg.m**3
+            return (partial_volume - target_volume).to_base_units().magnitude
+
+        result = root_scalar(objective, bracket=[inlet_x, outlet_x], method="brentq")
+        if not result.converged:
+            raise ValueError("Failed to converge to a valid local PFR conversion value.")
+
+        return result.root * self.ureg.dimensionless
+
     def _conversion_and_kinetics_in_pfr(self, parameters):
         """Calculates the volume of a PFR based on conversion and kinetics."""
         self._require_keys(parameters, ["recycling_ratio", "conversion"])
@@ -373,20 +471,21 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         epsilon = init_data["epsilon"]
         expansion_factor = init_data["expansion_factor"]
 
-        # Define the rate function for integration
-        def rate_function(X_val):
-            dilution_factor = (1 + (epsilon * X_val)) * expansion_factor
-            outlet_concentrations, k, r = self._calculate_concentration_and_rate(
-                components, stoichiometric_coefficients, reaction_rate_params, 
-                limiting, C0_i, C_lim0, X_val, dilution_factor
-            )
-            return abs(stoichiometric_coefficients[limiting]) * r.magnitude
+        integral = self._pfr_volume_integral(
+            x_in=R / (R + 1) * X,
+            x_out=X,
+            components=components,
+            stoichiometric_coefficients=stoichiometric_coefficients,
+            reaction_rate_params=reaction_rate_params,
+            limiting=limiting,
+            C0_i=C0_i,
+            C_lim0=C_lim0,
+            epsilon=epsilon,
+            expansion_factor=expansion_factor,
+        )
 
-        # Calculate the volume using numerical integration
-        
-        integral, _ = quad(lambda x: 1 / rate_function(x), (R/(R+1)*X).magnitude, X.magnitude)
-
-        V = (R+1) * F_A0 * integral * self.ureg.m**3  # m³
+        F_A0_mag = F_A0.to(self.ureg.mol / self.ureg.s).magnitude
+        V = (R + 1) * F_A0_mag * integral * self.ureg.m**3  # m³
         
         # Calculate the final dilution factor and concentrations
         dilution_factor = (1 + (epsilon * X)) * expansion_factor
@@ -430,33 +529,21 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         expansion_factor = init_data["expansion_factor"]
 
         def objective(X_val):
-            # Inner function to calculate rate at a specific conversion x
-            def rate_at_x(x):
-                dilution_factor = (1 + (epsilon * x)) * expansion_factor
-                _, _, r = self._calculate_concentration_and_rate(
-                    components, stoichiometric_coefficients, reaction_rate_params, 
-                    limiting, C0_i, C_lim0, x, dilution_factor
-                )
-                return abs(stoichiometric_coefficients[limiting]) * r.to(self.ureg.mol / self.ureg.m**3 / self.ureg.s).magnitude
+            integral_val = self._pfr_volume_integral(
+                x_in=R / (R + 1) * X_val,
+                x_out=X_val,
+                components=components,
+                stoichiometric_coefficients=stoichiometric_coefficients,
+                reaction_rate_params=reaction_rate_params,
+                limiting=limiting,
+                C0_i=C0_i,
+                C_lim0=C_lim0,
+                epsilon=epsilon,
+                expansion_factor=expansion_factor,
+            )
 
-            # Integrate dX/-rA from Xinlet to X_val
-            # Xinlet for PFR with recycle is (R / (R + 1)) * X_val
-            lower_limit = (R / (R + 1) * X_val).magnitude
-            upper_limit = X_val
-            
-            if upper_limit <= lower_limit:
-                 # Should not happen for valid ranges, but safety check
-                 integral_val = 0
-            else:
-                 integral_val, _ = quad(lambda x: 1 / rate_at_x(x), lower_limit, upper_limit)
-            
-            # V = (R+1) * FA0 * integral
-            # FA0 is in mol/s (magnitude), integral is s * m^3 / mol (magnitude-wise inverse of rate)
-            # Result is m^3
             F_A0_mag = F_A0.to(self.ureg.mol / self.ureg.s).magnitude
             V_calc = (R + 1) * F_A0_mag * integral_val * self.ureg.m**3
-            
-            # Return mismatch
             return (V_calc - V).to_base_units().magnitude
 
         result = root_scalar(objective, bracket=[1e-9, 1.0 - 1e-9], method='brentq')
@@ -509,25 +596,19 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         V = q_vol * residence_time  # m³
 
         def objective(X_val):
-            # Inner function to calculate rate at a specific conversion x
-            def rate_at_x(x):
-                dilution_factor = (1 + (epsilon * x)) * expansion_factor
-                _, _, r = self._calculate_concentration_and_rate(
-                    components, stoichiometric_coefficients, reaction_rate_params, 
-                    limiting, C0_i, C_lim0, x, dilution_factor
-                )
-                return abs(stoichiometric_coefficients[limiting]) * r.magnitude
+            integral_val = self._pfr_volume_integral(
+                x_in=R / (R + 1) * X_val,
+                x_out=X_val,
+                components=components,
+                stoichiometric_coefficients=stoichiometric_coefficients,
+                reaction_rate_params=reaction_rate_params,
+                limiting=limiting,
+                C0_i=C0_i,
+                C_lim0=C_lim0,
+                epsilon=epsilon,
+                expansion_factor=expansion_factor,
+            )
 
-            # Integrate dX/-rA from Xinlet to X_val
-            lower_limit = (R / (R + 1) * X_val).magnitude
-            upper_limit = X_val
-            
-            if upper_limit <= lower_limit:
-                 integral_val = 0
-            else:
-                 integral_val, _ = quad(lambda x: 1 / rate_at_x(x), lower_limit, upper_limit)
-
-            # V = (R+1) * FA0 * integral
             F_A0_mag = F_A0.to(self.ureg.mol / self.ureg.s).magnitude
             V_calc = (R + 1) * F_A0_mag * integral_val * self.ureg.m**3
 
@@ -601,6 +682,69 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             return self._residence_time_and_kinetics_in_pfr(parameters)
         else:
             raise ValueError(f"Invalid input_type: {input_type}")
+
+    def pfr_spatial_profile(self, parameters: Dict[str, object]):
+        """Calculate local station properties along the PFR volume."""
+        self._require_keys(parameters, ["volume", "recycling_ratio", "relative_volume"])
+
+        relative_positions = parameters["relative_volume"]
+        if not isinstance(relative_positions, list) or not relative_positions:
+            raise ValueError("relative_volume must be a non-empty list.")
+
+        self._validate_numeric(parameters, ["volume", "recycling_ratio"])
+        init_data = self._initialize_reactor(parameters)
+        total_volume = parameters["volume"] * self.ureg.m**3
+        recycle_ratio = parameters["recycling_ratio"] * self.ureg.dimensionless
+        outlet_result = self._volume_and_kinetics_in_pfr(parameters)
+        outlet_conversion = outlet_result["conversion"]
+
+        components = init_data["components"]
+        stoichiometric_coefficients = init_data["stoichiometric_coefficients"]
+        reaction_rate_params = init_data["reaction_rate_params"]
+        limiting = init_data["limiting"]
+        C0_i = init_data["C0_i"]
+        C_lim0 = init_data["C_lim0"]
+        epsilon = init_data["epsilon"]
+        expansion_factor = init_data["expansion_factor"]
+        t0 = init_data["T0"]
+        t_final = init_data["T"]
+
+        stations = []
+        for position in relative_positions:
+            local_conversion = self._solve_pfr_local_conversion(
+                target_volume_ratio=position,
+                outlet_conversion=outlet_conversion,
+                recycle_ratio=recycle_ratio,
+                total_volume=total_volume,
+                init_data=init_data,
+            )
+            dilution_factor = (1 + (epsilon * local_conversion)) * expansion_factor
+            concentrations, _, _ = self._calculate_concentration_and_rate(
+                components,
+                stoichiometric_coefficients,
+                reaction_rate_params,
+                limiting,
+                C0_i,
+                C_lim0,
+                local_conversion,
+                dilution_factor,
+            )
+            temperature = t0 + (t_final - t0) * float(position)
+            stations.append(
+                {
+                    "relative_volume": float(position),
+                    "conversion": local_conversion,
+                    "temperature": temperature,
+                    "concentrations": concentrations,
+                }
+            )
+
+        return {
+            "stations": stations,
+            "outlet_conversion": outlet_conversion,
+            "volume": total_volume,
+            "recycling_ratio": recycle_ratio,
+        }
 
     def plot_conversion_vs_volume(self, parameters: Dict[str, object]):
         """
@@ -699,7 +843,9 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
     
             if coef < 0:  # It's a reactant
                 flow_rate = component["flow_rate_inlet"] * self.ureg.m**3 / self.ureg.s
-                molar_concentration = (component["molar_concentration_inlet"] * self.ureg.mol / self.ureg.L).to(self.ureg.mol / self.ureg.m**3)
+                molar_concentration = (
+                    component["molar_concentration_inlet"] * self.ureg.mol / self.ureg.m**3
+                )
                 
                 ratio = (flow_rate * molar_concentration / abs(coef)).magnitude  # mol/s per mol
     
