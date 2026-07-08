@@ -3,6 +3,7 @@ import { RouterProvider, createMemoryRouter } from "react-router-dom";
 
 import { routes } from "@/app/router";
 import { abbreviateUnit } from "@/lib/units";
+import type { ChartModel } from "@/types/chart-model";
 
 const notifyMock = vi.hoisted(() => ({
   success: vi.fn(),
@@ -14,6 +15,114 @@ vi.mock("@/lib/notify", () => ({
 }));
 
 const fetchMock = vi.fn<typeof fetch>();
+
+const moodyChartResponse: ChartModel = {
+  id: "moody-chart",
+  title: "Diagrama de Moody",
+  subtitle: "Curvas calculadas no backend",
+  approximation_notice: "Payload bruto do backend.",
+  axes: {
+    x: {
+      scale: "log",
+      label: "Número de Reynolds",
+      units: "dimensionless",
+      domain: { min: 1000, max: 1_000_000 },
+      ticks: [1000, 10000, 100000, 1000000],
+      major_ticks: [1000, 10000, 100000, 1000000],
+    },
+    y: {
+      scale: "linear",
+      label: "Fator de atrito",
+      units: "dimensionless",
+      domain: { min: 0.01, max: 0.08 },
+      ticks: [0.02, 0.04, 0.06, 0.08],
+      major_ticks: [0.02, 0.04, 0.06, 0.08],
+    },
+  },
+  series: [
+    {
+      id: "moody-band",
+      name: "Faixa de referência",
+      kind: "band",
+      color: "#cbd5e1",
+      points: [
+        { x: 1000, y: 0.07 },
+        { x: 10000, y: 0.05 },
+        { x: 1000000, y: 0.03 },
+      ],
+    },
+  ],
+  markers: [
+    { id: "operating-point", x: 50000, y: 0.0215, label: "Ponto operacional", color: "#dc2626" },
+  ],
+  annotations: [{ id: "backend-note", text: "Curva de rugosidade backend", tone: "info" }],
+  metadata: {
+    version: "1.0",
+    units: {
+      x: "dimensionless",
+      y: "dimensionless",
+    },
+  },
+};
+
+const regimeVisualizationResponse = {
+  title: "Regime do escoamento",
+  description: "Escala linear de Reynolds de 100 a 10.000. O marcador mostra a posição atual.",
+  domain: { min: 100, max: 10_000 },
+  segments: [
+    { regime: "laminar", label: "Laminar", color: "#2563EB", x: 40, width: 151.52 },
+    { regime: "transition", label: "Transição", color: "#D97706", x: 191.52, width: 116.77 },
+    { regime: "turbulent", label: "Turbulento", color: "#DC2626", x: 308.29, width: 411.71 },
+  ],
+  ticks: [
+    { value: 100, label: "100", x: 40 },
+    { value: 500, label: "500", x: 67.47 },
+    { value: 1000, label: "1000", x: 101.82 },
+    { value: 2300, label: "2300", x: 191.52 },
+    { value: 4000, label: "4000", x: 308.29 },
+    { value: 6000, label: "6000", x: 445.66 },
+    { value: 8000, label: "8000", x: 583.03 },
+    { value: 10000, label: "10000", x: 720 },
+  ],
+  marker: {
+    x: 720,
+    label: "Re = 50000",
+    status: "acima da escala",
+    regime: "turbulent",
+    regime_label: "Turbulento",
+    color: "#DC2626",
+    text_anchor: "end",
+  },
+};
+
+const hydraulicPreviewResponse = {
+  title: "Canal circular",
+  description: "Representação proporcional do canal circular com fluido.",
+  summary: "Segmento circular preenchido, com D, h e R destacados.",
+  view_box: "0 0 320 220",
+  elements: [
+    {
+      type: "path",
+      attrs: {
+        d: "M 106.86 128.4 A 76 76 0 0 0 213.14 128.4 L 106.86 128.4 Z",
+        fill: "#0F5E9C",
+        stroke: "#0F172A",
+        strokeWidth: "2.5",
+        "data-preview-id": "backend-cap-fill",
+      },
+    },
+    {
+      type: "text",
+      attrs: { x: 216.72, y: 39.28, fill: "#334155", fontSize: "12" },
+      text: "R",
+    },
+  ],
+  chips: [
+    { label: "D", value: "0,1" },
+    { label: "h", value: "0,03" },
+    { label: "R", value: "0,05" },
+  ],
+};
 
 function requestBodiesFor(pathSuffix: string, method = "POST") {
   return fetchMock.mock.calls
@@ -187,6 +296,10 @@ function mockFlowRequests(options?: {
       return Response.json({ value: 50000, units: "dimensionless" });
     }
 
+    if (url.endsWith("/api/flow/reynolds/regime-visualization") && method === "POST") {
+      return Response.json(regimeVisualizationResponse);
+    }
+
     if (url.endsWith("/api/flow/friction-factor") && method === "POST") {
       if (options?.frictionError) {
         return new Response(JSON.stringify({ detail: options.frictionError }), {
@@ -197,6 +310,10 @@ function mockFlowRequests(options?: {
       return Response.json({ value: 0.0215, units: "dimensionless" });
     }
 
+    if (url.endsWith("/api/flow/moody/chart") && method === "POST") {
+      return Response.json(moodyChartResponse);
+    }
+
     if (url.endsWith("/api/flow/hydraulic-diameter") && method === "POST") {
       if (options?.hydraulicError) {
         return new Response(JSON.stringify({ detail: options.hydraulicError }), {
@@ -205,6 +322,10 @@ function mockFlowRequests(options?: {
         });
       }
       return Response.json({ value: 0.06667, units: "meter" });
+    }
+
+    if (url.endsWith("/api/flow/hydraulic-diameter/preview") && method === "POST") {
+      return Response.json(hydraulicPreviewResponse);
     }
 
     throw new Error(`Unhandled request: ${method} ${url}`);
@@ -234,7 +355,7 @@ describe("FlowPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads the worked example from the API into the Reynolds, friction, and hydraulic diameter forms", async () => {
+  it("loads the worked example and auto-calculates derived results across the flow tabs", async () => {
     mockFlowRequests();
     renderFlowPage();
 
@@ -259,19 +380,60 @@ describe("FlowPage", () => {
       expect(screen.getByLabelText(/Viscosidade dinâmica/i)).toHaveValue(0.0000111963);
     });
 
+    await expectTableValueMath(/^Número de Reynolds$/i);
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/flow/reynolds")).toContainEqual({
+        characteristic_diameter: 13.843,
+        velocity: 3.923,
+        density: 0.65688,
+        dynamic_viscosity: 0.0000111963,
+      });
+      expect(requestBodiesFor("/api/flow/reynolds/regime-visualization")).toContainEqual({
+        reynolds: 50000,
+      });
+    });
+    expect(screen.getByText(/acima da escala/i)).toBeInTheDocument();
+
     await openFlowTab(/Fator de Atrito/i);
+    await expectTableValueMath(/^Fator de atrito$/i);
     expect(screen.getByLabelText(/Método de cálculo/i)).toHaveValue("SwameeJain");
     expect(screen.getByLabelText(/Usar composição/i)).toBeChecked();
     expect(screen.getByLabelText(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
     expect(screen.queryByLabelText(/Rugosidade/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Diâmetro da linha/i)).toHaveValue(13.843);
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/flow/friction-factor")).toContainEqual({
+        roughness: 0.15,
+        diameter: 13.843,
+        reynolds: 50000,
+        method: "SwameeJain",
+      });
+      expect(requestBodiesFor("/api/flow/moody/chart")).toContainEqual({
+        roughness: 0.15,
+        diameter: 13.843,
+        reynolds: 50000,
+        method: "SwameeJain",
+        friction_factor: 0.0215,
+      });
+    });
+    expect(
+      await screen.findByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+    ).toBeInTheDocument();
 
     await openFlowTab(/Diâmetro Hidráulico/i);
+    await expectTableValueMath(/^Diâmetro hidráulico$/i);
     expect(screen.getByRole("combobox", { name: /Forma geométrica/i })).toHaveValue("Canal circular");
     expect(screen.getByDisplayValue("0.125")).toBeInTheDocument();
     expect(screen.getByDisplayValue("0.08333")).toBeInTheDocument();
-    expect(screen.getByText(/D = 0,125/i)).toBeInTheDocument();
-    expect(screen.getByText(/h = 0,08333/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/flow/hydraulic-diameter/preview")).toContainEqual({
+        shape: "circularCap",
+        diameter: 0.125,
+        height: 0.08333,
+      });
+    });
+    expect(screen.getByText(/D = 0,1/i)).toBeInTheDocument();
+    expect(screen.getByText(/h = 0,03/i)).toBeInTheDocument();
   });
 
   it("hides stale Reynolds and friction outputs after dependent input edits", async () => {
@@ -301,6 +463,12 @@ describe("FlowPage", () => {
 
     await expectTableValueMath(/^Número de Reynolds$/i);
     expectTableUnitText(/^Número de Reynolds$/i, "dimensionless");
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/flow/reynolds/regime-visualization")).toContainEqual({
+        reynolds: 50000,
+      });
+    });
+    expect(screen.getByText(/acima da escala/i)).toBeInTheDocument();
 
     await openFlowTab(/Fator de Atrito/i);
     fireEvent.change(screen.getByLabelText(/Rugosidade/i), {
@@ -316,7 +484,10 @@ describe("FlowPage", () => {
 
     await expectTableValueMath(/^Fator de atrito$/i);
     expectTableUnitText(/^Fator de atrito$/i, "dimensionless");
-    expect(screen.getByRole("heading", { name: /Ponto operacional/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("chart-series-legend")).toBeInTheDocument();
 
     await openFlowTab(/Número de Reynolds/i);
     fireEvent.change(screen.getByLabelText(/Velocidade média/i), {
@@ -331,7 +502,9 @@ describe("FlowPage", () => {
     expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
     expect(frictionRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
     expect(screen.queryByText(/Regime do escoamento/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Ponto operacional/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Número de Reynolds/i)).toHaveValue(null);
   });
 
@@ -398,9 +571,14 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Altura/i), {
       target: { value: "0.05" },
     });
-    expect(screen.getByText(/Pré-visualização geométrica/i)).toBeInTheDocument();
-    expect(screen.getByText(/a = 0,1/i)).toBeInTheDocument();
-    expect(screen.getByText(/b = 0,05/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Pré-visualização geométrica/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/flow/hydraulic-diameter/preview")).toContainEqual({
+        shape: "rectangular",
+        width: 0.1,
+        height: 0.05,
+      });
+    });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
     await expectTableValueMath(/^Diâmetro hidráulico$/i);
@@ -627,7 +805,7 @@ describe("FlowPage", () => {
     });
   });
 
-  it("renders the Moody chart from direct Reynolds input in the friction form", async () => {
+  it("renders the backend Moody chart from direct Reynolds input in the friction form", async () => {
     mockFlowRequests();
     renderFlowPage();
 
@@ -651,7 +829,18 @@ describe("FlowPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Calcular fator de atrito/i }));
 
     await expectTableValueMath(/^Fator de atrito$/i);
-    expect(screen.getByRole("heading", { name: /Ponto operacional/i })).toBeInTheDocument();
+    expect(requestBodiesFor("/api/flow/moody/chart")).toContainEqual({
+      roughness: 0.045,
+      diameter: 50,
+      reynolds: 50000,
+      method: "SwameeJain",
+      friction_factor: 0.0215,
+    });
+    expect(screen.getByText(/Legenda das curvas/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("chart-series-legend")).toBeInTheDocument();
   });
 
   it("calculates Reynolds, friction factor, and hydraulic diameter", async () => {
@@ -680,6 +869,9 @@ describe("FlowPage", () => {
     expectTableUnitText(/^Número de Reynolds$/i, "dimensionless");
     expect(screen.getByRole("heading", { name: /Regime do escoamento/i })).toBeInTheDocument();
     expect(screen.getAllByText(/^Turbulento$/i).length).toBeGreaterThan(0);
+    expect(requestBodiesFor("/api/flow/reynolds/regime-visualization")).toContainEqual({
+      reynolds: 50000,
+    });
 
     await openFlowTab(/Fator de Atrito/i);
     fireEvent.click(screen.getByLabelText(/Usar composição/i));
@@ -710,7 +902,20 @@ describe("FlowPage", () => {
         roughness: 0.045,
       }),
     );
-    expect(screen.getByRole("heading", { name: /Ponto operacional/i })).toBeInTheDocument();
+    expect(requestBodiesFor("/api/flow/moody/chart")).toContainEqual(
+      expect.objectContaining({
+        diameter: 60.3,
+        method: "SwameeJain",
+        reynolds: 50000,
+        roughness: 0.045,
+        friction_factor: 0.0215,
+      }),
+    );
+    expect(screen.getByText(/Legenda das curvas/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("chart-series-legend")).toBeInTheDocument();
     expect(screen.queryByText(/e\/D = 0.0009/i)).not.toBeInTheDocument();
 
     await openFlowTab(/Diâmetro Hidráulico/i);
@@ -726,6 +931,13 @@ describe("FlowPage", () => {
     });
     fireEvent.change(screen.getByLabelText(/Altura/i), {
       target: { value: "0.05" },
+    });
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/flow/hydraulic-diameter/preview")).toContainEqual({
+        shape: "rectangular",
+        width: 0.1,
+        height: 0.05,
+      });
     });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
@@ -757,10 +969,15 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Lado C/i), {
       target: { value: "0.1" },
     });
-    expect(screen.getByText(/Pré-visualização geométrica/i)).toBeInTheDocument();
-    expect(screen.getByText(/a = 0,1/i)).toBeInTheDocument();
-    expect(screen.getByText(/b = 0,1/i)).toBeInTheDocument();
-    expect(screen.getByText(/c = 0,1/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Pré-visualização geométrica/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/flow/hydraulic-diameter/preview")).toContainEqual({
+        shape: "triangular",
+        side_a: 0.1,
+        side_b: 0.1,
+        side_c: 0.1,
+      });
+    });
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 
     await expectTableValueMath(/^Diâmetro hidráulico$/i);
@@ -795,15 +1012,23 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Altura/i), {
       target: { value: "0.03" },
     });
-    expect(screen.getByText(/Pré-visualização geométrica/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Pré-visualização geométrica/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/flow/hydraulic-diameter/preview")).toContainEqual({
+        shape: "circularCap",
+        diameter: 0.1,
+        height: 0.03,
+      });
+    });
     expect(screen.getByText(/D = 0,1/i)).toBeInTheDocument();
     expect(screen.getByText(/h = 0,03/i)).toBeInTheDocument();
 
     const previewSvg = screen.getByRole("img", { name: /Canal circular/i });
-    const filledPath = previewSvg.querySelector("path[fill=\"#0F5E9C\"]");
+    const filledPath = previewSvg.querySelector('path[data-preview-id="backend-cap-fill"]');
     expect(filledPath).not.toBeNull();
-    const pathTokens = filledPath?.getAttribute("d")?.split(/\s+/) ?? [];
-    expect(pathTokens[8]).toBe("0");
+    expect(filledPath?.getAttribute("d")).toBe(
+      "M 106.86 128.4 A 76 76 0 0 0 213.14 128.4 L 106.86 128.4 Z",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
 

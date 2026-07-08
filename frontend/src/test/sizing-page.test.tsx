@@ -85,6 +85,22 @@ function mockSizingRequests(options?: { delayRealDiameter?: boolean }) {
       });
     }
 
+    if (url.endsWith("/api/sizing/velocity-profile/chart") && method === "POST") {
+      return Response.json({
+        title: "Perfil de Velocidade - Duto Circular",
+        regime: "turbulent",
+        color: "#DC2626",
+        label: "Turbulento",
+        reynolds: 189240,
+        arrows: [
+          { x1: 55, y1: 22, x2: 260, y2: 22, tip: "260,22" },
+          { x1: 55, y1: 70, x2: 315, y2: 70, tip: "315,70" },
+        ],
+        diameter_mm: 126.16,
+        velocity: 4,
+      });
+    }
+
     if (url.endsWith("/api/sizing/real-diameter") && method === "POST") {
       if (options?.delayRealDiameter) {
         return new Promise<Response>((resolve) => {
@@ -133,7 +149,7 @@ describe("SizingPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("loads the worked example into the calculated diameter form without triggering calculations", async () => {
+  it("loads the worked example and auto-calculates the derived sizing results from the calculated diameter tab", async () => {
     mockSizingRequests();
     renderSizingPage();
 
@@ -145,11 +161,23 @@ describe("SizingPage", () => {
       expect(screen.getByLabelText(/Velocidade de projeto/i)).toHaveValue(1.5);
     });
 
-    expect(requestBodiesFor("/api/sizing/calculated-diameter")).toHaveLength(0);
-    expect(requestBodiesFor("/api/sizing/real-diameter")).toHaveLength(0);
+    await expectRowValueMath(/^Diâmetro calculado$/i);
+    await expectRowValueMath(/^Diâmetro real$/i);
+    expect(requestBodiesFor("/api/sizing/calculated-diameter")).toContainEqual({
+      flow_rate: 0.0166667,
+      velocity: 1.5,
+    });
+    expect(requestBodiesFor("/api/sizing/velocity-profile/chart")).toContainEqual({
+      velocity: 1.5,
+      diameter_mm: 126.16,
+    });
+    expect(requestBodiesFor("/api/sizing/real-diameter")).toContainEqual({
+      calculated_diameter: 126.16,
+      schedule: "SCH40",
+    });
   });
 
-  it("loads the worked example into the real diameter form without triggering calculations", async () => {
+  it("loads the worked example and exposes calculated and real diameter results when opening the subsequent tab", async () => {
     mockSizingRequests();
     renderSizingPage("/sizing/real-diameter");
 
@@ -157,12 +185,15 @@ describe("SizingPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Diâmetro calculado/i)).toHaveValue(118.94);
+      expect(screen.getByLabelText(/Diâmetro calculado/i)).toHaveValue(126.16);
       expect(screen.getByLabelText(/^Schedule$/i)).toHaveValue("SCH40");
     });
 
-    expect(requestBodiesFor("/api/sizing/calculated-diameter")).toHaveLength(0);
-    expect(requestBodiesFor("/api/sizing/real-diameter")).toHaveLength(0);
+    await expectRowValueMath(/^Diâmetro real$/i);
+
+    await openSizingTab(/Diâmetro Calculado/i);
+    await expectRowValueMath(/^Diâmetro calculado$/i);
+    expect(await screen.findByText(/Perfil de Velocidade - Duto Circular/i)).toBeInTheDocument();
   });
 
   it("loads schedules and completes the diameter sizing flow", async () => {
@@ -182,6 +213,11 @@ describe("SizingPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro/i }));
 
     await expectRowValueMath(/^Diâmetro calculado$/i);
+    expect(requestBodiesFor("/api/sizing/velocity-profile/chart")).toContainEqual({
+      velocity: 4,
+      diameter_mm: 126.16,
+    });
+    expect(await screen.findByText(/Perfil de Velocidade - Duto Circular/i)).toBeInTheDocument();
 
     await openSizingTab(/Diâmetro Real/i);
 
@@ -225,6 +261,31 @@ describe("SizingPage", () => {
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith("/api/sizing/real-diameter")),
     ).toBe(true);
+  });
+
+  it("shows the selected schedule description below the selector before the result table", async () => {
+    mockSizingRequests();
+    renderSizingPage("/sizing/real-diameter");
+
+    expect(
+      await screen.findByRole("heading", { name: /Dimensionamento de Tubulação/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/Diâmetro calculado/i), {
+      target: { value: "126.16" },
+    });
+
+    const schedule = screen.getByRole("combobox", { name: /Schedule/i });
+    fireEvent.focus(schedule);
+    fireEvent.change(schedule, { target: { value: "STD" } });
+    fireEvent.keyDown(schedule, { key: "Enter", code: "Enter" });
+
+    const description = await screen.findByText("Schedule padrao");
+    const resultHeading = await screen.findByText("Resultado");
+
+    expect(
+      description.compareDocumentPosition(resultHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("recalculates the real diameter when the schedule changes after a diameter is computed", async () => {

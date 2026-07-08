@@ -29,10 +29,6 @@ export function PurePropertiesHowItWorks() {
         O módulo permite consultar múltiplas propriedades em sequência, como densidade,
         viscosidade, entalpia, entropia e condutividade térmica.
       </p>
-      <p>
-        Esses resultados alimentam diretamente outros módulos do projeto, como Reynolds,
-        NPSH e exercícios integrados.
-      </p>
       <TheoryRef>
         Ref.: Smith, Van Ness & Abbott, Introduction to Chemical Engineering Thermodynamics.
       </TheoryRef>

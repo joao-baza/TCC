@@ -15,6 +15,8 @@ type HeadlossCurveProps = {
 const width = 760;
 const height = 360;
 const padding = { top: 28, right: 28, bottom: 44, left: 104 };
+const curveColor = "#1d4ed8";
+const operationalColor = "#dc2626";
 
 function scaleValue(value: number, min: number, max: number, start: number, end: number) {
   if (min === max) {
@@ -105,11 +107,37 @@ export function HeadlossCurve({ points, operationalPoint }: HeadlossCurveProps) 
           aria-label="Curva de perda de carga"
           preserveAspectRatio="xMidYMid meet"
         >
-          {pathData ? <path d={pathData} fill="none" stroke="#2563EB" strokeWidth="2.5" /> : null}
+          {pathData ? <path d={pathData} fill="none" stroke={curveColor} strokeWidth="2.75" /> : null}
           {plottedPoints.map((point) => (
-            <circle key={`${point.flowRate}-${point.headloss}`} cx={point.x} cy={point.y} r="3" fill="#2563EB" />
+            <circle
+              key={`${point.flowRate}-${point.headloss}`}
+              cx={point.x}
+              cy={point.y}
+              r="3.25"
+              fill={curveColor}
+            />
           ))}
-          <circle cx={operationalX} cy={operationalY} r="5" fill="#DC2626" />
+          <line
+            stroke={operationalColor}
+            strokeDasharray="6 4"
+            strokeLinecap="round"
+            strokeWidth="2"
+            x1={padding.left}
+            x2={operationalX}
+            y1={operationalY}
+            y2={operationalY}
+          />
+          <line
+            stroke={operationalColor}
+            strokeDasharray="6 4"
+            strokeLinecap="round"
+            strokeWidth="2"
+            x1={operationalX}
+            x2={operationalX}
+            y1={operationalY}
+            y2={height - padding.bottom}
+          />
+          <circle cx={operationalX} cy={operationalY} r="5.5" fill={operationalColor} stroke="#fff" strokeWidth="2" />
         </svg>
       </div>
 

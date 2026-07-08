@@ -20,7 +20,7 @@ describe("PumpSystemCurve", () => {
     expect(screen.getByRole("button", { name: /Como funciona - Curva da bomba e do sistema/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Como funciona - Curva da bomba e do sistema/i }));
     expect(
-      screen.getByText(/Esta visualização mostra onde a curva da bomba cruza a curva do sistema/i),
+      screen.getByText(/Este gráfico compara a energia que a bomba consegue fornecer com a energia que o sistema exige/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/O ponto de operação em que bomba e sistema se equilibram/i)).toBeInTheDocument();
     expect(screen.getByText(/Fox, McDonald e Pritchard/i)).toBeInTheDocument();
@@ -29,9 +29,14 @@ describe("PumpSystemCurve", () => {
     expect(container.querySelector("svg")).not.toBeNull();
     expect(screen.getByText("Vazão volumétrica (Q)")).toHaveAttribute("data-chart-label", "x");
     expect(screen.getByText("Altura manométrica (H)")).toHaveAttribute("data-chart-label", "y");
+    const chart = container.querySelector("svg[aria-label='Curva da bomba e do sistema']");
+    expect(chart).not.toBeNull();
     expect(container.querySelector('[data-chart-label="y"]')).toHaveAttribute("transform", expect.stringContaining("translate(8,"));
     expect(container.querySelectorAll("[data-axis-tick='x']")).toHaveLength(5);
     expect(container.querySelectorAll("[data-axis-tick='y']")).toHaveLength(5);
+    expect(chart).toHaveAttribute("viewBox", "0 0 820 420");
+    expect(container.querySelectorAll("line[stroke-dasharray='6 4']")).toHaveLength(2);
+    expect(container.querySelector("circle[fill='#dc2626']")).toBeTruthy();
   });
 
   it("keeps the flow axis close to the operating range for small flows", () => {

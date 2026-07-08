@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { ResultTableSection } from "@/components/result-table-section";
-import { HydraulicDiameterPreview } from "@/components/viz/hydraulic-diameter-preview";
 import { MoodyChart } from "@/components/viz/moody-chart";
-import { RegimeRuler } from "@/components/viz/regime-ruler";
+import {
+  HydraulicDiameterPreview,
+  type HydraulicDiameterPreviewModel,
+} from "@/components/viz/hydraulic-diameter-preview";
+import { RegimeRuler, type RegimeRulerModel } from "@/components/viz/regime-ruler";
 import {
   FrictionFactorHowItWorks,
   HydraulicDiameterHowItWorks,
@@ -75,16 +78,33 @@ const shapeFieldMap: Record<(typeof supportedShapes)[number], string[]> = {
 
 type Shape = (typeof supportedShapes)[number];
 
-type FrictionContext = {
-  relativeRoughness: number;
-  reynolds: number;
-};
+type HydraulicPayload = {
+  shape: Shape;
+} & Partial<Record<string, number>>;
 
 const inputClassName =
   "mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400";
 
 function isSupportedShape(shape: string): shape is Shape {
   return supportedShapes.includes(shape as Shape);
+}
+
+function buildHydraulicPayload(shape: Shape | "", parameters: Record<string, string>): HydraulicPayload | null {
+  if (!shape) {
+    return null;
+  }
+
+  const requiredFields = shapeFieldMap[shape];
+  if (requiredFields.some((field) => !parameters[field])) {
+    return null;
+  }
+
+  return {
+    shape,
+    ...Object.fromEntries(
+      requiredFields.map((field) => [field, Number(parameters[field])]),
+    ),
+  } as HydraulicPayload;
 }
 
 function getErrorMessage(error: unknown) {
@@ -143,6 +163,7 @@ export function FlowPage() {
     kinematicViscosity: "",
   });
   const [reynoldsResult, setReynoldsResult] = useState<QuantityResult | null>(null);
+  const [reynoldsRegimeModel, setReynoldsRegimeModel] = useState<RegimeRulerModel | null>(null);
   const [reynoldsNumber, setReynoldsNumber] = useState("");
   const [reynoldsError, setReynoldsError] = useState<string | null>(null);
   const reynoldsSessionRef = useRef(0);
@@ -160,13 +181,17 @@ export function FlowPage() {
     scheduleDiameter: "",
   });
   const [frictionResult, setFrictionResult] = useState<QuantityResult | null>(null);
-  const [frictionContext, setFrictionContext] = useState<FrictionContext | null>(null);
+  const [frictionContext, setFrictionContext] = useState<{
+    relativeRoughness: number;
+    reynolds: number;
+  } | null>(null);
   const [frictionError, setFrictionError] = useState<string | null>(null);
   const frictionSessionRef = useRef(0);
 
   const [shape, setShape] = useState<Shape | "">("");
   const [shapeParams, setShapeParams] = useState<Record<string, string>>({});
   const [hydraulicResult, setHydraulicResult] = useState<QuantityResult | null>(null);
+  const [hydraulicPreview, setHydraulicPreview] = useState<HydraulicDiameterPreviewModel | null>(null);
   const [hydraulicError, setHydraulicError] = useState<string | null>(null);
   const hydraulicSessionRef = useRef(0);
 
@@ -270,6 +295,40 @@ export function FlowPage() {
     };
   }, [diameterSource, frictionForm.schedule]);
 
+  useEffect(() => {
+    const payload = buildHydraulicPayload(shape, shapeParams);
+    if (!payload) {
+      setHydraulicPreview(null);
+      return;
+    }
+
+    const sessionId = hydraulicSessionRef.current;
+    let ignore = false;
+
+    async function loadHydraulicPreview() {
+      try {
+        const preview = await apiClient.post<HydraulicDiameterPreviewModel>(
+          "/flow/hydraulic-diameter/preview",
+          payload,
+        );
+
+        if (!ignore && sessionId === hydraulicSessionRef.current) {
+          setHydraulicPreview(preview);
+        }
+      } catch {
+        if (!ignore && sessionId === hydraulicSessionRef.current) {
+          setHydraulicPreview(null);
+        }
+      }
+    }
+
+    void loadHydraulicPreview();
+
+    return () => {
+      ignore = true;
+    };
+  }, [shape, shapeParams]);
+
   function clearFrictionDerived() {
     frictionSessionRef.current += 1;
     setFrictionResult(null);
@@ -280,12 +339,14 @@ export function FlowPage() {
   function clearHydraulicDerived() {
     hydraulicSessionRef.current += 1;
     setHydraulicResult(null);
+    setHydraulicPreview(null);
     setHydraulicError(null);
   }
 
   function clearReynoldsDerived() {
     reynoldsSessionRef.current += 1;
     setReynoldsResult(null);
+    setReynoldsRegimeModel(null);
     setReynoldsNumber("");
     setReynoldsError(null);
     clearFrictionDerived();
@@ -307,196 +368,216 @@ export function FlowPage() {
     clearFrictionDerived();
   }
 
-  async function loadExample() {
-    try {
-      const example = await apiClient.get<FlowExamplePayload>("/flow/example");
-      const mapped = mapFlowExampleToFormInputs(example);
-
-      setReynoldsForm((current) => ({
-        ...current,
-        ...mapped.reynolds,
-        kinematicViscosity: "",
-      }));
-      setFrictionForm((current) => ({
-        ...current,
-        ...mapped.friction,
-        customRoughness: "",
-        schedule: "",
-        scheduleDiameter: "",
-      }));
-      setShape(mapped.hydraulicDiameter.shape as Shape);
-      setShapeParams(mapped.hydraulicDiameter.parameters);
-      setRoughnessSource(mapped.roughnessSource);
-      setDiameterSource(mapped.diameterSource);
-      clearReynoldsDerived();
-      clearHydraulicDerived();
-      notify.success("Exemplo carregado com sucesso.");
-    } catch (error) {
-      notify.error(`Erro ao carregar exemplo: ${getErrorMessage(error)}`);
-    }
-  }
-
-  async function handleReynoldsSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function runReynoldsCalculation(form = reynoldsForm) {
     const sessionId = reynoldsSessionRef.current;
 
-    if (!reynoldsForm.characteristicDiameter || !reynoldsForm.velocity) {
+    if (!form.characteristicDiameter || !form.velocity) {
       setReynoldsError("Informe o diâmetro característico e a velocidade.");
-      return;
+      return null;
     }
 
     if (
-      (!reynoldsForm.density || !reynoldsForm.dynamicViscosity) &&
-      !reynoldsForm.kinematicViscosity
+      (!form.density || !form.dynamicViscosity) &&
+      !form.kinematicViscosity
     ) {
       setReynoldsError(
         "Informe densidade e viscosidade dinâmica, ou viscosidade cinemática.",
       );
-      return;
+      return null;
     }
 
     const payload: Record<string, number> = {
-      characteristic_diameter: Number(reynoldsForm.characteristicDiameter),
-      velocity: Number(reynoldsForm.velocity),
+      characteristic_diameter: Number(form.characteristicDiameter),
+      velocity: Number(form.velocity),
     };
 
-    if (reynoldsForm.kinematicViscosity) {
-      payload.kinematic_viscosity = Number(reynoldsForm.kinematicViscosity);
+    if (form.kinematicViscosity) {
+      payload.kinematic_viscosity = Number(form.kinematicViscosity);
     } else {
-      payload.density = Number(reynoldsForm.density);
-      payload.dynamic_viscosity = Number(reynoldsForm.dynamicViscosity);
+      payload.density = Number(form.density);
+      payload.dynamic_viscosity = Number(form.dynamicViscosity);
     }
 
     try {
       const response = await apiClient.post<QuantityResult>("/flow/reynolds", payload);
       if (sessionId !== reynoldsSessionRef.current) {
-        return;
+        return null;
       }
 
       setReynoldsResult(response);
       setReynoldsNumber(String(response.value));
+
+      try {
+        const regimeModel = await apiClient.post<RegimeRulerModel>(
+          "/flow/reynolds/regime-visualization",
+          { reynolds: response.value },
+        );
+
+        if (sessionId !== reynoldsSessionRef.current) {
+          return null;
+        }
+
+        setReynoldsRegimeModel(regimeModel);
+      } catch (error) {
+        if (sessionId !== reynoldsSessionRef.current) {
+          return null;
+        }
+
+        notify.error(`Erro ao carregar régua de regime: ${getErrorMessage(error)}`);
+      }
+      return response;
     } catch (error) {
       if (sessionId !== reynoldsSessionRef.current) {
-        return;
+        return null;
       }
 
       notify.error(`Erro ao calcular Reynolds: ${getErrorMessage(error)}`);
+      return null;
     }
   }
 
-  async function handleFrictionSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleReynoldsSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await runReynoldsCalculation();
+  }
+
+  async function runFrictionCalculation(
+    form = frictionForm,
+    sources = {
+      roughnessSource,
+      diameterSource,
+    },
+    reynoldsValue = reynoldsNumber,
+  ) {
     const sessionId = frictionSessionRef.current;
 
-    if (roughnessSource === "custom" && !frictionForm.customRoughness) {
+    if (sources.roughnessSource === "custom" && !form.customRoughness) {
       setFrictionError("Informe um valor de rugosidade personalizado.");
-      return;
+      return null;
     }
 
-    if (roughnessSource === "composition" && !frictionForm.composition) {
+    if (sources.roughnessSource === "composition" && !form.composition) {
       setFrictionError("Selecione uma composição de material.");
-      return;
+      return null;
     }
 
-    if (diameterSource === "custom" && !frictionForm.customDiameter) {
+    if (sources.diameterSource === "custom" && !form.customDiameter) {
       setFrictionError("Informe um valor de diâmetro personalizado.");
-      return;
+      return null;
     }
 
-    if (diameterSource === "schedule" && (!frictionForm.schedule || !frictionForm.scheduleDiameter)) {
+    if (sources.diameterSource === "schedule" && (!form.schedule || !form.scheduleDiameter)) {
       setFrictionError("Selecione schedule e diâmetro.");
-      return;
+      return null;
     }
 
-    if (!reynoldsNumber || !frictionForm.method) {
+    if (!reynoldsValue || !form.method) {
       setFrictionError("Preencha todos os campos obrigatórios.");
-      return;
+      return null;
     }
 
-    let roughness = Number(frictionForm.customRoughness);
-    if (roughnessSource === "composition" && frictionForm.composition) {
+    let roughness = Number(form.customRoughness);
+    if (sources.roughnessSource === "composition" && form.composition) {
       try {
-        const encoded = encodeURIComponent(frictionForm.composition);
+        const encoded = encodeURIComponent(form.composition);
         const compositionDetails = await apiClient.get<CompositionDetails>(
           `/piping/composition/${encoded}`,
         );
         if (sessionId !== frictionSessionRef.current) {
-          return;
+          return null;
         }
 
         roughness = Number(compositionDetails.specifications.roughness?.value ?? 0);
       } catch {
         if (sessionId !== frictionSessionRef.current) {
-          return;
+          return null;
         }
 
         notify.error("Erro ao carregar material: Não foi possível obter a rugosidade da composição");
-        return;
+        return null;
       }
     }
 
     const diameter =
-      diameterSource === "schedule"
-        ? Number(frictionForm.scheduleDiameter)
-        : Number(frictionForm.customDiameter);
-    const appliedReynolds = Number(reynoldsNumber);
+      sources.diameterSource === "schedule"
+        ? Number(form.scheduleDiameter)
+        : Number(form.customDiameter);
+    const appliedReynolds = Number(reynoldsValue);
     const relativeRoughness = diameter > 0 ? roughness / diameter : Number.NaN;
 
     try {
-      const response = await apiClient.post<QuantityResult>("/flow/friction-factor", {
+      const payload = {
         roughness,
         diameter,
         reynolds: appliedReynolds,
-        method: frictionForm.method,
-      });
+        method: form.method,
+      };
+      const response = await apiClient.post<QuantityResult>("/flow/friction-factor", payload);
 
       if (sessionId !== frictionSessionRef.current) {
-        return;
+        return null;
       }
 
       setFrictionResult(response);
       setFrictionContext({ relativeRoughness, reynolds: appliedReynolds });
+
+      try {
+        await apiClient.post("/flow/moody/chart", {
+          ...payload,
+          friction_factor: response.value,
+        });
+      } catch (error) {
+        if (sessionId !== frictionSessionRef.current) {
+          return null;
+        }
+
+        notify.error(`Erro ao carregar diagrama de Moody: ${getErrorMessage(error)}`);
+      }
+      return response;
     } catch (error) {
       if (sessionId !== frictionSessionRef.current) {
-        return;
+        return null;
       }
 
       notify.error(`Erro ao calcular fator de atrito: ${getErrorMessage(error)}`);
+      return null;
     }
   }
 
-  async function handleHydraulicSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleFrictionSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await runFrictionCalculation();
+  }
+
+  async function runHydraulicCalculation(
+    nextShape = shape,
+    parameters = shapeParams,
+  ) {
     const sessionId = hydraulicSessionRef.current;
 
-    if (!shape) {
+    if (!nextShape) {
       setHydraulicError("Selecione uma forma.");
-      return;
+      return null;
     }
 
-    const requiredShapeFields = shapeFieldMap[shape];
-    const hasMissingParams = requiredShapeFields.some((field) => !shapeParams[field]);
-    if (hasMissingParams) {
+    const payload = buildHydraulicPayload(nextShape, parameters);
+    if (!payload) {
       setHydraulicError("Preencha todos os parâmetros da forma selecionada.");
-      return;
+      return null;
     }
-
-    const payload = Object.fromEntries(
-      Object.entries(shapeParams).map(([key, value]) => [key, Number(value)]),
-    );
 
     if (
-      shape === "annular" &&
+      nextShape === "annular" &&
       payload.outer_diameter != null &&
       payload.inner_diameter != null &&
       payload.inner_diameter >= payload.outer_diameter
     ) {
       setHydraulicError("O diâmetro interno deve ser menor que o externo.");
-      return;
+      return null;
     }
 
     if (
-      shape === "triangular" &&
+      nextShape === "triangular" &&
       payload.side_a != null &&
       payload.side_b != null &&
       payload.side_c != null &&
@@ -507,35 +588,87 @@ export function FlowPage() {
       setHydraulicError(
         "Os lados não formam um triângulo válido (desigualdade triangular).",
       );
-      return;
+      return null;
     }
 
     if (
-      shape === "circularCap" &&
+      nextShape === "circularCap" &&
       payload.diameter != null &&
       payload.height != null &&
       payload.height > payload.diameter
     ) {
       setHydraulicError("A altura não pode ser maior que o diâmetro.");
-      return;
+      return null;
     }
 
     try {
-      const response = await apiClient.post<QuantityResult>("/flow/hydraulic-diameter", {
-        shape,
-        ...payload,
-      });
+      const response = await apiClient.post<QuantityResult>("/flow/hydraulic-diameter", payload);
       if (sessionId !== hydraulicSessionRef.current) {
-        return;
+        return null;
       }
 
       setHydraulicResult(response);
+      return response;
     } catch (error) {
       if (sessionId !== hydraulicSessionRef.current) {
-        return;
+        return null;
       }
 
       notify.error(`Erro ao calcular diâmetro hidráulico: ${getErrorMessage(error)}`);
+      return null;
+    }
+  }
+
+  async function handleHydraulicSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await runHydraulicCalculation();
+  }
+
+  async function loadExample() {
+    try {
+      const example = await apiClient.get<FlowExamplePayload>("/flow/example");
+      const mapped = mapFlowExampleToFormInputs(example);
+      const nextReynoldsForm = {
+        ...reynoldsForm,
+        ...mapped.reynolds,
+        kinematicViscosity: "",
+      };
+      const nextFrictionForm = {
+        ...frictionForm,
+        ...mapped.friction,
+        customRoughness: "",
+        schedule: "",
+        scheduleDiameter: "",
+      };
+      const nextShape = mapped.hydraulicDiameter.shape as Shape;
+      const nextShapeParams = mapped.hydraulicDiameter.parameters;
+      const nextSources = {
+        roughnessSource: mapped.roughnessSource,
+        diameterSource: mapped.diameterSource,
+      };
+
+      setReynoldsForm(nextReynoldsForm);
+      setFrictionForm(nextFrictionForm);
+      setShape(nextShape);
+      setShapeParams(nextShapeParams);
+      setRoughnessSource(nextSources.roughnessSource);
+      setDiameterSource(nextSources.diameterSource);
+      clearReynoldsDerived();
+      clearHydraulicDerived();
+
+      const reynoldsResponse = await runReynoldsCalculation(nextReynoldsForm);
+      if (!reynoldsResponse) {
+        return;
+      }
+
+      await Promise.all([
+        runFrictionCalculation(nextFrictionForm, nextSources, String(reynoldsResponse.value)),
+        runHydraulicCalculation(nextShape, nextShapeParams),
+      ]);
+
+      notify.success("Exemplo carregado com sucesso.");
+    } catch (error) {
+      notify.error(`Erro ao carregar exemplo: ${getErrorMessage(error)}`);
     }
   }
 
@@ -611,7 +744,7 @@ export function FlowPage() {
               emptyLabel="Sem resultado."
               rows={buildResultRows("Número de Reynolds", reynoldsResult)}
             />
-            {reynoldsResult ? <RegimeRuler reynolds={reynoldsResult.value} /> : null}
+            {reynoldsRegimeModel ? <RegimeRuler model={reynoldsRegimeModel} /> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -783,12 +916,12 @@ export function FlowPage() {
               rows={buildResultRows("Fator de atrito", frictionResult)}
             />
             {frictionResult && frictionContext ? (
-            <MoodyChart
-              reynolds={frictionContext.reynolds}
-              frictionFactor={frictionResult.value}
-              roughness={frictionContext.relativeRoughness}
-            />
-          ) : null}
+              <MoodyChart
+                reynolds={frictionContext.reynolds}
+                frictionFactor={frictionResult.value}
+                roughness={frictionContext.relativeRoughness}
+              />
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
@@ -936,7 +1069,14 @@ export function FlowPage() {
 
               <Button type="submit">Calcular diâmetro hidráulico</Button>
             </form>
-            <HydraulicDiameterPreview shape={shape} parameters={shapeParams} />
+            <HydraulicDiameterPreview
+              preview={hydraulicPreview}
+              placeholderText={
+                shape
+                  ? "Informe parâmetros válidos para carregar a pré-visualização geométrica."
+                  : "Selecione uma forma geométrica para ver o esboço proporcional."
+              }
+            />
             {hydraulicError ? <p className="mt-3 text-sm text-red-600">{hydraulicError}</p> : null}
 
             <ResultTableSection

@@ -1,3 +1,8 @@
+import {
+  formatMassBalanceStreamName,
+  MASS_BALANCE_FLOW_UNIT_EXPLANATION,
+  MASS_BALANCE_FLOW_UNIT_LABEL,
+} from "@/lib/mass-balance-display";
 import { formatTableNumberText } from "@/lib/table-number";
 
 type StreamDatum = {
@@ -8,7 +13,7 @@ type StreamDatum = {
 };
 
 function formatFlow(value: number) {
-  return `${formatTableNumberText(value)} u. cons.`;
+  return `${formatTableNumberText(value)} ${MASS_BALANCE_FLOW_UNIT_LABEL}`;
 }
 
 function formatCompositionSummary(compositions: Record<string, number>) {
@@ -37,6 +42,7 @@ export function StreamGraph({
           <p className="text-sm text-muted-foreground">
             Visual local para comparar vazões e composições das correntes fechadas.
           </p>
+          <p className="text-xs text-muted-foreground">{MASS_BALANCE_FLOW_UNIT_EXPLANATION}</p>
         </div>
       </div>
 
@@ -45,7 +51,9 @@ export function StreamGraph({
           <div key={stream.name} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">{stream.name}</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {formatMassBalanceStreamName(stream.name)}
+                </p>
                 <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   {stream.direction}
                 </p>

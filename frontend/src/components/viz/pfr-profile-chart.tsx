@@ -1,101 +1,54 @@
+import { ChartModelRenderer } from "@/components/viz/chart-model-renderer";
 import { HowItWorks, TheoryRef } from "@/components/how-it-works";
-import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
-import { NumericChartGrid } from "@/components/viz/chart-grid";
+import type { PfrSpatialStation } from "@/features/reactor/pfr-spatial-profile";
+import type { ChartModel } from "@/types/chart-model";
 import { formatTableNumberText } from "@/lib/table-number";
 
-type ProfileSeries = {
-  label: string;
-  start: number;
-  end: number;
-  color: string;
-};
-
 type PfrProfileChartProps = {
-  concentrationSeries: ProfileSeries[];
-  temperature: {
-    inlet: number;
-    outlet: number;
-  };
+  model: ChartModel;
+  stations: PfrSpatialStation[];
   title?: string;
 };
-
-type ChartPoint = {
-  x: number;
-  y: number;
-};
-
-type SampleStation = {
-  ratio: number;
-  temperature: number;
-  concentrations: Array<{
-    label: string;
-    value: number;
-    color: string;
-  }>;
-};
-
-const width = 760;
-const height = 330;
-const padding = { top: 24, right: 28, bottom: 42, left: 72 };
 const schematicWidth = 760;
 const schematicHeight = 210;
 const schematicPadding = { top: 22, right: 28, bottom: 28, left: 28 };
-const stationRatios = [0, 0.25, 0.5, 0.75, 1];
-
-function scale(value: number, min: number, max: number, start: number, end: number) {
-  if (min === max) {
-    return (start + end) / 2;
-  }
-
-  return start + ((value - min) / (max - min)) * (end - start);
-}
-
-function buildPath(points: ChartPoint[]) {
-  if (points.length === 0) {
-    return "";
-  }
-
-  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
-}
+const palette = ["#0f766e", "#2563eb", "#b45309", "#7c3aed", "#dc2626"];
+const schematicStationRatios = [0, 0.25, 0.5, 0.75, 1];
+const ratioEpsilon = 1e-9;
 
 function toFixedLabel(value: number) {
   return formatTableNumberText(value);
 }
 
-function buildSeriesPoints(series: ProfileSeries) {
-  return [0, 0.2, 0.4, 0.6, 0.8, 1].map((ratio) => ({
-    x: ratio,
-    y: series.start + (series.end - series.start) * ratio,
-  }));
+function getSchematicStations(stations: PfrSpatialStation[]) {
+  return schematicStationRatios.flatMap((ratio) => {
+    const station = stations.find((candidate) => Math.abs(candidate.relativeVolume - ratio) <= ratioEpsilon);
+    return station ? [station] : [];
+  });
 }
 
-function buildSampleStations(
-  concentrationSeries: ProfileSeries[],
-  temperature: { inlet: number; outlet: number },
-) {
-  return stationRatios.map((ratio) => ({
-    ratio,
-    temperature: temperature.inlet + (temperature.outlet - temperature.inlet) * ratio,
-    concentrations: concentrationSeries.map((series) => ({
-      label: series.label,
-      value: series.start + (series.end - series.start) * ratio,
-      color: series.color,
-    })),
-  }));
+function buildSchematicLabel(station: PfrSpatialStation) {
+  return `V/V_total ${toFixedLabel(station.relativeVolume)} | T: ${toFixedLabel(station.temperature)} K`;
 }
 
-function buildSchematicLabel(station: SampleStation) {
-  return `V/V_total ${toFixedLabel(station.ratio)} | T: ${toFixedLabel(station.temperature)} K`;
+function buildSchematicConcentrationLabel(label: string, value: number) {
+  return `${label}: ${toFixedLabel(value)} mol/m³`;
 }
 
-function PfrReactorSchematic({
-  concentrationSeries,
-  temperature,
-}: {
-  concentrationSeries: ProfileSeries[];
-  temperature: { inlet: number; outlet: number };
-}) {
-  const stations = buildSampleStations(concentrationSeries, temperature);
+function getSchematicLabelWidth(station: PfrSpatialStation) {
+  const lines = [
+    buildSchematicLabel(station),
+    ...Object.entries(station.concentrations).map(([label, quantity]) =>
+      buildSchematicConcentrationLabel(label, quantity.value),
+    ),
+  ];
+  const longestLine = Math.max(...lines.map((line) => line.length));
+
+  return Math.max(142, Math.ceil(longestLine * 6.6) + 24);
+}
+
+function PfrReactorSchematic({ stations }: { stations: PfrSpatialStation[] }) {
+  const schematicStations = getSchematicStations(stations);
   const tubeX = schematicPadding.left + 24;
   const tubeY = 68;
   const tubeWidth = schematicWidth - schematicPadding.left - schematicPadding.right - 48;
@@ -154,24 +107,25 @@ function PfrReactorSchematic({
           <path
             d={`M ${tubeX + 18} ${tubeY + tubeHeight / 2} L ${tubeX - 6} ${tubeY + tubeHeight / 2}`}
             stroke="#64748b"
-            strokeWidth="2"
             strokeLinecap="round"
+            strokeWidth="2"
           />
           <path
             d={`M ${tubeX + tubeWidth - 18} ${tubeY + tubeHeight / 2} L ${
               tubeX + tubeWidth + 6
             } ${tubeY + tubeHeight / 2}`}
             stroke="#64748b"
-            strokeWidth="2"
             strokeLinecap="round"
+            strokeWidth="2"
           />
 
-          {stations.map((station, index) => {
-            const x = tubeX + station.ratio * tubeWidth;
+          {schematicStations.map((station, index) => {
+            const x = tubeX + station.relativeVolume * tubeWidth;
             const labelAbove = index % 2 === 0;
             const labelY = labelAbove ? 20 : 128;
-            const labelHeight = 22 + station.concentrations.length * 15;
-            const labelWidth = 142;
+            const concentrationEntries = Object.entries(station.concentrations);
+            const labelHeight = 24 + concentrationEntries.length * 16;
+            const labelWidth = getSchematicLabelWidth(station);
             const labelX = Math.max(
               10,
               Math.min(
@@ -181,7 +135,7 @@ function PfrReactorSchematic({
             );
 
             return (
-              <g key={`station-${station.ratio}`}>
+              <g key={`station-${station.relativeVolume}`}>
                 <line
                   x1={x}
                   x2={x}
@@ -209,29 +163,29 @@ function PfrReactorSchematic({
                   strokeWidth="1"
                 />
                 <text
-                  x={labelX + 12}
-                  y={labelY + 16}
                   fill="#334155"
                   fontSize="11"
                   fontWeight="600"
+                  x={labelX + 12}
+                  y={labelY + 16}
                 >
                   {buildSchematicLabel(station)}
                 </text>
-                {station.concentrations.map((concentration, concentrationIndex) => (
-                  <g key={`${station.ratio}-${concentration.label}`}>
+                {concentrationEntries.map(([label, quantity], concentrationIndex) => (
+                  <g key={`${station.relativeVolume}-${label}`}>
                     <circle
                       cx={labelX + 14}
                       cy={labelY + 31 + concentrationIndex * 15}
-                      fill={concentration.color}
+                      fill={palette[concentrationIndex % palette.length]}
                       r="3"
                     />
                     <text
-                      x={labelX + 22}
-                      y={labelY + 34 + concentrationIndex * 15}
                       fill="#475569"
                       fontSize="10"
+                      x={labelX + 22}
+                      y={labelY + 34 + concentrationIndex * 15}
                     >
-                      {concentration.label}: {toFixedLabel(concentration.value)} mol/L
+                      {buildSchematicConcentrationLabel(label, quantity.value)}
                     </text>
                   </g>
                 ))}
@@ -245,48 +199,16 @@ function PfrReactorSchematic({
 }
 
 export function PfrProfileChart({
-  concentrationSeries,
-  temperature,
+  model,
+  stations,
   title = "Perfis de concentração e temperatura no PFR",
 }: PfrProfileChartProps) {
-  const concentrationValues = concentrationSeries.flatMap((series) => [series.start, series.end]);
-  const concentrationDomain = {
-    min: 0,
-    max: expandNumericDomain([...concentrationValues, 0, 1]).max,
-  };
-
-  const concentrationPaths = concentrationSeries.map((series) => {
-    const points = buildSeriesPoints(series).map((point) => ({
-      x: scale(point.x, 0, 1, padding.left, width - padding.right),
-      y: scale(
-        point.y,
-        concentrationDomain.min,
-        concentrationDomain.max,
-        height - padding.bottom,
-        padding.top,
-      ),
-    }));
-
-    return { ...series, points };
-  });
-
-  const temperatureValues = [temperature.inlet, temperature.outlet];
-  const temperatureDomain = expandNumericDomain(temperatureValues);
-  const temperaturePoints = buildSeriesPoints({
-    label: "Temperatura",
-    start: temperature.inlet,
-    end: temperature.outlet,
-    color: "#b45309",
-  }).map((point) => ({
-    x: scale(point.x, 0, 1, padding.left, width - padding.right),
-    y: scale(
-      point.y,
-      temperatureDomain.min,
-      temperatureDomain.max,
-      height - padding.bottom,
-      padding.top,
-    ),
-  }));
+  if (stations.length === 0) {
+    return null;
+  }
+  const concentrationSeriesIds = model.series
+    .filter((series) => series.id !== "temperature-profile")
+    .map((series) => series.id);
 
   return (
     <section
@@ -297,24 +219,19 @@ export function PfrProfileChart({
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
           <p className="text-sm text-muted-foreground">
-            Perfis normalizados ao longo do volume do reator, com interpolação entre entrada e saída.
+            Perfis espaciais calculados ao longo do volume relativo do reator.
           </p>
         </div>
-        <p className="text-sm font-medium text-slate-700">
-          T: {toFixedLabel(temperature.inlet)} → {toFixedLabel(temperature.outlet)} K
-        </p>
       </div>
 
       <HowItWorks title="Como funciona - Perfis no PFR">
         <p className="text-sm text-slate-700">
-          No PFR, concentração e temperatura não são únicas: elas mudam ao longo do comprimento
-          do reator. O eixo horizontal usa o volume relativo como proxy espacial para mostrar essa
-          evolução de forma contínua.
+          No PFR, concentração e temperatura mudam ao longo do comprimento do reator.
         </p>
         <p className="text-sm text-slate-700">
-          Cada curva do gráfico representa uma espécie ou a temperatura local em uma estação do
-          tubo. O painel esquemático abaixo repete os mesmos pontos calculados para deixar explícito
-          onde os valores foram amostrados.
+          O gráfico e o painel esquemático abaixo leem a mesma lista de estações. Isso elimina a
+          interpolação físico-química no frontend e mantém o perfil coerente com o cálculo do
+          reator.
         </p>
         <TheoryRef>
           Leitura didática: entrada, intermediários e saída do reator mostram por que o PFR deve ser
@@ -325,106 +242,19 @@ export function PfrProfileChart({
       <div className="space-y-4">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <p className="mb-2 text-sm font-medium text-slate-800">Concentração por componente</p>
-          <div
-            className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
-            style={{ aspectRatio: `${width} / ${height}` }}
-          >
-            <NumericChartGrid
-              xDomain={[0, 1]}
-              yDomain={[concentrationDomain.min, concentrationDomain.max]}
-              width={width}
-              height={height}
-              padding={padding}
-              xLabel="Volume relativo do reator (V/V_total)"
-              yLabel="Concentração (mol/L)"
-            />
-            <svg
-              aria-label="Perfil de concentração no PFR"
-              className="absolute inset-0 block h-full w-full overflow-hidden"
-              preserveAspectRatio="xMidYMid meet"
-              role="img"
-              viewBox={`0 0 ${width} ${height}`}
-            >
-              {concentrationPaths.map((series) => (
-                <g key={series.label}>
-                  <path
-                    d={buildPath(series.points)}
-                    fill="none"
-                    stroke={series.color}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="3"
-                  />
-                  {series.points.map((point, index) => (
-                    <circle
-                      key={`${series.label}-${index}`}
-                      cx={point.x}
-                      cy={point.y}
-                      fill={series.color}
-                      r="3.5"
-                    />
-                  ))}
-                </g>
-              ))}
-            </svg>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-            {concentrationPaths.map((series) => (
-              <span
-                key={`legend-${series.label}`}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1"
-              >
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: series.color }} />
-                {series.label}
-              </span>
-            ))}
-          </div>
+          <ChartModelRenderer model={model} seriesIds={concentrationSeriesIds} yAxisKey="y" />
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <p className="mb-2 text-sm font-medium text-slate-800">Programa térmico</p>
-          <div
-            className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
-            style={{ aspectRatio: `${width} / ${height}` }}
-          >
-            <NumericChartGrid
-              xDomain={[0, 1]}
-              yDomain={[temperatureDomain.min, temperatureDomain.max]}
-              width={width}
-              height={height}
-              padding={padding}
-              xLabel="Volume relativo do reator (V/V_total)"
-              yLabel="Temperatura (K)"
-            />
-            <svg
-              aria-label="Perfil de temperatura no PFR"
-              className="absolute inset-0 block h-full w-full overflow-hidden"
-              preserveAspectRatio="xMidYMid meet"
-              role="img"
-              viewBox={`0 0 ${width} ${height}`}
-            >
-              <path
-                d={buildPath(temperaturePoints)}
-                fill="none"
-                stroke="#b45309"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="3"
-              />
-              {temperaturePoints.map((point, index) => (
-                <circle key={`temp-${index}`} cx={point.x} cy={point.y} fill="#b45309" r="3.5" />
-              ))}
-            </svg>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
-              <span className="h-2.5 w-2.5 rounded-full bg-amber-700" />
-              Temperatura
-            </span>
-          </div>
+          <ChartModelRenderer
+            model={model}
+            seriesIds={["temperature-profile"]}
+            yAxisKey="temperature"
+          />
         </div>
 
-        <PfrReactorSchematic concentrationSeries={concentrationSeries} temperature={temperature} />
+        <PfrReactorSchematic stations={stations} />
       </div>
     </section>
   );

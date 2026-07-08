@@ -4,7 +4,6 @@ import { Navigate } from "react-router-dom";
 import { App } from "@/app/app";
 import { AppShell } from "@/components/app-shell";
 import { ComponentsPage } from "@/features/components/components-page";
-import { ExercisesPage } from "@/features/exercises/exercises-page";
 import { FlowPage } from "@/features/flow/flow-page";
 import { GlossaryPage } from "@/features/glossary/glossary-page";
 import { HomePage } from "@/features/home/home-page";
@@ -108,12 +107,12 @@ export const routes = [
             children: [
               { index: true, element: <Navigate to="components" replace /> },
               { path: "components", element: <EmptyRoute /> },
-              { path: "actions", element: <EmptyRoute /> },
+              { path: "actions", element: <Navigate to="../results" replace /> },
               { path: "streams", element: <EmptyRoute /> },
               { path: "reactions", element: <EmptyRoute /> },
               { path: "splits-recycle", element: <EmptyRoute /> },
               { path: "results", element: <EmptyRoute /> },
-              { path: "yields", element: <EmptyRoute /> },
+              { path: "yields", element: <Navigate to="../results" replace /> },
             ],
           },
           {
@@ -122,14 +121,6 @@ export const routes = [
             children: [
               { index: true, element: <Navigate to="terms" replace /> },
               { path: "terms", element: <EmptyRoute /> },
-            ],
-          },
-          {
-            path: "exercises",
-            element: <ExercisesPage />,
-            children: [
-              { index: true, element: <Navigate to="catalog" replace /> },
-              { path: "catalog", element: <EmptyRoute /> },
             ],
           },
         ],

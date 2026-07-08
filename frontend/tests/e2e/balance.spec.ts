@@ -9,20 +9,18 @@ test("balance module loads the example and calculates results", async ({
   await expect(page.getByRole("heading", { name: /^Balanço de Massa$/i })).toBeVisible();
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await page.getByRole("tab", { name: /^Ações$/i }).click();
+  await page.getByRole("tab", { name: /Resultados/i }).click();
   await page.getByRole("button", { name: /Calcular Balanço de Massa/i }).click();
 
-  await page.getByRole("tab", { name: /Resultados/i }).click();
   await expect(page.getByText(/Taxa de reciclo/i)).toBeVisible();
   await expect(page.getByText(/Alimentação fresca/i)).toBeVisible();
-  await expect(page.getByRole("heading", { name: /^Reciclo$/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /^Produto$/i })).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: /^Reciclo$/i }).first()).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: /^Produto$/i }).first()).toBeVisible();
 
-  await page.getByRole("tab", { name: /^Ações$/i }).click();
   await page.getByRole("button", { name: /Calcular Rendimentos/i }).click();
-  await page.getByRole("tab", { name: /Rendimentos/i }).click();
+  await expect(page.getByRole("heading", { name: /Rendimentos/i })).toBeVisible();
   await expect(page.getByText(/C a partir de A/i)).toBeVisible();
-  await expect(page.getByText(/81.25%/i)).toBeVisible();
+  await expect(page.getByText(/81[,.]25%/i)).toBeVisible();
 });
 
 test("balance module clears calculated results after the component structure changes", async ({
@@ -32,15 +30,12 @@ test("balance module clears calculated results after the component structure cha
 
   await page.goto("/balance");
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await page.getByRole("tab", { name: /^Ações$/i }).click();
-  await page.getByRole("button", { name: /Calcular Balanço de Massa/i }).click();
   await page.getByRole("tab", { name: /Resultados/i }).click();
+  await page.getByRole("button", { name: /Calcular Balanço de Massa/i }).click();
   await expect(page.getByText(/Taxa de reciclo/i)).toBeVisible();
-  await page.getByRole("tab", { name: /^Ações$/i }).click();
   await page.getByRole("button", { name: /Calcular Rendimentos/i }).click();
-  await page.getByRole("tab", { name: /Rendimentos/i }).click();
 
-  await expect(page.getByText(/81.25%/i)).toBeVisible();
+  await expect(page.getByText(/81[,.]25%/i)).toBeVisible();
 
   await page.getByRole("tab", { name: /Componentes/i }).click();
   await page.getByLabel(/Nome do componente/i).fill("E");
@@ -66,7 +61,7 @@ test("balance module surfaces an error when yield calculation fails", async ({ p
   await expect(page.getByRole("heading", { name: /^Balanço de Massa$/i })).toBeVisible();
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await page.getByRole("tab", { name: /^Ações$/i }).click();
+  await page.getByRole("tab", { name: /Resultados/i }).click();
   await page.getByRole("button", { name: /Calcular Balanço de Massa/i }).click();
 
   await page.getByRole("button", { name: /Calcular Rendimentos/i }).click();
@@ -91,7 +86,7 @@ test("balance module surfaces an error when mass balance calculation fails", asy
   await expect(page.getByRole("heading", { name: /^Balanço de Massa$/i })).toBeVisible();
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await page.getByRole("tab", { name: /^Ações$/i }).click();
+  await page.getByRole("tab", { name: /Resultados/i }).click();
   await page.getByRole("button", { name: /Calcular Balanço de Massa/i }).click();
 
   await expect(page.getByText(/Erro ao calcular balanço de massa: Falha no backend do balanço/i)).toBeVisible();

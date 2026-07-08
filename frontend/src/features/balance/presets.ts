@@ -1,29 +1,29 @@
 export const balanceWorkedExample = {
-  components: ["A", "B", "C", "D"],
+  components: ["A", "B", "C"],
   streams: [
     {
       name: "Alimentacao_Fresca",
       direction: 1 as const,
       flow_rate: 100,
-      compositions: { A: 0.8, B: 0.2, C: 0, D: 0 },
+      compositions: { A: 0.8, B: 0.2, C: 0 },
     },
     {
       name: "Saida_Do_Reator",
       direction: -1 as const,
       flow_rate: null,
-      compositions: { A: null, B: null, C: null, D: null },
+      compositions: { A: null, B: null, C: null },
     },
     {
       name: "Reciclo",
       direction: 1 as const,
       flow_rate: null,
-      compositions: { A: null, B: null, C: null, D: null },
+      compositions: { A: null, B: null, C: null },
     },
     {
       name: "Produto",
       direction: -1 as const,
       flow_rate: null,
-      compositions: { A: null, B: null, C: null, D: null },
+      compositions: { A: null, B: null, C: null },
     },
   ],
   reactions: [

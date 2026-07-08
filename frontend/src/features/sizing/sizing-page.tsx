@@ -21,6 +21,7 @@ import {
   type SizingExamplePayload,
 } from "@/features/sizing/example";
 import { sizingTabs } from "@/features/sizing/sizing-tabs";
+import type { VelocityProfileModel } from "@/components/viz/velocity-profile";
 
 type Schedule = {
   name: string;
@@ -57,6 +58,7 @@ type SizingPageContext = {
   schedule: string;
   calculatedDiameterInput: string;
   calculatedResult: QuantityResult | null;
+  velocityProfileModel: VelocityProfileModel | null;
   realDiameterResult: QuantityResult | null;
   isCalculating: boolean;
   isResolvingRealDiameter: boolean;
@@ -85,6 +87,7 @@ export function SizingPage() {
   const [calculatedDiameterInput, setCalculatedDiameterInput] = useState("");
 
   const [calculatedResult, setCalculatedResult] = useState<QuantityResult | null>(null);
+  const [velocityProfileModel, setVelocityProfileModel] = useState<VelocityProfileModel | null>(null);
   const [realDiameterResult, setRealDiameterResult] = useState<QuantityResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isResolvingRealDiameter, setIsResolvingRealDiameter] = useState(false);
@@ -146,12 +149,25 @@ export function SizingPage() {
         const example = await apiClient.get<SizingExamplePayload>("/sizing/example");
         const mapped = mapSizingExampleToFormInputs(example);
 
+        calculatedDiameterSessionRef.current += 1;
+        realDiameterSessionRef.current += 1;
         setFlowRate(mapped.flowRate);
         setVelocity(mapped.velocity);
         setCalculatedDiameterInput(mapped.calculatedDiameterInput);
         setSchedule(mapped.schedule);
         setCalculatedResult(null);
+        setVelocityProfileModel(null);
         setRealDiameterResult(null);
+
+        const result = await runCalculatedDiameter(
+          mapped.flowRate,
+          mapped.velocity,
+          mapped.schedule,
+        );
+        if (!result) {
+          return;
+        }
+
         notify.success("Exemplo carregado com sucesso.");
       } catch (error) {
         const message =
@@ -167,6 +183,25 @@ export function SizingPage() {
     setFlowRate("");
     setVelocity("");
     setCalculatedResult(null);
+    setVelocityProfileModel(null);
+    setRealDiameterResult(null);
+  }
+
+  function handleFlowRateChange(value: string) {
+    calculatedDiameterSessionRef.current += 1;
+    realDiameterSessionRef.current += 1;
+    setFlowRate(value);
+    setCalculatedResult(null);
+    setVelocityProfileModel(null);
+    setRealDiameterResult(null);
+  }
+
+  function handleVelocityChange(value: string) {
+    calculatedDiameterSessionRef.current += 1;
+    realDiameterSessionRef.current += 1;
+    setVelocity(value);
+    setCalculatedResult(null);
+    setVelocityProfileModel(null);
     setRealDiameterResult(null);
   }
 
@@ -207,6 +242,28 @@ export function SizingPage() {
       setCalculatedResult(result);
       setCalculatedDiameterInput(result.value.toFixed(2));
 
+      try {
+        const profile = await apiClient.post<VelocityProfileModel>("/sizing/velocity-profile/chart", {
+          velocity: Number(vel),
+          diameter_mm: result.value,
+        });
+
+        if (sessionId !== calculatedDiameterSessionRef.current) {
+          return null;
+        }
+
+        setVelocityProfileModel(profile);
+      } catch (error) {
+        if (sessionId !== calculatedDiameterSessionRef.current) {
+          return null;
+        }
+
+        setVelocityProfileModel(null);
+        const message =
+          error instanceof Error ? error.message : "Falha ao gerar o perfil de velocidade.";
+        notify.error(message);
+      }
+
       if (selectedSchedule) {
         await runRealDiameter(result.value.toFixed(2), selectedSchedule);
       }
@@ -218,6 +275,7 @@ export function SizingPage() {
       }
 
       setCalculatedResult(null);
+      setVelocityProfileModel(null);
       const message =
         error instanceof Error ? error.message : "Falha ao calcular o diâmetro.";
       notify.error(message);
@@ -279,13 +337,14 @@ export function SizingPage() {
     schedule,
     calculatedDiameterInput,
     calculatedResult,
+    velocityProfileModel,
     realDiameterResult,
     isCalculating,
     isResolvingRealDiameter,
     loadExample,
     clearCalculatedForm,
-    setFlowRate,
-    setVelocity,
+    setFlowRate: handleFlowRateChange,
+    setVelocity: handleVelocityChange,
     setSchedule,
     selectSchedule,
     setCalculatedDiameterInput,
@@ -324,6 +383,7 @@ function SizingCalculatedDiameterTab() {
     isCalculating,
     clearCalculatedForm,
     calculatedResult,
+    velocityProfileModel,
   } = useSizingPageContext();
 
   return (
@@ -373,7 +433,7 @@ function SizingCalculatedDiameterTab() {
             emptyLabel="Sem resultado."
             rows={buildResultRows("Diâmetro calculado", calculatedResult)}
             children={
-              <VelocityProfileChart velocity={Number(velocity)} diameterMm={calculatedResult.value} />
+              velocityProfileModel ? <VelocityProfileChart model={velocityProfileModel} /> : null
             }
           />
         ) : null}
@@ -429,6 +489,12 @@ function SizingRealDiameterTab() {
             disabled={schedules.length === 0}
           />
 
+          {schedule ? (
+            <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-muted-foreground">
+              {schedules.find((item) => item.name === schedule)?.description ?? "Schedule selecionado."}
+            </div>
+          ) : null}
+
           {scheduleError ? <p className="text-sm text-destructive">{scheduleError}</p> : null}
 
           <Button type="submit" disabled={isResolvingRealDiameter || schedules.length === 0}>
@@ -442,12 +508,6 @@ function SizingRealDiameterTab() {
             emptyLabel="Sem resultado."
             rows={buildResultRows("Diâmetro real", realDiameterResult)}
           />
-        ) : null}
-
-        {schedule ? (
-          <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-muted-foreground">
-            {schedules.find((item) => item.name === schedule)?.description ?? "Schedule selecionado."}
-          </div>
         ) : null}
       </CardContent>
     </Card>

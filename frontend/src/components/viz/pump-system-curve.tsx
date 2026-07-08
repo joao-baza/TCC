@@ -12,9 +12,12 @@ type PumpSystemCurveProps = {
   title?: string;
 };
 
-const width = 760;
-const height = 360;
-const padding = { top: 28, right: 28, bottom: 44, left: 104 };
+const width = 820;
+const height = 420;
+const padding = { top: 28, right: 28, bottom: 48, left: 112 };
+const pumpColor = "#0f766e";
+const systemColor = "#d97706";
+const operatingColor = "#dc2626";
 
 function scale(value: number, min: number, max: number, start: number, end: number) {
   if (min === max) {
@@ -108,12 +111,14 @@ export function PumpSystemCurve({
 
       <HowItWorks title="Como funciona - Curva da bomba e do sistema">
         <p>
-          Esta visualização mostra onde a curva da bomba cruza a curva do sistema e ajuda a
-          entender a vazão de operação resultante.
+          Este gráfico compara a energia que a bomba consegue fornecer com a energia que o
+          sistema exige ao longo da vazão. O eixo horizontal mostra a vazão e o vertical
+          mostra a altura manométrica correspondente.
         </p>
         <p>
-          O traço da bomba é uma aproximação didática, enquanto o ponto vermelho marca a condição
-          atual de trabalho do sistema.
+          O ponto em que as duas curvas se cruzam é o ponto operacional: ali a bomba e a
+          instalação entram em equilíbrio. Se a curva do sistema subir, a vazão tende a
+          cair; se a resistência do sistema diminuir, a vazão tende a aumentar.
         </p>
         <div className="space-y-1">
           <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
@@ -148,18 +153,18 @@ export function PumpSystemCurve({
           <path
             d={pumpPath}
             fill="none"
-            stroke="#0f766e"
+            stroke={pumpColor}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="3"
+            strokeWidth="3.25"
           />
           <path
             d={systemPath}
             fill="none"
-            stroke="#b45309"
+            stroke={systemColor}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="3"
+            strokeWidth="3.25"
           />
 
           {pumpPoints.map((point, index) => (
@@ -167,8 +172,8 @@ export function PumpSystemCurve({
               key={`pump-${index}`}
               cx={scale(point.flowRate, xDomain[0], xDomain[1], padding.left, width - padding.right)}
               cy={scale(point.head, yDomain[0], yDomain[1], height - padding.bottom, padding.top)}
-              fill="#0f766e"
-              r="3.5"
+              fill={pumpColor}
+              r="3.75"
             />
           ))}
           {sortedSystemPoints.map((point, index) => (
@@ -176,21 +181,32 @@ export function PumpSystemCurve({
               key={`system-${index}`}
               cx={scale(point.flowRate, xDomain[0], xDomain[1], padding.left, width - padding.right)}
               cy={scale(point.head, yDomain[0], yDomain[1], height - padding.bottom, padding.top)}
-              fill="#b45309"
-              r="3.5"
+              fill={systemColor}
+              r="3.75"
             />
           ))}
 
           <line
-            stroke="#1d4ed8"
-            strokeDasharray="5 5"
+            stroke={operatingColor}
+            strokeDasharray="6 4"
+            strokeLinecap="round"
+            strokeWidth="2"
+            x1={padding.left}
+            x2={operatingX}
+            y1={operatingY}
+            y2={operatingY}
+          />
+          <line
+            stroke={operatingColor}
+            strokeDasharray="6 4"
+            strokeLinecap="round"
             strokeWidth="2"
             x1={operatingX}
             x2={operatingX}
             y1={operatingY}
             y2={height - padding.bottom}
           />
-          <circle cx={operatingX} cy={operatingY} fill="#1d4ed8" r="6" />
+          <circle cx={operatingX} cy={operatingY} fill={operatingColor} r="6" stroke="#fff" strokeWidth="2" />
         </svg>
       </div>
     </section>

@@ -56,7 +56,7 @@ function CardHeader({
     "px-6 pt-6",
     isHero
       ? "flex flex-col gap-4 pb-6 md:flex-row md:items-start md:justify-between"
-      : "grid auto-rows-min items-start gap-1",
+      : "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3",
     className
   )
   const titleClassName = cn(
@@ -85,7 +85,7 @@ function CardHeader({
       {action != null ? (
         <div
           data-slot="card-action"
-          className={cn("shrink-0", isHero ? "md:self-start" : "self-start")}
+          className={cn("shrink-0", isHero ? "md:self-start" : "self-start justify-self-end")}
         >
           {action}
         </div>

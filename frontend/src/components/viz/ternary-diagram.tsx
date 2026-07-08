@@ -1,98 +1,83 @@
-import { formatTableNumberText } from "@/lib/table-number";
 import { HowItWorks, TheoryRef } from "@/components/how-it-works";
-
-type TernaryStream = {
-  name: string;
-  direction?: string;
-  compositions: Record<string, number>;
-};
-
-type TernaryDiagramProps = {
-  components: string[];
-  streams: TernaryStream[];
-  title?: string;
-};
 
 type Point = {
   x: number;
   y: number;
 };
 
+type TernaryGuideLine = {
+  start: Point;
+  end: Point;
+};
+
+type TernaryStreamPoint = {
+  label: string;
+  summary: string;
+  x: number;
+  y: number;
+  color: string;
+};
+
+type TernaryDiagramProps = {
+  title: string;
+  subtitle?: string | null;
+  componentLabels: string[];
+  boundary: Point[];
+  guideLines: TernaryGuideLine[];
+  streams: TernaryStreamPoint[];
+};
+
 const width = 760;
 const height = 420;
 const padding = { top: 34, right: 34, bottom: 48, left: 34 };
 
-function safePoint(value: number) {
-  return Number.isFinite(value) ? value : 0;
+function scaleX(value: number) {
+  return padding.left + (value * (width - padding.left - padding.right));
 }
 
-function buildTrianglePath(left: Point, right: Point, top: Point) {
-  return `M ${left.x} ${left.y} L ${right.x} ${right.y} L ${top.x} ${top.y} Z`;
+function scaleY(value: number) {
+  return height - padding.bottom - (value * (height - padding.top - padding.bottom));
 }
 
-function formatCompositionSummary(compositions: Array<[string, number]>) {
-  return compositions
-    .map(([component, value]) => `${component}: ${formatTableNumberText(value)}`)
-    .join(" · ");
+function buildTrianglePath(points: Point[]) {
+  if (points.length < 3) {
+    return "";
+  }
+
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${scaleX(point.x)} ${scaleY(point.y)}`)
+    .join(" ")
+    .concat(" Z");
 }
 
 export function TernaryDiagram({
-  components,
+  title,
+  subtitle,
+  componentLabels,
+  boundary,
+  guideLines,
   streams,
-  title = "Diagrama ternário",
 }: TernaryDiagramProps) {
-  const selectedComponents = components.slice(0, 3);
-  const [componentA, componentB, componentC] = selectedComponents;
-
-  if (selectedComponents.length < 3 || !componentA || !componentB || !componentC) {
-    return (
-      <section
-        className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
-        data-testid="ternary-diagram"
-      >
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-          <p className="text-sm text-muted-foreground">
-            Configure ao menos 3 componentes para exibir o diagrama.
-          </p>
-        </div>
-      </section>
-    );
-  }
-
-  const left = { x: padding.left + 32, y: height - padding.bottom - 20 };
-  const right = { x: width - padding.right - 32, y: height - padding.bottom - 20 };
-  const top = { x: width / 2, y: padding.top + 6 };
-  const triangleHeight = left.y - top.y;
-  const triangleWidth = right.x - left.x;
-
-  const projectedStreams = streams
-    .map((stream) => {
-      const raw = [
-        safePoint(Number(stream.compositions[componentA] ?? 0)),
-        safePoint(Number(stream.compositions[componentB] ?? 0)),
-        safePoint(Number(stream.compositions[componentC] ?? 0)),
-      ];
-      const total = raw.reduce((sum, value) => sum + value, 0);
-      if (!(total > 0)) {
-        return null;
-      }
-
-      const [a, b, c] = raw.map((value) => value / total);
-      return {
-        ...stream,
-        point: {
-          x: left.x + triangleWidth * (b + c / 2),
-          y: left.y - triangleHeight * c,
-        },
-        summary: formatCompositionSummary([
-          [componentA, a],
-          [componentB, b],
-          [componentC, c],
-        ]),
-      };
-    })
-    .filter((stream): stream is NonNullable<typeof stream> => stream !== null);
+  const vertexLabels = [
+    {
+      label: componentLabels[0] ?? "Componente A",
+      anchor: "end" as const,
+      x: boundary[0] ? scaleX(boundary[0].x) - 12 : padding.left,
+      y: boundary[0] ? scaleY(boundary[0].y) + 4 : padding.top,
+    },
+    {
+      label: componentLabels[1] ?? "Componente B",
+      anchor: "start" as const,
+      x: boundary[1] ? scaleX(boundary[1].x) + 12 : width - padding.right,
+      y: boundary[1] ? scaleY(boundary[1].y) + 4 : padding.top,
+    },
+    {
+      label: componentLabels[2] ?? "Componente C",
+      anchor: "middle" as const,
+      x: boundary[2] ? scaleX(boundary[2].x) : width / 2,
+      y: boundary[2] ? scaleY(boundary[2].y) - 12 : padding.top,
+    },
+  ];
 
   return (
     <section
@@ -102,33 +87,22 @@ export function TernaryDiagram({
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-          <p className="text-sm text-muted-foreground">
-            Projeção normalizada dos 3 primeiros componentes do caso atual.
-          </p>
         </div>
-        <p className="text-sm font-medium text-slate-700">{projectedStreams.length} ponto(s)</p>
       </div>
 
       <HowItWorks title="Como funciona - Diagrama Ternário">
         <p>
-          O triângulo representa três frações que sempre somam 1. Cada vértice corresponde a um
-          componente puro, cada lado representa uma mistura binária e o interior mostra a
-          composição ternária normalizada da corrente.
+          O backend normaliza a composição dos três componentes, projeta a corrente no plano
+          ternário e devolve a geometria pronta para renderização.
         </p>
         <p>
-          A projeção facilita comparar correntes, ler a dominância de cada componente e acompanhar
-          o deslocamento da mistura quando a formulação muda.
+          A leitura continua igual: cada vértice representa um componente puro, cada lado uma
+          mistura binária, e o interior a composição ternária da corrente atual.
         </p>
-        <div className="space-y-1">
-          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>Qual componente domina a mistura e quão perto ela está de um vértice.</li>
-            <li>Se a corrente está próxima de uma mistura binária ou de uma formulação mais balanceada.</li>
-            <li>Como uma corrente se move quando é combinada com outra corrente no plano ternário.</li>
-            <li>Referência visual para balanços de massa, mistura e escolha de solvente.</li>
-          </ul>
-        </div>
-        <TheoryRef>Ref.: Seader, Henley e Roper, Separation Process Principles, 4a ed., Wiley; DeVoe, Thermodynamics and Chemistry, diagramas ternários.</TheoryRef>
+        <TheoryRef>
+          Ref.: Seader, Henley e Roper, Separation Process Principles, 4a ed., Wiley; DeVoe,
+          Thermodynamics and Chemistry, diagramas ternários.
+        </TheoryRef>
       </HowItWorks>
 
       <svg
@@ -141,112 +115,81 @@ export function TernaryDiagram({
         <rect fill="#f8fafc" height={height} width={width} />
 
         <path
-          d={buildTrianglePath(left, right, top)}
+          d={buildTrianglePath(boundary)}
           fill="rgba(14, 165, 233, 0.03)"
           stroke="#94a3b8"
           strokeWidth="2"
         />
 
-        <line
-          stroke="#cbd5e1"
-          strokeDasharray="5 6"
-          strokeWidth="1.2"
-          x1={left.x + triangleWidth * 0.25}
-          x2={left.x + triangleWidth * 0.75}
-          y1={left.y - triangleHeight * 0.25}
-          y2={left.y - triangleHeight * 0.25}
-        />
-        <line
-          stroke="#cbd5e1"
-          strokeDasharray="5 6"
-          strokeWidth="1.2"
-          x1={left.x + triangleWidth * 0.125}
-          x2={left.x + triangleWidth * 0.625}
-          y1={left.y - triangleHeight * 0.5}
-          y2={left.y - triangleHeight * 0.5}
-        />
-        <line
-          stroke="#cbd5e1"
-          strokeDasharray="5 6"
-          strokeWidth="1.2"
-          x1={left.x + triangleWidth * 0.375}
-          x2={left.x + triangleWidth * 0.875}
-          y1={left.y - triangleHeight * 0.75}
-          y2={left.y - triangleHeight * 0.75}
-        />
+        {vertexLabels.map((vertex, index) => (
+          <g key={vertex.label}>
+            <circle cx={vertex.x} cy={vertex.y} fill="#0f172a" r="2.8" />
+            <text
+              fill="#0f172a"
+              fontSize="12"
+              fontWeight="700"
+              paintOrder="stroke"
+              stroke="#f8fafc"
+              strokeWidth="3"
+              textAnchor={vertex.anchor}
+              x={vertex.x}
+              y={vertex.y - (index === 2 ? 2 : 0)}
+            >
+              {vertex.label}
+            </text>
+          </g>
+        ))}
 
-        {projectedStreams.map((stream, index) => (
-          <g key={stream.name}>
+        {guideLines.map((guideLine, index) => (
+          <line
+            key={index}
+            stroke="#cbd5e1"
+            strokeDasharray="5 6"
+            strokeWidth="1.2"
+            x1={scaleX(guideLine.start.x)}
+            x2={scaleX(guideLine.end.x)}
+            y1={scaleY(guideLine.start.y)}
+            y2={scaleY(guideLine.end.y)}
+          />
+        ))}
+
+        {streams.map((stream, index) => (
+          <g key={stream.label}>
+            <circle cx={scaleX(stream.x)} cy={scaleY(stream.y)} fill={stream.color} r="6" />
             <circle
-              cx={stream.point.x}
-              cy={stream.point.y}
-              fill={stream.direction?.toLowerCase().includes("sa") ? "#059669" : "#2563eb"}
-              r="6"
-            />
-            <circle
-              cx={stream.point.x}
-              cy={stream.point.y}
+              cx={scaleX(stream.x)}
+              cy={scaleY(stream.y)}
               fill="none"
+              r="8"
               stroke="#ffffff"
               strokeWidth="2"
-              r="8"
             />
             <text
               fill="#0f172a"
               fontSize="12"
               fontWeight="600"
               paintOrder="stroke"
-              x={stream.point.x + 10}
-              y={stream.point.y - 10 - index * 2}
               stroke="#f8fafc"
               strokeWidth="3"
+              x={scaleX(stream.x) + 10}
+              y={scaleY(stream.y) - 10 - index * 2}
             >
-              {stream.name}
+              {stream.label}
             </text>
             <text
               fill="#475569"
               fontSize="11"
               paintOrder="stroke"
-              x={stream.point.x + 10}
-              y={stream.point.y + 6 - index * 2}
               stroke="#f8fafc"
               strokeWidth="3"
+              x={scaleX(stream.x) + 10}
+              y={scaleY(stream.y) + 6 - index * 2}
             >
               {stream.summary}
             </text>
           </g>
         ))}
-
-        <text fill="#0f172a" fontSize="13" fontWeight="600" textAnchor="middle" x={left.x} y={left.y + 24}>
-          {componentA}
-        </text>
-        <text fill="#0f172a" fontSize="13" fontWeight="600" textAnchor="middle" x={right.x} y={right.y + 24}>
-          {componentB}
-        </text>
-        <text fill="#0f172a" fontSize="13" fontWeight="600" textAnchor="middle" x={top.x} y={top.y - 12}>
-          {componentC}
-        </text>
-
-        <text fill="#475569" fontSize="12" textAnchor="middle" x={left.x - 6} y={left.y + 42}>
-          100%
-        </text>
-        <text fill="#475569" fontSize="12" textAnchor="middle" x={right.x + 6} y={right.y + 42}>
-          100%
-        </text>
-        <text fill="#475569" fontSize="12" textAnchor="middle" x={top.x} y={top.y - 28}>
-          100%
-        </text>
       </svg>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        {selectedComponents.map((component) => (
-          <div key={component} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              {component}
-            </p>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }

@@ -31,7 +31,6 @@ describe("route tab leaves", () => {
     "/balance/results",
     "/balance/yields",
     "/glossary/terms",
-    "/exercises/catalog",
   ])("defines a route element for %s", (path) => {
     const matches = matchRoutes(routes as RouteObject[], path);
 

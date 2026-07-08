@@ -34,6 +34,8 @@ describe("HeadlossCurve", () => {
     const path = chart.querySelector("path");
     expect(path).not.toBeNull();
     expect(path?.getAttribute("d")).toMatch(/^M /);
+    expect(chart.querySelectorAll("line[stroke-dasharray='6 4']")).toHaveLength(2);
+    expect(chart.querySelector("circle[fill='#dc2626']")).toBeTruthy();
 
     const markers = chart.querySelectorAll("circle");
     expect(markers).toHaveLength(3);
@@ -53,6 +55,7 @@ describe("HeadlossCurve", () => {
     const chart = screen.getByRole("img", { name: /Curva de perda de carga/i });
     const markers = chart.querySelectorAll("circle");
     expect(markers).toHaveLength(2);
+    expect(chart.querySelectorAll("line[stroke-dasharray='6 4']")).toHaveLength(2);
     expect(markers[0]).not.toBeNull();
     expect(markers[1]).not.toBeNull();
   });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Loader2Icon } from "lucide-react";
 
 import { NumberField } from "@/components/number-field";
 import { Combobox } from "@/components/ui/combobox";
@@ -9,20 +10,26 @@ import { RemoveButton } from "@/components/remove-button";
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import type { PropertyRow } from "@/components/property-table";
 import { ResultTableSection } from "@/components/result-table-section";
-import { LevenspielChart } from "@/components/viz/levenspiel-chart";
-import { ArrheniusPlot } from "@/components/viz/arrhenius-plot";
+import { ChartModelRenderer } from "@/components/viz/chart-model-renderer";
+import { ChartSeriesLegend } from "@/components/viz/chart-series-legend";
 import { PfrProfileChart } from "@/components/viz/pfr-profile-chart";
-import { PfrRecycleDaChart } from "@/components/viz/pfr-recycle-da-chart";
 import {
+  ArrheniusHowItWorks,
   CstrHowItWorks,
   PfrHowItWorks,
-  PfrRecycleDaHowItWorks,
 } from "@/features/reactor/didactics";
+import {
+  buildPfrSpatialProfilePayload,
+  normalizePfrSpatialProfileResponse,
+  type PfrSpatialProfileResponse,
+  type PfrSpatialStation,
+} from "@/features/reactor/pfr-spatial-profile";
 import { reactorWorkedExample } from "@/features/reactor/presets";
 import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
 import { reactorTabs } from "@/features/reactor/reactor-tabs";
+import type { ChartModel } from "@/types/chart-model";
 
 type ReactorCalculationType = SelectOption;
 
@@ -63,17 +70,6 @@ type PlotFormState = {
   maxConversion: string;
   activationEnergy: string;
   referenceTemperature: string;
-};
-
-type LevenspielPoint = {
-  conversion: number;
-  cstrVolume: number;
-  pfrVolume: number;
-};
-
-type ReactorOperatingPoint = {
-  conversion: number;
-  volume: number;
 };
 
 type ReactorComparableBasis = {
@@ -356,100 +352,6 @@ function formsSharePlotBasis(cstrForm: ReactorFormState, pfrForm: ReactorFormSta
   return JSON.stringify(cstrBasis) === JSON.stringify(pfrBasis);
 }
 
-function buildPlotPoints(form: ReactorFormState, plot: PlotFormState) {
-  const feed = form.components[0];
-  const flowRate = Number(feed?.flow_rate_inlet);
-  const concentration = Number(feed?.molar_concentration_inlet);
-  const order = Number(form.reactionOrders[0] || 1);
-  const safeOrder = Number.isFinite(order) ? Math.max(order, 0) : 1;
-  const rateConstant = Number(plot.rateConstant || form.rateConstant);
-  const maxConversion = Math.min(Math.max(Number(plot.maxConversion || 0.95), 0.1), 0.95);
-
-  if (!(flowRate > 0) || !(concentration > 0) || !(rateConstant > 0)) {
-    return { maxConversion, points: [] as LevenspielPoint[] };
-  }
-
-  const sampleCount = 10;
-  const points: LevenspielPoint[] = [];
-
-  function rateAt(conversion: number) {
-    const remaining = Math.max(1 - conversion, 0.001);
-    const rate = rateConstant * concentration * remaining ** safeOrder;
-    return Math.max(rate, 0.0001);
-  }
-
-  function cstrVolumeAt(conversion: number) {
-    return Number(((flowRate * conversion) / rateAt(conversion)).toFixed(2));
-  }
-
-  function pfrVolumeAt(conversion: number) {
-    let integral = 0;
-    const segments = 30;
-
-    for (let index = 0; index < segments; index += 1) {
-      const x0 = (conversion * index) / segments;
-      const x1 = (conversion * (index + 1)) / segments;
-      integral += ((1 / rateAt(x0) + 1 / rateAt(x1)) * (x1 - x0)) / 2;
-    }
-
-    return Number((flowRate * integral).toFixed(2));
-  }
-
-  for (let index = 1; index <= sampleCount; index += 1) {
-    const conversion = Number(((maxConversion * index) / sampleCount).toFixed(2));
-    points.push({
-      conversion,
-      cstrVolume: cstrVolumeAt(conversion),
-      pfrVolume: pfrVolumeAt(conversion),
-    });
-  }
-
-  return { maxConversion, points };
-}
-
-function extractNestedQuantityValue(value: unknown) {
-  if (typeof value === "object" && value !== null && "value" in value) {
-    const rawValue = (value as { value?: unknown }).value;
-    return typeof rawValue === "number" ? rawValue : null;
-  }
-
-  return typeof value === "number" ? value : null;
-}
-
-function buildPfrProfileSeries(form: ReactorFormState, result: ReactorResult) {
-  const outletConcentrations = getResultValue(
-    result,
-    "outlet_concentrations",
-    "concentracoes_de_saida",
-  );
-  if (typeof outletConcentrations !== "object" || outletConcentrations === null) {
-    return [];
-  }
-
-  const palette = ["#0f766e", "#2563eb", "#7c3aed", "#b45309"];
-
-  return activeComponentIndexes(form)
-    .map((index, seriesIndex) => {
-      const component = form.components[index];
-      const start = Number(component.molar_concentration_inlet);
-      const end = extractNestedQuantityValue(
-        (outletConcentrations as Record<string, unknown>)[component.component_name],
-      );
-
-      if (!Number.isFinite(start) || end == null || !Number.isFinite(end)) {
-        return null;
-      }
-
-      return {
-        label: component.component_name,
-        start,
-        end,
-        color: palette[seriesIndex % palette.length],
-      };
-    })
-    .filter((series): series is { label: string; start: number; end: number; color: string } => Boolean(series));
-}
-
 function buildReactorPayload(form: ReactorFormState) {
   const indexes = activeComponentIndexes(form);
   const payload: Record<string, unknown> = {
@@ -494,6 +396,81 @@ function buildReactorPayload(form: ReactorFormState) {
   return payload;
 }
 
+function buildPfrRecycleProfilePayload(form: ReactorFormState, volume: number) {
+  const indexes = activeComponentIndexes(form);
+
+  return {
+    components: indexes.map((index) => ({
+      state: form.components[index].state,
+      component_name: form.components[index].component_name,
+      flow_rate_inlet: Number(form.components[index].flow_rate_inlet),
+      molar_concentration_inlet: Number(form.components[index].molar_concentration_inlet),
+    })),
+    stoichiometric_coefficients: indexes.map((index) =>
+      Number(form.stoichiometricCoefficients[index]),
+    ),
+    reaction_rate_params: {
+      k: Number(form.rateConstant),
+      reaction_orders: indexes.map((index) => Number(form.reactionOrders[index])),
+    },
+    operation_conditions: {
+      initial_temperature: Number(form.initialTemperature),
+      initial_pressure: Number(form.initialPressure),
+      final_temperature: Number(form.finalTemperature),
+      final_pressure: Number(form.finalPressure),
+    },
+    volume,
+    recycle_ratios: [0, 0.25, 0.5, 1, 2, 5, 10],
+  };
+}
+
+function buildLevenspielChartPayload(
+  form: ReactorFormState,
+  plot: PlotFormState,
+  cstrConversion: number,
+  pfrConversion: number,
+) {
+  const indexes = activeComponentIndexes(form);
+
+  return {
+    components: indexes.map((index) => ({
+      state: form.components[index].state,
+      component_name: form.components[index].component_name,
+      flow_rate_inlet: Number(form.components[index].flow_rate_inlet),
+      molar_concentration_inlet: Number(form.components[index].molar_concentration_inlet),
+    })),
+    stoichiometric_coefficients: indexes.map((index) =>
+      Number(form.stoichiometricCoefficients[index]),
+    ),
+    reaction_rate_params: {
+      k: Number(plot.rateConstant || form.rateConstant),
+      reaction_orders: indexes.map((index) => Number(form.reactionOrders[index])),
+    },
+    operation_conditions: {
+      initial_temperature: Number(form.initialTemperature),
+      initial_pressure: Number(form.initialPressure),
+      final_temperature: Number(form.finalTemperature),
+      final_pressure: Number(form.finalPressure),
+    },
+    recycling_ratio: Number(form.recyclingRatio) || 0,
+    max_conversion: Math.min(Math.max(Number(plot.maxConversion || 0.95), 0.1), 0.95),
+    cstr_conversion: clampConversion(cstrConversion),
+    pfr_conversion: clampConversion(pfrConversion),
+  };
+}
+
+function buildArrheniusChartPayload(plot: PlotFormState) {
+  const referenceTemperature = Number(plot.referenceTemperature);
+
+  return {
+    activation_energy: Number(plot.activationEnergy),
+    reference_temperature: referenceTemperature,
+    reference_rate_constant: Number(plot.rateConstant),
+    min_temperature: referenceTemperature * 0.8,
+    max_temperature: referenceTemperature * 1.2,
+  };
+}
+
 function ReactorFormCard({
   title,
   calculationTypes,
@@ -512,6 +489,8 @@ function ReactorFormCard({
   onFieldChange,
   onSubmit,
   extraContent,
+  statusContent,
+  submitLoading = false,
 }: {
   title: string;
   calculationTypes: ReactorCalculationType[];
@@ -534,6 +513,8 @@ function ReactorFormCard({
   onFieldChange: (field: keyof ReactorFormState, value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   extraContent?: ReactNode;
+  statusContent?: ReactNode;
+  submitLoading?: boolean;
 }) {
   const didactic = title === "CSTR" ? <CstrHowItWorks /> : <PfrHowItWorks />;
 
@@ -557,6 +538,7 @@ function ReactorFormCard({
               <NumberField
                 id={`${title}-recycling-ratio`}
                 label="Razão de reciclo"
+                rule="nonneg"
                 min="0"
                 value={form.recyclingRatio}
                 onChange={(value) => onFieldChange("recyclingRatio", value)}
@@ -697,7 +679,7 @@ function ReactorFormCard({
                       id={`${title}-concentration-${index}`}
                       label="Concentração molar"
                       min="0"
-                      unit="mol/L"
+                      unit="mol/m³"
                       value={component.molar_concentration_inlet}
                       onChange={(value) =>
                         onComponentChange(index, "molar_concentration_inlet", value)
@@ -706,6 +688,7 @@ function ReactorFormCard({
                     <NumberField
                       id={`${title}-stoich-${index}`}
                       label="Coef. estequiométrico"
+                      rule="number"
                       min=""
                       value={form.stoichiometricCoefficients[index] ?? ""}
                       onChange={(value) => onStoichiometricChange(index, value)}
@@ -723,8 +706,17 @@ function ReactorFormCard({
             </div>
           </div>
 
-          <Button type="submit">{submitLabel}</Button>
+          <Button type="submit" loading={submitLoading}>
+            {submitLabel}
+          </Button>
         </form>
+
+        {statusContent ? <div className="mt-2">{statusContent}</div> : null}
+        {error ? (
+          <p className="sr-only" role="alert" aria-live="assertive">
+            {error}
+          </p>
+        ) : null}
 
         <ResultTableSection
           title={`Resultado ${title}`}
@@ -741,47 +733,43 @@ function ReactorFormCard({
 }
 
 function LevenspielTabContent({
-  chartData,
-  cstrOperatingPoint,
-  pfrOperatingPoint,
+  chartModel,
+  hasResults,
   comparableForms,
+  loading,
 }: {
-  chartData: { maxConversion: number; points: LevenspielPoint[] };
-  cstrOperatingPoint: ReactorOperatingPoint | null;
-  pfrOperatingPoint: ReactorOperatingPoint | null;
+  chartModel: ChartModel | null;
+  hasResults: boolean;
   comparableForms: boolean;
+  loading: boolean;
 }) {
-  const hasOperatingPoints = Boolean(cstrOperatingPoint && pfrOperatingPoint);
-  const hasChartData = chartData.points.length > 0;
-
   return (
     <Card>
-      <CardHeader
-        title="Levenspiel"
-        subtitle="Diagrama comparativo entre CSTR e PFR calculado com os resultados do frontend."
-      />
-      <CardContent className="space-y-4">
-        {!hasOperatingPoints ? (
+      <CardContent className="space-y-4 pt-6">
+        {!hasResults ? (
           <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-            Calcule CSTR e PFR para gerar o diagrama comparativo no frontend.
+            Calcule CSTR e PFR para gerar o diagrama comparativo.
           </div>
         ) : !comparableForms ? (
           <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">
-            Alinhe conversão, cinética e alimentação entre CSTR e PFR para gerar o diagrama
-            comparativo no frontend.
+            Alinhe conversão, cinética e alimentação entre CSTR e PFR para gerar o diagrama.
           </div>
-        ) : !hasChartData ? (
+        ) : loading ? (
+          <div
+            role="status"
+            className="flex min-h-48 items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600"
+          >
+            <Loader2Icon className="size-5 animate-spin" aria-hidden="true" />
+            <span>Gerando gráfico comparativo...</span>
+          </div>
+        ) : !chartModel ? (
           <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-            Defina dados válidos de conversão, vazão e cinética para gerar o diagrama comparativo
-            no frontend.
+            Defina dados válidos de conversão, vazão e cinética para gerar o diagrama comparativo.
           </div>
         ) : (
-          <LevenspielChart
-            points={chartData.points}
-            cstrOperatingPoint={cstrOperatingPoint}
-            pfrOperatingPoint={pfrOperatingPoint}
-            maxConversion={chartData.maxConversion}
-          />
+          <div data-testid="levenspiel-chart">
+            <ChartModelRenderer model={chartModel} />
+          </div>
         )}
       </CardContent>
     </Card>
@@ -802,8 +790,19 @@ export function ReactorPage() {
 
   const [cstrResult, setCstrResult] = useState<ReactorResult | null>(null);
   const [pfrResult, setPfrResult] = useState<ReactorResult | null>(null);
+  const [levenspielChart, setLevenspielChart] = useState<ChartModel | null>(null);
+  const [levenspielLoading, setLevenspielLoading] = useState(false);
+  const [pfrSpatialProfile, setPfrSpatialProfile] = useState<PfrSpatialStation[]>([]);
+  const [pfrProfileChart, setPfrProfileChart] = useState<ChartModel | null>(null);
+  const [pfrRecycleChart, setPfrRecycleChart] = useState<ChartModel | null>(null);
+  const [pfrLoading, setPfrLoading] = useState(false);
+  const [arrheniusChart, setArrheniusChart] = useState<ChartModel | null>(null);
+  const [pendingExampleAutoRunId, setPendingExampleAutoRunId] = useState<number | null>(null);
   const [cstrError, setCstrError] = useState<string | null>(null);
   const [pfrError, setPfrError] = useState<string | null>(null);
+  const [pfrSpatialProfileError, setPfrSpatialProfileError] = useState<string | null>(null);
+  const [pfrRecycleProfileError, setPfrRecycleProfileError] = useState<string | null>(null);
+  const [arrheniusError, setArrheniusError] = useState<string | null>(null);
   const cstrSessionRef = useRef(0);
   const pfrSessionRef = useRef(0);
   const activeTab = pathname.startsWith("/reactor/")
@@ -839,11 +838,17 @@ export function ReactorPage() {
 
         setCstrForm((current) => ({
           ...current,
-          inputType: selectOptionValue(cstrResponse[0] ?? current.inputType),
+          inputType: resolveExampleInputType(
+            cstrResponse.map(toSelectOption),
+            current.inputType,
+          ),
         }));
         setPfrForm((current) => ({
           ...current,
-          inputType: selectOptionValue(pfrResponse[0] ?? current.inputType),
+          inputType: resolveExampleInputType(
+            pfrResponse.map(toSelectOption),
+            current.inputType,
+          ),
         }));
       } catch (error) {
         if (!ignore) {
@@ -872,8 +877,15 @@ export function ReactorPage() {
     pfrSessionRef.current += 1;
     setCstrResult(null);
     setPfrResult(null);
+    setLevenspielChart(null);
+    setPfrSpatialProfile([]);
+    setPfrProfileChart(null);
+    setPfrRecycleChart(null);
+    setPfrLoading(false);
     setCstrError(null);
     setPfrError(null);
+    setPfrSpatialProfileError(null);
+    setPfrRecycleProfileError(null);
   }
 
   function updateComponent(
@@ -922,13 +934,24 @@ export function ReactorPage() {
     }));
   }
 
+  function resolveExampleInputType(
+    options: ReactorCalculationType[],
+    preferredInputType: ReactorFormState["inputType"],
+  ) {
+    const preferredOption = options.find(
+      (option) => selectOptionValue(option) === preferredInputType,
+    );
+
+    return selectOptionValue(preferredOption ?? options[0] ?? preferredInputType);
+  }
+
   function loadExample() {
     clearDerived();
 
     setCstrForm((current) => ({
       ...current,
       ...reactorWorkedExample.cstr,
-      inputType: selectOptionValue(cstrTypes[0] ?? reactorWorkedExample.cstr.inputType),
+      inputType: resolveExampleInputType(cstrTypes, reactorWorkedExample.cstr.inputType),
       components: reactorWorkedExample.cstr.components.map((component) => ({ ...component })),
       stoichiometricCoefficients: [...reactorWorkedExample.cstr.stoichiometricCoefficients],
       reactionOrders: [...reactorWorkedExample.cstr.reactionOrders],
@@ -936,7 +959,7 @@ export function ReactorPage() {
     setPfrForm((current) => ({
       ...current,
       ...reactorWorkedExample.pfr,
-      inputType: selectOptionValue(pfrTypes[0] ?? reactorWorkedExample.pfr.inputType),
+      inputType: resolveExampleInputType(pfrTypes, reactorWorkedExample.pfr.inputType),
       components: reactorWorkedExample.pfr.components.map((component) => ({ ...component })),
       stoichiometricCoefficients: [...reactorWorkedExample.pfr.stoichiometricCoefficients],
       reactionOrders: [...reactorWorkedExample.pfr.reactionOrders],
@@ -947,12 +970,13 @@ export function ReactorPage() {
       activationEnergy: reactorWorkedExample.plot.activationEnergy,
       referenceTemperature: reactorWorkedExample.plot.referenceTemperature,
     });
+    setPendingExampleAutoRunId(Date.now());
     notify.success("Exemplo carregado com sucesso.");
   }
 
-  async function handleCstrSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const sessionId = cstrSessionRef.current;
+  async function submitCstrCalculation() {
+    const sessionId = cstrSessionRef.current + 1;
+    cstrSessionRef.current = sessionId;
     setCstrError(null);
 
     try {
@@ -978,10 +1002,16 @@ export function ReactorPage() {
     }
   }
 
-  async function handlePfrSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const sessionId = pfrSessionRef.current;
+  async function submitPfrCalculation() {
+    const sessionId = pfrSessionRef.current + 1;
+    pfrSessionRef.current = sessionId;
     setPfrError(null);
+    setPfrLoading(true);
+    setPfrSpatialProfile([]);
+    setPfrProfileChart(null);
+    setPfrRecycleChart(null);
+    setPfrSpatialProfileError(null);
+    setPfrRecycleProfileError(null);
 
     try {
       const response = await apiClient.post<ReactorResult>(
@@ -994,35 +1024,186 @@ export function ReactorPage() {
       }
 
       setPfrResult(response);
+
+      const volume = extractQuantityValue(getResultValue(response, "volume"));
+      if (!(volume != null && Number.isFinite(volume) && volume > 0)) {
+        setPfrSpatialProfile([]);
+        setPfrProfileChart(null);
+        setPfrRecycleChart(null);
+        return;
+      }
+
+      const [spatialProfileResult, profileChartResult, recycleChartResult] = await Promise.allSettled([
+        apiClient.post<PfrSpatialProfileResponse>(
+          "/reactor/pfr/spatial-profile",
+          buildPfrSpatialProfilePayload(pfrForm, volume),
+        ),
+        apiClient.post<ChartModel>(
+          "/reactor/pfr/profile/chart",
+          buildPfrSpatialProfilePayload(pfrForm, volume),
+        ),
+        apiClient.post<ChartModel>(
+          "/reactor/pfr/recycle-profile/chart",
+          buildPfrRecycleProfilePayload(pfrForm, volume),
+        ),
+      ]);
+
+      if (sessionId !== pfrSessionRef.current) {
+        return;
+      }
+
+      if (spatialProfileResult.status === "fulfilled") {
+        setPfrSpatialProfile(normalizePfrSpatialProfileResponse(spatialProfileResult.value));
+        setPfrSpatialProfileError(null);
+      } else {
+        setPfrSpatialProfile([]);
+        setPfrSpatialProfileError(getErrorMessage(spatialProfileResult.reason));
+      }
+
+      if (profileChartResult.status === "fulfilled") {
+        setPfrProfileChart(profileChartResult.value);
+      } else {
+        setPfrProfileChart(null);
+      }
+
+      if (recycleChartResult.status === "fulfilled") {
+        setPfrRecycleChart(recycleChartResult.value);
+        setPfrRecycleProfileError(null);
+      } else {
+        setPfrRecycleChart(null);
+        setPfrRecycleProfileError(getErrorMessage(recycleChartResult.reason));
+      }
     } catch (error) {
       if (sessionId !== pfrSessionRef.current) {
         return;
       }
 
       setPfrResult(null);
+      setPfrSpatialProfile([]);
+      setPfrProfileChart(null);
+      setPfrRecycleChart(null);
+      setPfrSpatialProfileError(null);
       const message = getErrorMessage(error);
       setPfrError(message);
       notify.error(`Erro ao calcular PFR: ${message}`);
+    } finally {
+      if (sessionId === pfrSessionRef.current) {
+        setPfrLoading(false);
+      }
     }
   }
 
-  const chartData = buildPlotPoints(pfrForm, plotForm);
+  async function handleCstrSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitCstrCalculation();
+  }
+
+  async function handlePfrSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitPfrCalculation();
+  }
+
+  useEffect(() => {
+    if (pendingExampleAutoRunId == null) {
+      return;
+    }
+
+    setPendingExampleAutoRunId(null);
+    void Promise.allSettled([submitCstrCalculation(), submitPfrCalculation()]);
+  }, [cstrForm, pendingExampleAutoRunId, pfrForm]);
+
   const comparableForms = formsSharePlotBasis(cstrForm, pfrForm);
-  const cstrOperatingPoint: ReactorOperatingPoint | null =
-    cstrResult && extractQuantityValue(cstrResult.volume) !== null
-      ? {
-          conversion: clampConversion(Number(cstrForm.conversion)),
-          volume: extractQuantityValue(cstrResult.volume) ?? 0,
+
+  useEffect(() => {
+    if (!cstrResult || !pfrResult || !comparableForms) {
+      setLevenspielLoading(false);
+      setLevenspielChart(null);
+      return;
+    }
+
+    const cstrConversion = extractQuantityValue(getResultValue(cstrResult, "conversion", "conversao"));
+    const pfrConversion = extractQuantityValue(getResultValue(pfrResult, "conversion", "conversao"));
+    if (cstrConversion == null || pfrConversion == null) {
+      setLevenspielLoading(false);
+      setLevenspielChart(null);
+      return;
+    }
+
+    const resolvedCstrConversion = cstrConversion;
+    const resolvedPfrConversion = pfrConversion;
+
+    let ignore = false;
+
+    async function loadLevenspielChart() {
+      setLevenspielLoading(true);
+      setLevenspielChart(null);
+
+      try {
+        const response = await apiClient.post<ChartModel>(
+          "/reactor/levenspiel/chart",
+          buildLevenspielChartPayload(
+            pfrForm,
+            plotForm,
+            resolvedCstrConversion,
+            resolvedPfrConversion,
+          ),
+        );
+
+        if (!ignore) {
+          setLevenspielChart(response);
+          setLevenspielLoading(false);
         }
-      : null;
-  const pfrOperatingPoint: ReactorOperatingPoint | null =
-    pfrResult && extractQuantityValue(pfrResult.volume) !== null
-      ? {
-          conversion: clampConversion(Number(pfrForm.conversion)),
-          volume: extractQuantityValue(pfrResult.volume) ?? 0,
+      } catch {
+        if (!ignore) {
+          setLevenspielChart(null);
+          setLevenspielLoading(false);
         }
-      : null;
-  const pfrProfileSeries = pfrResult ? buildPfrProfileSeries(pfrForm, pfrResult) : [];
+      }
+    }
+
+    void loadLevenspielChart();
+
+    return () => {
+      ignore = true;
+    };
+  }, [cstrResult, pfrResult, comparableForms, pfrForm, plotForm]);
+
+  useEffect(() => {
+    const payload = buildArrheniusChartPayload(plotForm);
+    if (
+      !(payload.activation_energy > 0) ||
+      !(payload.reference_temperature > 0) ||
+      !(payload.reference_rate_constant > 0)
+    ) {
+      setArrheniusChart(null);
+      setArrheniusError(null);
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadArrheniusChart() {
+      try {
+        const response = await apiClient.post<ChartModel>("/reactor/arrhenius/chart", payload);
+
+        if (!ignore) {
+          setArrheniusChart(response);
+          setArrheniusError(null);
+        }
+      } catch (error) {
+        if (!ignore) {
+          setArrheniusChart(null);
+          setArrheniusError(getErrorMessage(error));
+        }
+      }
+    }
+
+    void loadArrheniusChart();
+
+    return () => {
+      ignore = true;
+    };
+  }, [plotForm]);
 
   return (
     <ModuleTabsLayout
@@ -1030,11 +1211,14 @@ export function ReactorPage() {
       subtitle={
         <>
           <p className="max-w-3xl">
-            Compare os modelos CSTR e PFR no mesmo fluxo de cálculo. O diagrama local funciona
-            como uma aproximação didática reativa no frontend, enquanto os resultados numéricos
-            continuam vindo dos serviços já expostos pela API do projeto.
+            Compare os modelos CSTR e PFR no mesmo fluxo de cálculo. Os resultados numéricos,
+            curvas didáticas e pontos operacionais agora vêm dos endpoints de visualização do backend.
           </p>
-          {pageError ? <p className="text-red-600">{pageError}</p> : null}
+          {pageError ? (
+            <p className="text-red-600" role="alert" aria-live="assertive">
+              {pageError}
+            </p>
+          ) : null}
         </>
       }
       action={
@@ -1100,23 +1284,41 @@ export function ReactorPage() {
           }
           onSubmit={handlePfrSubmit}
           result={pfrResult}
+          submitLoading={pfrLoading}
           showRecyclingRatio
           submitLabel="Calcular PFR"
           title="PFR"
+          statusContent={
+            pfrLoading ? (
+              <div
+                aria-live="polite"
+                className="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-900"
+                role="status"
+              >
+                <Loader2Icon aria-hidden="true" className="size-4 animate-spin" />
+                <span>Calculando PFR...</span>
+              </div>
+            ) : null
+          }
           extraContent={
             pfrResult ? (
               <div className="space-y-6">
-                {pfrProfileSeries.length > 0 ? (
-                  <PfrProfileChart
-                    concentrationSeries={pfrProfileSeries}
-                    temperature={{
-                      inlet: Number(pfrForm.initialTemperature),
-                      outlet: Number(pfrForm.finalTemperature),
-                    }}
-                  />
+                {pfrSpatialProfileError ? (
+                  <p className="text-sm text-red-600" role="alert" aria-live="assertive">
+                    {pfrSpatialProfileError}
+                  </p>
                 ) : null}
-                <PfrRecycleDaHowItWorks />
-                <PfrRecycleDaChart />
+                {pfrSpatialProfile.length > 0 && pfrProfileChart ? (
+                  <PfrProfileChart model={pfrProfileChart} stations={pfrSpatialProfile} />
+                ) : null}
+                <div data-testid="pfr-recycle-da-chart" className="space-y-2">
+                  {pfrRecycleProfileError ? (
+                    <p className="text-sm text-red-600" role="alert" aria-live="assertive">
+                      {pfrRecycleProfileError}
+                    </p>
+                  ) : null}
+                  {pfrRecycleChart ? <ChartModelRenderer model={pfrRecycleChart} /> : null}
+                </div>
               </div>
             ) : null
           }
@@ -1125,10 +1327,10 @@ export function ReactorPage() {
 
       {activeTab === "levenspiel" ? (
         <LevenspielTabContent
-          chartData={chartData}
-          cstrOperatingPoint={cstrOperatingPoint}
-          pfrOperatingPoint={pfrOperatingPoint}
+          chartModel={levenspielChart}
+          hasResults={Boolean(cstrResult && pfrResult)}
           comparableForms={comparableForms}
+          loading={levenspielLoading}
         />
       ) : null}
 
@@ -1139,6 +1341,7 @@ export function ReactorPage() {
             <p className="text-sm text-muted-foreground">
               Visualizacao semilog da dependencia de k com a temperatura de referencia.
             </p>
+            <ArrheniusHowItWorks />
             <div className="grid gap-4 md:grid-cols-2">
               <NumberField
                 id="arrhenius-activation-energy"
@@ -1160,13 +1363,38 @@ export function ReactorPage() {
               />
             </div>
 
-            <ArrheniusPlot
-              activationEnergy={Number(plotForm.activationEnergy)}
-              maxTemperature={Number(plotForm.referenceTemperature) * 1.2}
-              minTemperature={Number(plotForm.referenceTemperature) * 0.8}
-              referenceRateConstant={Number(plotForm.rateConstant)}
-              referenceTemperature={Number(plotForm.referenceTemperature)}
-            />
+            {arrheniusError ? (
+              <p className="text-sm text-red-600" role="alert" aria-live="assertive">
+                {arrheniusError}
+              </p>
+            ) : null}
+            {arrheniusChart ? (
+              <div className="space-y-3" data-testid="arrhenius-plot">
+                <ChartModelRenderer
+                  hiddenMarkerLabelIds={["reference-point"]}
+                  model={arrheniusChart}
+                />
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Legenda do gráfico
+                  </p>
+                  <ChartSeriesLegend
+                    items={[
+                      {
+                        id: arrheniusChart.series[0]?.id ?? "arrhenius-curve",
+                        label: arrheniusChart.series[0]?.name ?? "Curva de Arrhenius",
+                        color: arrheniusChart.series[0]?.color ?? "#0f766e",
+                      },
+                      {
+                        id: arrheniusChart.markers?.[0]?.id ?? "reference-point",
+                        label: arrheniusChart.markers?.[0]?.label ?? "Ponto de referência",
+                        color: arrheniusChart.markers?.[0]?.color ?? "#dc2626",
+                      },
+                    ]}
+                  />
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

@@ -9,11 +9,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RemoveButton } from "@/components/remove-button";
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { ResultTableSection } from "@/components/result-table-section";
+import { ChartModelRenderer } from "@/components/viz/chart-model-renderer";
 import { HeadBreakdownChart } from "@/components/viz/head-breakdown-chart";
-import { HeadlossCurve } from "@/components/viz/headloss-curve";
-import { PumpSystemCurve } from "@/components/viz/pump-system-curve";
-import { PumpEfficiencyMap } from "@/components/viz/pump-efficiency-map";
-import { NpshGauge } from "@/components/viz/npsh-gauge";
+import { PumpEfficiencyMap, type PumpEfficiencyMapModel } from "@/components/viz/pump-efficiency-map";
+import { NpshGauge, type NpshGaugeModel } from "@/components/viz/npsh-gauge";
 import {
   HeadHowItWorks,
   HeadlossHowItWorks,
@@ -27,10 +26,16 @@ import { apiClient } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { selectOptionValue, toSelectOption, type SelectOption } from "@/lib/select-option";
 import { pumpTabs } from "@/features/pump/pump-tabs";
+import type { ChartModel } from "@/types/chart-model";
 
 type QuantityResult = {
   value: number;
   units: string;
+};
+
+type HeadBreakdownTerm = {
+  label: string;
+  value: number;
 };
 
 type HeadlossMethod = "Darcy-Weisbach" | "Hazen-Williams";
@@ -46,11 +51,6 @@ type CompositionDetails = {
     roughness?: QuantityResult;
     roughness_coefficient?: QuantityResult;
   };
-};
-
-type HeadTerm = {
-  label: string;
-  value: number;
 };
 
 type HeadlossFormState = {
@@ -126,6 +126,8 @@ const initialHeadForm: HeadFormState = {
   frictionFactor: "",
 };
 
+const standardGravity = 9.80665;
+
 function createFittingRow(id = `fitting-${Date.now()}-${Math.random()}`): FittingRow {
   return { id, fitting: "", quantity: "1" };
 }
@@ -149,37 +151,39 @@ function buildResultRows(label: string, result: QuantityResult | null): Property
   ];
 }
 
-function buildHeadlossCurvePoints(
-  method: HeadlossMethod,
-  flowRate: number,
-  headloss: number,
-) {
-  if (!(flowRate > 0) || !Number.isFinite(headloss)) {
+function buildHeadBreakdownTerms(form: HeadFormState): HeadBreakdownTerm[] {
+  const pressure1 = Number(form.pressure1);
+  const pressure2 = Number(form.pressure2);
+  const elevation1 = Number(form.elevation1);
+  const elevation2 = Number(form.elevation2);
+  const velocity1 = Number(form.velocity1);
+  const velocity2 = Number(form.velocity2);
+  const frictionFactor = Number(form.frictionFactor);
+  const density = Number(form.density);
+
+  if (
+    [
+      pressure1,
+      pressure2,
+      elevation1,
+      elevation2,
+      velocity1,
+      velocity2,
+      frictionFactor,
+      density,
+    ].some((value) => !Number.isFinite(value))
+  ) {
     return [];
   }
 
-  const exponent = method === "Hazen-Williams" ? 1.852 : 2;
-  return [0.5, 0.75, 1, 1.25, 1.5].map((ratio) => ({
-    flowRate: Number((flowRate * ratio).toFixed(5)),
-    headloss: Number((headloss * ratio ** exponent).toFixed(2)),
-  }));
-}
-
-function buildHeadTerms(form: HeadFormState): HeadTerm[] {
-  const density = Number(form.density);
-  const g = 9.80665;
-  const pressureTerm =
-    density > 0 ? (Number(form.pressure2) - Number(form.pressure1)) / (density * g) : 0;
-  const elevationTerm = Number(form.elevation2) - Number(form.elevation1);
-  const velocityTerm =
-    (Number(form.velocity2) ** 2 - Number(form.velocity1) ** 2) / (2 * g);
-  const headlossTerm = Number(form.frictionFactor);
-
   return [
-    { label: "ΔP/(ρg)", value: Number(pressureTerm.toFixed(2)) },
-    { label: "Δz", value: Number(elevationTerm.toFixed(2)) },
-    { label: "ΔV²/(2g)", value: Number(velocityTerm.toFixed(2)) },
-    { label: "-h_f", value: Number((-headlossTerm).toFixed(2)) },
+    { label: "ΔP/(ρg)", value: (pressure2 - pressure1) / (density * standardGravity) },
+    { label: "Δz", value: elevation2 - elevation1 },
+    {
+      label: "ΔV²/(2g)",
+      value: (velocity2 ** 2 - velocity1 ** 2) / (2 * standardGravity),
+    },
+    { label: "-h_f", value: -frictionFactor },
   ];
 }
 
@@ -286,10 +290,13 @@ export function PumpPage() {
 
   const [npshForm, setNpshForm] = useState<NpshFormState>(initialNpshForm);
   const [npshResult, setNpshResult] = useState<QuantityResult | null>(null);
+  const [npshGaugeModel, setNpshGaugeModel] = useState<NpshGaugeModel | null>(null);
 
   const [headForm, setHeadForm] = useState<HeadFormState>(initialHeadForm);
   const [headResult, setHeadResult] = useState<QuantityResult | null>(null);
-  const [headTerms, setHeadTerms] = useState<HeadTerm[]>([]);
+  const [headlossChartModel, setHeadlossChartModel] = useState<ChartModel | null>(null);
+  const [efficiencyMapModel, setEfficiencyMapModel] = useState<PumpEfficiencyMapModel | null>(null);
+  const [pendingExampleAutoRunId, setPendingExampleAutoRunId] = useState<number | null>(null);
   const headlossSessionRef = useRef(0);
   const npshSessionRef = useRef(0);
   const headSessionRef = useRef(0);
@@ -376,8 +383,11 @@ export function PumpPage() {
       setHeadForm({ ...initialHeadForm, ...mapped.head });
       setHeadlossResult(null);
       setNpshResult(null);
+      setNpshGaugeModel(null);
       setHeadResult(null);
-      setHeadTerms([]);
+      setHeadlossChartModel(null);
+      setEfficiencyMapModel(null);
+      setPendingExampleAutoRunId(Date.now());
       notify.success("Exemplo carregado com sucesso.");
     } catch (error) {
       notify.error(getErrorMessage(error));
@@ -387,17 +397,19 @@ export function PumpPage() {
   function clearHeadlossDerived() {
     headlossSessionRef.current += 1;
     setHeadlossResult(null);
+    setHeadlossChartModel(null);
+    setEfficiencyMapModel(null);
   }
 
   function clearNpshDerived() {
     npshSessionRef.current += 1;
     setNpshResult(null);
+    setNpshGaugeModel(null);
   }
 
   function clearHeadDerived() {
     headSessionRef.current += 1;
     setHeadResult(null);
-    setHeadTerms([]);
   }
 
   function clearAllDerived() {
@@ -561,8 +573,7 @@ export function PumpPage() {
     };
   }
 
-  async function handleHeadlossSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitHeadlossCalculation() {
     const sessionId = headlossSessionRef.current;
     setPageError(null);
     try {
@@ -617,37 +628,59 @@ export function PumpPage() {
         ...current,
         frictionFactor: response.value.toFixed(2),
       }));
+
+      const [chartModel, efficiencyMapResponse] = await Promise.all([
+        apiClient.post<ChartModel>("/pump/headloss/chart", payload),
+        apiClient.post<PumpEfficiencyMapModel>("/pump/efficiency-map/chart", payload),
+      ]);
+      if (sessionId !== headlossSessionRef.current) {
+        return;
+      }
+
+      setHeadlossChartModel(chartModel);
+      setEfficiencyMapModel(efficiencyMapResponse);
     } catch (error) {
+      if (sessionId !== headlossSessionRef.current) {
+        return;
+      }
+      setHeadlossChartModel(null);
+      setEfficiencyMapModel(null);
       const message = `Erro ao calcular perda de carga: ${getErrorMessage(error)}`;
       setPageError(message);
       notify.error(message);
     }
   }
 
-  async function handleNpshSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitNpshCalculation() {
     const sessionId = npshSessionRef.current;
     setPageError(null);
 
     try {
-      const response = await apiClient.post<{ head_loss: QuantityResult }>(
-        "/pump/npsh-available",
-        {
-          manometric_pressure: Number(npshForm.manometricPressure),
-          atmospheric_pressure: Number(npshForm.atmosphericPressure),
-          vapor_pressure: Number(npshForm.vaporPressure),
-          density: Number(npshForm.density),
-          friction_factor: Number(npshForm.frictionFactor),
-          pump_inlet_velocity: Number(npshForm.pumpInletVelocity),
-          gauge_elevation: Number(npshForm.gaugeElevation),
-        },
-      );
+      const payload: Record<string, number> = {
+        manometric_pressure: Number(npshForm.manometricPressure),
+        atmospheric_pressure: Number(npshForm.atmosphericPressure),
+        vapor_pressure: Number(npshForm.vaporPressure),
+        density: Number(npshForm.density),
+        friction_factor: Number(npshForm.frictionFactor),
+        pump_inlet_velocity: Number(npshForm.pumpInletVelocity),
+        gauge_elevation: Number(npshForm.gaugeElevation),
+      };
+
+      if (npshForm.required !== "") {
+        payload.required = Number(npshForm.required);
+      }
+
+      const [response, gaugeModel] = await Promise.all([
+        apiClient.post<{ head_loss: QuantityResult }>("/pump/npsh-available", payload),
+        apiClient.post<NpshGaugeModel>("/pump/npsh-gauge/chart", payload),
+      ]);
 
       if (sessionId !== npshSessionRef.current) {
         return;
       }
 
       setNpshResult(response.head_loss);
+      setNpshGaugeModel(gaugeModel);
     } catch (error) {
       if (sessionId !== npshSessionRef.current) {
         return;
@@ -659,8 +692,7 @@ export function PumpPage() {
     }
   }
 
-  async function handleHeadSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitHeadCalculation() {
     const sessionId = headSessionRef.current;
     setPageError(null);
 
@@ -680,7 +712,6 @@ export function PumpPage() {
         return;
       }
 
-      setHeadTerms(buildHeadTerms(headForm));
       setHeadResult(response);
     } catch (error) {
       if (sessionId !== headSessionRef.current) {
@@ -693,11 +724,33 @@ export function PumpPage() {
     }
   }
 
-  const curvePoints = buildHeadlossCurvePoints(
-    headlossForm.method,
-    Number(headlossForm.flowRate),
-    headlossResult?.value ?? Number.NaN,
-  );
+  async function handleHeadlossSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitHeadlossCalculation();
+  }
+
+  async function handleNpshSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitNpshCalculation();
+  }
+
+  async function handleHeadSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitHeadCalculation();
+  }
+
+  useEffect(() => {
+    if (pendingExampleAutoRunId == null) {
+      return;
+    }
+
+    setPendingExampleAutoRunId(null);
+    void Promise.allSettled([
+      submitHeadlossCalculation(),
+      submitNpshCalculation(),
+      submitHeadCalculation(),
+    ]);
+  }, [headForm, headlossForm, fittingRows, npshForm, pendingExampleAutoRunId]);
 
   return (
     <ModuleTabsLayout
@@ -895,35 +948,54 @@ export function PumpPage() {
               rows={buildResultRows("Perda de carga", headlossResult)}
             />
 
-            {headlossResult && curvePoints.length > 0 ? (
+            {headlossResult && headlossChartModel ? (
               <div className="space-y-4">
-              <HeadlossCurve
-                  points={curvePoints}
-                  operationalPoint={{
-                    flowRate: Number(headlossForm.flowRate),
-                    headloss: headlossResult.value,
-                  }}
+                <ChartModelRenderer
+                  hiddenMarkerLabelIds={["operating-point"]}
+                  footer={
+                    <div className="flex flex-wrap gap-2 text-xs font-medium">
+                      {headlossChartModel.series.map((series) => (
+                        <span
+                          key={series.id}
+                          className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 shadow-sm"
+                          style={{
+                            borderColor: series.color ?? "#2563eb",
+                            color: series.color ?? "#2563eb",
+                          }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="h-2.5 w-2.5 rounded-sm"
+                            style={{ backgroundColor: series.color ?? "#2563eb" }}
+                          />
+                          {series.name}
+                        </span>
+                      ))}
+                      {headlossChartModel.markers
+                        ?.filter((marker) => marker.id === "operating-point")
+                        .map((marker) => (
+                          <span
+                            key={marker.id}
+                            className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 shadow-sm"
+                            style={{
+                              borderColor: marker.color ?? "#dc2626",
+                              color: marker.color ?? "#dc2626",
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="h-2.5 w-2.5 rounded-sm"
+                              style={{ backgroundColor: marker.color ?? "#dc2626" }}
+                            />
+                            {marker.label}
+                          </span>
+                        ))}
+                    </div>
+                  }
+                  panelClassName="mx-auto w-full max-w-[760px]"
+                  model={headlossChartModel}
                 />
-                <PumpSystemCurve
-                  operatingPoint={{
-                    flowRate: Number(headlossForm.flowRate),
-                    head: headlossResult.value,
-                  }}
-                  systemPoints={curvePoints.map((point) => ({
-                    flowRate: point.flowRate,
-                    head: point.headloss,
-                  }))}
-                />
-                <PumpEfficiencyMap
-                  operatingPoint={{
-                    flowRate: Number(headlossForm.flowRate),
-                    head: headlossResult.value,
-                  }}
-                  systemCurve={curvePoints.map((point) => ({
-                    flowRate: point.flowRate,
-                    head: point.headloss,
-                  }))}
-                />
+                {efficiencyMapModel ? <PumpEfficiencyMap model={efficiencyMapModel} /> : null}
               </div>
             ) : null}
           </CardContent>
@@ -1009,12 +1081,7 @@ export function PumpPage() {
               rows={buildResultRows("NPSH disponível", npshResult)}
             />
 
-            {npshResult ? (
-              <NpshGauge
-                available={npshResult.value}
-                required={npshForm.required ? Number(npshForm.required) : undefined}
-              />
-            ) : null}
+            {npshResult && npshGaugeModel ? <NpshGauge model={npshGaugeModel} /> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -1099,7 +1166,7 @@ export function PumpPage() {
             />
 
             {headResult ? (
-              <HeadBreakdownChart totalHead={headResult.value} terms={headTerms} />
+              <HeadBreakdownChart totalHead={headResult.value} terms={buildHeadBreakdownTerms(headForm)} />
             ) : null}
           </CardContent>
         </Card>

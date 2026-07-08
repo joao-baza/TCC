@@ -102,7 +102,7 @@ export const glossaryEntries: GlossaryEntry[] = [
       "Para escoamento incompressível em seção circular: \\(Q = V \\cdot \\pi D^2/4\\) → \\(D = \\sqrt{4Q/(\\pi V)}\\).",
   },
   {
-    term: "Schedule (ASME)",
+    term: "<em>Schedule</em> (ASME)",
     category: "Dimensionamento",
     definition:
       "Norma para espessura de parede de tubo metálico (ex: Sch 40, Sch 80). Maior número → parede mais espessa → diâmetro interno menor.",
@@ -132,16 +132,16 @@ export const glossaryEntries: GlossaryEntry[] = [
       "Formação e implosão de bolhas de vapor no interior da bomba quando a pressão local cai abaixo de \\(p_{vap}\\). Causa vibração, ruído, erosão e queda de desempenho.",
   },
   {
-    term: "Head da bomba (H)",
+    term: "<em>Head</em> da bomba (H)",
     category: "Bombas",
     definition:
-      "Energia por peso unitário de fluido fornecida pela bomba (m). Obtido pela equação de Bernoulli estendida: \\(H = \\Delta P/(\\rho g) + \\Delta z + \\Delta V^2/(2g) + h_f\\).",
+      "Energia por peso unitário de fluido fornecida pela bomba (m). Obtida pela equação de Bernoulli estendida: \\[H = \\dfrac{P_2 - P_1}{\\rho g} + (z_2 - z_1) + \\dfrac{V_2^2 - V_1^2}{2g} + h_f\\].",
   },
   {
     term: "Perda de carga singular",
     category: "Bombas",
     definition:
-      "Perda localizada em acessórios: \\(h_s = K \\cdot V^2/(2g)\\), onde \\(K\\) é o coeficiente de perda da conexão.",
+      "Perda localizada em acessórios: \\[h_s = K \\cdot \\frac{V^2}{2g}\\] \\(K\\) é o coeficiente de perda da conexão.",
   },
   {
     term: "Pressão de vapor (p_vap)",
@@ -159,19 +159,19 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "CSTR",
     category: "Reatores",
     definition:
-      "Continuous Stirred-Tank Reactor. Mistura perfeita → composição uniforme = saída. Equação de projeto: \\[V = \\frac{F_{A0}\\,X}{-r_A}\\] Tempo de residência: \\(\\tau = V/Q_T\\). A taxa \\(r_A\\) é avaliada nas condições de saída.",
+      "<em>Continuous Stirred-Tank Reactor</em>. Mistura perfeita → composição uniforme = saída. Equação de projeto: \\[V = \\frac{F_{A0}\\,X}{-r_A}\\] A taxa \\(r_A\\) é avaliada nas condições de saída.",
   },
   {
     term: "PFR",
     category: "Reatores",
     definition:
-      "Plug Flow Reactor. Escoamento pistonado → concentrações variam ao longo do comprimento; sem mistura axial. Equação de projeto: \\[V = F_{A0}\\int_0^X \\frac{dX}{-r_A}\\] Cada elemento de fluido comporta-se como um reator batelada em movimento.",
+      "<em>Plug Flow Reactor</em>. Escoamento pistonado → concentrações variam ao longo do comprimento; sem mistura axial. Equação de projeto: \\[V = F_{A0}\\int_0^X \\frac{dX}{-r_A}\\] Cada elemento de fluido comporta-se como um reator batelada em movimento.",
   },
   {
     term: "Conversão (X)",
     category: "Reatores",
     definition:
-      "Fração do reagente limitante consumida: \\(X = (F_{A0} - F_A)/F_{A0}\\). Valor entre 0 e 1.",
+      "Fração do reagente limitante consumida: \\[X = \\frac{F_{A0} - F_A}{F_{A0}}\\] Valor entre 0 e 1.",
   },
   {
     term: "Constante de velocidade (k)",
@@ -195,7 +195,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Lei de velocidade de potência",
     category: "Reatores",
     definition:
-      "\\(-r_A = k \\cdot C_A^\\alpha \\cdot C_B^\\beta \\cdots\\) A ordem global é \\(\\alpha + \\beta + \\cdots\\). Válida para reações elementares ou com mecanismo definido.",
+      "\\[-r_A = k \\cdot C_A^\\alpha \\cdot C_B^\\beta \\cdots\\] A ordem global é \\(\\alpha + \\beta + \\cdots\\). Válida para reações elementares ou com mecanismo definido.",
   },
   {
     term: "Reagente limitante",
@@ -207,7 +207,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Tempo de residência (τ)",
     category: "Reatores",
     definition:
-      "Tempo médio que o fluido permanece no reator: \\(\\tau = V/Q_T\\). Para CSTR isotérmico relaciona-se com a equação de projeto: \\(\\tau = C_{A0}\\,X/(-r_A)\\).",
+      "Tempo médio que o fluido permanece no reator: \\[\\tau = \\frac{V}{Q_T}\\] Para CSTR isotérmico relaciona-se com a equação de projeto: \\[\\tau = \\frac{C_{A0}\\,X}{-r_A}\\].",
   },
   {
     term: "Equação de Arrhenius",
@@ -297,7 +297,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Condutividade térmica (λ)",
     category: "Componentes",
     definition:
-      "Capacidade do material de conduzir calor (W/m·K). Governa a lei de Fourier: \\(\\dot{q} = -\\lambda \\nabla T\\). Varia com temperatura e fase; obtida via CoolProp. Insumo para cálculo de coeficientes de troca térmica em trocadores e isolamentos.",
+      "Capacidade do material de conduzir calor (W/m·K). Governa a lei de Fourier: \\[\\dot{q} = -\\lambda \\nabla T\\] Varia com temperatura e fase; obtida via CoolProp. Insumo para cálculo de coeficientes de troca térmica em trocadores e isolamentos.",
   },
   {
     term: "Ponto de bolha / Ponto de orvalho",
@@ -323,7 +323,7 @@ export const glossaryEntries: GlossaryEntry[] = [
       "Composição normalizada da corrente: soma das frações = 1,0. Molar quando vazão é em mol/tempo; mássica quando em massa/tempo.",
   },
   {
-    term: "Reciclo (split)",
+    term: "Reciclo (<em>split</em>)",
     category: "Balanço",
     definition:
       "Retorno de parte da corrente de saída para a entrada. \\(F_R = f \\cdot F_P\\); aumenta a conversão global mas exige mais energia de bombeamento.",
@@ -389,22 +389,10 @@ export const glossaryEntries: GlossaryEntry[] = [
       "Superfície/contorno que mostra a eficiência da bomba em função de vazão e altura. O ponto de melhor eficiência (BEP) costuma ficar próximo ao centro da região de maior rendimento e serve como referência de operação estável.",
   },
   {
-    term: "Linha piezométrica",
-    category: "Bombas",
-    definition:
-      "Perfil de carga que representa a altura piezométrica ao longo da linha: \\(z + p/\\gamma\\). É útil para interpretar quedas de pressão e identificar pontos críticos do sistema de bombeamento.",
-  },
-  {
-    term: "Linha de energia",
-    category: "Bombas",
-    definition:
-      "Perfil da carga total ao longo da linha: \\(z + p/\\gamma + v^2/(2g)\\). A distância vertical até a linha piezométrica corresponde à parcela cinética do escoamento.",
-  },
-  {
     term: "Ponto de melhor eficiência (BEP)",
     category: "Bombas",
     definition:
-      "Best Efficiency Point. Condição de operação em que a bomba atinge a maior eficiência hidráulica. Operar próximo ao BEP reduz vibração, recirculação interna e risco de cavitação.",
+      "<em>Best Efficiency Point</em>. Condição de operação em que a bomba atinge a maior eficiência hidráulica. Operar próximo ao BEP reduz vibração, recirculação interna e risco de cavitação.",
   },
   {
     term: "Curva característica da bomba",
@@ -434,7 +422,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Perfil de PFR",
     category: "Reatores",
     definition:
-      "Distribuição das concentrações e da temperatura ao longo do volume do reator de fluxo pistão. Didaticamente ajuda a visualizar como o perfil muda do inlet ao outlet e por que a integração ao longo do volume é necessária.",
+      "Distribuição das concentrações e da temperatura ao longo do volume do reator de fluxo pistão. Didaticamente ajuda a visualizar como o perfil muda do <em>inlet</em> ao <em>outlet</em> e por que a integração ao longo do volume é necessária.",
   },
   {
     term: "Perfil de velocidade",
@@ -449,7 +437,7 @@ export const glossaryEntries: GlossaryEntry[] = [
       "Representação agregada das curvas quente e fria de um processo, usada em análise de pinch para localizar o gargalo térmico e o menor consumo externo de utilidades.",
   },
   {
-    term: "Pinch analysis",
+    term: "<em>Pinch analysis</em>",
     category: "Transferência de calor",
     definition:
       "Método de integração térmica que identifica a menor diferença de temperatura viável entre correntes quentes e frias. O pinch define o limite mínimo para utilidades de aquecimento e resfriamento.",

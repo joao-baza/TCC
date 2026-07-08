@@ -1,22 +1,28 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { formatTableNumberText } from "@/lib/table-number";
+import { PfrRecycleDaHowItWorks } from "@/features/reactor/didactics";
 
-type ChartPoint = {
+type SvgPoint = {
   x: number;
   y: number;
 };
 
+export type PfrRecycleProfilePoint = {
+  recyclingRatio: number;
+  conversion: number;
+};
+
 type PfrRecycleDaChartProps = {
   title?: string;
-  maxRecycleRatio?: number;
-  damkohlerValues?: number[];
+  points: PfrRecycleProfilePoint[];
+  volume?: number | null;
+  error?: string | null;
 };
 
 const width = 760;
 const height = 330;
 const padding = { top: 24, right: 28, bottom: 42, left: 72 };
-const defaultDamkohlerValues = [0.25, 0.5, 1, 2, 5];
-const palette = ["#0f766e", "#2563eb", "#b45309", "#7c3aed", "#dc2626"];
+const profileColor = "#0f766e";
 
 function scale(value: number, min: number, max: number, start: number, end: number) {
   if (min === max) {
@@ -26,7 +32,7 @@ function scale(value: number, min: number, max: number, start: number, end: numb
   return start + ((value - min) / (max - min)) * (end - start);
 }
 
-function buildPath(points: ChartPoint[]) {
+function buildPath(points: SvgPoint[]) {
   if (points.length === 0) {
     return "";
   }
@@ -38,70 +44,35 @@ function toFixedLabel(value: number) {
   return formatTableNumberText(value);
 }
 
-function solveConversionFromRecycleAndDa(recycleRatio: number, damkohler: number) {
-  const safeRecycleRatio = Math.max(recycleRatio, 0);
-  const safeDamkohler = Math.max(damkohler, 1e-6);
-  const exponent = 1 / ((safeRecycleRatio + 1) * safeDamkohler);
-  const expm1Value = Math.expm1(exponent);
-  const denominator = expm1Value + 1 / (safeRecycleRatio + 1);
-
-  if (!Number.isFinite(denominator) || denominator <= 0) {
-    return 0;
-  }
-
-  const conversion = expm1Value / denominator;
-  return Math.min(Math.max(conversion, 0), 1);
-}
-
-function buildCurvePoints(damkohler: number, maxRecycleRatio: number) {
-  const sampleCount = 30;
-
-  return Array.from({ length: sampleCount + 1 }, (_, index) => {
-    const recycleRatio = (maxRecycleRatio * index) / sampleCount;
-    return {
-      x: recycleRatio,
-      y: solveConversionFromRecycleAndDa(recycleRatio, damkohler),
-    };
-  });
-}
-
-function LegendItem({
-  color,
-  label,
-  detail,
-}: {
-  color: string;
-  label: string;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
-        <span
-          aria-hidden="true"
-          className="inline-block h-2.5 w-2.5 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-        <span>{label}</span>
-      </div>
-      <div className="mt-1 text-xs text-muted-foreground">{detail}</div>
-    </div>
-  );
+function normalizePoints(points: PfrRecycleProfilePoint[]) {
+  return points
+    .filter(
+      (point) =>
+        Number.isFinite(point.recyclingRatio) &&
+        point.recyclingRatio >= 0 &&
+        Number.isFinite(point.conversion),
+    )
+    .map((point) => ({
+      recyclingRatio: point.recyclingRatio,
+      conversion: Math.min(Math.max(point.conversion, 0), 1),
+    }))
+    .sort((left, right) => left.recyclingRatio - right.recyclingRatio);
 }
 
 export function PfrRecycleDaChart({
-  title = "Conversão X vs razão de reciclo R",
-  maxRecycleRatio = 10,
-  damkohlerValues = defaultDamkohlerValues,
+  title = "Conversão do caso atual vs razão de reciclo R",
+  points,
+  volume = null,
+  error = null,
 }: PfrRecycleDaChartProps) {
-  const safeMaxRecycleRatio = Math.max(maxRecycleRatio, 1);
-  const series = damkohlerValues
-    .filter((value) => Number.isFinite(value) && value > 0)
-    .map((value, index) => ({
-      value,
-      color: palette[index % palette.length],
-      points: buildCurvePoints(value, safeMaxRecycleRatio),
-    }));
+  const normalizedPoints = normalizePoints(points);
+  const safeMaxRecycleRatio = Math.max(normalizedPoints.at(-1)?.recyclingRatio ?? 1, 1);
+  const path = buildPath(
+    normalizedPoints.map((point) => ({
+      x: scale(point.recyclingRatio, 0, safeMaxRecycleRatio, padding.left, width - padding.right),
+      y: scale(point.conversion, 0, 1, height - padding.bottom, padding.top),
+    })),
+  );
 
   return (
     <section
@@ -111,66 +82,63 @@ export function PfrRecycleDaChart({
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-          <p className="text-sm text-muted-foreground">
-            Famílias de Damköhler para comparar a conversão ao variar a razão de reciclo.
-          </p>
+          {volume != null ? (
+            <p className="mt-1 text-xs font-medium text-slate-600">
+              Base do perfil: V = {toFixedLabel(volume)} m³
+            </p>
+          ) : null}
         </div>
-        <p className="text-sm font-medium text-slate-700">
-          R máx = {toFixedLabel(safeMaxRecycleRatio)}
-        </p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-        <div
-          className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
-          style={{ aspectRatio: `${width} / ${height}` }}
+      <PfrRecycleDaHowItWorks />
+
+      {error ? (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {error}
+        </div>
+      ) : null}
+
+      <div
+        className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
+        style={{ aspectRatio: `${width} / ${height}` }}
+      >
+        <NumericChartGrid
+          xDomain={[0, safeMaxRecycleRatio]}
+          yDomain={[0, 1]}
+          width={width}
+          height={height}
+          padding={padding}
+          xLabel="Razão de reciclo - R"
+          yLabel="Conversão - X"
+        />
+
+        <svg
+          aria-label="Conversão real do PFR para o caso atual ao variar a razão de reciclo"
+          className="absolute inset-0 block h-full w-full overflow-hidden"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          viewBox={`0 0 ${width} ${height}`}
         >
-          <NumericChartGrid
-            xDomain={[0, safeMaxRecycleRatio]}
-            yDomain={[0, 1]}
-            width={width}
-            height={height}
-            padding={padding}
-            xLabel="Razão de reciclo R"
-            yLabel="Conversão X"
-          />
-
-          <svg
-            aria-label="Conversão do PFR com reciclo e famílias de Damkohler"
-            className="absolute inset-0 block h-full w-full overflow-hidden"
-            preserveAspectRatio="xMidYMid meet"
-            role="img"
-            viewBox={`0 0 ${width} ${height}`}
-          >
-            {series.map((item) => (
-              <path
-                key={`da-${item.value}`}
-                d={buildPath(
-                  item.points.map((point) => ({
-                    x: scale(point.x, 0, safeMaxRecycleRatio, padding.left, width - padding.right),
-                    y: scale(point.y, 0, 1, height - padding.bottom, padding.top),
-                  })),
-                )}
-                fill="none"
-                stroke={item.color}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="3"
-              />
-            ))}
-          </svg>
-        </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        {series.map((item) => (
-          <LegendItem
-            key={`legend-${item.value}`}
-            color={item.color}
-            label={`Da = ${toFixedLabel(item.value)}`}
-            detail="Curvas mais altas indicam maior conversão para o mesmo R."
-          />
-        ))}
+          {path ? (
+            <path
+              d={path}
+              fill="none"
+              stroke={profileColor}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="3"
+            />
+          ) : null}
+          {normalizedPoints.map((point) => (
+            <circle
+              key={`recycle-point-${point.recyclingRatio}`}
+              cx={scale(point.recyclingRatio, 0, safeMaxRecycleRatio, padding.left, width - padding.right)}
+              cy={scale(point.conversion, 0, 1, height - padding.bottom, padding.top)}
+              fill={profileColor}
+              r="4"
+            />
+          ))}
+        </svg>
       </div>
     </section>
   );

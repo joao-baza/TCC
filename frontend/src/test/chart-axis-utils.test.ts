@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 import {
   buildAxisTicks,
+  buildAxisUpperBound,
   expandNumericDomain,
   formatAxisTick,
   placeSafeLabel,
@@ -54,6 +55,12 @@ describe("chart axis utilities", () => {
     const second = buildAxisTicks(-10, -8.5, 5);
 
     expect(Math.abs(first.length - second.length)).toBeLessThanOrEqual(1);
+  });
+
+  it("rounds axis upper bounds up to readable tick steps", () => {
+    expect(buildAxisUpperBound(0.18, 6)).toBe(0.2);
+    expect(buildAxisUpperBound(0.97, 6)).toBe(1);
+    expect(buildAxisUpperBound(2.33, 6)).toBe(2.5);
   });
 
   it("formats axis ticks with comma decimals and scientific notation when needed", () => {

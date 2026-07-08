@@ -23,6 +23,7 @@ import { notify } from "@/lib/notify";
 import { toSelectOption, type SelectOption } from "@/lib/select-option";
 import type { PropertyRow } from "@/components/property-table";
 import { componentsTabs } from "@/features/components/components-tabs";
+import type { AxisModel, ChartModel } from "@/types/chart-model";
 
 type QuantityResult = {
   value: number;
@@ -80,28 +81,35 @@ type SaturationEnvelopeResponse = {
   points: SaturationEnvelopePoint[];
 };
 
-type BinaryVlePoint = {
-  liquid_fraction: number;
-  vapor_fraction: number;
-  temperature: number;
+type TernaryChartResponse = {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  component_labels: string[];
+  boundary: Array<{ x: number; y: number }>;
+  guide_lines: Array<{ start: { x: number; y: number }; end: { x: number; y: number } }>;
+  streams: Array<{ label: string; summary: string; x: number; y: number; color: string }>;
 };
 
-type BinaryVleResponse = {
-  fluid1: string;
-  fluid2: string;
-  pressure: number;
-  bubble_points: BinaryVlePoint[];
-  dew_points: BinaryVlePoint[];
-};
-
-type PropertySurfaceResponse = {
+type PropertySurfaceChartResponse = {
+  id: string;
+  title: string;
+  subtitle?: string | null;
   fluid: string;
-  property_name: string;
   property_label: string;
   property_units: string;
-  temperatures: number[];
-  pressures: number[];
-  values: Array<Array<number | null>>;
+  x_axis: AxisModel;
+  y_axis: AxisModel;
+  cells: Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    value?: number | null;
+    fill: string;
+    tooltip: string;
+  }>;
+  legend_stops: Array<{ offset: number; color: string; value: number }>;
   value_min: number;
   value_max: number;
 };
@@ -219,6 +227,29 @@ type ComponentsExampleResponse = {
     fluid: string;
     sample_count: number;
   };
+};
+
+type PropertyFormSnapshot = PropertyFormState;
+type MixtureFormSnapshot = MixtureFormState;
+type BinaryVleFormSnapshot = BinaryVleFormState;
+type MccabeFormSnapshot = MccabeFormState;
+type PropertySurfaceFormSnapshot = PropertySurfaceFormState;
+type PhaseEnvelopeFormSnapshot = PhaseEnvelopeFormState;
+type MixtureRowSnapshot = MixtureRow[];
+type ExampleAutoRunSnapshot = {
+  propertyForm: PropertyFormSnapshot;
+  mixtureRows: MixtureRowSnapshot;
+  mixtureForm: MixtureFormSnapshot;
+  propertySurfaceForm: PropertySurfaceFormSnapshot;
+  phaseEnvelopeForm: PhaseEnvelopeFormSnapshot;
+  propertySessionId: number;
+  mixtureSessionId: number;
+  propertySurfaceSessionId: number;
+  envelopeSessionId: number;
+};
+type ExampleBinaryAutoRunSnapshot = {
+  binaryVleForm: BinaryVleFormSnapshot;
+  mccabeForm: MccabeFormSnapshot;
 };
 
 const propertySurfaceKeys = new Set(["D", "C", "V", "L", "H", "S", "U", "A", "Z"]);
@@ -423,18 +454,20 @@ type ComponentsPageContextValue = {
   handleMixturePropertiesChange: (selectedValues: string[]) => void;
   handleMixtureSubmit: React.FormEventHandler<HTMLFormElement>;
   ternaryForm: TernaryFormState;
+  ternaryChart: TernaryChartResponse | null;
   handleTernaryFieldChange: (field: keyof TernaryFormState, value: string) => void;
   binaryVleForm: BinaryVleFormState;
-  binaryVleResult: BinaryVleResponse | null;
+  binaryVleChart: ChartModel | null;
   isLoadingBinaryVle: boolean;
   handleBinaryVleSubmit: () => void;
   handleBinaryVleFieldChange: (field: keyof BinaryVleFormState, value: string) => void;
   mccabeForm: MccabeFormState;
   handleMccabeFieldChange: (field: keyof MccabeFormState, value: string) => void;
   mccabeRequested: boolean;
+  mccabeChart: ChartModel | null;
   handleMcCabeGenerate: () => void;
   propertySurfaceForm: PropertySurfaceFormState;
-  propertySurfaceResult: PropertySurfaceResponse | null;
+  propertySurfaceChart: PropertySurfaceChartResponse | null;
   isLoadingPropertySurface: boolean;
   handlePropertySurfaceSubmit: React.FormEventHandler<HTMLFormElement>;
   handlePropertySurfaceFieldChange: (
@@ -443,6 +476,8 @@ type ComponentsPageContextValue = {
   ) => void;
   phaseEnvelopeForm: PhaseEnvelopeFormState;
   saturationEnvelope: SaturationEnvelopeResponse | null;
+  phaseEnvelopeChart: ChartModel | null;
+  vaporPressureChart: ChartModel | null;
   isLoadingEnvelope: boolean;
   handleSaturationEnvelopeSubmit: () => void;
   handlePhaseEnvelopeFieldChange: (field: keyof PhaseEnvelopeFormState, value: string) => void;
@@ -482,7 +517,7 @@ export function ComponentsPage() {
     pressure: "",
     sampleCount: "",
   });
-  const [binaryVleResult, setBinaryVleResult] = useState<BinaryVleResponse | null>(null);
+  const [binaryVleChart, setBinaryVleChart] = useState<ChartModel | null>(null);
   const [isLoadingBinaryVle, setIsLoadingBinaryVle] = useState(false);
   const [mccabeForm, setMccabeForm] = useState({
     distillateComposition: "",
@@ -503,8 +538,8 @@ export function ComponentsPage() {
     temperatureSamples: "",
     pressureSamples: "",
   });
-  const [propertySurfaceResult, setPropertySurfaceResult] =
-    useState<PropertySurfaceResponse | null>(null);
+  const [propertySurfaceChart, setPropertySurfaceChart] =
+    useState<PropertySurfaceChartResponse | null>(null);
   const [isLoadingPropertySurface, setIsLoadingPropertySurface] = useState(false);
   const [ternaryForm, setTernaryForm] = useState<TernaryFormState>({
     componentA: "",
@@ -515,6 +550,10 @@ export function ComponentsPage() {
     fractionC: "",
     streamName: "",
   });
+  const [ternaryChart, setTernaryChart] = useState<TernaryChartResponse | null>(null);
+  const [mccabeChart, setMccabeChart] = useState<ChartModel | null>(null);
+  const [phaseEnvelopeChart, setPhaseEnvelopeChart] = useState<ChartModel | null>(null);
+  const [vaporPressureChart, setVaporPressureChart] = useState<ChartModel | null>(null);
   const criticalSessionRef = useRef(0);
   const propertySurfaceSessionRef = useRef(0);
 
@@ -557,6 +596,148 @@ export function ComponentsPage() {
   const [stateResult, setStateResult] = useState<StatePropertyResponse | null>(null);
   const stateSessionRef = useRef(0);
   const envelopeSessionRef = useRef(0);
+  const [isLoadingExampleRequest, setIsLoadingExampleRequest] = useState(false);
+  const [exampleAutoRun, setExampleAutoRun] = useState<ExampleAutoRunSnapshot | null>(null);
+  const [exampleBinaryAutoRun, setExampleBinaryAutoRun] =
+    useState<ExampleBinaryAutoRunSnapshot | null>(null);
+  const isLoadingExample =
+    isLoadingExampleRequest || exampleAutoRun != null || exampleBinaryAutoRun != null;
+
+  async function runPropertyLookup(
+    formState: PropertyFormSnapshot,
+    sessionId: number = propertySessionRef.current,
+  ) {
+    const responses = await Promise.all(
+      formState.propertyNames.map(async (propertyName) => {
+        const response = await apiClient.post<QuantityResult>("/components/property", {
+          fluid: formState.fluid,
+          property_name: propertyName,
+          temperature: Number(formState.temperature),
+          pressure: Number(formState.pressure),
+        });
+
+        return [propertyName, response] as const;
+      }),
+    );
+
+    if (sessionId !== propertySessionRef.current) {
+      return null;
+    }
+
+    const nextResult = Object.fromEntries(responses);
+    setPropertyResult(nextResult);
+    return nextResult;
+  }
+
+  async function runMixtureLookup(
+    rows: MixtureRowSnapshot,
+    formState: MixtureFormSnapshot,
+    sessionId: number = mixtureSessionRef.current,
+  ) {
+    const fluidFractions = Object.fromEntries(
+      rows
+        .filter((row) => row.component && row.fraction !== "")
+        .map((row) => [row.component, Number(row.fraction)]),
+    );
+
+    const response = await apiClient.post<MixturePropertiesResponse>(
+      "/components/mixture-properties",
+      {
+        fluid_fractions: fluidFractions,
+        temperature: Number(formState.temperature),
+        pressure: Number(formState.pressure),
+        properties: formState.propertyNames,
+      },
+    );
+
+    if (sessionId !== mixtureSessionRef.current) {
+      return null;
+    }
+
+    setMixtureResult(response);
+    return response;
+  }
+
+  async function runBinaryVleLookup(formState: BinaryVleFormSnapshot) {
+    const response = await apiClient.post<ChartModel>("/components/binary-vle/chart", {
+      fluid1: formState.fluid1,
+      fluid2: formState.fluid2,
+      pressure: Number(formState.pressure),
+      sample_count: Number(formState.sampleCount),
+    });
+
+    setBinaryVleChart(response);
+    return response;
+  }
+
+  async function runMccabeLookup(
+    binaryFormState: BinaryVleFormSnapshot,
+    mccabeFormState: MccabeFormSnapshot,
+  ) {
+    const response = await apiClient.post<ChartModel>("/components/mccabe-thiele/chart", {
+      fluid1: binaryFormState.fluid1,
+      fluid2: binaryFormState.fluid2,
+      pressure: Number(binaryFormState.pressure),
+      sample_count: Number(binaryFormState.sampleCount),
+      distillate_composition: Number(mccabeFormState.distillateComposition),
+      bottoms_composition: Number(mccabeFormState.bottomsComposition),
+      feed_composition: Number(mccabeFormState.feedComposition),
+      reflux_ratio: Number(mccabeFormState.refluxRatio),
+      q_value: Number(mccabeFormState.qValue),
+      max_stages: Number(mccabeFormState.maxStages),
+    });
+
+    setMccabeChart(response);
+    setMccabeRequested(true);
+    return response;
+  }
+
+  async function runPropertySurfaceLookup(
+    formState: PropertySurfaceFormSnapshot,
+    sessionId: number = propertySurfaceSessionRef.current,
+  ) {
+    const response = await apiClient.post<PropertySurfaceChartResponse>("/components/property-surface/chart", {
+      fluid: formState.fluid,
+      property_name: formState.propertyName,
+      temperature_min: Number(formState.temperatureMin),
+      temperature_max: Number(formState.temperatureMax),
+      pressure_min: Number(formState.pressureMin),
+      pressure_max: Number(formState.pressureMax),
+      temperature_samples: Number(formState.temperatureSamples),
+      pressure_samples: Number(formState.pressureSamples),
+    });
+
+    if (sessionId !== propertySurfaceSessionRef.current) {
+      return null;
+    }
+
+    setPropertySurfaceChart(response);
+    return response;
+  }
+
+  async function runEnvelopeLookup(
+    formState: PhaseEnvelopeFormSnapshot,
+    sessionId: number = envelopeSessionRef.current,
+  ) {
+    const payload = {
+      fluid: formState.fluid,
+      sample_count: Number(formState.sampleCount),
+    };
+    const [response, chartResponse, vaporPressureResponse] = await Promise.all([
+      apiClient.post<SaturationEnvelopeResponse>("/components/saturation-envelope", payload),
+      apiClient.post<ChartModel>("/components/phase-envelope/chart", payload),
+      apiClient.post<ChartModel>("/components/vapor-pressure/chart", payload),
+    ]);
+
+    if (sessionId !== envelopeSessionRef.current) {
+      return null;
+    }
+
+    setSaturationEnvelope(response);
+    setPhaseEnvelopeChart(chartResponse);
+    setVaporPressureChart(vaporPressureResponse);
+    return { response, chartResponse, vaporPressureResponse };
+  }
 
   function clearDerivedResults() {
     criticalSessionRef.current += 1;
@@ -564,18 +745,22 @@ export function ComponentsPage() {
     mixtureSessionRef.current += 1;
     propertySurfaceSessionRef.current += 1;
     setMccabeRequested(false);
+    setTernaryChart(null);
     setCriticalResult(null);
-    setBinaryVleResult(null);
+    setBinaryVleChart(null);
+    setMccabeChart(null);
     setIsLoadingBinaryVle(false);
     setIsLoadingPropertySurface(false);
     setPropertyResult({});
     setMixtureResult(null);
-    setPropertySurfaceResult(null);
+    setPropertySurfaceChart(null);
   }
 
   function clearEnvelopeResult() {
     envelopeSessionRef.current += 1;
     setSaturationEnvelope(null);
+    setPhaseEnvelopeChart(null);
+    setVaporPressureChart(null);
     setIsLoadingEnvelope(false);
   }
 
@@ -620,6 +805,7 @@ export function ComponentsPage() {
 
   function loadExample() {
     void (async () => {
+      setIsLoadingExampleRequest(true);
       try {
         const response = await apiClient.get<ComponentsExampleResponse>("/components/example");
 
@@ -627,28 +813,64 @@ export function ComponentsPage() {
         clearStateResult();
         clearEnvelopeResult();
 
-        setCriticalFluid(response.pure_fluid.fluid);
-        setPropertyForm({
+        const nextPropertyForm = {
           fluid: response.pure_fluid.fluid,
           propertyNames: response.pure_fluid.property_names,
           temperature: String(response.pure_fluid.temperature),
           pressure: String(response.pure_fluid.pressure),
-        });
-        setMixtureRows(
-          Object.entries(response.mixtures.fluid_fractions).map(([component, fraction], index) => ({
+        };
+        const nextMixtureRows = Object.entries(response.mixtures.fluid_fractions).map(
+          ([component, fraction], index) => ({
             id: index + 1,
             component,
             fraction: String(fraction),
-          })),
+          }),
         );
-        setNextMixtureRowId(
-          Object.keys(response.mixtures.fluid_fractions).length + 1,
-        );
-        setMixtureForm({
+        const nextMixtureForm = {
           temperature: String(response.mixtures.temperature),
           pressure: String(response.mixtures.pressure),
           propertyNames: response.mixtures.properties,
-        });
+        };
+        const nextBinaryVleForm = {
+          fluid1: response.binary_vle.fluid1,
+          fluid2: response.binary_vle.fluid2,
+          pressure: String(response.binary_vle.pressure),
+          sampleCount: String(response.binary_vle.sample_count),
+        };
+        const nextMccabeForm = {
+          distillateComposition: String(response.mccabe_thiele.distillate_composition),
+          bottomsComposition: String(response.mccabe_thiele.bottoms_composition),
+          feedComposition: String(response.mccabe_thiele.feed_composition),
+          refluxRatio: String(response.mccabe_thiele.reflux_ratio),
+          qValue: String(response.mccabe_thiele.q_value),
+          maxStages: String(response.mccabe_thiele.max_stages),
+        };
+        const nextPropertySurfaceForm = {
+          fluid: response.property_surface.fluid,
+          propertyName: response.property_surface.property_name,
+          temperatureMin: String(response.property_surface.temperature_min),
+          temperatureMax: String(response.property_surface.temperature_max),
+          pressureMin: String(response.property_surface.pressure_min),
+          pressureMax: String(response.property_surface.pressure_max),
+          temperatureSamples: String(response.property_surface.temperature_samples),
+          pressureSamples: String(response.property_surface.pressure_samples),
+        };
+        const nextPhaseEnvelopeForm = {
+          fluid: response.phase_envelope.fluid,
+          sampleCount: String(response.phase_envelope.sample_count),
+        };
+        const propertySessionId = propertySessionRef.current;
+        const mixtureSessionId = mixtureSessionRef.current;
+        const propertySurfaceSessionId = propertySurfaceSessionRef.current;
+        const envelopeSessionId = envelopeSessionRef.current;
+
+        setCriticalFluid(response.pure_fluid.fluid);
+        setPropertyForm(nextPropertyForm);
+        setMixtureRows(nextMixtureRows);
+        setNextMixtureRowId(
+          Object.keys(response.mixtures.fluid_fractions).length + 1,
+        );
+        setMixtureForm(nextMixtureForm);
         setTernaryForm({
           componentA: response.ternary_diagram.component_a,
           componentB: response.ternary_diagram.component_b,
@@ -658,42 +880,160 @@ export function ComponentsPage() {
           fractionC: String(response.ternary_diagram.fraction_c),
           streamName: "Corrente atual",
         });
-        setBinaryVleForm({
-          fluid1: response.binary_vle.fluid1,
-          fluid2: response.binary_vle.fluid2,
-          pressure: String(response.binary_vle.pressure),
-          sampleCount: String(response.binary_vle.sample_count),
-        });
+        setBinaryVleForm(nextBinaryVleForm);
         setMccabeRequested(false);
-        setMccabeForm({
-          distillateComposition: String(response.mccabe_thiele.distillate_composition),
-          bottomsComposition: String(response.mccabe_thiele.bottoms_composition),
-          feedComposition: String(response.mccabe_thiele.feed_composition),
-          refluxRatio: String(response.mccabe_thiele.reflux_ratio),
-          qValue: String(response.mccabe_thiele.q_value),
-          maxStages: String(response.mccabe_thiele.max_stages),
-        });
-        setPropertySurfaceForm({
-          fluid: response.property_surface.fluid,
-          propertyName: response.property_surface.property_name,
-          temperatureMin: String(response.property_surface.temperature_min),
-          temperatureMax: String(response.property_surface.temperature_max),
-          pressureMin: String(response.property_surface.pressure_min),
-          pressureMax: String(response.property_surface.pressure_max),
-          temperatureSamples: String(response.property_surface.temperature_samples),
-          pressureSamples: String(response.property_surface.pressure_samples),
-        });
-        setPhaseEnvelopeForm({
-          fluid: response.phase_envelope.fluid,
-          sampleCount: String(response.phase_envelope.sample_count),
-        });
+        setMccabeForm(nextMccabeForm);
+        setPropertySurfaceForm(nextPropertySurfaceForm);
+        setPhaseEnvelopeForm(nextPhaseEnvelopeForm);
 
-        notify.success("Exemplo carregado com sucesso.");
+        setExampleAutoRun({
+          propertyForm: nextPropertyForm,
+          mixtureRows: nextMixtureRows,
+          mixtureForm: nextMixtureForm,
+          propertySurfaceForm: nextPropertySurfaceForm,
+          phaseEnvelopeForm: nextPhaseEnvelopeForm,
+          propertySessionId,
+          mixtureSessionId,
+          propertySurfaceSessionId,
+          envelopeSessionId,
+        });
+        setExampleBinaryAutoRun({
+          binaryVleForm: nextBinaryVleForm,
+          mccabeForm: nextMccabeForm,
+        });
       } catch (error) {
         notify.error(`Erro ao carregar exemplo: ${getErrorMessage(error)}`);
+      } finally {
+        setIsLoadingExampleRequest(false);
       }
     })();
   }
+
+  useEffect(() => {
+    if (!exampleAutoRun) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        await Promise.all([
+          runPropertyLookup(exampleAutoRun.propertyForm, exampleAutoRun.propertySessionId),
+          runMixtureLookup(
+            exampleAutoRun.mixtureRows,
+            exampleAutoRun.mixtureForm,
+            exampleAutoRun.mixtureSessionId,
+          ),
+          runPropertySurfaceLookup(
+            exampleAutoRun.propertySurfaceForm,
+            exampleAutoRun.propertySurfaceSessionId,
+          ),
+          runEnvelopeLookup(
+            exampleAutoRun.phaseEnvelopeForm,
+            exampleAutoRun.envelopeSessionId,
+          ),
+        ]);
+      } catch (error) {
+        if (!cancelled) {
+          notify.error(`Erro ao carregar exemplo: ${getErrorMessage(error)}`);
+        }
+      } finally {
+        if (!cancelled) {
+          setExampleAutoRun(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [exampleAutoRun]);
+
+  useEffect(() => {
+    if (!exampleBinaryAutoRun) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        await runBinaryVleLookup(exampleBinaryAutoRun.binaryVleForm);
+        await runMccabeLookup(
+          exampleBinaryAutoRun.binaryVleForm,
+          exampleBinaryAutoRun.mccabeForm,
+        );
+
+        if (!cancelled) {
+          notify.success("Exemplo carregado com sucesso.");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          notify.error(`Erro ao carregar exemplo: ${getErrorMessage(error)}`);
+        }
+      } finally {
+        if (!cancelled) {
+          setExampleBinaryAutoRun(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [exampleBinaryAutoRun]);
+
+  useEffect(() => {
+    const ternaryComponents = [
+      ternaryForm.componentA,
+      ternaryForm.componentB,
+      ternaryForm.componentC,
+    ];
+    const ternaryFractions = [
+      Number(ternaryForm.fractionA),
+      Number(ternaryForm.fractionB),
+      Number(ternaryForm.fractionC),
+    ];
+    const ternaryDistinctComponents = new Set(ternaryComponents).size === 3;
+    const ternaryReady =
+      ternaryComponents.every((component) => component.trim()) &&
+      ternaryDistinctComponents &&
+      ternaryFractions.every((fraction) => Number.isFinite(fraction));
+
+    if (!ternaryReady) {
+      setTernaryChart(null);
+      return;
+    }
+
+    let ignore = false;
+    void (async () => {
+      try {
+        const response = await apiClient.post<TernaryChartResponse>("/components/ternary-diagram/chart", {
+          component_a: ternaryForm.componentA,
+          component_b: ternaryForm.componentB,
+          component_c: ternaryForm.componentC,
+          fraction_a: ternaryFractions[0],
+          fraction_b: ternaryFractions[1],
+          fraction_c: ternaryFractions[2],
+          stream_name: ternaryForm.streamName.trim() || "Corrente atual",
+        });
+
+        if (!ignore) {
+          setTernaryChart(response);
+        }
+      } catch (error) {
+        if (!ignore) {
+          setTernaryChart(null);
+          notify.error(`Erro ao projetar diagrama ternário: ${getErrorMessage(error)}`);
+        }
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [ternaryForm]);
 
   async function handleCriticalSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -733,7 +1073,8 @@ export function ComponentsPage() {
   }
 
   function handleBinaryVleFieldChange(field: keyof BinaryVleFormState, value: string) {
-    setBinaryVleResult(null);
+    setBinaryVleChart(null);
+    setMccabeChart(null);
     setMccabeRequested(false);
     setBinaryVleForm((current) => ({ ...current, [field]: value }));
   }
@@ -759,19 +1100,23 @@ export function ComponentsPage() {
     setIsLoadingEnvelope(true);
 
     try {
-      const response = await apiClient.post<SaturationEnvelopeResponse>(
-        "/components/saturation-envelope",
-        {
-          fluid: phaseEnvelopeForm.fluid,
-          sample_count: Number(phaseEnvelopeForm.sampleCount),
-        },
-      );
+      const payload = {
+        fluid: phaseEnvelopeForm.fluid,
+        sample_count: Number(phaseEnvelopeForm.sampleCount),
+      };
+      const [response, chartResponse, vaporPressureResponse] = await Promise.all([
+        apiClient.post<SaturationEnvelopeResponse>("/components/saturation-envelope", payload),
+        apiClient.post<ChartModel>("/components/phase-envelope/chart", payload),
+        apiClient.post<ChartModel>("/components/vapor-pressure/chart", payload),
+      ]);
 
       if (sessionId !== envelopeSessionRef.current) {
         return;
       }
 
       setSaturationEnvelope(response);
+      setPhaseEnvelopeChart(chartResponse);
+      setVaporPressureChart(vaporPressureResponse);
     } catch (error) {
       if (sessionId !== envelopeSessionRef.current) {
         return;
@@ -797,17 +1142,12 @@ export function ComponentsPage() {
     }
 
     setIsLoadingBinaryVle(true);
+    setBinaryVleChart(null);
+    setMccabeChart(null);
     setMccabeRequested(false);
 
     try {
-      const response = await apiClient.post<BinaryVleResponse>("/components/binary-vle", {
-        fluid1: binaryVleForm.fluid1,
-        fluid2: binaryVleForm.fluid2,
-        pressure: Number(binaryVleForm.pressure),
-        sample_count: Number(binaryVleForm.sampleCount),
-      });
-
-      setBinaryVleResult(response);
+      await runBinaryVleLookup(binaryVleForm);
     } catch (error) {
       notify.error(`Erro ao obter diagrama binário: ${getErrorMessage(error)}`);
     } finally {
@@ -816,11 +1156,12 @@ export function ComponentsPage() {
   }
 
   function handleMccabeFieldChange(field: keyof MccabeFormState, value: string) {
+    setMccabeChart(null);
     setMccabeForm((current) => ({ ...current, [field]: value }));
   }
 
   function handleMcCabeGenerate() {
-    if (!binaryVleResult) {
+    if (!binaryVleChart) {
       notify.error("Gere primeiro o diagrama T-x-y / y-x");
       return;
     }
@@ -848,7 +1189,13 @@ export function ComponentsPage() {
       return;
     }
 
-    setMccabeRequested(true);
+    void (async () => {
+      try {
+        await runMccabeLookup(binaryVleForm, mccabeForm);
+      } catch (error) {
+        notify.error(`Erro ao gerar McCabe-Thiele: ${getErrorMessage(error)}`);
+      }
+    })();
   }
 
   async function handlePropertySurfaceSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -870,22 +1217,7 @@ export function ComponentsPage() {
     setIsLoadingPropertySurface(true);
 
     try {
-      const response = await apiClient.post<PropertySurfaceResponse>("/components/property-surface", {
-        fluid: propertySurfaceForm.fluid,
-        property_name: propertySurfaceForm.propertyName,
-        temperature_min: Number(propertySurfaceForm.temperatureMin),
-        temperature_max: Number(propertySurfaceForm.temperatureMax),
-        pressure_min: Number(propertySurfaceForm.pressureMin),
-        pressure_max: Number(propertySurfaceForm.pressureMax),
-        temperature_samples: Number(propertySurfaceForm.temperatureSamples),
-        pressure_samples: Number(propertySurfaceForm.pressureSamples),
-      });
-
-      if (sessionId !== propertySurfaceSessionRef.current) {
-        return;
-      }
-
-      setPropertySurfaceResult(response);
+      await runPropertySurfaceLookup(propertySurfaceForm, sessionId);
     } catch (error) {
       if (sessionId !== propertySurfaceSessionRef.current) {
         return;
@@ -914,24 +1246,7 @@ export function ComponentsPage() {
     }
 
     try {
-      const responses = await Promise.all(
-        propertyForm.propertyNames.map(async (propertyName) => {
-          const response = await apiClient.post<QuantityResult>("/components/property", {
-            fluid: propertyForm.fluid,
-            property_name: propertyName,
-            temperature: Number(propertyForm.temperature),
-            pressure: Number(propertyForm.pressure),
-          });
-
-          return [propertyName, response] as const;
-        }),
-      );
-
-      if (sessionId !== propertySessionRef.current) {
-        return;
-      }
-
-      setPropertyResult(Object.fromEntries(responses));
+      await runPropertyLookup(propertyForm, sessionId);
     } catch (error) {
       if (sessionId !== propertySessionRef.current) {
         return;
@@ -1027,20 +1342,7 @@ export function ComponentsPage() {
     }
 
     try {
-      const response = await apiClient.post<MixturePropertiesResponse>(
-        "/components/mixture-properties",
-        {
-          fluid_fractions: fluidFractions,
-          temperature: Number(mixtureForm.temperature),
-          pressure: Number(mixtureForm.pressure),
-          properties: mixtureForm.propertyNames,
-        },
-      );
-      if (sessionId !== mixtureSessionRef.current) {
-        return;
-      }
-
-      setMixtureResult(response);
+      await runMixtureLookup(mixtureRows, mixtureForm, sessionId);
     } catch (error) {
       if (sessionId !== mixtureSessionRef.current) {
         return;
@@ -1151,23 +1453,27 @@ export function ComponentsPage() {
     handleMixturePropertiesChange,
     handleMixtureSubmit,
     ternaryForm,
+    ternaryChart,
     handleTernaryFieldChange,
     binaryVleForm,
-    binaryVleResult,
+    binaryVleChart,
     isLoadingBinaryVle,
     handleBinaryVleSubmit,
     handleBinaryVleFieldChange,
     mccabeForm,
     handleMccabeFieldChange,
     mccabeRequested,
+    mccabeChart,
     handleMcCabeGenerate,
     propertySurfaceForm,
-    propertySurfaceResult,
+    propertySurfaceChart,
     isLoadingPropertySurface,
     handlePropertySurfaceSubmit,
     handlePropertySurfaceFieldChange,
     phaseEnvelopeForm,
     saturationEnvelope,
+    phaseEnvelopeChart,
+    vaporPressureChart,
     isLoadingEnvelope,
     handleSaturationEnvelopeSubmit,
     handlePhaseEnvelopeFieldChange,
@@ -1187,7 +1493,12 @@ export function ComponentsPage() {
         </>
       }
       action={
-        <Button type="button" variant="outline" onClick={loadExample}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={loadExample}
+          loading={isLoadingExample}
+        >
           Carregar exemplo
         </Button>
       }
@@ -1473,7 +1784,7 @@ function ComponentsMixturesTab() {
 }
 
 function ComponentsTernaryDiagramTab() {
-  const { components, ternaryForm, handleTernaryFieldChange } = useComponentsPageContext();
+  const { components, ternaryForm, ternaryChart, handleTernaryFieldChange } = useComponentsPageContext();
   const componentOptions = buildComponentOptions(components);
   const ternaryComponents = [ternaryForm.componentA, ternaryForm.componentB, ternaryForm.componentC];
   const ternaryFractions = [
@@ -1572,18 +1883,12 @@ function ComponentsTernaryDiagramTab() {
 
         {ternaryReady ? (
           <TernaryDiagram
-            components={ternaryComponents}
-            streams={[
-              {
-                name: ternaryForm.streamName.trim() || "Corrente atual",
-                direction: "alimentação",
-                compositions: {
-                  [ternaryForm.componentA]: ternaryFractions[0],
-                  [ternaryForm.componentB]: ternaryFractions[1],
-                  [ternaryForm.componentC]: ternaryFractions[2],
-                },
-              },
-            ]}
+            title={ternaryChart?.title ?? "Diagrama ternário"}
+            subtitle={ternaryChart?.subtitle}
+            componentLabels={ternaryChart?.component_labels ?? []}
+            boundary={ternaryChart?.boundary ?? []}
+            guideLines={ternaryChart?.guide_lines ?? []}
+            streams={ternaryChart?.streams ?? []}
           />
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -1598,7 +1903,7 @@ function ComponentsTernaryDiagramTab() {
 function ComponentsBinaryVleTab() {
   const {
     binaryVleForm,
-    binaryVleResult,
+    binaryVleChart,
     components,
     handleBinaryVleFieldChange,
     isLoadingBinaryVle,
@@ -1669,14 +1974,8 @@ function ComponentsBinaryVleTab() {
             </div>
           </div>
 
-          {binaryVleResult ? (
-            <BinaryVleChart
-              fluid1={binaryVleResult.fluid1}
-              fluid2={binaryVleResult.fluid2}
-              pressure={binaryVleResult.pressure}
-              bubblePoints={binaryVleResult.bubble_points}
-              dewPoints={binaryVleResult.dew_points}
-            />
+          {binaryVleChart ? (
+            <BinaryVleChart model={binaryVleChart} />
           ) : (
             <p className="text-sm text-muted-foreground">
               O diagrama aparecerá após a geração das curvas.
@@ -1692,13 +1991,13 @@ function ComponentsBinaryVleTab() {
 
 function ComponentsMcCabeThieleCard() {
   const {
-    binaryVleResult,
+    binaryVleChart,
     handleMcCabeGenerate,
     handleMccabeFieldChange,
     mccabeForm,
+    mccabeChart,
     mccabeRequested,
   } = useComponentsPageContext();
-  const mccabeEquilibriumPoints = binaryVleResult?.bubble_points ?? [];
 
   return (
     <Card>
@@ -1793,30 +2092,20 @@ function ComponentsMcCabeThieleCard() {
         <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
-            disabled={!binaryVleResult}
+            disabled={!binaryVleChart}
             onClick={handleMcCabeGenerate}
           >
             {mccabeRequested ? "Atualizar McCabe-Thiele" : "Gerar McCabe-Thiele"}
           </Button>
           <p className="text-sm text-muted-foreground">
-            {binaryVleResult
+            {binaryVleChart
               ? "O equilíbrio binário acima é a base do traçado dos estágios."
               : "Gere primeiro o equilíbrio binário para liberar este gráfico."}
           </p>
         </div>
 
-        {mccabeRequested && binaryVleResult ? (
-          <McCabeThieleChart
-            fluid1={binaryVleResult.fluid1}
-            fluid2={binaryVleResult.fluid2}
-            equilibriumPoints={mccabeEquilibriumPoints}
-            distillateComposition={Number(mccabeForm.distillateComposition)}
-            bottomsComposition={Number(mccabeForm.bottomsComposition)}
-            feedComposition={Number(mccabeForm.feedComposition)}
-            refluxRatio={Number(mccabeForm.refluxRatio)}
-            qValue={Number(mccabeForm.qValue)}
-            maxStages={Number(mccabeForm.maxStages)}
-          />
+        {mccabeRequested && mccabeChart ? (
+          <McCabeThieleChart model={mccabeChart} />
         ) : (
           <p className="text-sm text-muted-foreground">
             Preencha os campos acima e clique em Gerar McCabe-Thiele para montar o diagrama.
@@ -1832,7 +2121,7 @@ function ComponentsPropertySurfaceTab() {
     components,
     propertyNames,
     propertySurfaceForm,
-    propertySurfaceResult,
+    propertySurfaceChart,
     handlePropertySurfaceFieldChange,
     handlePropertySurfaceSubmit,
     isLoadingPropertySurface,
@@ -1957,19 +2246,19 @@ function ComponentsPropertySurfaceTab() {
           </Button>
         </form>
 
-        {propertySurfaceResult ? (
+        {propertySurfaceChart ? (
           <PropertySurfaceHeatmap
-            fluid={propertySurfaceResult.fluid}
-            propertyLabel={translatePropertyBaseLabel(
-              propertyNames[propertySurfaceResult.property_name] ??
-                propertySurfaceResult.property_label,
-            )}
-            propertyUnits={propertySurfaceResult.property_units}
-            temperatures={propertySurfaceResult.temperatures}
-            pressures={propertySurfaceResult.pressures}
-            values={propertySurfaceResult.values}
-            valueMin={propertySurfaceResult.value_min}
-            valueMax={propertySurfaceResult.value_max}
+            title={propertySurfaceChart.title}
+            subtitle={propertySurfaceChart.subtitle}
+            fluid={propertySurfaceChart.fluid}
+            propertyLabel={translatePropertyBaseLabel(propertySurfaceChart.property_label)}
+            propertyUnits={propertySurfaceChart.property_units}
+            xAxis={propertySurfaceChart.x_axis}
+            yAxis={propertySurfaceChart.y_axis}
+            cells={propertySurfaceChart.cells}
+            legendStops={propertySurfaceChart.legend_stops}
+            valueMin={propertySurfaceChart.value_min}
+            valueMax={propertySurfaceChart.value_max}
           />
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -1989,6 +2278,8 @@ function ComponentsPhaseEnvelopeTab() {
     isLoadingEnvelope,
     handleSaturationEnvelopeSubmit,
     saturationEnvelope,
+    phaseEnvelopeChart,
+    vaporPressureChart,
   } = useComponentsPageContext();
   const componentOptions = buildComponentOptions(components);
 
@@ -2042,11 +2333,10 @@ function ComponentsPhaseEnvelopeTab() {
           ) : null}
         </div>
 
-        {saturationEnvelope ? (
+        {phaseEnvelopeChart && saturationEnvelope ? (
           <PhaseEnvelopeChart
             critical={saturationEnvelope.critical}
-            fluid={saturationEnvelope.fluid}
-            points={saturationEnvelope.points}
+            model={phaseEnvelopeChart}
             triple={saturationEnvelope.triple}
           />
         ) : (
@@ -2055,14 +2345,11 @@ function ComponentsPhaseEnvelopeTab() {
           </p>
         )}
 
-        {saturationEnvelope ? (
+        {saturationEnvelope && vaporPressureChart ? (
           <VaporPressureCurve
             critical={saturationEnvelope.critical}
             fluid={saturationEnvelope.fluid}
-            points={saturationEnvelope.points.map((point) => ({
-              temperature: point.temperature,
-              pressure: point.pressure,
-            }))}
+            model={vaporPressureChart}
             triple={saturationEnvelope.triple}
           />
         ) : null}

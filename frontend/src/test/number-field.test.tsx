@@ -17,6 +17,20 @@ function Harness() {
   );
 }
 
+function NonNegativeHarness() {
+  const [value, setValue] = useState("");
+
+  return (
+    <NumberField
+      id="recycle-ratio"
+      label="Razão de reciclo"
+      rule="nonneg"
+      value={value}
+      onChange={setValue}
+    />
+  );
+}
+
 describe("NumberField", () => {
   it("uses token-based neutral surfaces for the input chrome", () => {
     render(
@@ -45,5 +59,16 @@ describe("NumberField", () => {
     fireEvent.focus(input);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("accepts zero when the field is configured as non-negative", () => {
+    render(<NonNegativeHarness />);
+
+    const input = screen.getByLabelText("Razão de reciclo");
+    fireEvent.change(input, { target: { value: "0" } });
+    fireEvent.blur(input);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(input).not.toHaveAttribute("aria-invalid");
   });
 });

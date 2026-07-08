@@ -29,9 +29,10 @@ describe("StreamTable", () => {
     const rows = screen.getAllByRole("row");
     expect(within(rows[1]).getByText("Fresh Feed")).toBeInTheDocument();
     expect(within(rows[1]).getByText("Entrada")).toBeInTheDocument();
-    expect(within(rows[1]).getByText("100 u. cons.")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("100 unidades consistentes")).toBeInTheDocument();
     expect(within(rows[1]).getByText(/A: 0,8/)).toBeInTheDocument();
     expect(within(rows[2]).getByText("Product")).toBeInTheDocument();
+    expect(screen.getByText(/u\. cons\. = unidades consistentes/i)).toBeInTheDocument();
   });
 
   it("shows an empty state when no streams are available", () => {

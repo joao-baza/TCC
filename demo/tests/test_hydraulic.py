@@ -83,12 +83,12 @@ class TestHydraulicComprehensive:
         
         # 2. Calculate with fittings
         # "Cotovelo 90° raio longo": eq_len=16D
-        # "Válvula de esfera": eq_len=18D
+        # "Válvula esfera": eq_len=18D
         # Total added length = (16*2 + 18*1) * D = 50 * 0.1 = 5m
         params_with_fittings = base_params.copy()
         params_with_fittings["fittings"] = [
             {"fitting": "Cotovelo 90° raio longo", "quantity": 2},
-            {"fitting": "Válvula de esfera", "quantity": 1}
+            {"fitting": "Válvula esfera", "quantity": 1}
         ]
         
         hl_fittings = hydraulic.head_loss(params_with_fittings)
@@ -214,6 +214,43 @@ class TestHydraulicComprehensive:
         res = hydraulic.get_calculated_diameter({"flow_rate": 0.01, "velocity": 1})
         assert res.magnitude > 100
 
+    def test_build_moody_curve_points_returns_positive_log_samples(self, hydraulic):
+        points = hydraulic.build_moody_curve_points(
+            relative_roughness=0.0002,
+            start_reynolds=4_000,
+            end_reynolds=100_000,
+            sample_count=8,
+        )
+
+        assert len(points) == 8
+        assert points[0]["x"] == pytest.approx(4_000)
+        assert points[-1]["x"] == pytest.approx(100_000)
+        assert all(point["y"] > 0 for point in points)
+
+    def test_build_system_headloss_curve_uses_method_exponent(self, hydraulic):
+        points = hydraulic.build_system_headloss_curve(
+            method="Hazen-Williams",
+            flow_rate=0.04,
+            headloss=12.5,
+        )
+
+        assert [point["x"] for point in points] == pytest.approx([0.02, 0.03, 0.04, 0.05, 0.06])
+        assert points[2]["y"] == pytest.approx(12.5)
+        assert points[-1]["y"] > 12.5
+
+    def test_build_pump_curve_points_creates_shutoff_and_tail_samples(self, hydraulic):
+        points = hydraulic.build_pump_curve_points(
+            operating_flow_rate=0.04,
+            operating_head=12.5,
+            max_flow_rate=0.06,
+        )
+
+        assert len(points) == 5
+        assert points[0]["x"] == pytest.approx(0.0)
+        assert points[0]["y"] > 12.5
+        assert points[-1]["x"] == pytest.approx(0.06)
+        assert points[-1]["y"] >= 0
+
 
 class TestHydraulicEdgeCases:
 
@@ -259,6 +296,7 @@ class TestHydraulicEdgeCases:
         }
         with pytest.raises(ValueError, match="Flow rate must be positive"):
             hydraulic.head_loss(params)
+
 
     def test_head_loss_invalid_method_raises(self, hydraulic):
         with pytest.raises(ValueError, match="Invalid method"):

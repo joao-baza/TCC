@@ -1,5 +1,6 @@
 import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
+import { ChartSeriesLegend } from "@/components/viz/chart-series-legend";
 import { formatTableNumberText } from "@/lib/table-number";
 
 type ArrheniusPlotProps = {
@@ -81,6 +82,18 @@ export function ArrheniusPlot({
     x: scale(1000 / referenceTemperature, xDomain.min, xDomain.max, padding.left, width - padding.right),
     y: scale(Math.log(referenceRateConstant), yDomain.min, yDomain.max, height - padding.bottom, padding.top),
   };
+  const legendItems = [
+    {
+      id: "arrhenius-curve",
+      label: "Curva de Arrhenius",
+      color: "#0f766e",
+    },
+    {
+      id: "reference-point",
+      label: "Ponto de referência",
+      color: "#dc2626",
+    },
+  ];
 
   return (
     <section
@@ -91,12 +104,8 @@ export function ArrheniusPlot({
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
           <p className="text-sm text-muted-foreground">
-            Curva semilog de Arrhenius: eixo X mostra 1000 / T e eixo Y mostra ln(k).
+            Curva semi-log de Arrhenius: eixo X mostra 1000 / T e eixo Y mostra ln(k).
           </p>
-        </div>
-        <div className="text-sm font-medium text-slate-700">
-          <div>Ea = {formatTableNumberText(activationEnergy)} J/mol</div>
-          <div>k_ref = {formatTableNumberText(referenceRateConstant)}</div>
         </div>
       </div>
 
@@ -139,20 +148,23 @@ export function ArrheniusPlot({
               r="3.5"
             />
           ))}
-          <circle cx={referencePoint.x} cy={referencePoint.y} fill="#1d4ed8" r="6" />
+          <circle cx={referencePoint.x} cy={referencePoint.y} fill="#dc2626" r="6" />
         </svg>
       </div>
 
-      <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          Curva: ln(k) versus 1000 / T
-        </span>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          A = {formatTableNumberText(preExponentialFactor)}
-        </span>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          T_ref = {formatTableNumberText(referenceTemperature)} K
-        </span>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Legenda do gráfico
+        </p>
+        <ChartSeriesLegend items={legendItems} />
+        <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+            A = {formatTableNumberText(preExponentialFactor)}
+          </span>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+            T_ref = {formatTableNumberText(referenceTemperature)} K
+          </span>
+        </div>
       </div>
     </section>
   );

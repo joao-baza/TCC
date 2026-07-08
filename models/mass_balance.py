@@ -348,3 +348,29 @@ class MassBalance:
                 )
         
         return True, "" 
+
+    def build_chart_data(self, results=None):
+        """Return pure series-ready data for backend-owned chart endpoints."""
+        if results is None:
+            results = self.get_results()
+
+        stream_names = list(results.keys())
+        flow_points = []
+        composition_series = {}
+
+        for index, stream_name in enumerate(stream_names, start=1):
+            stream_data = results[stream_name]
+            flow_rate = float(stream_data.get("flow_rate", stream_data.get("vazao")))
+            flow_points.append({"x": float(index), "y": flow_rate})
+
+            compositions = stream_data.get("compositions", stream_data.get("composicoes", {}))
+            for component, fraction in compositions.items():
+                composition_series.setdefault(component, []).append(
+                    {"x": float(index), "y": float(fraction)}
+                )
+
+        return {
+            "stream_names": stream_names,
+            "flow_points": flow_points,
+            "composition_series": composition_series,
+        }
