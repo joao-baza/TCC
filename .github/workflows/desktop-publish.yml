@@ -45,6 +45,12 @@ jobs:
         working-directory: desktop
         run: npm test
 
+      - name: Install Wine for Windows packaging
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wine64
+
       - name: Build desktop release artifacts
         working-directory: desktop
         run: ${{ matrix.os == 'ubuntu-latest' && 'npm run dist:local' || 'npm run dist' }}
