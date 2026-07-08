@@ -10,12 +10,12 @@ Com o objetivo de detalhar o funcionamento do \textit{software} desenvolvido, as
 
 Para iniciar a biblioteca local com o módulo de componentes, o código da figura abaixo deve ser inserido, assegurando que o \textit{Python} consiga identificar as funções dentro da classe \textit{Components} contida no arquivo \textit{./models/componentes.py}.
 
-Tendo que o passo a passo para consumir via API ou \textit{Python} o projeto seja demasiado técnico, será apenas brevemente comentado abaixo o modo de se fazer, depois havendo maior realce apenas aos retornos e comentários correlatos.
+Tendo que o passo a passo para consumir via \textit{API} ou \textit{Python} o projeto seja demasiado técnico, será apenas brevemente comentado abaixo o modo de se fazer, depois havendo maior realce apenas aos retornos e comentários correlatos.
 
 \begin{figure}[H]
     \centering
     \caption{Inicialização da biblioteca de componentes via \textit{Python}}
-    \includegraphics[width=\linewidth]{media/c5293e56ed3caecfe6b0d92a42ca3c75.png}
+    \includegraphics[width=\linewidth]{media/cap4_inicializacao_biblioteca_componentes_python.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -24,7 +24,7 @@ No \textit{frontend,} basta acessar a aba “\textit{Components}”, vide imagem
 \begin{figure}[H]
     \centering
     \caption{Inicialização da biblioteca de componentes via \textit{frontend}}
-    \includegraphics[width=\linewidth]{media/e3393d1fba9953384d5c6557aaa6c44f.png}
+    \includegraphics[width=\linewidth]{media/cap4_inicializacao_biblioteca_componentes_frontend.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -35,7 +35,7 @@ A função \textit{list\_all\_components()} interage diretamente com a bibliotec
 \begin{figure}[H]
     \centering
     \caption{Listagem parcial de componentes disponíveis na biblioteca termodinâmica}
-    \includegraphics[width=\linewidth]{media/f48cac882ed5cb664362e665f4e64bfc.png}
+    \includegraphics[width=\linewidth]{media/cap4_listagem_componentes_termodinamica.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -46,18 +46,18 @@ Ao solicitar as propriedades termofísicas para o componente "Water" (Água) nas
 \begin{figure}[H]
     \centering
     \caption{Propriedades termofísicas da água calculadas a 300K e 101,3kPa.}
-    \includegraphics[width=\linewidth]{media/4638b6b46783360a5e41e93f89f30e44.png}
+    \includegraphics[width=\linewidth]{media/cap4_propriedades_agua_300k_101_3kpa.png}
     \fonte{Autoria própria.}
 \end{figure}
 
 \subsubsection{Nome de Propriedades}
 
-A função \textit{get\_property\_names()} expõe o mapeamento interno entre as chaves de solicitação da API (como 'D', 'H', 'V') e suas respectivas descrições físicas e unidades no SI. Esta estrutura organizacional permite que o usuário identifique rapidamente quais variáveis termodinâmicas podem ser requisitadas ao modelo, facilitando a configuração de simulações de balanço de massa e energia.
+A função \textit{get\_property\_names()} expõe o mapeamento interno entre as chaves de solicitação da \textit{API} (como 'D', 'H', 'V') e suas respectivas descrições físicas e unidades no SI. Esta estrutura organizacional permite que o usuário identifique rapidamente quais variáveis termodinâmicas podem ser requisitadas ao modelo, facilitando a configuração de simulações de balanço de massa e energia.
 
 \begin{figure}[H]
     \centering
     \caption{Mapeamento de chaves de propriedades e suas unidades padronizadas.}
-    \includegraphics[width=\linewidth]{media/7ca015749c830f00ce0f6ee14d38cc7b.png}
+    \includegraphics[width=\linewidth]{media/cap4_mapeamento_chaves_unidades.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -68,7 +68,7 @@ A consulta das propriedades críticas para a água retornou uma temperatura crí
 \begin{figure}[H]
     \centering
     \caption{Propriedades críticas e do ponto triplo calculadas para a água.}
-    \includegraphics[width=\linewidth]{media/ce947c1c4cd7fe454d92886bf3851072.png}
+    \includegraphics[width=\linewidth]{media/cap4_propriedades_criticas_ponto_triplo_agua.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -79,7 +79,7 @@ Para sistemas multicomponentes, a função \textit{get\_property\_mixture\_names
 \begin{figure}[H]
     \centering
     \caption{Propriedades termodinâmicas disponíveis para cálculo em misturas.}
-    \includegraphics[width=\linewidth]{media/64873db9cefa112b02ec7a0e77184ba1.png}
+    \includegraphics[width=\linewidth]{media/cap4_chaves_propriedades_mistura.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -90,7 +90,7 @@ A simulação de uma mistura binária equimolar de Água $( 5 0 \% )$ e Etanol (
 \begin{figure}[H]
     \centering
     \caption{Propriedades termodinâmicas disponíveis para cálculo em misturas.}
-    \includegraphics[width=\linewidth]{media/37d56b7be76f54833f4022426b34f0e0.png}
+    \includegraphics[width=\linewidth]{media/cap4_valores_propriedades_mistura.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -132,7 +132,7 @@ h_f = 0,02 \cdot \frac{101,6}{0,05} \cdot \frac{2^2}{2 \cdot 9,80665} = 8,2882 \
 \end{itemize}
 
 \subsubsection{Reynolds}
-O Número de Reynolds ($Re$) foi validado utilizando as duas formas de entrada suportadas pela API: viscosidade dinâmica ($\mu$) e cinemática ($\nu$).
+O Número de Reynolds ($Re$) foi validado utilizando as duas formas de entrada suportadas pela \textit{API}: viscosidade dinâmica ($\mu$) e cinemática ($\nu$).
 
 \textbf{Método 1: Viscosidade Dinâmica}
 (Equação \ref{eq:reynolds_din})
@@ -157,11 +157,11 @@ O fator de atrito de Darcy ($f$) foi validado comparando métodos iterativos e e
 
 \textbf{A. Consistência de Colebrook-White \cite{colebrook1939}}
 Equação implícita (padrão, definida na Equação \ref{eq:colebrook}):
-Verificou-se a convergência da solução numérica da API comparando o Lado Esquerdo (LHS) e Direito (RHS) da equação.
+Verificou-se a convergência da solução numérica da \textit{API} comparando o Lado Esquerdo (\textit{LHS}) e Direito (\textit{RHS}) da equação.
 \begin{itemize}
     \item \textbf{Dados:} $\varepsilon=0,045mm, D=50mm, Re=100.000$
     \item \textbf{\textit{Software} ($f$):} $0,021614$
-    \item \textbf{Check:} LHS = 6,802; RHS = 6,802
+    \item \textbf{Check:} \textit{LHS} = 6,802; \textit{RHS} = 6,802
     \item \textbf{Status:} [CONVERGÊNCIA CONFIRMADA]
 \end{itemize}
 
@@ -185,7 +185,7 @@ Verificou-se a convergência da solução numérica da API comparando o Lado Esq
 A função de seleção de diâmetro comercial verifica o próximo diâmetro nominal disponível numa tabela de \textit{Schedule}.
 
 \begin{itemize}
-    \item \textbf{Entrada:} Diâmetro Calculado = 45,0 mm. Schedule = SCH40.
+    \item \textbf{Entrada:} Diâmetro Calculado = 45,0 mm. \textit{Schedule} = SCH40.
     \item \textbf{Lógica Manual:} Consultar tabela SCH40. Diâmetros disponíveis: ..., 32, 40, 50, 65... O próximo maior que 45 é 50.
     \item \textbf{\textit{Software}:} $50,0 \ mm$
     \item \textbf{Status:} [MATCH]
@@ -203,7 +203,7 @@ O dimensionamento preliminar baseia-se na equação da continuidade para tubos c
     \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
 \end{itemize}
 
-\subsubsection{NPSH Disponível}
+\subsubsection{\textit{NPSH} Disponível}
 O cálculo do \textit{Net Positive Suction Head} disponível ($NPSH_a$) utiliza a equação de Bernoulli aplicada à sucção da bomba:
 
 \begin{center} Utilizando a Equação \ref{eq:npsh} \end{center}
@@ -296,13 +296,13 @@ A validação do balanço de massa foi realizada considerando um misturador idea
     \end{equation}
 \end{enumerate}
 
-\textbf{Comparação com o Software:}
+\textbf{Comparação com o \textit{Software}:}
 O código de validação foi executado conforme a Figura \ref{fig:code_mass_balance}.
 
 \begin{figure}[H]
     \centering
     \caption{Código de validação do Balanço de Massa (Misturador)}
-    \includegraphics[width=\linewidth]{media/code_mass_balance.png}
+    \includegraphics[width=\linewidth]{media/cap4_codigo_balanco_massa_misturador.png}
     \label{fig:code_mass_balance}
     \fonte{Autoria própria.}
 \end{figure}
@@ -346,9 +346,9 @@ A vazão molar total permanece constante ($60+40=100$), resultando nas frações
 \end{equation}
 
 \textbf{Validação:}
-O software retornou: $F_{Product} = 100 \ mol/s$, com composição $z_A=0,6$ e $z_B=0,4$, confirmando a conservação de massa e estequiometria.
+O \textit{software} retornou: $F_{Product} = 100 \ mol/s$, com composição $z_A=0,6$ e $z_B=0,4$, confirmando a conservação de massa e estequiometria.
 
-\subsubsection{Divisor de Corrente (Splitter)}
+\subsubsection{Divisor de Corrente (\textit{Splitter})}
 
 Simula-se uma operação de separação física onde uma corrente é dividida em duas (Reciclo e Produto) sem alteração de composição, típica em loops de reciclo.
 
@@ -367,12 +367,12 @@ Simula-se uma operação de separação física onde uma corrente é dividida em
 A composição deve permanecer inalterada: $z_A=0,5; z_B=0,5$ em ambas as saídas.
 
 \textbf{Validação:}
-Conforme apresentado na saída expandida do software (Figura \ref{fig:code_mass_balance_exp}), os valores de vazão foram exatos ($20$ e $80 \ kg/h$) e a composição manteve-se constante, validando a lógica do divisor.
+Conforme apresentado na saída expandida do \textit{software} (Figura \ref{fig:code_mass_balance_exp}), os valores de vazão foram exatos ($20$ e $80 \ kg/h$) e a composição manteve-se constante, validando a lógica do divisor.
 
 \begin{figure}[H]
     \centering
-    \caption{Resultados expandidos da validação de Balanço de Massa (Misturador, Reator e Splitter)}
-    \includegraphics[width=\linewidth,height=0.85\textheight,keepaspectratio]{media/code_mass_balance_expanded.png}
+    \caption{Resultados expandidos da validação de Balanço de Massa (Misturador, Reator e \textit{Splitter})}
+    \includegraphics[width=\linewidth,height=0.85\textheight,keepaspectratio]{media/cap4_codigo_balanco_massa_expandido.png}
     \label{fig:code_mass_balance_exp}
     \fonte{Autoria própria.}
 \end{figure}
@@ -388,19 +388,19 @@ A função \textit{fittings()} retorna uma lista de todos os acessórios hidráu
 \begin{figure}[H]
     \centering
     \caption{Lista parcial de acessórios disponíveis (JSON)}
-    \includegraphics[width=\linewidth]{media/Piping_Fittings_List.png}
+    \includegraphics[width=\linewidth]{media/cap4_lista_acessorios_json.png}
     \fonte{Autoria própria.}
 \end{figure}
 
 \subsubsection{Especificação de Acessórios}
 
 A função \textit{fitting\_specifications(nome)} retorna os detalhes técnicos de um acessório, incluindo seu comprimento equivalente adimensional ($L_{eq}/D$) ou coeficiente de perda de carga ($K$).
-Para validação, utilizou-se o acessório "90 degrees Elbow long radius" (Cotovelo 90º Raio Longo).
+Para validação, utilizou-se o acessório \textit{90 degrees Elbow long radius} (Cotovelo 90º Raio Longo).
 
 \begin{figure}[H]
     \centering
     \caption{Especificações do acessório Cotovelo 90º Raio Longo (JSON)}
-    \includegraphics[width=\linewidth]{media/Fitting_Specs_90_Degrees_Long_Radius.png}
+    \includegraphics[width=\linewidth]{media/cap4_especificacao_cotovelo_raio_longo_json.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -413,32 +413,32 @@ A função \textit{compositions()} lista os materiais de tubulação disponívei
 \begin{figure}[H]
     \centering
     \caption{Lista parcial de materiais de tubulação (JSON)}
-    \includegraphics[width=\linewidth]{media/Piping_Materials_List.png}
+    \includegraphics[width=\linewidth]{media/cap4_lista_materiais_tubulacao_json.png}
     \fonte{Autoria própria.}
 \end{figure}
 
 \subsubsection{Especificação da Composição}
 
 A função \textit{composition\_specifications(nome)} retorna as propriedades de um material específico.
-Para validação, verificou-se o material "Commercial steel" (Aço comercial).
+Para validação, verificou-se o material \textit{Commercial steel} (Aço comercial).
 
 \begin{figure}[H]
     \centering
     \caption{Especificações do material Aço Comercial (JSON)}
-    \includegraphics[width=\linewidth]{media/Material_Specs_Commercial_Steel.png}
+    \includegraphics[width=\linewidth]{media/cap4_especificacao_aco_comercial_json.png}
     \fonte{Autoria própria.}
 \end{figure}
 
 
 
-\subsubsection{Schedules}
+\subsubsection{\textit{Schedules}}
 
 A função \textit{schedules()} fornece as classes de pressão/espessura disponíveis (ex: SCH40, SCH80), permitindo a seleção adequada conforme a norma ANSI/ASME B36.10M.
 
 \begin{figure}[H]
     \centering
-    \caption{Lista de classes de pressão (Schedules) disponíveis (JSON)}
-    \includegraphics[width=\linewidth]{media/Piping_Schedules_List.png}
+    \caption{Lista de classes de pressão (\textit{Schedules}) disponíveis (JSON)}
+    \includegraphics[width=\linewidth]{media/cap4_lista_schedules_json.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -449,7 +449,7 @@ A função \textit{diameters(schedule)} lista os diâmetros nominais (DN) dispon
 \begin{figure}[H]
     \centering
     \caption{Lista parcial de diâmetros para SCH40 (JSON)}
-    \includegraphics[width=0.6\linewidth]{media/Diameters_List_SCH40.png}
+    \includegraphics[width=0.6\linewidth]{media/cap4_lista_diametros_sch40_json.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -461,7 +461,7 @@ Para validação, utilizou-se um tubo de \textit{Schedule} 40 com Diâmetro Nomi
 \begin{figure}[H]
     \centering
     \caption{Especificações do tubo SCH40 DN50 (JSON)}
-    \includegraphics[width=\linewidth]{media/Diameter_Specs_SCH40_DN50.png}
+    \includegraphics[width=\linewidth]{media/cap4_especificacao_tubo_sch40_dn50_json.png}
     \fonte{Autoria própria.}
 \end{figure}
 
@@ -469,7 +469,7 @@ Para validação, utilizou-se um tubo de \textit{Schedule} 40 com Diâmetro Nomi
 
 \subsection{Reatores}
 
-Esta seção apresenta a validação detalhada dos modelos de reatores CSTR (\textit{Continuous Stirred-Tank Reactor}) e PFR (\textit{Plug Flow Reactor}). Para garantir a precisão dos algoritmos, foram realizados cálculos manuais passo a passo para cenários de projeto e desempenho, comparando-os com os resultados obtidos pela ferramenta computacional.
+Esta seção apresenta a validação detalhada dos modelos de reatores \textit{CSTR} (\textit{Continuous Stirred-Tank Reactor}) e \textit{PFR} (\textit{Plug Flow Reactor}). Para garantir a precisão dos algoritmos, foram realizados cálculos manuais passo a passo para cenários de projeto e desempenho, comparando-os com os resultados obtidos pela ferramenta computacional.
 
 Para todos os casos, adotou-se uma reação irreversível de primeira ordem $A \to B$ ocorrendo em fase líquida isotérmica, com os seguintes parâmetros globais:
 \begin{itemize}
@@ -479,9 +479,9 @@ Para todos os casos, adotou-se uma reação irreversível de primeira ordem $A \
     \item Taxa molar de alimentação ($F_{A0}$): $10 \ mol/s$
 \end{itemize}
 
-\subsubsection{CSTR: Reator Tanque Agitado Continuamente}
+\subsubsection{\textit{CSTR}: Reator Tanque Agitado Continuamente}
 
-A equação de projeto (balanço molar) para um CSTR operando em regime estacionário é a Equação \ref{eq:cstr_design}.
+A equação de projeto (balanço molar) para um \textit{CSTR} operando em regime estacionário é a Equação \ref{eq:cstr_design}.
 
 Para uma reação de primeira ordem em fase líquida (densidade constante), a taxa de reação é dada por:
 \begin{equation}
@@ -510,7 +510,7 @@ Considerando uma conversão alvo de $X = 0,85$ ($85\%$):
 O módulo \textit{Reactor} foi executado com os mesmos parâmetros.
 \begin{table}[H]
     \centering
-    \caption{Validação CSTR ($X=0,85$)}
+    \caption{Validação \textit{CSTR} ($X=0,85$)}
     \begin{tabular}{lrrr}
         \toprule
         \textbf{Parâmetro} & \textbf{Cálculo Manual} & \textbf{\textit{Software}} & \textbf{Erro (\%)} \\
@@ -523,9 +523,9 @@ O módulo \textit{Reactor} foi executado com os mesmos parâmetros.
 
 Também validou-se o cálculo inverso (Desempenho), onde fornece-se $V=1,1333 m^3$ e espera-se $X=0,85$. O código retornou exatamente $0,8500$.
 
-\subsubsection{PFR: Reator Tubular}
+\subsubsection{\textit{PFR}: Reator Tubular}
 
-A equação de projeto para um PFR é obtida através do balanço diferencial de massa (Equação \ref{eq:pfr_design}).
+A equação de projeto para um \textit{PFR} é obtida através do balanço diferencial de massa (Equação \ref{eq:pfr_design}).
 
 Substituindo a cinética de primeira ordem:
 \begin{equation}
@@ -558,7 +558,7 @@ Sabendo que $\ln(0,10) \approx -2,302585$:
 \textbf{Comparação com o Código:}
 \begin{table}[H]
     \centering
-    \caption{Validação PFR ($X=0,90$)}
+    \caption{Validação \textit{PFR} ($X=0,90$)}
     \begin{tabular}{lrrr}
         \toprule
         \textbf{Parâmetro} & \textbf{Cálculo Manual} & \textbf{\textit{Software}} & \textbf{Erro (\%)} \\
@@ -569,7 +569,7 @@ Sabendo que $\ln(0,10) \approx -2,302585$:
     \fonte{Autoria própria.}
 \end{table}
 
-\subsubsection{PFR com Reciclo}
+\subsubsection{\textit{PFR} com Reciclo}
 
 Em reatores com reciclo, parte da corrente de saída retorna à entrada. Para uma razão de reciclo $R$ (vazão de reciclo / vazão de saída do sistema), a conversão na entrada do reator ($X_{in}$) é diferente de zero, pois há mistura de reagentes frescos ($X=0$) com reagentes reciclados ($X=X_{out}$).
 
@@ -618,7 +618,7 @@ Sabendo que $\ln(4) \approx 1,38629$:
 \textbf{Comparação com o Código:}
 \begin{table}[H]
     \centering
-    \caption{Validação PFR com Reciclo ($R=2,0; X=0,90$)}
+    \caption{Validação \textit{PFR} com Reciclo ($R=2,0; X=0,90$)}
     \begin{tabular}{lrrr}
         \toprule
         \textbf{Parâmetro} & \textbf{Cálculo Manual} & \textbf{\textit{Software}} & \textbf{Erro (\%)} \\
