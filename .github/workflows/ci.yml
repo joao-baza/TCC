@@ -230,6 +230,13 @@ jobs:
         working-directory: desktop
         run: npm run dist
 
+      - name: Generate release checksums
+        working-directory: desktop/release
+        run: |
+          find . -type f ! -name '*.sha256' -print0 | while IFS= read -r -d '' file; do
+            shasum -a 256 "$file" > "$file.sha256"
+          done
+
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -289,6 +296,13 @@ jobs:
       - name: Build desktop release artifacts
         working-directory: desktop
         run: npm run dist:local
+
+      - name: Generate release checksums
+        working-directory: desktop/release
+        run: |
+          find . -type f ! -name '*.sha256' -print0 | while IFS= read -r -d '' file; do
+            shasum -a 256 "$file" > "$file.sha256"
+          done
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
