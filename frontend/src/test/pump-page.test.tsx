@@ -647,7 +647,7 @@ describe("PumpPage", () => {
     expect(await screen.findByText("Ponto operacional")).toBeInTheDocument();
     expect(screen.getByText(/Mapa didático resolvido no backend/i)).toBeInTheDocument();
     expect(screen.getByText(/Faixa de cavitacao aproximada/i)).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /Perda de Carga × Vazão/i }).textContent).not.toContain(
+    expect(screen.getByLabelText(/Perda de Carga × Vazão/i).textContent).not.toContain(
       "Ponto operacional",
     );
 
@@ -696,7 +696,14 @@ describe("PumpPage", () => {
     expect(screen.getByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
     expect(screen.queryByText(/NPSHd = 6,8/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/NPSHr = 3/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /How it works - Margem de NPSH/i })).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) => {
+        return (
+          element?.tagName === "BUTTON" &&
+          (element.textContent ?? "").includes("How it works - Margem de NPSH")
+        );
+      }),
+    ).toBeInTheDocument();
 
     await openPumpTab(/Altura Manométrica/i);
     fireEvent.change(screen.getByLabelText(/Pressão 1/i), {
