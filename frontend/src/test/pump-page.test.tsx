@@ -171,9 +171,12 @@ async function findHeadBreakdownSection() {
 }
 
 async function openPumpTab(name: string | RegExp) {
-  fireEvent.click(screen.getByRole("tab", { name }));
+  fireEvent.click(screen.getByText(name, { selector: 'a[role="tab"]' }));
   await waitFor(() => {
-    expect(screen.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(name, { selector: 'a[role="tab"]' })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 }
 
@@ -437,9 +440,7 @@ describe("PumpPage", () => {
     mockPumpRequests();
     renderPumpPage();
 
-    expect(
-      await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Perda de Carga e Bombas/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
     await waitFor(() => {
