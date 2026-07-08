@@ -707,9 +707,10 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         C0_i = init_data["C0_i"]
         C_lim0 = init_data["C_lim0"]
         epsilon = init_data["epsilon"]
-        expansion_factor = init_data["expansion_factor"]
         t0 = init_data["T0"]
         t_final = init_data["T"]
+        p0 = init_data["P0"]
+        p_final = init_data["P"]
 
         stations = []
         for position in axial_positions:
@@ -720,7 +721,10 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
                 total_volume=total_volume,
                 init_data=init_data,
             )
-            dilution_factor = (1 + (epsilon * local_conversion)) * expansion_factor
+            temperature = t0 + (t_final - t0) * float(position)
+            pressure = p0 + (p_final - p0) * float(position)
+            local_expansion_factor = (p0 * temperature / (pressure * t0)).magnitude
+            dilution_factor = (1 + (epsilon * local_conversion)) * local_expansion_factor
             concentrations, _, _ = self._calculate_concentration_and_rate(
                 components,
                 stoichiometric_coefficients,
@@ -731,7 +735,6 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
                 local_conversion,
                 dilution_factor,
             )
-            temperature = t0 + (t_final - t0) * float(position)
             stations.append(
                 {
                     "relative_volume": float(position),

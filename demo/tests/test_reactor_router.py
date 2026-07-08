@@ -170,3 +170,34 @@ def test_pfr_spatial_profile_rejects_unsorted_axial_positions():
 
     with pytest.raises(ValueError, match="axial_positions must be sorted"):
         reactor.pfr_spatial_profile(_unsorted_spatial_profile_payload())
+
+
+
+def _recycle_spatial_profile_payload():
+    payload = _recycle_profile_payload()
+    payload["recycling_ratio"] = 0.5
+    payload["axial_positions"] = [0.0, 0.25, 0.5, 1.0]
+    return payload
+
+
+def test_pfr_spatial_profile_first_station_matches_inlet_concentrations_without_recycle():
+    reactor = ReactorIsothermalHeterogeneous()
+
+    profile = reactor.pfr_spatial_profile(_spatial_profile_payload())
+
+    first_station = profile["stations"][0]
+    assert first_station["temperature"].to("kelvin").magnitude == pytest.approx(300.0)
+    assert first_station["concentrations"]["A"].to("mol/m^3").magnitude == pytest.approx(5.0)
+    assert first_station["concentrations"]["B"].to("mol/m^3").magnitude == pytest.approx(0.0)
+
+
+def test_pfr_spatial_profile_recycle_case_starts_at_mixer_inlet_conversion():
+    reactor = ReactorIsothermalHeterogeneous()
+
+    profile = reactor.pfr_spatial_profile(_recycle_spatial_profile_payload())
+
+    first_station = profile["stations"][0]
+    expected_inlet_conversion = (
+        0.5 / (0.5 + 1.0) * profile["outlet_conversion"].magnitude
+    )
+    assert first_station["conversion"].magnitude == pytest.approx(expected_inlet_conversion)
