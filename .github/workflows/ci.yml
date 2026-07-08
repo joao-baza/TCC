@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - "**"
+      - main
     tags:
       - "v*"
 
@@ -109,5 +109,8 @@ jobs:
     needs:
       - frontend-e2e
       - desktop-smoke
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/docker-publish.yml
     secrets: inherit
