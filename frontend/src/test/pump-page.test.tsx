@@ -161,6 +161,15 @@ function getVisibleTextInputs(label: string | RegExp) {
     );
 }
 
+async function findHeadBreakdownSection() {
+  const heading = await screen.findByText("Decomposição", { selector: "h3" });
+  const section = heading.closest("section");
+
+  expect(section).not.toBeNull();
+
+  return section as HTMLElement;
+}
+
 async function openPumpTab(name: string | RegExp) {
   fireEvent.click(screen.getByRole("tab", { name }));
   await waitFor(() => {
@@ -742,10 +751,10 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("18,2");
     });
-    const headTable = await screen.findByRole("table", { name: "Decomposição" });
-    expect(headTable).toHaveTextContent("ΔP/(ρg)");
-    expect(headTable).toHaveTextContent("h_{f}");
-    expect(headTable).toHaveTextContent("%");
+    const headBreakdownSection = await findHeadBreakdownSection();
+    expect(headBreakdownSection).toHaveTextContent("ΔP/(ρg)");
+    expect(headBreakdownSection).toHaveTextContent("h_{f}");
+    expect(headBreakdownSection).toHaveTextContent("%");
   });
 
   it("clears stale pump results after dependent input edits", async () => {
@@ -851,8 +860,8 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("18,2");
     });
-    const staleHeadTable = await screen.findByRole("table", { name: "Decomposição" });
-    expect(staleHeadTable).toHaveTextContent("h_{f}");
+    const staleHeadBreakdownSection = await findHeadBreakdownSection();
+    expect(staleHeadBreakdownSection).toHaveTextContent("h_{f}");
 
     fireEvent.change(screen.getByLabelText(/Perda de carga total/i), {
       target: { value: "5" },
@@ -898,12 +907,12 @@ describe("PumpPage", () => {
     });
     fireEvent.click(screen.getByText(/Calcular altura manométrica/i, { selector: "button" }));
 
-    const headTable = await screen.findByRole("table", { name: "Decomposição" });
+    const headBreakdownSection = await findHeadBreakdownSection();
     await waitFor(() => {
-      expect(headTable).toHaveTextContent("ΔP/(ρg)");
-      expect(headTable).toHaveTextContent("Δz");
-      expect(headTable).toHaveTextContent("ΔV2/(2g)");
-      expect(headTable).toHaveTextContent("h_{f}");
+      expect(headBreakdownSection).toHaveTextContent("ΔP/(ρg)");
+      expect(headBreakdownSection).toHaveTextContent("Δz");
+      expect(headBreakdownSection).toHaveTextContent("ΔV2/(2g)");
+      expect(headBreakdownSection).toHaveTextContent("h_{f}");
     });
   });
 
