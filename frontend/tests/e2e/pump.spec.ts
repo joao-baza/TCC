@@ -516,6 +516,25 @@ test("pump module surfaces an error when NPSH calculation fails", async ({ page 
     });
   });
 
+  await page.route("**/api/pump/npsh-gauge/chart", async (route) => {
+    await route.fulfill({
+      json: {
+        id: "pump-npsh-gauge",
+        title: "Margem de NPSH",
+        available: { value: 6.8, units: "meter" },
+        required: { value: 3, units: "meter" },
+        safe_threshold: { value: 3.5, units: "meter" },
+        status: { tone: "safe", label: "Margem segura", message: "Folga suficiente." },
+        axis: { scale: "linear", label: "NPSH", units: "m", domain: { min: 0, max: 8 }, ticks: [0, 2, 4, 6, 8], major_ticks: [0, 2, 4, 6, 8] },
+        markers: [
+          { id: "available", x: 6.8, y: 0, label: "NPSHd", color: "#1d4ed8" },
+          { id: "required", x: 3, y: 0, label: "NPSHr", color: "#b45309" },
+          { id: "safe-threshold", x: 3.5, y: 0, label: "Margem segura", color: "#16a34a" },
+        ],
+      },
+    });
+  });
+
   await page.goto("/pump");
   await expect(page.getByRole("heading", { name: /Perda de Carga e Bombas/i })).toBeVisible();
 
