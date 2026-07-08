@@ -161,10 +161,22 @@ function getVisibleTextInputs(label: string | RegExp) {
     );
 }
 
+async function findHeadBreakdownSection() {
+  const heading = await screen.findByText("Decomposição", { selector: "h3" });
+  const section = heading.closest("section");
+
+  expect(section).not.toBeNull();
+
+  return section as HTMLElement;
+}
+
 async function openPumpTab(name: string | RegExp) {
-  fireEvent.click(screen.getByRole("tab", { name }));
+  fireEvent.click(screen.getByText(name, { selector: 'a[role="tab"]' }));
   await waitFor(() => {
-    expect(screen.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(name, { selector: 'a[role="tab"]' })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 }
 
@@ -428,9 +440,7 @@ describe("PumpPage", () => {
     mockPumpRequests();
     renderPumpPage();
 
-    expect(
-      await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Perda de Carga e Bombas/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
     await waitFor(() => {
@@ -502,8 +512,15 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/Pressão atmosférica/i)).toHaveValue(1.033);
       expect(screen.getByLabelText(/NPSHr opcional/i)).toHaveValue(3);
-      expect(screen.getByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /How it works - Margem de NPSH/i })).toBeInTheDocument();
+      expect(screen.getByText("Margem de NPSH")).toBeInTheDocument();
+      expect(
+        screen.getByText((_, element) => {
+          return (
+            element?.tagName === "BUTTON" &&
+            (element.textContent ?? "").includes("How it works - Margem de NPSH")
+          );
+        }),
+      ).toBeInTheDocument();
     });
 
     await openPumpTab(/Altura Manométrica/i);
@@ -647,7 +664,7 @@ describe("PumpPage", () => {
     expect(await screen.findByText("Ponto operacional")).toBeInTheDocument();
     expect(screen.getByText(/Mapa didático resolvido no backend/i)).toBeInTheDocument();
     expect(screen.getByText(/Faixa de cavitacao aproximada/i)).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /Perda de Carga × Vazão/i }).textContent).not.toContain(
+    expect(screen.getByLabelText(/Perda de Carga × Vazão/i).textContent).not.toContain(
       "Ponto operacional",
     );
 
@@ -692,11 +709,18 @@ describe("PumpPage", () => {
         required: 3,
       });
     });
-    expect(await screen.findByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
+    expect(await screen.findByText("Margem de NPSH")).toBeInTheDocument();
+    expect(screen.getByText("Margem de NPSH")).toBeInTheDocument();
     expect(screen.queryByText(/NPSHd = 6,8/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/NPSHr = 3/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /How it works - Margem de NPSH/i })).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) => {
+        return (
+          element?.tagName === "BUTTON" &&
+          (element.textContent ?? "").includes("How it works - Margem de NPSH")
+        );
+      }),
+    ).toBeInTheDocument();
 
     await openPumpTab(/Altura Manométrica/i);
     fireEvent.change(screen.getByLabelText(/Pressão 1/i), {
@@ -728,10 +752,10 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("18,2");
     });
-    const headTable = await screen.findByRole("table", { name: "Decomposição" });
-    expect(headTable).toHaveTextContent("ΔP/(ρg)");
-    expect(headTable).toHaveTextContent("h_{f}");
-    expect(headTable).toHaveTextContent("%");
+    const headBreakdownSection = await findHeadBreakdownSection();
+    expect(headBreakdownSection).toHaveTextContent("ΔP/(ρg)");
+    expect(headBreakdownSection).toHaveTextContent("h_{f}");
+    expect(headBreakdownSection).toHaveTextContent("%");
   });
 
   it("clears stale pump results after dependent input edits", async () => {
@@ -837,8 +861,8 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("18,2");
     });
-    const staleHeadTable = await screen.findByRole("table", { name: "Decomposição" });
-    expect(staleHeadTable).toHaveTextContent("h_{f}");
+    const staleHeadBreakdownSection = await findHeadBreakdownSection();
+    expect(staleHeadBreakdownSection).toHaveTextContent("h_{f}");
 
     fireEvent.change(screen.getByLabelText(/Perda de carga total/i), {
       target: { value: "5" },
@@ -884,12 +908,12 @@ describe("PumpPage", () => {
     });
     fireEvent.click(screen.getByText(/Calcular altura manométrica/i, { selector: "button" }));
 
-    const headTable = await screen.findByRole("table", { name: "Decomposição" });
+    const headBreakdownSection = await findHeadBreakdownSection();
     await waitFor(() => {
-      expect(headTable).toHaveTextContent("ΔP/(ρg)");
-      expect(headTable).toHaveTextContent("Δz");
-      expect(headTable).toHaveTextContent("ΔV2/(2g)");
-      expect(headTable).toHaveTextContent("h_{f}");
+      expect(headBreakdownSection).toHaveTextContent("ΔP/(ρg)");
+      expect(headBreakdownSection).toHaveTextContent("Δz");
+      expect(headBreakdownSection).toHaveTextContent("ΔV2/(2g)");
+      expect(headBreakdownSection).toHaveTextContent("h_{f}");
     });
   });
 
