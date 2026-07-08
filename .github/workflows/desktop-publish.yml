@@ -1,9 +1,7 @@
 name: desktop-publish
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
