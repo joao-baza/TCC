@@ -50,5 +50,7 @@ test("desktop publish workflow installs wine before cross-building windows artif
   expect(wineStepIndex).toBeLessThan(buildStepIndex);
   expect(steps[wineStepIndex].if).toBe("matrix.os == 'ubuntu-latest'");
   expect(steps[wineStepIndex].run).toContain("apt-get install");
+  expect(steps[wineStepIndex].run).toContain(" wine");
   expect(steps[wineStepIndex].run).toContain("wine64");
+  expect(steps[wineStepIndex].run).toContain("wine --version");
 });
