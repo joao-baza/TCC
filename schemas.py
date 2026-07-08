@@ -409,6 +409,56 @@ class ReactorPlotRequest(BaseModel):
         return v
 
 
+
+class ReactorSpatialProfileRequest(BaseModel):
+    components: List[ComponentRequest] = Field(..., description="List of all components in the reaction")
+    stoichiometric_coefficients: List[float] = Field(
+        ...,
+        description="Stoichiometric coefficients (negative for reactants, positive for products)",
+    )
+    reaction_rate_params: Dict[str, Any] = Field(
+        ...,
+        description="Parameters for reaction rate calculation (k, reaction_orders)",
+    )
+    operation_conditions: Dict[str, float] = Field(
+        ...,
+        description="Operation conditions (initial_temperature, initial_pressure, final_temperature, final_pressure)",
+    )
+    volume: float = Field(..., gt=0, description="Fixed reactor volume in m³")
+    recycling_ratio: float = Field(0.0, ge=0, description="Recycle ratio R")
+    axial_positions: List[float] = Field(
+        ...,
+        min_length=2,
+        description="Relative axial positions in the interval [0, 1]",
+    )
+
+    @field_validator("reaction_rate_params")
+    @classmethod
+    def check_spatial_profile_reaction_rate_params(cls, v):
+        if "k" not in v:
+            raise ValueError("Reaction rate parameters must include 'k'")
+        if "reaction_orders" not in v:
+            raise ValueError("Reaction rate parameters must include 'reaction_orders'")
+        return v
+
+    @field_validator("operation_conditions")
+    @classmethod
+    def check_spatial_profile_operation_conditions(cls, v):
+        required_keys = ["initial_temperature", "initial_pressure", "final_temperature", "final_pressure"]
+        for key in required_keys:
+            if key not in v:
+                raise ValueError(f"Operation conditions must include '{key}'")
+        return v
+
+    @field_validator("axial_positions")
+    @classmethod
+    def check_axial_positions(cls, values):
+        if any(value < 0 or value > 1 for value in values):
+            raise ValueError("Axial positions must be between 0 and 1")
+        if values != sorted(values):
+            raise ValueError("Axial positions must be sorted")
+        return values
+
 # ---------------------------------------------------------------------------
 # Components Models
 # ---------------------------------------------------------------------------
