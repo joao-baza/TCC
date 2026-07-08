@@ -688,13 +688,18 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         self._require_keys(parameters, ["volume", "recycling_ratio", "axial_positions"])
 
         self._validate_numeric(parameters, ["volume", "recycling_ratio"])
+        if parameters["volume"] <= 0:
+            raise ValueError("volume must be positive.")
         if parameters["recycling_ratio"] < 0:
             raise ValueError("recycling_ratio must be non-negative.")
 
         axial_positions = parameters["axial_positions"]
         if not isinstance(axial_positions, list) or len(axial_positions) < 2:
             raise ValueError("axial_positions must be a list with at least 2 numeric values.")
-        if not all(isinstance(position, (int, float)) for position in axial_positions):
+        if not all(
+            isinstance(position, (int, float)) and not isinstance(position, bool)
+            for position in axial_positions
+        ):
             raise ValueError("axial_positions must contain only numeric values.")
         if any(position < 0 or position > 1 for position in axial_positions):
             raise ValueError("axial_positions must be within [0, 1].")
@@ -758,6 +763,86 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
             "recycling_ratio": recycle_ratio,
         }
 
+    def sample_pfr_recycle_profile(self, parameters: Dict[str, object]):
+        """Sample PFR outlet conversion for a list of recycle ratios."""
+        self._require_keys(
+            parameters,
+            [
+                "components",
+                "stoichiometric_coefficients",
+                "reaction_rate_params",
+                "operation_conditions",
+                "volume",
+                "recycle_ratios",
+            ],
+        )
+
+        recycle_ratios = parameters["recycle_ratios"]
+        if not isinstance(recycle_ratios, list) or not recycle_ratios:
+            raise ValueError("recycle_ratios must be a non-empty list.")
+
+        points = []
+        for recycle_ratio in recycle_ratios:
+            result = self.pfr(
+                {
+                    "input_type": "volume_and_kinetics",
+                    "components": parameters["components"],
+                    "stoichiometric_coefficients": parameters["stoichiometric_coefficients"],
+                    "reaction_rate_params": parameters["reaction_rate_params"],
+                    "recycling_ratio": recycle_ratio,
+                    "operation_conditions": parameters["operation_conditions"],
+                    "volume": parameters["volume"],
+                }
+            )
+            points.append(
+                {
+                    "recycling_ratio": float(recycle_ratio),
+                    "conversion": result["conversion"],
+                }
+            )
+
+        return points
+
+    def conversion_vs_volume_data(self, parameters: Dict[str, object]):
+        """Return pure conversion-vs-volume data for CSTR and PFR comparison."""
+        self._require_keys(
+            parameters,
+            [
+                "recycling_ratio_pfr",
+                "components",
+                "reaction_rate_params",
+                "stoichiometric_coefficients",
+                "operation_conditions",
+            ],
+        )
+
+        max_conversion = parameters.get("max_conversion", 0.99)
+        num_points = parameters.get("num_points", 50)
+        recycling_ratio_pfr = parameters.get("recycling_ratio_pfr", 0)
+        conversion_points = np.linspace(0.01, max_conversion, num_points)
+
+        points_cstr = []
+        points_pfr = []
+        for x in conversion_points:
+            cstr_params = parameters.copy()
+            cstr_params["conversion"] = x
+            cstr_params["input_type"] = "conversion_and_kinetics"
+            cstr_result = self._conversion_and_kinetics_in_cstr(cstr_params)
+            points_cstr.append({"x": float(cstr_result["volume"].magnitude), "y": float(x)})
+
+            pfr_params = parameters.copy()
+            pfr_params["conversion"] = x
+            pfr_params["recycling_ratio"] = recycling_ratio_pfr
+            pfr_params["input_type"] = "conversion_and_kinetics"
+            pfr_result = self._conversion_and_kinetics_in_pfr(pfr_params)
+            points_pfr.append({"x": float(pfr_result["volume"].magnitude), "y": float(x)})
+
+        return {
+            "cstr": points_cstr,
+            "pfr": points_pfr,
+            "max_conversion": float(max_conversion),
+        }
+
     def plot_conversion_vs_volume(self, parameters: Dict[str, object]):
         """
         Generates a comparative graph between CSTR and PFR reactors showing the relationship between conversion (X) and volume (V).
@@ -775,36 +860,11 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         Returns:
             Matplotlib Figure and Axes containing the generated graph
         """
-        self._require_keys(parameters, ["recycling_ratio_pfr", "components", "reaction_rate_params", "stoichiometric_coefficients", "operation_conditions"])
-        
-        # Optional parameters with default values
-        max_conversion = parameters.get("max_conversion", 0.99)
-        num_points = parameters.get("num_points", 50)
-        recycling_ratio_pfr = parameters.get("recycling_ratio_pfr", 0)
-        
-        # Generate conversion points
-        conversion_points = np.linspace(0.01, max_conversion, num_points)
-        
-        # Initialize lists for volumes
-        volumes_cstr = []
-        volumes_pfr = []
-        
-        # Calculate volumes for CSTR
-        for x in conversion_points:
-            cstr_params = parameters.copy()
-            cstr_params["conversion"] = x
-            cstr_params["input_type"] = "conversion_and_kinetics"
-            result = self._conversion_and_kinetics_in_cstr(cstr_params)
-            volumes_cstr.append(result["volume"].magnitude)
-        
-        # Calculate volumes for PFR
-        for x in conversion_points:
-            pfr_params = parameters.copy()
-            pfr_params["conversion"] = x
-            pfr_params["recycling_ratio"] = recycling_ratio_pfr
-            pfr_params["input_type"] = "conversion_and_kinetics"
-            result = self._conversion_and_kinetics_in_pfr(pfr_params)
-            volumes_pfr.append(result["volume"].magnitude)
+        chart_data = self.conversion_vs_volume_data(parameters)
+        volumes_cstr = [point["x"] for point in chart_data["cstr"]]
+        volumes_pfr = [point["x"] for point in chart_data["pfr"]]
+        conversion_points = [point["y"] for point in chart_data["cstr"]]
+        max_conversion = chart_data["max_conversion"]
         
         # Create graph
         fig, ax = plt.subplots(figsize=(10, 6))
