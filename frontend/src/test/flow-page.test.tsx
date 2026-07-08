@@ -417,7 +417,12 @@ describe("FlowPage", () => {
       });
     });
     expect(
-      await screen.findByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+      await screen.findByText((_, element) => {
+        return (
+          element?.tagName === "BUTTON" &&
+          (element.textContent ?? "").includes("Como funciona - Ponto operacional no Diagrama de Moody")
+        );
+      }),
     ).toBeInTheDocument();
 
     await openFlowTab(/Diâmetro Hidráulico/i);
