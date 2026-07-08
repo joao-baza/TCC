@@ -18,3 +18,13 @@ test("ci publish job grants permissions required by the reusable docker publish 
     dockerPublishWorkflow.permissions,
   );
 });
+
+test("ci avoids duplicate feature-branch runs by using pull requests and protected pushes", () => {
+  const ciWorkflow = yaml.parse(
+    readFileSync(path.resolve("../.github/workflows/ci.yml"), "utf8"),
+  );
+
+  expect(ciWorkflow.on.pull_request).toBeDefined();
+  expect(ciWorkflow.on.push.branches).toEqual(["main"]);
+  expect(ciWorkflow.on.push.tags).toEqual(["v*"]);
+});
