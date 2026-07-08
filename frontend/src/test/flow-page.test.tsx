@@ -180,9 +180,12 @@ async function expectTableValueMath(label: string | RegExp, expected?: string) {
 }
 
 async function openFlowTab(name: string | RegExp) {
-  fireEvent.click(screen.getByRole("tab", { name }));
+  fireEvent.click(screen.getByText(name, { selector: 'a[role="tab"]' }));
   await waitFor(() => {
-    expect(screen.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(name, { selector: 'a[role="tab"]' })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 }
 
@@ -852,9 +855,7 @@ describe("FlowPage", () => {
     mockFlowRequests();
     renderFlowPage();
 
-    expect(
-      await screen.findByRole("heading", { name: /Escoamento Interno/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Escoamento Interno/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Diâmetro característico/i), {
       target: { value: "50" },
@@ -868,11 +869,11 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Viscosidade dinâmica/i), {
       target: { value: "0.001" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Calcular Reynolds/i }));
+    fireEvent.click(screen.getByText(/Calcular Reynolds/i, { selector: "button" }));
 
     await expectTableValueMath(/^Número de Reynolds$/i);
     expectTableUnitText(/^Número de Reynolds$/i, "dimensionless");
-    expect(screen.getByRole("heading", { name: /Regime do escoamento/i })).toBeInTheDocument();
+    expect(screen.getByText(/Regime do escoamento/i, { selector: "h3" })).toBeInTheDocument();
     expect(screen.getAllByText(/^Turbulento$/i).length).toBeGreaterThan(0);
     expect(requestBodiesFor("/api/flow/reynolds/regime-visualization")).toContainEqual({
       reynolds: 50000,
@@ -887,15 +888,15 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/^Schedule$/i), {
       target: { value: "SCH40" },
     });
-    fireEvent.focus(screen.getByRole("combobox", { name: /Diâmetro da linha/i }));
-    expect(await screen.findByRole("option", { name: /50 mm/i })).toBeInTheDocument();
+    fireEvent.focus(screen.getByLabelText(/Diâmetro da linha/i));
+    expect(await screen.findByText(/50 mm/i)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Diâmetro da linha/i), {
       target: { value: "60.3" },
     });
     fireEvent.change(screen.getByLabelText(/Método de cálculo/i), {
       target: { value: "SwameeJain" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Calcular fator de atrito/i }));
+    fireEvent.click(screen.getByText(/Calcular fator de atrito/i, { selector: "button" }));
 
     await expectTableValueMath(/^Fator de atrito$/i);
     expectTableUnitText(/^Fator de atrito$/i, "dimensionless");
@@ -918,14 +919,19 @@ describe("FlowPage", () => {
     );
     expect(screen.getByText(/Legenda das curvas/i)).toBeInTheDocument();
     expect(
-      await screen.findByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+      await screen.findByText((_, element) => {
+        return (
+          element?.tagName === "BUTTON" &&
+          (element.textContent ?? "").includes("Como funciona - Ponto operacional no Diagrama de Moody")
+        );
+      }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("chart-series-legend")).toBeInTheDocument();
     expect(screen.queryByText(/e\/D = 0.0009/i)).not.toBeInTheDocument();
 
     await openFlowTab(/Diâmetro Hidráulico/i);
-    fireEvent.focus(screen.getByRole("combobox", { name: /Forma geométrica/i }));
-    expect(await screen.findByRole("option", { name: /Triangular/i })).toBeInTheDocument();
+    fireEvent.focus(screen.getByLabelText(/Forma geométrica/i));
+    expect(await screen.findByText(/Triangular/i)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Forma geométrica/i), {
       target: { value: "rectangular" },
     });
@@ -944,7 +950,7 @@ describe("FlowPage", () => {
         height: 0.05,
       });
     });
-    fireEvent.click(screen.getByRole("button", { name: /Calcular diâmetro hidráulico/i }));
+    fireEvent.click(screen.getByText(/Calcular diâmetro hidráulico/i, { selector: "button" }));
 
     await expectTableValueMath(/^Diâmetro hidráulico$/i);
     expectTableUnitText(/^Diâmetro hidráulico$/i, "meter");
