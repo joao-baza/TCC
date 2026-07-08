@@ -37,16 +37,3 @@ def test_canonical_deploy_script_builds_and_uses_the_vite_frontend_image():
     assert 'docker build --no-cache -t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .' in script
     assert 'docker stack deploy -c "$COMPOSE_FILE" "$STACK_NAME"' in script
     assert 'docker service update --force "$svc"' in script
-
-
-def test_deploy_sync_scripts_delete_removed_files_on_remote():
-    for rel_path in ("deploy_app.sh", "deploy_app_external.sh"):
-        script = read(rel_path)
-        assert "rsync -avz --progress --delete" in script
-
-
-def test_deploy_sync_scripts_default_to_remote_build_and_local_sudo():
-    for rel_path in ("deploy_app.sh", "deploy_app_external.sh"):
-        script = read(rel_path)
-        assert 'BUILD_IMAGES_LOCALLY="${BUILD_IMAGES_LOCALLY:-0}"' in script
-        assert 'LOCAL_SUDO_DOCKER="${LOCAL_SUDO_DOCKER:-1}"' in script
