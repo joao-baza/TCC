@@ -16,6 +16,7 @@ from schemas import (
     HeadLossRequest,
     ReactorRequest,
     ReactorPlotRequest,
+    ReactorSpatialProfileRequest,
 )
 
 
@@ -456,6 +457,40 @@ class TestReactorPlotRequest:
         base["reaction_rate_params"] = {"reaction_orders": [1]}
         with pytest.raises(ValidationError, match="must include 'k'"):
             ReactorPlotRequest(**base)
+
+
+class TestReactorSpatialProfileRequest:
+
+    def test_reactor_spatial_profile_request_accepts_axial_positions(self):
+        payload = ReactorSpatialProfileRequest(
+            components=[
+                {
+                    "state": "liquid",
+                    "component_name": "Water",
+                    "flow_rate_inlet": 1.2,
+                    "molar_concentration_inlet": 5000,
+                },
+                {
+                    "state": "liquid",
+                    "component_name": "Ethanol",
+                    "flow_rate_inlet": 0.0,
+                    "molar_concentration_inlet": 0.0,
+                },
+            ],
+            stoichiometric_coefficients=[-1, 1],
+            reaction_rate_params={"k": 0.5, "reaction_orders": [1, 0]},
+            operation_conditions={
+                "initial_temperature": 300,
+                "final_temperature": 450,
+                "initial_pressure": 101325,
+                "final_pressure": 101325,
+            },
+            volume=9.6,
+            recycling_ratio=2.0,
+            axial_positions=[0.0, 0.25, 0.5, 0.75, 1.0],
+        )
+
+        assert payload.axial_positions == [0.0, 0.25, 0.5, 0.75, 1.0]
 
     def test_reaction_rate_params_missing_orders_raises(self):
         base = _plot_base()
