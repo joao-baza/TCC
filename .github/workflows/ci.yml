@@ -67,7 +67,15 @@ jobs:
 
   desktop-smoke:
     runs-on: ubuntu-latest
-    needs: frontend-test
+    needs:
+      - frontend-e2e
+      - publish-frontend
+      - publish-api
+    if: >-
+      always() &&
+      needs.frontend-e2e.result == 'success' &&
+      (needs.publish-frontend.result == 'success' || needs.publish-frontend.result == 'skipped') &&
+      (needs.publish-api.result == 'success' || needs.publish-api.result == 'skipped')
     steps:
       - uses: actions/checkout@v4
 
@@ -104,13 +112,194 @@ jobs:
         working-directory: desktop
         run: npx electron-builder --config electron-builder.yml --dir
 
-  publish-images:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    needs:
-      - frontend-e2e
-      - desktop-smoke
+  publish-frontend:
+    runs-on: ubuntu-latest
+    needs: frontend-e2e
     permissions:
       contents: read
       packages: write
-    uses: ./.github/workflows/docker-publish.yml
-    secrets: inherit
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/tcc-frontend
+          tags: |
+            type=sha
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.frontend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  publish-api:
+    runs-on: ubuntu-latest
+    needs: publish-frontend
+    permissions:
+      contents: read
+      packages: write
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/tcc-api
+          tags: |
+            type=sha
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.api
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-desktop-macos:
+    runs-on: macos-latest
+    needs: desktop-smoke
+    permissions:
+      contents: write
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            desktop/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build frontend bundle
+        working-directory: frontend
+        run: npm ci && npm run build
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Run desktop tests
+        working-directory: desktop
+        run: npm test
+
+      - name: Build desktop release artifacts
+        working-directory: desktop
+        run: npm run dist
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-latest
+          path: |
+            desktop/release/**
+          if-no-files-found: error
+
+      - name: Publish release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: desktop/release/**
+
+  build-desktop-ubuntu:
+    runs-on: ubuntu-latest
+    needs: build-desktop-macos
+    permissions:
+      contents: write
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            desktop/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build frontend bundle
+        working-directory: frontend
+        run: npm ci && npm run build
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Run desktop tests
+        working-directory: desktop
+        run: npm test
+
+      - name: Install Wine for Windows packaging
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wine wine64
+          wine --version
+
+      - name: Build desktop release artifacts
+        working-directory: desktop
+        run: npm run dist:local
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-ubuntu-latest
+          path: |
+            desktop/release/**
+          if-no-files-found: error
+
+      - name: Publish release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: desktop/release/**
