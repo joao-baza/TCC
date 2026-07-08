@@ -33,3 +33,22 @@ test("desktop publish workflow uses the local cross-build on linux and macos on 
   expect(buildStep.run).toContain("npm run dist");
   expect(JSON.stringify(workflow)).not.toContain("windows-latest");
 });
+
+test("desktop publish workflow installs wine before cross-building windows artifacts on linux", () => {
+  const workflow = yaml.parse(
+    readFileSync(path.resolve("../.github/workflows/desktop-publish.yml"), "utf8"),
+  );
+  const steps = workflow.jobs["build-desktop"].steps;
+  const wineStepIndex = steps.findIndex(
+    (step) => step["name"] === "Install Wine for Windows packaging",
+  );
+  const buildStepIndex = steps.findIndex(
+    (step) => step["name"] === "Build desktop release artifacts",
+  );
+
+  expect(wineStepIndex).toBeGreaterThan(-1);
+  expect(wineStepIndex).toBeLessThan(buildStepIndex);
+  expect(steps[wineStepIndex].if).toBe("matrix.os == 'ubuntu-latest'");
+  expect(steps[wineStepIndex].run).toContain("apt-get install");
+  expect(steps[wineStepIndex].run).toContain("wine64");
+});
