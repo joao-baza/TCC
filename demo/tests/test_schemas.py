@@ -6,17 +6,24 @@ import pytest
 from pydantic import ValidationError
 
 from schemas import (
+    AxisModel,
+    ChartMetadataModel,
+    ChartModel,
+    ComponentRequest,
     ComponentsExampleResponse,
     FlowExampleResponse,
+    FlowChartResponse,
     PipingExampleResponse,
     PumpExampleResponse,
     ReynoldsRequest,
     HydraulicDiameterRequest,
+    SeriesModel,
     SizingExampleResponse,
     HeadLossRequest,
     ReactorRequest,
-    ReactorPlotRequest,
+    ReactorRecycleProfileRequest,
     ReactorSpatialProfileRequest,
+    ReactorPlotRequest,
 )
 
 
@@ -230,6 +237,14 @@ class TestWorkedExampleResponseModels:
 
         assert response.calculated_diameter.flow_rate == pytest.approx(0.0166667)
         assert response.real_diameter.schedule == "SCH40"
+
+
+class TestReactorSchemas:
+
+    def test_component_request_documents_molar_concentration_in_mol_per_cubic_meter(self):
+        description = ComponentRequest.model_fields["molar_concentration_inlet"].description
+
+        assert description == "Molar concentration inlet in mol/m³"
 
     def test_flow_example_response_validates(self):
         response = FlowExampleResponse.model_validate(
@@ -458,6 +473,32 @@ class TestReactorPlotRequest:
         with pytest.raises(ValidationError, match="must include 'k'"):
             ReactorPlotRequest(**base)
 
+    def test_reaction_rate_params_missing_orders_raises(self):
+        base = _plot_base()
+        base["reaction_rate_params"] = {"k": 0.1}
+        with pytest.raises(ValidationError, match="must include 'reaction_orders'"):
+            ReactorPlotRequest(**base)
+
+    def test_operation_conditions_missing_key_raises(self):
+        base = _plot_base()
+        base["operation_conditions"] = {
+            "initial_temperature": 298.15,
+            "initial_pressure": 101325.0,
+            "final_temperature": 298.15,
+            # final_pressure missing
+        }
+        with pytest.raises(ValidationError, match="must include 'final_pressure'"):
+            ReactorPlotRequest(**base)
+
+
+class TestReactorRecycleProfileRequest:
+
+    def test_valid_defaults_recycle_ratios(self):
+        req = ReactorRecycleProfileRequest(**_plot_base(), volume=1.0)
+
+        assert req.volume == pytest.approx(1.0)
+        assert req.recycle_ratios == [0, 0.25, 0.5, 1, 2, 5, 10]
+
 
 class TestReactorSpatialProfileRequest:
 
@@ -492,22 +533,192 @@ class TestReactorSpatialProfileRequest:
 
         assert payload.axial_positions == [0.0, 0.25, 0.5, 0.75, 1.0]
 
-    def test_reaction_rate_params_missing_orders_raises(self):
-        base = _plot_base()
-        base["reaction_rate_params"] = {"k": 0.1}
-        with pytest.raises(ValidationError, match="must include 'reaction_orders'"):
-            ReactorPlotRequest(**base)
+    def test_reactor_spatial_profile_request_rejects_axial_positions_below_zero(self):
+        with pytest.raises(ValidationError, match="Axial positions must be between 0 and 1"):
+            ReactorSpatialProfileRequest(
+                components=[
+                    {
+                        "state": "liquid",
+                        "component_name": "Water",
+                        "flow_rate_inlet": 1.2,
+                        "molar_concentration_inlet": 5000,
+                    }
+                ],
+                stoichiometric_coefficients=[-1],
+                reaction_rate_params={"k": 0.5, "reaction_orders": [1]},
+                operation_conditions={
+                    "initial_temperature": 300,
+                    "final_temperature": 450,
+                    "initial_pressure": 101325,
+                    "final_pressure": 101325,
+                },
+                volume=9.6,
+                recycling_ratio=2.0,
+                axial_positions=[-0.1, 0.5, 1.0],
+            )
 
-    def test_operation_conditions_missing_key_raises(self):
-        base = _plot_base()
-        base["operation_conditions"] = {
-            "initial_temperature": 298.15,
-            "initial_pressure": 101325.0,
-            "final_temperature": 298.15,
-            # final_pressure missing
-        }
-        with pytest.raises(ValidationError, match="must include 'final_pressure'"):
-            ReactorPlotRequest(**base)
+    def test_reactor_spatial_profile_request_rejects_axial_positions_above_one(self):
+        with pytest.raises(ValidationError, match="Axial positions must be between 0 and 1"):
+            ReactorSpatialProfileRequest(
+                components=[
+                    {
+                        "state": "liquid",
+                        "component_name": "Water",
+                        "flow_rate_inlet": 1.2,
+                        "molar_concentration_inlet": 5000,
+                    }
+                ],
+                stoichiometric_coefficients=[-1],
+                reaction_rate_params={"k": 0.5, "reaction_orders": [1]},
+                operation_conditions={
+                    "initial_temperature": 300,
+                    "final_temperature": 450,
+                    "initial_pressure": 101325,
+                    "final_pressure": 101325,
+                },
+                volume=9.6,
+                recycling_ratio=2.0,
+                axial_positions=[0.0, 0.5, 1.1],
+            )
+
+    def test_reactor_spatial_profile_request_rejects_unsorted_axial_positions(self):
+        with pytest.raises(ValidationError, match="Axial positions must be sorted"):
+            ReactorSpatialProfileRequest(
+                components=[
+                    {
+                        "state": "liquid",
+                        "component_name": "Water",
+                        "flow_rate_inlet": 1.2,
+                        "molar_concentration_inlet": 5000,
+                    }
+                ],
+                stoichiometric_coefficients=[-1],
+                reaction_rate_params={"k": 0.5, "reaction_orders": [1]},
+                operation_conditions={
+                    "initial_temperature": 300,
+                    "final_temperature": 450,
+                    "initial_pressure": 101325,
+                    "final_pressure": 101325,
+                },
+                volume=9.6,
+                recycling_ratio=2.0,
+                axial_positions=[0.0, 0.75, 0.5, 1.0],
+            )
+
+    def test_reactor_spatial_profile_request_rejects_too_few_axial_positions(self):
+        with pytest.raises(ValidationError):
+            ReactorSpatialProfileRequest(
+                components=[
+                    {
+                        "state": "liquid",
+                        "component_name": "Water",
+                        "flow_rate_inlet": 1.2,
+                        "molar_concentration_inlet": 5000,
+                    }
+                ],
+                stoichiometric_coefficients=[-1],
+                reaction_rate_params={"k": 0.5, "reaction_orders": [1]},
+                operation_conditions={
+                    "initial_temperature": 300,
+                    "final_temperature": 450,
+                    "initial_pressure": 101325,
+                    "final_pressure": 101325,
+                },
+                volume=9.6,
+                recycling_ratio=2.0,
+                axial_positions=[0.0],
+            )
+
+
+class TestChartSchemas:
+
+    def test_chart_model_accepts_axes_series_and_metadata(self):
+        chart = ChartModel(
+            id="moody",
+            title="Moody Chart",
+            axes={
+                "x": AxisModel(
+                    scale="log",
+                    label="Re",
+                    units="adimensional",
+                    domain={"min": 1_000, "max": 1_000_000},
+                    ticks=[1_000, 10_000, 100_000, 1_000_000],
+                    major_ticks=[1_000, 10_000, 100_000, 1_000_000],
+                ),
+                "y": AxisModel(
+                    scale="linear",
+                    label="f",
+                    domain={"min": 0.01, "max": 0.08},
+                    ticks=[0.01, 0.03, 0.05, 0.08],
+                ),
+            },
+            series=[
+                SeriesModel(
+                    id="curve",
+                    name="Curva",
+                    kind="line",
+                    points=[{"x": 1_000, "y": 0.06}, {"x": 10_000, "y": 0.03}],
+                )
+            ],
+            metadata=ChartMetadataModel(version="1.0", units={"x": "adimensional", "y": "adimensional"}),
+        )
+
+        assert chart.axes["x"].scale == "log"
+        assert chart.axes["x"].domain.min == 1_000
+        assert chart.series[0].points[0].x == 1_000
+        assert chart.metadata.version == "1.0"
+
+    def test_axis_model_rejects_malformed_domain_shape(self):
+        with pytest.raises(ValidationError):
+            AxisModel(
+                scale="linear",
+                label="f",
+                domain={"minimum": 0.01, "maximum": 0.08},
+                ticks=[0.01, 0.03, 0.05, 0.08],
+            )
+
+    def test_series_model_rejects_points_missing_y(self):
+        with pytest.raises(ValidationError):
+            SeriesModel(
+                id="curve",
+                name="Curva",
+                kind="line",
+                points=[{"x": 1_000}],
+            )
+
+    def test_flow_chart_response_wraps_chart_payload(self):
+        payload = FlowChartResponse(
+            chart=ChartModel(
+                id="moody",
+                title="Moody Chart",
+                axes={
+                    "x": AxisModel(
+                        scale="log",
+                        label="Re",
+                        domain={"min": 1_000, "max": 1_000_000},
+                        ticks=[1_000, 10_000, 100_000, 1_000_000],
+                    ),
+                    "y": AxisModel(
+                        scale="linear",
+                        label="f",
+                        domain={"min": 0.01, "max": 0.08},
+                        ticks=[0.01, 0.03, 0.05, 0.08],
+                    ),
+                },
+                series=[
+                    SeriesModel(
+                        id="curve",
+                        name="Curva",
+                        kind="line",
+                        points=[{"x": 1_000, "y": 0.06}],
+                    )
+                ],
+                metadata=ChartMetadataModel(version="1.0"),
+            )
+        )
+
+        assert payload.chart.id == "moody"
+        assert payload.chart.title == "Moody Chart"
 
 
 if __name__ == "__main__":
