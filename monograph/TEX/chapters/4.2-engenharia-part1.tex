@@ -1,6 +1,6 @@
 \section{Funções de Engenharia}
 
-Para cada função existente no projeto, seus \textit{inputs}, \textit{outputs} e definições do que se retornam estão definidos no que se segue, sendo alguns responsáveis por informações contidas no banco de dados local ou presente nas bibliotecas em utilização, enquanto outros são responsáveis por calcular parâmetros de projeto.
+Para cada função existente no projeto, as entradas, saídas e definições de retorno são descritas a seguir. Algumas rotinas recuperam informações do banco de dados local ou das bibliotecas utilizadas, enquanto outras calculam diretamente parâmetros de projeto.
 
 \subsection{Dimensionamento de Tubulações}
 
@@ -21,11 +21,11 @@ D = \sqrt{\frac{4 \cdot Q}{\pi \cdot V}}
 \label{eq:diametro_calc}
 \end{equation}
 
-Dos quais,
+Em que:
 \begin{itemize}
-    \item Q – Vazão volumétrica do fluido;
-    \item V – Velocidade do fluido;
-    \item D - Diâmetro hidráulico do duto circular.
+    \item $Q$ -- vazão volumétrica do fluido;
+    \item $V$ -- velocidade do fluido;
+    \item $D$ -- diâmetro hidráulico do duto circular.
 \end{itemize}
 
 Essa relação advém diretamente da equação da continuidade para escoamento em regime permanente \cite{white2018}. No código, a função \textit{get\_calculated\_diameter} presente na classe dos cálculos hidráulicos utiliza o controle de unidades via \textit{Pint} e retorna o resultado em milímetros, assegurando consistência dimensional.
@@ -34,7 +34,7 @@ Essa relação advém diretamente da equação da continuidade para escoamento e
     \centering
     \caption{Código da função \textit{get\_calculated\_diameter()}}
     \includegraphics[width=\linewidth]{media/cap4_funcao_get_calculated_diameter.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Diâmetro Real}
@@ -45,7 +45,7 @@ O diâmetro real corresponde ao diâmetro nominal da tubulação a ser utilizada
     \centering
     \caption{Código da função \textit{get\_real\_diameter()}}
     \includegraphics[width=\linewidth]{media/cap4_funcao_get_real_diameter.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsection{Reatores}
@@ -60,20 +60,21 @@ Algumas lógicas gerais se aplicam a todos os tipos de reatores implementados. P
 \begin{equation}
 {razao}_{i} = \frac{N_{i 0}}{N_{u 0}}
 \label{eq:razao_reagente}
-\end{equation}, onde $N_{i 0}$ é a entrada molar do componente $i \  e$ $N_{u 0}$ seu coeficiente estequiométrico. O reagente com menor valor de ${razao}_{i}$ é o limitante \cite{felder2005}.
+\end{equation}
+em que $N_{i0}$ é a vazão molar de entrada do componente $i$ e $N_{u0}$ é seu coeficiente estequiométrico. O reagente com menor valor de ${razao}_{i}$ é o limitante \cite{felder2005}.
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{determine\_limiting\_reagent()} – Parte 1/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_determine_limiting_reagent_parte_um.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{determine\_limiting\_reagent()} – Parte 2/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_determine_limiting_reagent_parte_dois.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 A velocidade de reação é modelada, em geral, por uma lei de potência do tipo:
@@ -83,18 +84,18 @@ r = k \cdot \prod_{}^{} C_{i}^{n_{i}}
 \label{eq:rate_law}
 \end{equation}
 
-Dos quais,
+Em que:
 \begin{itemize}
-    \item $C_{i}^{n_{i}}$ – Concentração de um reagente i elevado à sua ordem de velocidade em uma dada reação
-    \item r – taxa de reação por volume;
-    \item k constante de velocidade
+    \item $C_{i}^{n_{i}}$ -- concentração do reagente $i$ elevada à sua ordem de velocidade;
+    \item $r$ -- taxa de reação por unidade de volume;
+    \item $k$ -- constante de velocidade.
 \end{itemize}
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{\_calculate\_concentration\_and\_rate()} – Trecho da velocidade da reação}
     \includegraphics[width=\linewidth]{media/cap4_funcao_calculate_concentration_and_rate_velocidade.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 A integração da cinética com a estequiometria é feita via conversão $X$ do reagente limitante. Os balanços estequiométricos relacionam as concentrações de saída de cada componente à conversão $X$. Para cada componente $i$ na reação, têm-se a seguinte relação geral, sendo o valor do mais ou menos positivo para formação (produtos), negativo para consumo (reagentes) e, claro, uma conversão igual a zero para inertes.
@@ -104,22 +105,22 @@ C_{i} = \frac{C_{i 0} \pm ( \frac{n_{i}}{n_{A}} \cdot C_{A} \cdot X )}{\varepsil
 \label{eq:conc_stoich}
 \end{equation}
 
-Dos quais,
+Em que:
 \begin{itemize}
-    \item $C_{i}$ – Concentração do componente na saída
-    \item $C_{i 0}$ – Concentração do componente na entrada
-    \item $\varepsilon$ – Coeficiente de expansão volumétrico
-    \item X – Conversão do reagente limitante
-    \item $C_{A}$ – Concentração do reagente limitante
-    \item $n_{i}$ – Coeficiente estequiométrico do componente
-    \item $n_{A}$ – Coeficiente estequiométrico do reagente limitante
+    \item $C_{i}$ -- concentração do componente na saída;
+    \item $C_{i0}$ -- concentração do componente na entrada;
+    \item $\varepsilon$ -- coeficiente de expansão volumétrico;
+    \item $X$ -- conversão do reagente limitante;
+    \item $C_{A}$ -- concentração do reagente limitante;
+    \item $n_{i}$ -- coeficiente estequiométrico do componente;
+    \item $n_{A}$ -- coeficiente estequiométrico do reagente limitante.
 \end{itemize}
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{\_calculate\_concentration\_and\_rate()} – Trecho da concentração dos componentes}
     \includegraphics[width=\linewidth]{media/cap4_funcao_calculate_concentration_and_rate_componentes.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 Para determinação do coeficiente de expansão volumétrico para reações gasosas, a Equação \ref{eq:epsilon_def} deve ser utilizada.
@@ -129,12 +130,12 @@ Para determinação do coeficiente de expansão volumétrico para reações gaso
 \label{eq:epsilon_def}
 \end{equation}
 
-Dos quais,
+Em que:
 \begin{itemize}
-    \item $\sum_{}^{} n_{P}$ – Somatório dos coeficientes estequiométricos dos produtos gasosos;
-    \item $\sum_{}^{} n_{R}$ – Somatório dos coeficientes estequiométricos dos reagentes gasosos;
-    \item $y_{A0}$ – Fração molar do reagente limitante na alimentação;
-    \item $n_{A}$ – Coeficiente estequiométrico do reagente limitante.
+    \item $\sum_{}^{} n_{P}$ -- somatório dos coeficientes estequiométricos dos produtos gasosos;
+    \item $\sum_{}^{} n_{R}$ -- somatório dos coeficientes estequiométricos dos reagentes gasosos;
+    \item $y_{A0}$ -- fração molar do reagente limitante na alimentação;
+    \item $n_{A}$ -- coeficiente estequiométrico do reagente limitante.
 \end{itemize}
 
 \begin{equation}
@@ -146,7 +147,7 @@ Dos quais,
     \centering
     \caption{Código da função \textit{\_calculate\_dilution\_factor()}}
     \includegraphics[width=\linewidth]{media/cap4_funcao_calculate_dilution_factor.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 Onde $\varepsilon$ representa a variação de número de mols por mol de $A$ reagido. O fator $\psi$ agrega a expansão/contração estequiométrica (via $\varepsilon X$) e as correções de pressão e temperatura em relação às condições iniciais \cite{levenspiel2000}. Essas relações estequiométricas permitem calcular as concentrações de saída de todos os componentes a partir da conversão $X$ do reagente limitante, sendo a base para os balanços nos diferentes modelos de reatores.
@@ -189,10 +190,10 @@ V = \frac{F_{A 0} \cdot X}{- r_{A}}
 \label{eq:cstr_design}
 \end{equation}
 
-Dos quais,
+Em que:
 \begin{itemize}
-    \item $F_{A 0}$ – Vazão molar de $A$ na entrada
-    \item $r$ - Taxa de consumo de $A$ por unidade de volume no interior do reator
+    \item $F_{A0}$ -- vazão molar de $A$ na entrada;
+    \item $r$ -- taxa de consumo de $A$ por unidade de volume no interior do reator.
 \end{itemize}
 
 Cálculo do tempo de residência:
@@ -206,30 +207,30 @@ Cálculo do tempo de residência:
     \centering
     \caption{Código da função \textit{\_conversion\_and\_kinetics\_in\_cstr()} – Parte 1/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_conversion_and_kinetics_in_cstr_parte_um.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{\_conversion\_and\_kinetics\_in\_cstr()} – Parte 2/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_conversion_and_kinetics_in_cstr_parte_dois.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
-A fim de simplificar as lógicas, é usada a função \textit{\_initialize\_reactor(),} que calcula as concentrações e vazões de cada componente na entrada, assim como o \textit{épsilon,} fator de diluição, temperaturas e pressões iniciais e finais e o reagente limitante.
+A fim de simplificar as rotinas, utiliza-se a função \textit{\_initialize\_reactor()}, que calcula as concentrações e vazões de cada componente na entrada, bem como o coeficiente de expansão volumétrico, o fator de diluição, as temperaturas e pressões iniciais e finais e o reagente limitante.
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{\_initialize\_reactor()} – Parte 1/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_initialize_reactor_parte_um.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{\_initialize\_reactor()} – Parte 2/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_initialize_reactor_parte_dois.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \paragraph{Volume e Cinética (Cálculo da Conversão)}
@@ -247,14 +248,14 @@ Então encontra-se sua raiz na faixa 0<X<1, tipicamente utilizando o método de 
     \centering
     \caption{Código da função \textit{\_volume\_and\_kinetics\_in\_cstr()} – Parte 1/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_volume_and_kinetics_in_cstr_parte_um.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{\_volume\_and\_kinetics\_in\_cstr()} – Parte 2/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_volume_and_kinetics_in_cstr_parte_dois.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \paragraph{Tempo de Residência e Cinética}
@@ -270,12 +271,12 @@ Em seguida, o problema se reduz ao caso anterior: aplica-se a mesma função obj
     \centering
     \caption{Código da função \textit{\_residence\_time\_and\_kinetics\_in\_cstr()} – Parte 1/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_residence_time_and_kinetics_in_cstr_parte_um.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \caption{Código da função \textit{\_residence\_time\_and\_kinetics\_in\_cstr()} – Parte 2/2}
     \includegraphics[width=\linewidth]{media/cap4_funcao_residence_time_and_kinetics_in_cstr_parte_dois.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
