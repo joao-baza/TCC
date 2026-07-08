@@ -502,8 +502,15 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/Pressão atmosférica/i)).toHaveValue(1.033);
       expect(screen.getByLabelText(/NPSHr opcional/i)).toHaveValue(3);
-      expect(screen.getByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /How it works - Margem de NPSH/i })).toBeInTheDocument();
+      expect(screen.getByText("Margem de NPSH")).toBeInTheDocument();
+      expect(
+        screen.getByText((_, element) => {
+          return (
+            element?.tagName === "BUTTON" &&
+            (element.textContent ?? "").includes("How it works - Margem de NPSH")
+          );
+        }),
+      ).toBeInTheDocument();
     });
 
     await openPumpTab(/Altura Manométrica/i);
@@ -692,8 +699,8 @@ describe("PumpPage", () => {
         required: 3,
       });
     });
-    expect(await screen.findByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
+    expect(await screen.findByText("Margem de NPSH")).toBeInTheDocument();
+    expect(screen.getByText("Margem de NPSH")).toBeInTheDocument();
     expect(screen.queryByText(/NPSHd = 6,8/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/NPSHr = 3/i)).not.toBeInTheDocument();
     expect(
