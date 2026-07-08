@@ -157,3 +157,16 @@ def test_pfr_spatial_profile_outlet_matches_pfr_volume_mode_outlet_concentration
     assert outlet_station["concentrations"]["A"].magnitude == pytest.approx(
         pfr_result["outlet_concentrations"]["A"].magnitude
     )
+
+
+def _unsorted_spatial_profile_payload():
+    payload = _spatial_profile_payload()
+    payload["axial_positions"] = [0.0, 0.75, 0.5, 1.0]
+    return payload
+
+
+def test_pfr_spatial_profile_rejects_unsorted_axial_positions():
+    reactor = ReactorIsothermalHeterogeneous()
+
+    with pytest.raises(ValueError, match="axial_positions must be sorted"):
+        reactor.pfr_spatial_profile(_unsorted_spatial_profile_payload())

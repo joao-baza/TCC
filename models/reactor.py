@@ -690,6 +690,8 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         axial_positions = parameters["axial_positions"]
         if not isinstance(axial_positions, list) or not axial_positions:
             raise ValueError("axial_positions must be a non-empty list.")
+        if any(next_position < position for position, next_position in zip(axial_positions, axial_positions[1:])):
+            raise ValueError("axial_positions must be sorted in ascending order.")
 
         self._validate_numeric(parameters, ["volume", "recycling_ratio"])
         init_data = self._initialize_reactor(parameters)
