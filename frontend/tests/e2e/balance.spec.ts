@@ -12,15 +12,13 @@ test("balance module loads the example and calculates results", async ({
   await page.getByRole("tab", { name: /Resultados/i }).click();
   await page.getByRole("button", { name: /Calcular Balanço de Massa/i }).click();
 
-  await expect(page.getByText(/Taxa de reciclo/i)).toBeVisible();
-  await expect(page.getByText(/Alimentação fresca/i)).toBeVisible();
+  await expect(page.getByRole("table", { name: /Matriz de rendimentos/i })).toBeVisible();
+  await expect(page.getByText(/Composição mássica das correntes/i)).toBeVisible();
   await expect(page.getByRole("rowheader", { name: /^Reciclo$/i }).first()).toBeVisible();
   await expect(page.getByRole("rowheader", { name: /^Produto$/i }).first()).toBeVisible();
-
-  await page.getByRole("button", { name: /Calcular Rendimentos/i }).click();
   await expect(page.getByRole("heading", { name: /Rendimentos/i })).toBeVisible();
-  await expect(page.getByText(/C a partir de A/i)).toBeVisible();
   await expect(page.getByText(/81[,.]25%/i)).toBeVisible();
+  await expect(page.getByTestId("mass-balance-chart")).toBeVisible();
 });
 
 test("balance module clears calculated results after the component structure changes", async ({
@@ -32,16 +30,14 @@ test("balance module clears calculated results after the component structure cha
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
   await page.getByRole("tab", { name: /Resultados/i }).click();
   await page.getByRole("button", { name: /Calcular Balanço de Massa/i }).click();
-  await expect(page.getByText(/Taxa de reciclo/i)).toBeVisible();
-  await page.getByRole("button", { name: /Calcular Rendimentos/i }).click();
-
+  await expect(page.getByRole("table", { name: /Matriz de rendimentos/i })).toBeVisible();
   await expect(page.getByText(/81[,.]25%/i)).toBeVisible();
 
   await page.getByRole("tab", { name: /Componentes/i }).click();
   await page.getByLabel(/Nome do componente/i).fill("E");
   await page.getByRole("button", { name: /^Adicionar$/i }).click();
 
-  await expect(page.getByText(/Taxa de reciclo/i)).toHaveCount(0);
+  await expect(page.getByRole("table", { name: /Matriz de rendimentos/i })).toHaveCount(0);
   await expect(page.getByText(/81.25%/i)).toHaveCount(0);
 });
 
@@ -64,7 +60,6 @@ test("balance module surfaces an error when yield calculation fails", async ({ p
   await page.getByRole("tab", { name: /Resultados/i }).click();
   await page.getByRole("button", { name: /Calcular Balanço de Massa/i }).click();
 
-  await page.getByRole("button", { name: /Calcular Rendimentos/i }).click();
   await expect(
     page.getByText(/Erro ao calcular rendimentos: Falha no backend dos rendimentos/i),
   ).toBeVisible();
@@ -181,6 +176,81 @@ async function mockMassBalancePage(page) {
             compositions: { A: 0.1, B: 0.05, C: 0.65, D: 0.2 },
           },
         },
+      },
+    });
+  });
+
+  await page.route("**/api/mass-balance/chart", async (route) => {
+    await route.fulfill({
+      json: {
+        id: "mass-balance-chart",
+        title: "Composição mássica das correntes",
+        subtitle:
+          "Cada barra representa a vazão da corrente, segmentada pela contribuição mássica dos componentes.",
+        axes: {
+          x: {
+            scale: "linear",
+            label: "Corrente",
+            units: "índice",
+            domain: { min: 1, max: 3 },
+            ticks: [1, 2, 3],
+            major_ticks: [1, 2, 3],
+          },
+          flow: {
+            scale: "linear",
+            label: "Vazão mássica da corrente",
+            units: "massa ou mol/tempo",
+            domain: { min: 0, max: 100 },
+            ticks: [0, 50, 100],
+            major_ticks: [0, 50, 100],
+          },
+        },
+        series: [
+          {
+            id: "component-a",
+            name: "Contribuição de A",
+            kind: "bar",
+            color: "#2563eb",
+            points: [
+              { x: 1, y: 80 },
+              { x: 2, y: 10.8 },
+              { x: 3, y: 4 },
+            ],
+          },
+          {
+            id: "component-b",
+            name: "Contribuição de B",
+            kind: "bar",
+            color: "#16a34a",
+            points: [
+              { x: 1, y: 20 },
+              { x: 2, y: 3 },
+              { x: 3, y: 2 },
+            ],
+          },
+          {
+            id: "component-c",
+            name: "Contribuição de C",
+            kind: "bar",
+            color: "#f59e0b",
+            points: [
+              { x: 1, y: 0 },
+              { x: 2, y: 34.2 },
+              { x: 3, y: 26 },
+            ],
+          },
+          {
+            id: "component-d",
+            name: "Contribuição de D",
+            kind: "bar",
+            color: "#ef4444",
+            points: [
+              { x: 1, y: 0 },
+              { x: 2, y: 12 },
+              { x: 3, y: 8 },
+            ],
+          },
+        ],
       },
     });
   });
