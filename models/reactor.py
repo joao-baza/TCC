@@ -685,11 +685,11 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
 
     def pfr_spatial_profile(self, parameters: Dict[str, object]):
         """Calculate local station properties along the PFR volume."""
-        self._require_keys(parameters, ["volume", "recycling_ratio", "relative_volume"])
+        self._require_keys(parameters, ["volume", "recycling_ratio", "axial_positions"])
 
-        relative_positions = parameters["relative_volume"]
-        if not isinstance(relative_positions, list) or not relative_positions:
-            raise ValueError("relative_volume must be a non-empty list.")
+        axial_positions = parameters["axial_positions"]
+        if not isinstance(axial_positions, list) or not axial_positions:
+            raise ValueError("axial_positions must be a non-empty list.")
 
         self._validate_numeric(parameters, ["volume", "recycling_ratio"])
         init_data = self._initialize_reactor(parameters)
@@ -710,7 +710,7 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         t_final = init_data["T"]
 
         stations = []
-        for position in relative_positions:
+        for position in axial_positions:
             local_conversion = self._solve_pfr_local_conversion(
                 target_volume_ratio=position,
                 outlet_conversion=outlet_conversion,
