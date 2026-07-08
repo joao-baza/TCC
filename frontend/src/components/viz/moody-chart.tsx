@@ -1,3 +1,6 @@
+import { ChartSeriesLegend } from "@/components/viz/chart-series-legend";
+import { ChartDidacticCard } from "@/components/viz/chart-didactic-card";
+import { HowItWorks, TheoryRef } from "@/components/how-it-works";
 import { formatTableNumberText } from "@/lib/table-number";
 import { formatNumber } from "@/lib/units";
 
@@ -21,6 +24,7 @@ type CurveSeries = {
   label: string;
   roughness: number;
   stroke: string;
+  guideStroke: string;
   strokeWidth: number;
   opacity: number;
   points: PlotPoint[];
@@ -53,6 +57,45 @@ const roughnessSeries = [
   0.02,
   0.05,
 ];
+
+const curveColors = [
+  "#2563eb",
+  "#db2777",
+  "#f97316",
+  "#7c3aed",
+  "#0ea5e9",
+  "#84cc16",
+  "#e11d48",
+  "#14b8a6",
+  "#6366f1",
+  "#22c55e",
+  "#f59e0b",
+  "#9333ea",
+  "#06b6d4",
+  "#d946ef",
+  "#64748b",
+  "#0f766e",
+] as const;
+
+const moodySemanticColors = {
+  laminar: {
+    stroke: "#0f766e",
+    text: "#0f766e",
+    pillClassName: "border-teal-200 bg-teal-50 text-teal-700",
+  },
+  transition: {
+    fill: "rgba(245, 158, 11, 0.16)",
+    stroke: "#d97706",
+    text: "#b45309",
+    pillClassName: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  operatingPoint: {
+    stroke: "#dc2626",
+    ring: "#fecaca",
+    text: "#b91c1c",
+    pillClassName: "border-red-200 bg-red-50 text-red-700",
+  },
+} as const;
 
 function isClose(left: number, right: number) {
   return Math.abs(left - right) <= 1e-10;
@@ -183,11 +226,19 @@ function formatReynoldsTick(value: number) {
 }
 
 function formatRoughnessLabel(value: number) {
-  return `e/D = ${formatTableNumberText(value)}`;
+  return `ε/D = ${formatTableNumberText(value)}`;
 }
 
 function formatRoughnessTag(value: number) {
   return formatTableNumberText(value);
+}
+
+function getCurveColor(index: number) {
+  if (index < curveColors.length) {
+    return curveColors[index];
+  }
+
+  return curveColors[index % curveColors.length];
 }
 
 function laminarFrictionFactor(reynolds: number) {
@@ -299,17 +350,21 @@ export function MoodyChart({
     right: scaleLog(transitionUpper, xDomain[0], xDomain[1], padding.left, width - padding.right),
   };
 
+  let curveColorIndex = 0;
   const turbulentCurveValues = selectedCurveRoughness.map((curveRoughness) => {
     const values = buildCurveValues(curveRoughness, turbulentStart, xDomain[1]);
     const isSelected = isClose(curveRoughness, roughness);
-    const isSmoothPipe = isClose(curveRoughness, 0);
+    const color = isSelected ? moodySemanticColors.operatingPoint.stroke : getCurveColor(curveColorIndex++);
 
     return {
-      label: formatRoughnessLabel(curveRoughness),
+      label: isSelected
+        ? `ε/D (operacional) = ${formatTableNumberText(curveRoughness)}`
+        : formatRoughnessLabel(curveRoughness),
       roughness: curveRoughness,
-      stroke: isSelected ? "#dc2626" : isSmoothPipe ? "#475569" : "#94a3b8",
-      strokeWidth: isSelected ? 3 : isSmoothPipe ? 2.8 : 1.6,
-      opacity: isSelected ? 1 : isSmoothPipe ? 1 : 0.85,
+      stroke: color,
+      guideStroke: color,
+      strokeWidth: isSelected ? 4 : 1.8,
+      opacity: isSelected ? 1 : 0.88,
       values,
     };
   });
@@ -339,6 +394,7 @@ export function MoodyChart({
       label: curve.label,
       roughness: curve.roughness,
       stroke: curve.stroke,
+      guideStroke: curve.guideStroke,
       strokeWidth: curve.strokeWidth,
       opacity: curve.opacity,
       points,
@@ -349,8 +405,6 @@ export function MoodyChart({
     x: scaleLog(reynolds, xDomain[0], xDomain[1], padding.left, width - padding.right),
     y: scaleLog(frictionFactor, yDomain[0], yDomain[1], height - padding.bottom, padding.top),
   };
-  const laminarLabelPoint = laminarPoints[Math.max(0, Math.floor(laminarPoints.length * 0.85))];
-
   const xTicks = buildLogTicks(xDomain[0], xDomain[1]);
   const xMajorTickValues = buildMajorTicks(xDomain[0], xDomain[1]);
   const yTicks = buildLogTicks(yDomain[0], yDomain[1]);
@@ -359,7 +413,6 @@ export function MoodyChart({
   const plotRight = width - padding.right;
   const plotTop = padding.top;
   const plotBottom = height - padding.bottom;
-  const selectedCurveLabel = turbulentCurves.find((curve) => isClose(curve.roughness, roughness));
   const labelGap = 12;
   const labelMinY = plotTop + 10;
   const labelMaxY = plotBottom - 6;
@@ -386,35 +439,58 @@ export function MoodyChart({
     }
   }
 
-  return (
-    <section className="mx-auto mt-3 w-full max-w-[760px] rounded-xl border border-slate-200 p-3">
-      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-medium text-slate-800">Ponto operacional - Diagrama de Moody</h3>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span>Re = {formatTableNumberText(reynolds)}</span>
-            <span>f = {formatTableNumberText(frictionFactor)}</span>
-            <span>e/D = {formatTableNumberText(roughness)}</span>
-          </div>
-          <p className="mt-2 max-w-2xl text-xs text-slate-600">
-            Diagrama logarítmico de Moody: curvas de Colebrook-White por rugosidade relativa,
-            faixa de transição entre Re ≈ 2000 e 4000 e ponto operacional destacado.
-          </p>
-        </div>
-      </div>
+  const legendItems = [
+    {
+      id: "laminar",
+      label: "Curva laminar",
+      color: moodySemanticColors.laminar.stroke,
+    },
+    ...turbulentCurves.map((curve) => ({
+      id: curve.roughness === roughness ? "operational-curve" : curve.label,
+      label: curve.label,
+      color: curve.stroke,
+    })),
+  ];
 
+  return (
+    <ChartDidacticCard
+      title="Diagrama de Moody"
+      subtitle="Diagrama logarítmico de Moody: curvas de Colebrook-White por rugosidade relativa, faixa de transição e ponto operacional destacado."
+      howItWorks={
+        <HowItWorks title="Como funciona - Ponto operacional no Diagrama de Moody">
+          <p>
+            O diagrama de Moody relaciona número de Reynolds, rugosidade relativa e fator de
+            atrito de Darcy. Como os dois eixos estão em escala logarítmica, ele permite
+            comparar com clareza regimes muito diferentes de escoamento.
+          </p>
+          <p>
+            Para interpretar o ponto operacional, localize primeiro o Reynolds no eixo x,
+            depois identifique a curva de rugosidade relativa correspondente e leia no eixo
+            y o fator de atrito onde esse cruzamento ocorre.
+          </p>
+          <p>
+            A utilidade prática é obter rapidamente o fator de atrito que alimenta os
+            cálculos de perda de carga, seleção de bomba e comparação entre materiais ou
+            condições de escoamento.
+          </p>
+          <TheoryRef>
+            Ref.: White, Mecânica dos Fluidos, 8a ed., McGraw-Hill, 2018.
+          </TheoryRef>
+        </HowItWorks>
+      }
+    >
       <div
         className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
         style={{ aspectRatio: `${width} / ${height}` }}
       >
         <svg
-          aria-label="Ponto operacional - Diagrama de Moody"
+          aria-label="Diagrama de Moody"
           className="block h-auto w-full overflow-hidden"
           preserveAspectRatio="xMidYMid meet"
           role="img"
           viewBox={`0 0 ${width} ${height}`}
         >
-          <title>Ponto operacional - Diagrama de Moody</title>
+          <title>Diagrama de Moody</title>
           <desc>
             Eixo X em escala logarítmica para o número de Reynolds, eixo Y em escala
             logarítmica para o fator de atrito de Darcy, família de curvas por rugosidade
@@ -424,19 +500,21 @@ export function MoodyChart({
           <rect x="0" y="0" width={width} height={height} fill="transparent" />
 
           <rect
+            data-chart-semantic="transition-band"
             x={transitionBand.left}
             y={plotTop}
             width={Math.max(0, transitionBand.right - transitionBand.left)}
             height={plotBottom - plotTop}
-            fill="rgba(148, 163, 184, 0.14)"
+            fill={moodySemanticColors.transition.fill}
           />
           <rect
+            data-chart-semantic="transition-boundary"
             x={transitionBand.left}
             y={plotTop}
             width={Math.max(0, transitionBand.right - transitionBand.left)}
             height={plotBottom - plotTop}
             fill="none"
-            stroke="#94a3b8"
+            stroke={moodySemanticColors.transition.stroke}
             strokeDasharray="4 4"
             strokeWidth="1"
             opacity="0.75"
@@ -501,6 +579,7 @@ export function MoodyChart({
             .map((curve) => (
               <path
                 key={curve.label}
+                data-chart-semantic="roughness-curve"
                 d={buildPath(curve.points)}
                 fill="none"
                 opacity={curve.opacity}
@@ -512,18 +591,21 @@ export function MoodyChart({
             ))}
 
           <path
+            data-chart-semantic="roughness-curve"
             d={buildPath(turbulentCurves.find((curve) => isClose(curve.roughness, 0))?.points ?? [])}
             fill="none"
-            stroke="#475569"
+            opacity={turbulentCurves.find((curve) => isClose(curve.roughness, 0))?.opacity ?? 1}
+            stroke={turbulentCurves.find((curve) => isClose(curve.roughness, 0))?.stroke ?? curveColors[1]}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="2.8"
+            strokeWidth={turbulentCurves.find((curve) => isClose(curve.roughness, 0))?.strokeWidth ?? 2.8}
           />
 
           <path
+            data-chart-semantic="laminar-curve"
             d={buildPath(laminarPoints)}
             fill="none"
-            stroke="#0f766e"
+            stroke={moodySemanticColors.laminar.stroke}
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="3.4"
@@ -534,7 +616,7 @@ export function MoodyChart({
             x2={scaleLog(laminarCutoff, xDomain[0], xDomain[1], plotLeft, plotRight)}
             y1={plotTop}
             y2={plotBottom}
-            stroke="#94a3b8"
+            stroke={moodySemanticColors.transition.stroke}
             strokeDasharray="4 4"
             strokeWidth="1"
           />
@@ -543,43 +625,20 @@ export function MoodyChart({
             x2={scaleLog(transitionUpper, xDomain[0], xDomain[1], plotLeft, plotRight)}
             y1={plotTop}
             y2={plotBottom}
-            stroke="#94a3b8"
+            stroke={moodySemanticColors.transition.stroke}
             strokeDasharray="4 4"
             strokeWidth="1"
           />
           <text
             x={scaleLog(3000, xDomain[0], xDomain[1], plotLeft, plotRight)}
             y={plotTop + 28}
-            fill="#475569"
+            fill={moodySemanticColors.transition.text}
             fontSize="11.5"
             fontWeight="600"
             textAnchor="middle"
           >
             transição
           </text>
-
-          {laminarLabelPoint ? (
-            <>
-              <line
-                x1={laminarLabelPoint.x}
-                x2={laminarLabelPoint.x + 18}
-                y1={laminarLabelPoint.y}
-                y2={laminarLabelPoint.y - 14}
-                stroke="#0f766e"
-                strokeDasharray="2 3"
-                strokeWidth="1"
-              />
-              <text
-                x={laminarLabelPoint.x + 22}
-                y={laminarLabelPoint.y - 16}
-                fill="#0f766e"
-                fontSize="11.5"
-                fontWeight="700"
-              >
-                laminar
-              </text>
-            </>
-          ) : null}
 
           {turbulentCurves.map((curve) => {
             const anchor = curve.labelPoint;
@@ -597,7 +656,7 @@ export function MoodyChart({
                   x2={plotRight}
                   y1={anchor.y}
                   y2={anchor.y}
-                  stroke={curve.stroke}
+                  stroke={curve.guideStroke}
                   strokeDasharray="2 3"
                   strokeWidth="0.8"
                   opacity={curve.opacity}
@@ -605,7 +664,7 @@ export function MoodyChart({
                 <text
                   x={labelX}
                   y={labelY}
-                  fill={curve.stroke}
+                  fill={curve.guideStroke}
                   fontSize="10.5"
                   fontWeight={isClose(curve.roughness, roughness) ? 700 : 500}
                   textAnchor="start"
@@ -617,14 +676,25 @@ export function MoodyChart({
             );
           })}
 
-          <circle cx={operationalPoint.x} cy={operationalPoint.y} fill="#111827" r="5" />
-          <circle cx={operationalPoint.x} cy={operationalPoint.y} fill="#dc2626" r="3.2" />
+          <circle
+            cx={operationalPoint.x}
+            cy={operationalPoint.y}
+            fill={moodySemanticColors.operatingPoint.ring}
+            r="5"
+          />
+          <circle
+            data-chart-semantic="operating-point"
+            cx={operationalPoint.x}
+            cy={operationalPoint.y}
+            fill={moodySemanticColors.operatingPoint.stroke}
+            r="3.2"
+          />
           <line
             x1={operationalPoint.x}
             x2={operationalPoint.x}
             y1={operationalPoint.y}
             y2={plotBottom}
-            stroke="#dc2626"
+            stroke={moodySemanticColors.operatingPoint.stroke}
             strokeDasharray="4 4"
             strokeWidth="1.2"
           />
@@ -633,7 +703,7 @@ export function MoodyChart({
             x2={operationalPoint.x}
             y1={operationalPoint.y}
             y2={operationalPoint.y}
-            stroke="#dc2626"
+            stroke={moodySemanticColors.operatingPoint.stroke}
             strokeDasharray="4 4"
             strokeWidth="1.2"
           />
@@ -641,7 +711,7 @@ export function MoodyChart({
           <text
             x={Math.min(operationalPoint.x + 10, plotRight - 6)}
             y={Math.max(plotTop + 10, operationalPoint.y - 10)}
-            fill="#dc2626"
+            fill={moodySemanticColors.operatingPoint.text}
             fontSize="11"
             fontWeight="600"
           >
@@ -700,26 +770,18 @@ export function MoodyChart({
         </svg>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
-        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-          Curva laminar
-        </span>
-        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-          Família de rugosidades
-        </span>
-        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-          Faixa de transição
-        </span>
-        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-          Ponto operacional
-        </span>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Legenda das curvas
+        </p>
+        <ChartSeriesLegend items={legendItems} />
       </div>
 
-      <div className="mt-2 text-xs text-slate-500">
+      <div className="text-xs text-slate-500">
         Aproximação baseada na equação de Colebrook-White, com escala logarítmica em Re e f, como
         no diagrama clássico.
       </div>
 
-    </section>
+    </ChartDidacticCard>
   );
 }

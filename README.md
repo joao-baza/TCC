@@ -1,6 +1,6 @@
 # Educational Simulator for Unit Operations
 
-Final project in Chemical Engineering at the Federal University of Mato Grosso do Sul (UFMS), developed by João Pedro Baza Garcia Rodrigues [[LinkedIn]](https://www.linkedin.com/in/joao-baza/) under the supervision of Prof. Celso Murilo dos Santos [[LinkedIn]](https://www.linkedin.com/in/celso-murilo-dos-santos/). The project can be tested online [here](https://tcc.joao.baza.dev.br). Last update: 2026-07-07.
+Final project in Chemical Engineering at the Federal University of Mato Grosso do Sul (UFMS), developed by João Pedro Baza Garcia Rodrigues [[LinkedIn]](https://www.linkedin.com/in/joao-baza/) under the supervision of Prof. Celso Murilo dos Santos [[LinkedIn]](https://www.linkedin.com/in/celso-murilo-dos-santos/). The project can be tested online [here](https://tcc.joao.baza.dev.br). Last update: 2026-07-08.
 
 ## Academic Context
 
@@ -113,10 +113,38 @@ Build scripts automatically resolve Python, preferring the project `.venv` and f
 
 ### Frontend
 
+Run the unit test suite:
+
 ```bash
 cd frontend
 npm test
+```
+
+Build the frontend before publishing or validating production output:
+
+```bash
+cd frontend
 npm run build
+```
+
+Run the local preview used by Playwright:
+
+```bash
+cd frontend
+npm run preview -- --host 127.0.0.1
+```
+
+Run the end-to-end tests:
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+Run only the Chromium project configured in Playwright:
+
+```bash
+cd frontend
 npm run test:e2e -- --project=chromium
 ```
 

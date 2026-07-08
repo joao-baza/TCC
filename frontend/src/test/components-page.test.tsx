@@ -49,6 +49,15 @@ function expectRowUnitText(text: string | RegExp, expected: string) {
   expect(row?.querySelector("td:last-child")).toHaveTextContent(expected);
 }
 
+async function expectRowUnitMath(text: string | RegExp) {
+  await waitFor(() => {
+    const row = getRowContaining(text);
+    const unitCell = row?.querySelector("td:nth-child(3)");
+
+    expect(unitCell?.querySelector(".katex")).not.toBeNull();
+  });
+}
+
 async function expectRowValueMath(text: string | RegExp, expected?: string) {
   await waitFor(() => {
     const row = getRowContaining(text);
@@ -255,6 +264,279 @@ vi.mock("@/lib/notify", () => ({
 
 const fetchMock = vi.fn<typeof fetch>();
 
+const binaryChartModel = {
+  id: "components-binary-vle-chart",
+  title: "Diagrama T-x-y binário",
+  subtitle: "Acetone / Water a 101325 Pa",
+  axes: {
+    x: {
+      scale: "linear",
+      label: "Fração molar de Acetone",
+      units: "adimensional",
+      domain: { min: 0, max: 1 },
+      ticks: [0, 0.25, 0.5, 0.75, 1],
+      major_ticks: [0, 0.25, 0.5, 0.75, 1],
+    },
+    y: {
+      scale: "linear",
+      label: "Temperatura",
+      units: "K",
+      domain: { min: 350, max: 375 },
+      ticks: [350, 356.25, 362.5, 368.75, 375],
+      major_ticks: [350, 356.25, 362.5, 368.75, 375],
+    },
+  },
+  series: [
+    {
+      id: "bubble-curve",
+      name: "Curva de bolha",
+      kind: "line",
+      color: "#0f766e",
+      points: [{ x: 0, y: 351.2 }, { x: 0.5, y: 363.4 }, { x: 1, y: 373.2 }],
+    },
+    {
+      id: "dew-curve",
+      name: "Curva de orvalho",
+      kind: "line",
+      color: "#b45309",
+      points: [{ x: 0, y: 351.2 }, { x: 0.4, y: 359.1 }, { x: 1, y: 373.2 }],
+    },
+  ],
+  markers: [],
+  annotations: [],
+  metadata: { version: "1.0", units: { x: "adimensional", y: "K" } },
+};
+
+const mccabeChartModel = {
+  id: "components-mccabe-thiele-chart",
+  title: "McCabe-Thiele",
+  subtitle: "Acetone / Water",
+  axes: {
+    x: {
+      scale: "linear",
+      label: "x (líquido)",
+      units: "fração molar",
+      domain: { min: 0, max: 1 },
+      ticks: [0, 0.25, 0.5, 0.75, 1],
+      major_ticks: [0, 0.25, 0.5, 0.75, 1],
+    },
+    y: {
+      scale: "linear",
+      label: "y (vapor)",
+      units: "fração molar",
+      domain: { min: 0, max: 1 },
+      ticks: [0, 0.25, 0.5, 0.75, 1],
+      major_ticks: [0, 0.25, 0.5, 0.75, 1],
+    },
+  },
+  series: [
+    {
+      id: "diagonal",
+      name: "Diagonal",
+      kind: "line",
+      color: "#94a3b8",
+      points: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    },
+    {
+      id: "equilibrium-curve",
+      name: "Curva de equilíbrio",
+      kind: "line",
+      color: "#2563eb",
+      points: [{ x: 0, y: 0 }, { x: 0.5, y: 0.7 }, { x: 1, y: 1 }],
+    },
+    {
+      id: "rectifying-line",
+      name: "Linha de enriquecimento",
+      kind: "line",
+      color: "#0f766e",
+      points: [{ x: 0, y: 0.95 }, { x: 1, y: 0.95 }],
+    },
+    {
+      id: "stripping-line",
+      name: "Linha de esgotamento",
+      kind: "line",
+      color: "#b45309",
+      points: [{ x: 0, y: 0.05 }, { x: 1, y: 0.05 }],
+    },
+    {
+      id: "q-line",
+      name: "Linha q",
+      kind: "line",
+      color: "#7c3aed",
+      points: [{ x: 0.7, y: 0 }, { x: 0.7, y: 1 }],
+    },
+    {
+      id: "stage-steps",
+      name: "Estágios",
+      kind: "line",
+      color: "#dc2626",
+      points: [{ x: 0.95, y: 0.95 }, { x: 0.6, y: 0.95 }, { x: 0.6, y: 0.78 }],
+    },
+  ],
+  markers: [
+    { id: "xD", x: 0.95, y: 0.95, label: "xD", color: "#0f172a" },
+    { id: "xB", x: 0.05, y: 0.05, label: "xB", color: "#0f172a" },
+    { id: "zF", x: 0.7, y: 0.7, label: "zF", color: "#475569" },
+  ],
+  annotations: [],
+  metadata: { version: "1.0", units: { x: "fração molar", y: "fração molar" } },
+};
+
+const phaseEnvelopeChartModel = {
+  id: "components-phase-envelope-chart",
+  title: "Envelope de fase",
+  subtitle: "R1234ze(E)",
+  axes: {
+    x: {
+      scale: "linear",
+      label: "Entropia",
+      units: "J/(kg·K)",
+      domain: { min: 100, max: 6200 },
+      ticks: [100, 1625, 3150, 4675, 6200],
+      major_ticks: [100, 1625, 3150, 4675, 6200],
+    },
+    y: {
+      scale: "linear",
+      label: "Temperatura",
+      units: "K",
+      domain: { min: 273.16, max: 647.1 },
+      ticks: [273.16, 366.64, 460.13, 553.61, 647.1],
+      major_ticks: [273.16, 366.64, 460.13, 553.61, 647.1],
+    },
+  },
+  series: [
+    {
+      id: "two-phase-region",
+      name: "Região bifásica",
+      kind: "band",
+      color: "#93c5fd",
+      points: [{ x: 100, y: 300 }, { x: 1200, y: 450 }, { x: 2000, y: 600 }, { x: 6200, y: 600 }, { x: 4200, y: 450 }, { x: 1100, y: 300 }],
+    },
+    {
+      id: "liquid-curve",
+      name: "Curva de líquido saturado",
+      kind: "line",
+      color: "#0f766e",
+      points: [{ x: 100, y: 300 }, { x: 1200, y: 450 }, { x: 2000, y: 600 }],
+    },
+    {
+      id: "vapor-curve",
+      name: "Curva de vapor saturado",
+      kind: "line",
+      color: "#b45309",
+      points: [{ x: 1100, y: 300 }, { x: 4200, y: 450 }, { x: 6200, y: 600 }],
+    },
+  ],
+  markers: [
+    { id: "triple-point", x: 100, y: 273.16, color: "#0f766e" },
+    { id: "critical-point", x: 6200, y: 647.1, color: "#b45309" },
+  ],
+  annotations: [],
+  metadata: { version: "1.0", units: { x: "J/(kg·K)", y: "K" } },
+};
+
+const vaporPressureChartModel = {
+  id: "components-vapor-pressure-chart",
+  title: "Curva de pressão de vapor",
+  subtitle: "Relação P_sat(T) para R1234ze(E).",
+  axes: {
+    x: {
+      scale: "linear",
+      label: "Temperatura",
+      units: "K",
+      domain: { min: 273.16, max: 647.1 },
+      ticks: [273.16, 366.64, 460.13, 553.61, 647.1],
+      major_ticks: [273.16, 366.64, 460.13, 553.61, 647.1],
+    },
+    y: {
+      scale: "log",
+      label: "Pressão de saturação",
+      units: "Pa",
+      domain: { min: 611.657, max: 22064000 },
+      ticks: [1000, 10000, 100000, 1000000, 10000000],
+      major_ticks: [1000, 10000, 100000, 1000000, 10000000],
+    },
+  },
+  series: [
+    {
+      id: "vapor-pressure-curve",
+      name: "Pressão de vapor",
+      kind: "line",
+      color: "#0f766e",
+      points: [
+        { x: 300, y: 3537 },
+        { x: 450, y: 93000 },
+        { x: 600, y: 12300000 },
+      ],
+    },
+  ],
+  markers: [
+    { id: "triple-point", x: 273.16, y: 611.657, color: "#b45309" },
+    { id: "critical-point", x: 647.1, y: 22064000, color: "#1d4ed8" },
+  ],
+  annotations: [],
+  metadata: { version: "1.0", units: { x: "K", y: "Pa" } },
+};
+
+const ternaryChartPayload = {
+  id: "components-ternary-diagram-chart",
+  title: "Diagrama ternário",
+  component_labels: ["Water", "Ethanol", "Methanol"],
+  boundary: [{ x: 66, y: 352 }, { x: 694, y: 352 }, { x: 380, y: 40 }],
+  guide_lines: [
+    { start: { x: 144, y: 274 }, end: { x: 536, y: 274 } },
+    { start: { x: 105, y: 196 }, end: { x: 458, y: 196 } },
+    { start: { x: 223, y: 118 }, end: { x: 615, y: 118 } },
+  ],
+  streams: [
+    {
+      label: "Corrente atual",
+      summary: "Water: 0.7 · Ethanol: 0.2 · Methanol: 0.1",
+      x: 286,
+      y: 321,
+      color: "#2563eb",
+    },
+  ],
+};
+
+const propertySurfaceChartPayload = {
+  id: "components-property-surface-chart",
+  title: "Superfície T-P",
+  subtitle: "Water · Densidade",
+  fluid: "Water",
+  property_label: "Densidade",
+  property_units: "kg/m³",
+  x_axis: {
+    scale: "linear",
+    label: "Temperatura",
+    units: "K",
+    domain: { min: 300, max: 400 },
+    ticks: [300, 325, 350, 375, 400],
+    major_ticks: [300, 325, 350, 375, 400],
+  },
+  y_axis: {
+    scale: "linear",
+    label: "Pressão",
+    units: "Pa",
+    domain: { min: 101325, max: 500000 },
+    ticks: [101325, 201000, 300675, 400337.5, 500000],
+    major_ticks: [101325, 201000, 300675, 400337.5, 500000],
+  },
+  cells: [
+    { x: 300, y: 101325, width: 50, height: 132891.6667, value: 997, fill: "hsl(232 58% 94%)", tooltip: "300 K · 101.325 kPa · Densidade = 997 kg/m³" },
+    { x: 350, y: 101325, width: 50, height: 132891.6667, value: 992, fill: "hsl(180 70% 60%)", tooltip: "350 K · 101.325 kPa · Densidade = 992 kg/m³" },
+    { x: 400, y: 101325, width: 50, height: 132891.6667, value: 989, fill: "hsl(120 74% 56%)", tooltip: "400 K · 101.325 kPa · Densidade = 989 kg/m³" },
+  ],
+  legend_stops: [
+    { offset: 0, color: "#0f766e", value: 951 },
+    { offset: 0.33, color: "#2563eb", value: 966.18 },
+    { offset: 0.66, color: "#d97706", value: 981.36 },
+    { offset: 1, color: "#b91c1c", value: 997 },
+  ],
+  value_min: 951,
+  value_max: 997,
+};
+
 function mockComponentsRequests(options?: {
   criticalError?: string;
   propertyError?: string;
@@ -419,40 +701,28 @@ function mockComponentsRequests(options?: {
       });
     }
 
-    if (url.endsWith("/api/components/binary-vle") && method === "POST") {
-      return Response.json({
-        fluid1: "Water",
-        fluid2: "Ethanol",
-        pressure: 101325,
-        bubble_points: [
-          { liquid_fraction: 0, vapor_fraction: 0, temperature: 351.2 },
-          { liquid_fraction: 0.5, vapor_fraction: 0.7, temperature: 363.4 },
-          { liquid_fraction: 1, vapor_fraction: 1, temperature: 373.2 },
-        ],
-        dew_points: [
-          { liquid_fraction: 0, vapor_fraction: 0, temperature: 351.2 },
-          { liquid_fraction: 0.4, vapor_fraction: 0.5, temperature: 359.1 },
-          { liquid_fraction: 1, vapor_fraction: 1, temperature: 373.2 },
-        ],
-      });
+    if (url.endsWith("/api/components/ternary-diagram/chart") && method === "POST") {
+      return Response.json(ternaryChartPayload);
     }
 
-    if (url.endsWith("/api/components/property-surface") && method === "POST") {
-      return Response.json({
-        fluid: "Water",
-        property_name: "D",
-        property_label: "Density",
-        property_units: "kg/m³",
-        temperatures: [300, 350, 400],
-        pressures: [101325, 250000, 500000],
-        values: [
-          [997, 992, 989],
-          [983, 978, 972],
-          [965, 958, 951],
-        ],
-        value_min: 951,
-        value_max: 997,
-      });
+    if (url.endsWith("/api/components/binary-vle/chart") && method === "POST") {
+      return Response.json(binaryChartModel);
+    }
+
+    if (url.endsWith("/api/components/mccabe-thiele/chart") && method === "POST") {
+      return Response.json(mccabeChartModel);
+    }
+
+    if (url.endsWith("/api/components/property-surface/chart") && method === "POST") {
+      return Response.json(propertySurfaceChartPayload);
+    }
+
+    if (url.endsWith("/api/components/phase-envelope/chart") && method === "POST") {
+      return Response.json(phaseEnvelopeChartModel);
+    }
+
+    if (url.endsWith("/api/components/vapor-pressure/chart") && method === "POST") {
+      return Response.json(vaporPressureChartModel);
     }
 
     if (url.endsWith("/api/components/property") && method === "POST") {
@@ -731,9 +1001,9 @@ describe("ComponentsPage", () => {
     expect(screen.getByText(/Ethanol: 0.3/i)).toBeInTheDocument();
     await expectRowValueMath(/Densidade/i, "812,5");
     await expectRowValueMath(/Massa molar/i, "0,018");
-  });
+  }, 10000);
 
-  it("loads a representative example across the component module without calculating anything", async () => {
+  it("loads a representative example across the component module and auto-calculates derived tabs", async () => {
     mockComponentsRequests();
 
     const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
@@ -768,6 +1038,8 @@ describe("ComponentsPage", () => {
       expect(screen.getByLabelText(/Amostras T/i)).toHaveValue(20);
       expect(screen.getByLabelText(/Amostras P/i)).toHaveValue(20);
     });
+    const propertySurface = await screen.findByTestId("property-surface-heatmap");
+    expect(within(propertySurface).getByRole("img", { name: /Superfície T-P/i })).toBeInTheDocument();
 
     await openComponentsTab(/Misturas/i);
     expect(screen.getByLabelText(/Mistura componente 1/i)).toHaveValue("Água");
@@ -783,6 +1055,12 @@ describe("ComponentsPage", () => {
     expect(screen.getByLabelText(/Fração B/i)).toHaveValue(0.29);
     expect(screen.getByLabelText(/Fração C/i)).toHaveValue(0.1);
     expect(screen.getByLabelText(/Nome da corrente/i)).toHaveValue("Corrente atual");
+    const ternaryDiagram = screen.getByTestId("ternary-diagram");
+    expect(within(ternaryDiagram).getByText("Water")).toBeInTheDocument();
+    expect(within(ternaryDiagram).getByText("Ethanol")).toBeInTheDocument();
+    expect(within(ternaryDiagram).getByText("Methanol")).toBeInTheDocument();
+    expect(await screen.findByText(/Composição da mistura/i)).toBeInTheDocument();
+    await expectRowValueMath(/Densidade/i, "812,5");
 
     await openComponentsTab(/Equilíbrio Binário/i);
     expect(screen.getByLabelText(/Componente 1/i)).toHaveValue("Acetone");
@@ -795,13 +1073,66 @@ describe("ComponentsPage", () => {
     expect(screen.getByLabelText(/Refluxo/i)).toHaveValue(3);
     expect(screen.getByLabelText(/^q$/i)).toHaveValue(1);
     expect(screen.getByLabelText(/Máx\. estágios/i)).toHaveValue(10);
-    expect(screen.getByRole("button", { name: /Gerar McCabe-Thiele/i })).toBeInTheDocument();
 
     await openComponentsTab(/Envelope de Fase/i);
     expect(screen.getByLabelText(/Fluido do envelope/i)).toHaveValue("R1234ze(E)");
     expect(screen.getByLabelText(/Quantidade de pontos/i)).toHaveValue(40);
 
-    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls
+          .filter(([, init]) => init?.method === "POST")
+          .map(([url]) => String(url))
+          .sort(),
+      ).toEqual([
+        "/api/components/binary-vle/chart",
+        "/api/components/mccabe-thiele/chart",
+        "/api/components/mixture-properties",
+        "/api/components/phase-envelope/chart",
+        "/api/components/property",
+        "/api/components/property",
+        "/api/components/property",
+        "/api/components/property",
+        "/api/components/property",
+        "/api/components/property-surface/chart",
+        "/api/components/saturation-envelope",
+        "/api/components/ternary-diagram/chart",
+        "/api/components/vapor-pressure/chart",
+      ].sort());
+    });
+  });
+
+  it("keeps the worked example button disabled until the derived processing finishes", async () => {
+    const componentsRequests = mockComponentsRequests({ delayMixture: true });
+
+    const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
+    render(<RouterProvider router={router} />);
+
+    expect(
+      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
+    ).toBeInTheDocument();
+
+    await openComponentsTab(/Propriedades Críticas/i);
+
+    fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Carregar exemplo/i })).toBeDisabled();
+    });
+
+    componentsRequests.resolveMixture(
+      Response.json({
+        properties: {
+          density: { value: 812.5, units: "kilogram / meter ** 3" },
+          molecular_weight: { value: 0.018, units: "kilogram / mole" },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Carregar exemplo/i })).not.toBeDisabled();
+    });
+    expect(notifyMock.success).toHaveBeenCalledWith("Exemplo carregado com sucesso.");
   });
 
   it("generates the binary T-x-y / y-x diagram from the selected pure components", async () => {
@@ -825,12 +1156,10 @@ describe("ComponentsPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /Gerar diagrama/i }));
 
-    const binaryChart = await screen.findByTestId("binary-vle-chart");
+    const binaryChart = await screen.findByRole("img", { name: /Diagrama T-x-y binário/i });
     expect(binaryChart).toBeInTheDocument();
-    expect(within(binaryChart).getByRole("img", { name: /Equilíbrio Binário/i })).toBeInTheDocument();
-    expect(within(binaryChart).getAllByText(/Water/i).length).toBeGreaterThan(0);
-    expect(within(binaryChart).getAllByText(/Ethanol/i).length).toBeGreaterThan(0);
-    expect(binaryChart.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/Temperatura \(K\)/i);
+    expect(screen.getAllByText(/Fração molar de Acetone \(adimensional\)/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Temperatura \(K\)/i).length).toBeGreaterThan(0);
   });
 
   it("generates the McCabe-Thiele diagram from the binary equilibrium data", async () => {
@@ -854,7 +1183,7 @@ describe("ComponentsPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /Gerar diagrama/i }));
 
-    const binaryChart = await screen.findByTestId("binary-vle-chart");
+    const binaryChart = await screen.findByRole("img", { name: /Diagrama T-x-y binário/i });
     expect(binaryChart).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/^xD$/i), {
@@ -875,15 +1204,32 @@ describe("ComponentsPage", () => {
     fireEvent.change(screen.getByLabelText(/Máx\. estágios/i), {
       target: { value: "10" },
     });
-    expect(screen.queryByTestId("mccabe-thiele-chart")).toBeNull();
+    expect(screen.queryByRole("img", { name: /McCabe-Thiele/i })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Gerar McCabe-Thiele/i }));
 
-    const mccabeChart = await screen.findByTestId("mccabe-thiele-chart");
-    expect(within(mccabeChart).getByRole("img", { name: /McCabe-Thiele/i })).toBeInTheDocument();
-    expect(within(mccabeChart).getAllByText(/xD/i).length).toBeGreaterThan(0);
-    expect(within(mccabeChart).getAllByText(/xB/i).length).toBeGreaterThan(0);
-    expect(mccabeChart.querySelector('[data-chart-label="x"]')?.textContent).toMatch(/x\s*\(líquido/i);
-    expect(mccabeChart.querySelector('[data-chart-label="y"]')?.textContent).toMatch(/y\s*\(vapor/i);
+    const mccabeChart = await screen.findByRole("img", { name: /McCabe-Thiele/i });
+    expect(mccabeChart).toBeInTheDocument();
+    expect(screen.getAllByText(/x \(líquido\) \(fração molar\)/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/y \(vapor\) \(fração molar\)/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("y = x")).toBeInTheDocument();
+    expect(screen.getByText("Curva de equilíbrio")).toBeInTheDocument();
+    expect(screen.getByText("Linha de enriquecimento")).toBeInTheDocument();
+    expect(screen.getByText("Linha de esgotamento")).toBeInTheDocument();
+    expect(screen.getByText("Linha q")).toBeInTheDocument();
+    expect(screen.getByText("xD = 0,95").closest("li")).toHaveStyle({
+      borderColor: "rgb(15, 23, 42)",
+      color: "rgb(15, 23, 42)",
+    });
+    expect(screen.getByText("xB = 0,05").closest("li")).toHaveStyle({
+      borderColor: "rgb(22, 163, 74)",
+      color: "rgb(22, 163, 74)",
+    });
+    expect(screen.getByText("zF = 0,7").closest("li")).toHaveStyle({
+      borderColor: "rgb(71, 85, 105)",
+      color: "rgb(71, 85, 105)",
+    });
+    expect(screen.getAllByText(/^xD$/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^xB$/i).length).toBeGreaterThan(0);
   });
 
   it("redirects the legacy McCabe-Thiele path to the binary equilibrium tab", async () => {
@@ -937,7 +1283,7 @@ describe("ComponentsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Gerar superfície/i }));
 
     const surface = await screen.findByTestId("property-surface-heatmap");
-    expect(within(surface).getByRole("img", { name: /Superfície T-P/i })).toBeInTheDocument();
+    expect(within(surface).getByRole("img", { name: /Superfície T-P de Densidade para Water/i })).toBeInTheDocument();
     expect(within(surface).getAllByText(/Water/i).length).toBeGreaterThan(0);
     expect(within(surface).getAllByText(/Densidade/i).length).toBeGreaterThan(0);
   });
@@ -1056,6 +1402,36 @@ describe("ComponentsPage", () => {
         "Erro ao obter propriedades críticas: Falha no backend crítico",
       );
     });
+  });
+
+  it("renders compound units with KaTeX in critical properties and pure fluid results", async () => {
+    mockComponentsRequests();
+
+    const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
+    render(<RouterProvider router={router} />);
+
+    expect(
+      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
+    ).toBeInTheDocument();
+
+    await openComponentsTab(/Propriedades Críticas/i);
+    await selectComboboxOption(/Fluido crítico/i, "wat", "Water");
+    fireEvent.click(screen.getByRole("button", { name: /Obter propriedades críticas/i }));
+
+    await expectRowUnitMath(/Densidade crítica/i);
+
+    await openComponentsTab(/Fluido Puro/i);
+    await selectComboboxOption(/Fluido puro/i, "wat", "Water");
+    await selectComboboxOption(/Propriedades do fluido/i, "den", /Densidade/i);
+    fireEvent.change(screen.getByLabelText(/Temperatura do fluido/i), {
+      target: { value: "298.15" },
+    });
+    fireEvent.change(screen.getByLabelText(/Pressão do fluido/i), {
+      target: { value: "101325" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Calcular propriedades$/i }));
+
+    await expectRowUnitMath(/^Densidade$/i);
   });
 
   it("rejects the critical properties form when no fluid is selected", async () => {

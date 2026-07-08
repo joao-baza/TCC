@@ -1,97 +1,69 @@
-import { NumericChartGrid } from "@/components/viz/chart-grid";
-import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
-import { formatTableNumberText } from "@/lib/table-number";
 import { HowItWorks, TheoryRef } from "@/components/how-it-works";
+import { formatAxisLabel, scaleRenderableAxisValue } from "@/components/viz/chart-axis-utils";
+import { NumericChartGrid } from "@/components/viz/chart-grid";
+import type { AxisModel } from "@/types/chart-model";
+
+type PropertySurfaceCell = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  value?: number | null;
+  fill: string;
+  tooltip: string;
+};
+
+type PropertySurfaceLegendStop = {
+  offset: number;
+  color: string;
+  value: number;
+};
 
 type PropertySurfaceHeatmapProps = {
+  title: string;
+  subtitle?: string | null;
   fluid: string;
   propertyLabel: string;
   propertyUnits: string;
-  temperatures: number[];
-  pressures: number[];
-  values: Array<Array<number | null>>;
+  xAxis: AxisModel;
+  yAxis: AxisModel;
+  cells: PropertySurfaceCell[];
+  legendStops: PropertySurfaceLegendStop[];
   valueMin: number;
   valueMax: number;
-  title?: string;
 };
 
 const width = 820;
 const height = 460;
 const padding = { top: 28, right: 28, bottom: 70, left: 88 };
 
-function scale(value: number, min: number, max: number, start: number, end: number) {
-  if (min === max) {
-    return (start + end) / 2;
-  }
-
-  return start + ((value - min) / (max - min)) * (end - start);
+function projectX(value: number, axis: AxisModel) {
+  return scaleRenderableAxisValue(value, axis, padding.left, width - padding.right);
 }
 
-function toFixedLabel(value: number) {
-  return formatTableNumberText(value);
+function projectY(value: number, axis: AxisModel) {
+  return scaleRenderableAxisValue(value, axis, height - padding.bottom, padding.top);
 }
 
-function formatTemperature(value: number) {
-  return `${toFixedLabel(value)} K`;
-}
+function buildLegendGradient(stops: PropertySurfaceLegendStop[]) {
+  const gradientStops = stops.map((stop) => `${stop.color} ${stop.offset * 100}%`).join(", ");
 
-function formatPressure(value: number) {
-  if (value >= 1_000_000) {
-    return `${toFixedLabel(value / 1_000_000)} MPa`;
-  }
-
-  if (value >= 1000) {
-    return `${toFixedLabel(value / 1000)} kPa`;
-  }
-
-  return `${toFixedLabel(value)} Pa`;
-}
-
-function interpolate(from: number, to: number, ratio: number) {
-  return from + (to - from) * ratio;
-}
-
-function heatColor(value: number, min: number, max: number) {
-  if (!Number.isFinite(value)) {
-    return "#e2e8f0";
-  }
-
-  if (min === max) {
-    return "hsl(180 55% 44%)";
-  }
-
-  const ratio = Math.max(0, Math.min(1, (value - min) / (max - min)));
-  const hue = interpolate(232, 34, ratio);
-  const saturation = interpolate(58, 82, ratio);
-  const lightness = interpolate(94, 42, ratio);
-  return `hsl(${hue} ${saturation}% ${lightness}%)`;
+  return `linear-gradient(90deg, ${gradientStops})`;
 }
 
 export function PropertySurfaceHeatmap({
+  title,
+  subtitle,
   fluid,
   propertyLabel,
   propertyUnits,
-  temperatures,
-  pressures,
-  values,
+  xAxis,
+  yAxis,
+  cells,
+  legendStops,
   valueMin,
   valueMax,
-  title = "Superfície T-P",
 }: PropertySurfaceHeatmapProps) {
-  const gridWidth = width - padding.left - padding.right;
-  const gridHeight = height - padding.top - padding.bottom;
-  const cellWidth = temperatures.length > 0 ? gridWidth / temperatures.length : gridWidth;
-  const cellHeight = pressures.length > 0 ? gridHeight / pressures.length : gridHeight;
-  const temperatureDomain = expandNumericDomain(temperatures);
-  const pressureDomain = expandNumericDomain(pressures);
-
-  const normalizedLegendStops = [
-    { offset: 0, color: heatColor(valueMin, valueMin, valueMax) },
-    { offset: 0.33, color: heatColor(valueMin + (valueMax - valueMin) * 0.33, valueMin, valueMax) },
-    { offset: 0.66, color: heatColor(valueMin + (valueMax - valueMin) * 0.66, valueMin, valueMax) },
-    { offset: 1, color: heatColor(valueMax, valueMin, valueMax) },
-  ];
-
   return (
     <section
       className="mx-auto w-full max-w-[760px] space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
@@ -101,7 +73,7 @@ export function PropertySurfaceHeatmap({
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
           <p className="text-sm text-muted-foreground">
-            Mapa T-P de {propertyLabel.toLowerCase()} para {fluid}.
+            {subtitle ?? `Mapa T-P de ${propertyLabel.toLowerCase()} para ${fluid}.`}
           </p>
         </div>
         <div className="text-sm font-medium text-slate-700">
@@ -112,136 +84,87 @@ export function PropertySurfaceHeatmap({
 
       <HowItWorks title="Como funciona - Superfície T-P">
         <p>
-          O mapa cruza temperatura e pressão para calcular uma propriedade termodinâmica em cada
-          ponto da malha. A cor de cada célula representa o valor interpolado da propriedade
-          selecionada.
+          O backend monta a malha temperatura-pressão, calcula os valores válidos, define o
+          domínio dos eixos e devolve as cores das células já prontas para a renderização.
         </p>
         <p>
-          Ele serve para enxergar rapidamente onde a propriedade muda mais, onde a variação é mais
-          suave e quais regiões exigem maior cuidado de interpolação ou de controle.
+          A interface só desenha a grade e os retângulos recebidos, preservando a leitura rápida
+          da sensibilidade da propriedade ao longo do plano T-P.
         </p>
-        <div className="space-y-1">
-          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>Faixas de alta sensibilidade da propriedade em relação a temperatura e pressão.</li>
-            <li>Regiões onde a resposta é quase linear e onde a curvatura fica mais forte.</li>
-            <li>Estimativa rápida de valores intermediários por interpolação visual.</li>
-            <li>Comparação do mesmo fluido em condições diferentes de processo.</li>
-          </ul>
-        </div>
-        <p className="text-sm text-slate-800">
-          Finalidade: apoiar simulação, análise de sensibilidade e leitura de tendências
-          termodinâmicas sem sair da interface.
-        </p>
-        <TheoryRef>Ref.: NIST/ASME Steam Properties Users' Guide; Cambridge, Thermodynamics with Chemical Engineering Applications.</TheoryRef>
+        <TheoryRef>
+          Ref.: NIST/ASME Steam Properties Users&apos; Guide; Cambridge, Thermodynamics with
+          Chemical Engineering Applications.
+        </TheoryRef>
       </HowItWorks>
 
-      {temperatures.length && pressures.length && values.length ? (
-        <>
-          <div
-            className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
-            style={{ aspectRatio: `${width} / ${height}` }}
-          >
-            <NumericChartGrid
-              xDomain={[temperatureDomain.min, temperatureDomain.max]}
-              yDomain={[pressureDomain.min, pressureDomain.max]}
-              width={width}
-              height={height}
-              padding={padding}
-              xLabel="Temperatura (K)"
-              yLabel="Pressão (Pa)"
-            />
+      <div
+        className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+        style={{ aspectRatio: `${width} / ${height}` }}
+      >
+        <NumericChartGrid
+          width={width}
+          height={height}
+          padding={padding}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          xLabel={formatAxisLabel(xAxis)}
+          yLabel={formatAxisLabel(yAxis)}
+        />
 
-            <svg
-              aria-label={`${title} de ${propertyLabel} para ${fluid}`}
-              className="absolute inset-0 block h-full w-full overflow-hidden"
-              preserveAspectRatio="xMidYMid meet"
-              role="img"
-              viewBox={`0 0 ${width} ${height}`}
-            >
-              <defs>
-                <linearGradient id="property-surface-legend" x1="0%" x2="100%" y1="0%" y2="0%">
-                  {normalizedLegendStops.map((stop) => (
-                    <stop key={stop.offset} offset={`${stop.offset * 100}%`} stopColor={stop.color} />
-                  ))}
-                </linearGradient>
-              </defs>
+        <svg
+          aria-label={`${title} de ${propertyLabel} para ${fluid}`}
+          className="absolute inset-0 block h-full w-full overflow-hidden"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          viewBox={`0 0 ${width} ${height}`}
+        >
+          <defs>
+            <linearGradient id="property-surface-legend" x1="0%" x2="100%" y1="0%" y2="0%">
+              {legendStops.map((stop) => (
+                <stop key={stop.offset} offset={`${stop.offset * 100}%`} stopColor={stop.color} />
+              ))}
+            </linearGradient>
+          </defs>
 
-              {pressures.map((pressure, rowIndex) =>
-                temperatures.map((temperature, columnIndex) => {
-                  const value = values[rowIndex]?.[columnIndex] ?? null;
-                  const x = padding.left + columnIndex * cellWidth;
-                  const y = padding.top + (pressures.length - rowIndex - 1) * cellHeight;
-                  const fill = heatColor(value ?? Number.NaN, valueMin, valueMax);
-                  const tooltip =
-                    value == null
-                      ? `${formatTemperature(temperature)} · ${formatPressure(pressure)} · sem solução`
-                      : `${formatTemperature(temperature)} · ${formatPressure(pressure)} · ${propertyLabel} = ${toFixedLabel(value)} ${propertyUnits}`;
+          {cells.map((cell, index) => {
+            const x = projectX(cell.x, xAxis);
+            const x2 = projectX(cell.x + cell.width, xAxis);
+            const y = projectY(cell.y, yAxis);
+            const y2 = projectY(cell.y + cell.height, yAxis);
 
-                  return (
-                    <rect
-                      key={`${rowIndex}-${columnIndex}`}
-                      fill={fill}
-                      height={cellHeight}
-                      stroke="#ffffff"
-                      strokeWidth="1"
-                      width={cellWidth}
-                      x={x}
-                      y={y}
-                    >
-                      <title>{tooltip}</title>
-                    </rect>
-                  );
-                }),
-              )}
-            </svg>
-          </div>
+            if (x == null || x2 == null || y == null || y2 == null) {
+              return null;
+            }
 
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="h-3 overflow-hidden rounded-full border border-slate-200 bg-white">
-              <div
-                className="h-full w-full"
-                style={{ background: "linear-gradient(90deg, #0f766e 0%, #2563eb 50%, #d97706 100%)" }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-xs font-medium text-slate-600">
-              <span>
-                {toFixedLabel(valueMin)} {propertyUnits}
-              </span>
-              <span>
-                {toFixedLabel(valueMax)} {propertyUnits}
-              </span>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-          Não foi possível montar a superfície para os parâmetros selecionados.
+            return (
+              <rect
+                key={index}
+                fill={cell.fill}
+                height={Math.abs(y2 - y)}
+                stroke="#ffffff"
+                strokeWidth="1"
+                width={Math.abs(x2 - x)}
+                x={Math.min(x, x2)}
+                y={Math.min(y, y2)}
+              >
+                <title>{cell.tooltip}</title>
+              </rect>
+            );
+          })}
+        </svg>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div className="h-3 overflow-hidden rounded-full border border-slate-200 bg-white">
+          <div className="h-full w-full" style={{ background: buildLegendGradient(legendStops) }} />
         </div>
-      )}
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Fluido
-          </p>
-          <p className="mt-1 text-sm text-slate-900">{fluid}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Faixa T
-          </p>
-          <p className="mt-1 text-sm text-slate-900">
-            {formatTemperature(temperatures[0] ?? 0)} - {formatTemperature(temperatures[temperatures.length - 1] ?? 0)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Faixa P
-          </p>
-          <p className="mt-1 text-sm text-slate-900">
-            {formatPressure(pressures[0] ?? 0)} - {formatPressure(pressures[pressures.length - 1] ?? 0)}
-          </p>
+        <div className="flex items-center justify-between text-xs font-medium text-slate-600">
+          <span>
+            {valueMin} {propertyUnits}
+          </span>
+          <span>
+            {valueMax} {propertyUnits}
+          </span>
         </div>
       </div>
     </section>

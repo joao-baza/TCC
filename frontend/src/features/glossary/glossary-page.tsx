@@ -29,8 +29,33 @@ function normalizeSearchText(value: string) {
     .toLowerCase();
 }
 
+function renderInlineMarkup(value: string) {
+  const tokenPattern = /(<strong>.*?<\/strong>|<em>.*?<\/em>)/g;
+  const parts = value.split(tokenPattern).filter(Boolean);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("<strong>") && part.endsWith("</strong>")) {
+      return (
+        <strong key={`strong-${index}`}>
+          {decodeEntities(part.replace(/<\/?strong>/g, ""))}
+        </strong>
+      );
+    }
+
+    if (part.startsWith("<em>") && part.endsWith("</em>")) {
+      return (
+        <em key={`em-${index}`}>
+          {decodeEntities(part.replace(/<\/?em>/g, ""))}
+        </em>
+      );
+    }
+
+    return <Fragment key={`text-${index}`}>{decodeEntities(part)}</Fragment>;
+  });
+}
+
 function renderDefinition(definition: string) {
-  const tokenPattern = /(<strong>.*?<\/strong>|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\))/g;
+  const tokenPattern = /(<strong>.*?<\/strong>|<em>.*?<\/em>|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\))/g;
   const parts = definition.split(tokenPattern).filter(Boolean);
 
   return parts.map((part, index) => {
@@ -39,6 +64,12 @@ function renderDefinition(definition: string) {
         <strong key={`strong-${index}`}>
           {decodeEntities(part.replace(/<\/?strong>/g, ""))}
         </strong>
+      );
+    }
+
+    if (part.startsWith("<em>") && part.endsWith("</em>")) {
+      return (
+        <em key={`em-${index}`}>{decodeEntities(part.replace(/<\/?em>/g, ""))}</em>
       );
     }
 
@@ -134,7 +165,7 @@ export function GlossaryPage() {
                   <div className="grid gap-4">
                     {group.entries.map((entry) => (
                       <article key={entry.term} className="min-w-0 rounded-xl border p-4">
-                        <h4 className="font-medium">{entry.term}</h4>
+                        <h4 className="font-medium">{renderInlineMarkup(entry.term)}</h4>
                         <div className="mt-2 min-w-0 space-y-2 text-sm leading-6 text-slate-600">
                           {renderDefinition(entry.definition)}
                         </div>

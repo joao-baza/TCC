@@ -1,262 +1,55 @@
-import { NumericChartGrid } from "@/components/viz/chart-grid";
-import { expandNumericDomain } from "@/components/viz/chart-axis-utils";
-import { formatTableNumberText } from "@/lib/table-number";
+import { ChartModelRenderer } from "@/components/viz/chart-model-renderer";
+import { ChartDidacticCard } from "@/components/viz/chart-didactic-card";
+import { normalizeChartColors } from "@/components/viz/chart-color-utils";
+import { ChartSeriesLegend } from "@/components/viz/chart-series-legend";
 import { HowItWorks, TheoryRef } from "@/components/how-it-works";
-
-type BinaryVlePoint = {
-  liquid_fraction: number;
-  vapor_fraction: number;
-  temperature: number;
-};
+import type { ChartModel } from "@/types/chart-model";
 
 type BinaryVleChartProps = {
-  fluid1: string;
-  fluid2: string;
-  pressure: number;
-  bubblePoints: BinaryVlePoint[];
-  dewPoints: BinaryVlePoint[];
-  title?: string;
+  model: ChartModel;
 };
 
-type Point = {
-  x: number;
-  y: number;
-};
-
-const width = 760;
-const height = 320;
-const padding = { top: 28, right: 28, bottom: 44, left: 72 };
-
-function scale(value: number, min: number, max: number, start: number, end: number) {
-  if (min === max) {
-    return (start + end) / 2;
-  }
-
-  return start + ((value - min) / (max - min)) * (end - start);
-}
-
-function toFixedLabel(value: number) {
-  return formatTableNumberText(value);
-}
-
-function buildPath(points: Point[]) {
-  if (points.length === 0) {
-    return "";
-  }
-
-  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
-}
-
-function normalizeComposition(value: number) {
-  return Math.max(0, Math.min(1, value));
-}
-
-function buildSeries(points: BinaryVlePoint[], mode: "bubble" | "dew" | "yx") {
-  return points.map((point) => {
-    const composition =
-      mode === "bubble"
-        ? point.liquid_fraction
-        : mode === "dew"
-          ? point.vapor_fraction
-          : point.liquid_fraction;
-    const response =
-      mode === "bubble"
-        ? point.temperature
-        : mode === "dew"
-          ? point.temperature
-          : point.vapor_fraction;
-
-    return { x: composition, y: response };
-  });
-}
-
-export function BinaryVleChart({
-  fluid1,
-  fluid2,
-  pressure,
-  bubblePoints,
-  dewPoints,
-  title = "Equilíbrio Binário",
-}: BinaryVleChartProps) {
-  const temperatureValues = [...bubblePoints, ...dewPoints].map((point) => point.temperature);
-  const temperatureDomain = expandNumericDomain(temperatureValues);
-  const compositionDomain = { min: 0, max: 1 };
-
-  const bubbleSeries = buildSeries(bubblePoints, "bubble").map((point) => ({
-    x: scale(normalizeComposition(point.x), compositionDomain.min, compositionDomain.max, padding.left, width - padding.right),
-    y: scale(point.y, temperatureDomain.min, temperatureDomain.max, height - padding.bottom, padding.top),
-  }));
-  const dewSeries = buildSeries(dewPoints, "dew").map((point) => ({
-    x: scale(normalizeComposition(point.x), compositionDomain.min, compositionDomain.max, padding.left, width - padding.right),
-    y: scale(point.y, temperatureDomain.min, temperatureDomain.max, height - padding.bottom, padding.top),
-  }));
-  const yxSeries = buildSeries(bubblePoints, "yx").map((point) => ({
-    x: scale(normalizeComposition(point.x), compositionDomain.min, compositionDomain.max, padding.left, width - padding.right),
-    y: scale(normalizeComposition(point.y), compositionDomain.min, compositionDomain.max, height - padding.bottom, padding.top),
-  }));
-  const diagonalSeries = buildSeries(
-    bubblePoints.length ? [{ liquid_fraction: 0, vapor_fraction: 0, temperature: 0 }, { liquid_fraction: 1, vapor_fraction: 1, temperature: 0 }] : [],
-    "yx",
-  ).map((point) => ({
-    x: scale(point.x, compositionDomain.min, compositionDomain.max, padding.left, width - padding.right),
-    y: scale(point.y, compositionDomain.min, compositionDomain.max, height - padding.bottom, padding.top),
+export function BinaryVleChart({ model }: BinaryVleChartProps) {
+  const normalizedModel = normalizeChartColors(model);
+  const legendItems = normalizedModel.series.map((series) => ({
+    id: series.id,
+    label: series.name,
+    color: series.color ?? "#2563eb",
   }));
 
   return (
-    <section
-      className="mx-auto w-full max-w-[760px] space-y-5 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"
-      data-testid="binary-vle-chart"
-    >
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-          <p className="text-sm text-muted-foreground">
-            Aproximação didática ideal de Raoult para {fluid1} / {fluid2}.
-          </p>
-        </div>
-        <p className="text-sm font-medium text-slate-700">P = {toFixedLabel(pressure)} Pa</p>
-      </div>
-
-      <HowItWorks title="Como funciona - Equilíbrio Binário">
-        <p>
-          O painel T-x-y mostra, a pressão fixa, as temperaturas de bolha e de orvalho ao longo
-          da composição. O painel y-x mostra o equilíbrio entre a fração molar no líquido
-          (<code>x</code>) e no vapor (<code>y</code>) do componente mais volátil.
-        </p>
-        <p>
-          A leitura conjunta dessas curvas serve para identificar quando uma mistura entra ou sai
-          da região bifásica e para antecipar a dificuldade de separação por destilação.
-        </p>
-        <div className="space-y-1">
-          <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>Temperatura de bolha e de orvalho para uma composição específica.</li>
-            <li>Curvatura da relação equilíbrio líquido-vapor e tendência de volatilidade relativa.</li>
-            <li>Presença de azeótropo ou aproximação entre as curvas em uma dada pressão.</li>
-            <li>Faixa de composição em que a separação por destilação fica mais ou menos favorável.</li>
-          </ul>
-        </div>
-        <p className="text-sm text-slate-800">
-          Finalidade: orientar a leitura de equilíbrio e a escolha da pressão de operação antes de
-          avançar para o dimensionamento da coluna.
-        </p>
-        <TheoryRef>Ref.: Seader, Henley e Roper, Separation Process Principles, 4a ed., Wiley; DeVoe, Phase Diagrams- Binary Systems, LibreTexts.</TheoryRef>
-      </HowItWorks>
-
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <p className="mb-2 text-sm font-medium text-slate-800">T-x-y</p>
-          <div
-            className="relative mx-auto w-full max-w-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
-            style={{ aspectRatio: `${width} / ${height}` }}
-          >
-            <NumericChartGrid
-              xDomain={[compositionDomain.min, compositionDomain.max]}
-              yDomain={[temperatureDomain.min, temperatureDomain.max]}
-              width={width}
-              height={height}
-              padding={padding}
-              xLabel="Fração molar"
-              yLabel="Temperatura (K)"
-            />
-            <svg
-              aria-label={title}
-              className="absolute inset-0 block h-full w-full overflow-hidden"
-              preserveAspectRatio="xMidYMid meet"
-              role="img"
-              viewBox={`0 0 ${width} ${height}`}
-            >
-              <path
-                d={buildPath(bubbleSeries)}
-                fill="none"
-                stroke="#0f766e"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="3"
-              />
-              <path
-                d={buildPath(dewSeries)}
-                fill="none"
-                stroke="#b45309"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="3"
-              />
-
-              {bubbleSeries.map((point, index) => (
-                <circle key={`bubble-${index}`} cx={point.x} cy={point.y} fill="#0f766e" r="3.5" />
-              ))}
-              {dewSeries.map((point, index) => (
-                <circle key={`dew-${index}`} cx={point.x} cy={point.y} fill="#b45309" r="3.5" />
-              ))}
-            </svg>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-            <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-              Curva de bolha
-            </span>
-            <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-              Curva de orvalho
-            </span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <p className="mb-2 text-sm font-medium text-slate-800">y-x</p>
-          <div
-            className="relative mx-auto w-full max-w-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white"
-            style={{ aspectRatio: `${width} / ${height}` }}
-          >
-            <NumericChartGrid
-              xDomain={[compositionDomain.min, compositionDomain.max]}
-              yDomain={[compositionDomain.min, compositionDomain.max]}
-              width={width}
-              height={height}
-              padding={padding}
-              xLabel="Fração molar x₁"
-              yLabel="Fração molar y₁"
-            />
-            <svg
-              aria-label="Diagrama y-x"
-              className="absolute inset-0 block h-full w-full overflow-hidden"
-              preserveAspectRatio="xMidYMid meet"
-              role="img"
-              viewBox={`0 0 ${width} ${height}`}
-            >
-              <path
-                d={buildPath(diagonalSeries)}
-                fill="none"
-                stroke="#94a3b8"
-                strokeDasharray="5 5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-              />
-              <path
-                d={buildPath(yxSeries)}
-                fill="none"
-                stroke="#1d4ed8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="3"
-              />
-
-              {yxSeries.map((point, index) => (
-                <circle key={`yx-${index}`} cx={point.x} cy={point.y} fill="#1d4ed8" r="3.5" />
-              ))}
-            </svg>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-            <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-              y = x
-            </span>
-            <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-              Equilíbrio líquido-vapor
-            </span>
-          </div>
-        </div>
-      </div>
-
-    </section>
+    <div data-testid="binary-vle-chart">
+      <ChartDidacticCard
+        title={normalizedModel.title}
+        subtitle={normalizedModel.subtitle}
+        howItWorks={
+          <HowItWorks title="Como funciona - Diagrama T-x-y binário">
+            <p>
+              O diagrama T-x-y mostra o equilíbrio líquido-vapor de uma mistura binária a
+              pressão fixa. O eixo horizontal representa a composição molar e o eixo vertical
+              mostra a temperatura em que as fases entram em equilíbrio.
+            </p>
+            <p>
+              A curva de bolha indica quando uma mistura líquida começa a vaporizar; a curva
+              de orvalho indica quando um vapor começa a condensar. A região entre as duas
+              curvas corresponde à coexistência de líquido e vapor.
+            </p>
+            <p>
+              Para interpretar, escolha uma composição no eixo x, suba até a faixa entre as
+              curvas e leia quais temperaturas e composições estão associadas a cada fase.
+              Isso ajuda a visualizar volatilidade relativa e a viabilidade de separação por
+              destilação.
+            </p>
+            <TheoryRef>
+              Ref.: Smith, Van Ness & Abbott, Introduction to Chemical Engineering
+              Thermodynamics.
+            </TheoryRef>
+          </HowItWorks>
+        }
+      >
+        <ChartModelRenderer model={normalizedModel} withPanel={false} />
+        <ChartSeriesLegend items={legendItems} />
+      </ChartDidacticCard>
+    </div>
   );
 }

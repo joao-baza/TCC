@@ -1,4 +1,5 @@
 import { formatTableNumberText } from "@/lib/table-number";
+import type { AxisModel } from "@/types/chart-model";
 
 export type NumericDomain = {
   min: number;
@@ -131,8 +132,114 @@ export function buildAxisTicks(min: number, max: number, targetCount = 5) {
   );
 }
 
+export function buildAxisUpperBound(max: number, targetCount = 5, fallback = 1) {
+  if (!Number.isFinite(max) || max <= 0) {
+    return fallback;
+  }
+
+  const count = Math.max(2, Math.round(targetCount));
+  const rawStep = max / (count - 1);
+
+  if (!Number.isFinite(rawStep) || rawStep <= 0) {
+    return fallback;
+  }
+
+  const exponent = Math.floor(Math.log10(rawStep));
+  const magnitude = 10 ** exponent;
+  const normalizedStep = rawStep / magnitude;
+  const niceStepFactor =
+    normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 5 ? 5 : 10;
+  const niceStep = niceStepFactor * magnitude;
+
+  return normalizeNumber(niceStep * Math.ceil(max / niceStep));
+}
+
 export function formatAxisTick(value: number) {
   return formatTableNumberText(value);
+}
+
+export function formatChartAxisTick(axis: Pick<AxisModel, "tick_format">, value: number) {
+  if (axis.tick_format === "integer") {
+    return formatTableNumberText(Math.round(value));
+  }
+
+  if (axis.tick_format === "scientific") {
+    if (Object.is(value, -0) || value === 0) {
+      return "0";
+    }
+
+    const absoluteValue = Math.abs(value);
+    const exponent = Math.floor(Math.log10(absoluteValue));
+    const mantissa = value / 10 ** exponent;
+    return `${formatTableNumberText(mantissa)} × 10^${exponent}`;
+  }
+
+  return formatAxisTick(value);
+}
+
+export function formatAxisLabel(axis: Pick<AxisModel, "label" | "units">) {
+  return axis.units ? `${axis.label} (${axis.units})` : axis.label;
+}
+
+export function canPlotAxisValue(
+  value: number,
+  axis: Pick<AxisModel, "scale" | "domain">,
+) {
+  const { min, max } = axis.domain;
+
+  if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max)) {
+    return false;
+  }
+
+  if (axis.scale === "log") {
+    return value > 0 && min > 0 && max > 0 && min !== max;
+  }
+
+  return true;
+}
+
+export function scaleRenderableAxisValue(
+  value: number,
+  axis: Pick<AxisModel, "scale" | "domain">,
+  start: number,
+  end: number,
+) {
+  if (!canPlotAxisValue(value, axis)) {
+    return null;
+  }
+
+  return scaleAxisValue(value, axis, start, end);
+}
+
+export function scaleAxisValue(
+  value: number,
+  axis: Pick<AxisModel, "scale" | "domain">,
+  start: number,
+  end: number,
+) {
+  const { min, max } = axis.domain;
+
+  if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max)) {
+    return (start + end) / 2;
+  }
+
+  if (axis.scale === "log") {
+    if (value <= 0 || min <= 0 || max <= 0 || min === max) {
+      return (start + end) / 2;
+    }
+
+    const logMin = Math.log10(min);
+    const logMax = Math.log10(max);
+    const ratio = (Math.log10(value) - logMin) / (logMax - logMin);
+
+    return start + ratio * (end - start);
+  }
+
+  if (min === max) {
+    return (start + end) / 2;
+  }
+
+  return start + ((value - min) / (max - min)) * (end - start);
 }
 
 export function placeSafeLabel({

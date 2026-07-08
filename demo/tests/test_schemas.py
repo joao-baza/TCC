@@ -210,7 +210,7 @@ class TestWorkedExampleResponseModels:
                 "composition": "Aço galvanizado",
                 "schedule": "SCH40",
                 "diameter": 125,
-                "fitting": "Válvula de esfera",
+                "fitting": "Válvula esfera",
             }
         )
 
@@ -218,7 +218,7 @@ class TestWorkedExampleResponseModels:
             "composition": "Aço galvanizado",
             "schedule": "SCH40",
             "diameter": 125.0,
-            "fitting": "Válvula de esfera",
+            "fitting": "Válvula esfera",
         }
 
     def test_sizing_example_response_validates(self):
@@ -295,7 +295,7 @@ class TestReactorSchemas:
                     "fittings": [
                         {"fitting": "Cotovelo 45°", "quantity": 5},
                         {"fitting": "Saída de tanque", "quantity": 1},
-                        {"fitting": "Válvula de esfera", "quantity": 2},
+                        {"fitting": "Válvula esfera", "quantity": 2},
                     ],
                 },
                 "npsh": {

@@ -1,117 +1,72 @@
-import { NumericChartGrid } from "@/components/viz/chart-grid";
 import { HowItWorks, TheoryRef } from "@/components/how-it-works";
+import { formatAxisLabel, scaleRenderableAxisValue } from "@/components/viz/chart-axis-utils";
+import { NumericChartGrid } from "@/components/viz/chart-grid";
+import type { AxisModel, ChartPointModel, MarkerModel } from "@/types/chart-model";
 
-type CurvePoint = {
-  flowRate: number;
-  head: number;
+export type PumpEfficiencyMapModel = {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  approximation_notice?: string | null;
+  x_axis: AxisModel;
+  y_axis: AxisModel;
+  cells: Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    efficiency: number;
+    fill: string;
+    tooltip: string;
+  }>;
+  system_curve: ChartPointModel[];
+  cavitation_band: ChartPointModel[];
+  markers: MarkerModel[];
 };
 
 type PumpEfficiencyMapProps = {
-  operatingPoint: CurvePoint;
-  systemCurve: CurvePoint[];
-  title?: string;
-};
-
-type PlotPoint = {
-  x: number;
-  y: number;
+  model: PumpEfficiencyMapModel;
 };
 
 const width = 820;
 const height = 420;
 const padding = { top: 28, right: 28, bottom: 48, left: 112 };
+const pumpCurveColor = "#0f766e";
+const bepColor = "#16a34a";
+const operatingColor = "#dc2626";
+const cavitationColor = "#f97316";
 
-function scale(value: number, min: number, max: number, start: number, end: number) {
-  if (min === max) {
-    return (start + end) / 2;
-  }
-
-  return start + ((value - min) / (max - min)) * (end - start);
+function projectX(value: number, axis: AxisModel) {
+  return scaleRenderableAxisValue(value, axis, padding.left, width - padding.right);
 }
 
-function buildPath(points: PlotPoint[]) {
-  if (points.length === 0) {
+function projectY(value: number, axis: AxisModel) {
+  return scaleRenderableAxisValue(value, axis, height - padding.bottom, padding.top);
+}
+
+function buildPath(points: ChartPointModel[], xAxis: AxisModel, yAxis: AxisModel) {
+  const projected = points.flatMap((point) => {
+    const x = projectX(point.x, xAxis);
+    const y = projectY(point.y, yAxis);
+    return x == null || y == null ? [] : [{ x, y }];
+  });
+
+  if (projected.length === 0) {
     return "";
   }
 
-  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+  return projected.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
-function interpolate(from: number, to: number, ratio: number) {
-  return from + (to - from) * ratio;
+function buildClosedPath(points: ChartPointModel[], xAxis: AxisModel, yAxis: AxisModel) {
+  const path = buildPath(points, xAxis, yAxis);
+  return path ? `${path} Z` : "";
 }
 
-function efficiencyToColor(efficiency: number) {
-  const normalized = Math.max(0, Math.min(1, efficiency));
-  const hue = interpolate(220, 145, normalized);
-  const saturation = interpolate(72, 78, normalized);
-  const lightness = interpolate(92, 40, normalized);
-  return `hsl(${hue} ${saturation}% ${lightness}%)`;
-}
-
-function buildEfficiency(flow: number, head: number, bepFlow: number, bepHead: number, maxFlow: number, maxHead: number) {
-  const q = flow / Math.max(maxFlow, 1);
-  const h = head / Math.max(maxHead, 1);
-  const qBep = bepFlow / Math.max(maxFlow, 1);
-  const hBep = bepHead / Math.max(maxHead, 1);
-
-  const distance = (q - qBep) ** 2 * 3.4 + (h - hBep) ** 2 * 2.2;
-  return Math.max(0.18, 0.92 - distance);
-}
-
-export function PumpEfficiencyMap({
-  operatingPoint,
-  systemCurve,
-  title = "Eficiência e BEP",
-}: PumpEfficiencyMapProps) {
-  const sortedCurve = [...systemCurve].sort((left, right) => left.flowRate - right.flowRate);
-  const maxFlow = Math.max(operatingPoint.flowRate, ...sortedCurve.map((point) => point.flowRate), 1);
-  const maxHead = Math.max(operatingPoint.head, ...sortedCurve.map((point) => point.head), 1);
-  const bepFlow = operatingPoint.flowRate > 0 ? operatingPoint.flowRate : maxFlow * 0.55;
-  const bepHead = operatingPoint.head > 0 ? operatingPoint.head : maxHead * 0.62;
-
-  const cols = 10;
-  const rows = 7;
-  const gridWidth = width - padding.left - padding.right;
-  const gridHeight = height - padding.top - padding.bottom;
-  const cellWidth = gridWidth / cols;
-  const cellHeight = gridHeight / rows;
-  const xDomain: [number, number] = [0, maxFlow * 1.1];
-  const yDomain: [number, number] = [0, maxHead * 1.1];
-
-  const curvePoints: PlotPoint[] = sortedCurve.map((point) => ({
-    x: scale(point.flowRate, xDomain[0], xDomain[1], padding.left, width - padding.right),
-    y: scale(point.head, yDomain[0], yDomain[1], height - padding.bottom, padding.top),
-  }));
-  const operatingX = scale(operatingPoint.flowRate, xDomain[0], xDomain[1], padding.left, width - padding.right);
-  const operatingY = scale(operatingPoint.head, yDomain[0], yDomain[1], height - padding.bottom, padding.top);
-  const bepX = scale(bepFlow, xDomain[0], xDomain[1], padding.left, width - padding.right);
-  const bepY = scale(bepHead, yDomain[0], yDomain[1], height - padding.bottom, padding.top);
-
-  const cavitationPath = [
-    `M ${padding.left} ${height - padding.bottom}`,
-    `L ${padding.left} ${height - padding.bottom - gridHeight * 0.3}`,
-    `L ${padding.left + gridWidth * 0.34} ${height - padding.bottom - gridHeight * 0.3}`,
-    `L ${padding.left + gridWidth * 0.34} ${height - padding.bottom}`,
-    "Z",
-  ].join(" ");
-
-  const cells: Array<{ x: number; y: number; efficiency: number; width: number; height: number }> = [];
-  for (let row = 0; row < rows; row += 1) {
-    for (let col = 0; col < cols; col += 1) {
-      const x = padding.left + col * cellWidth;
-      const y = padding.top + row * cellHeight;
-      const flow = ((col + 0.5) / cols) * xDomain[1];
-      const head = ((rows - row - 0.5) / rows) * yDomain[1];
-      cells.push({
-        x,
-        y,
-        width: cellWidth,
-        height: cellHeight,
-        efficiency: buildEfficiency(flow, head, bepFlow, bepHead, xDomain[1], yDomain[1]),
-      });
-    }
-  }
+export function PumpEfficiencyMap({ model }: PumpEfficiencyMapProps) {
+  const operatingPoint = model.markers.find((marker) => marker.id === "operating-point") ?? null;
+  const bestEfficiencyPoint =
+    model.markers.find((marker) => marker.id === "best-efficiency-point") ?? null;
 
   return (
     <section
@@ -120,9 +75,10 @@ export function PumpEfficiencyMap({
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{model.title}</h3>
           <p className="text-sm text-muted-foreground">
-            Mapa sintético para leitura didática da região de melhor eficiência e faixa de cavitação.
+            {model.subtitle ??
+              "Mapa sintético para leitura didática da região de melhor eficiência e faixa de cavitação."}
           </p>
         </div>
       </div>
@@ -133,8 +89,8 @@ export function PumpEfficiencyMap({
           de operação com o melhor rendimento possível.
         </p>
         <p>
-          A mancha colorida representa a eficiência relativa, enquanto a curva e o ponto vermelho
-          mostram como o sistema está se comportando na condição atual.
+          O backend devolve a malha do campo relativo de eficiência, a curva do sistema, o BEP e
+          a faixa aproximada de cavitação já resolvidos para a condição calculada.
         </p>
         <div className="space-y-1">
           <p className="font-medium text-slate-800">O que você pode extrair daqui:</p>
@@ -148,79 +104,132 @@ export function PumpEfficiencyMap({
         <TheoryRef>Ref.: Karassik et al., Pump Handbook, 4a ed., McGraw-Hill.</TheoryRef>
       </HowItWorks>
 
-      <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style={{ aspectRatio: `${width} / ${height}` }}>
+      <div
+        className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+        style={{ aspectRatio: `${width} / ${height}` }}
+      >
         <NumericChartGrid
-          xDomain={xDomain}
-          yDomain={yDomain}
           width={width}
           height={height}
           padding={padding}
-          xLabel="Vazão volumétrica (Q)"
-          yLabel="Altura manométrica (H)"
+          xAxis={model.x_axis}
+          yAxis={model.y_axis}
+          xLabel={formatAxisLabel(model.x_axis)}
+          yLabel={formatAxisLabel(model.y_axis)}
         />
 
         <svg
-          aria-label={title}
+          aria-label={model.title}
           className="absolute inset-0 block h-full w-full"
           preserveAspectRatio="xMidYMid meet"
           role="img"
           viewBox={`0 0 ${width} ${height}`}
         >
-          {cells.map((cell, index) => (
-            <rect
-              key={`cell-${index}`}
-              fill={efficiencyToColor(cell.efficiency)}
-              height={cell.height}
-              stroke="#ffffff"
-              strokeWidth="1"
-              width={cell.width}
-              x={cell.x}
-              y={cell.y}
-            />
-          ))}
+          {model.cells.map((cell, index) => {
+            const x = projectX(cell.x, model.x_axis);
+            const x2 = projectX(cell.x + cell.width, model.x_axis);
+            const y = projectY(cell.y, model.y_axis);
+            const y2 = projectY(cell.y + cell.height, model.y_axis);
 
-          <path d={cavitationPath} fill="rgba(249, 115, 22, 0.16)" stroke="none" />
+            if (x == null || x2 == null || y == null || y2 == null) {
+              return null;
+            }
+
+            return (
+              <rect
+                key={`cell-${index}`}
+                fill={cell.fill}
+                height={Math.abs(y2 - y)}
+                stroke="#ffffff"
+                strokeWidth="1"
+                width={Math.abs(x2 - x)}
+                x={Math.min(x, x2)}
+                y={Math.min(y, y2)}
+              >
+                <title>{cell.tooltip}</title>
+              </rect>
+            );
+          })}
+
+          {model.cavitation_band.length > 0 ? (
+            <path
+              d={buildClosedPath(model.cavitation_band, model.x_axis, model.y_axis)}
+              fill="rgba(249, 115, 22, 0.24)"
+              stroke={cavitationColor}
+              strokeOpacity="0.5"
+              strokeWidth="1.75"
+            />
+          ) : null}
 
           <path
-            d={buildPath(curvePoints)}
+            d={buildPath(model.system_curve, model.x_axis, model.y_axis)}
             fill="none"
-            stroke="#0f766e"
+            stroke={pumpCurveColor}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="3"
+            strokeWidth="3.25"
           />
-          {curvePoints.map((point, index) => (
-            <circle key={`curve-${index}`} cx={point.x} cy={point.y} fill="#0f766e" r="3.25" />
-          ))}
 
-          <circle cx={bepX} cy={bepY} fill="#16a34a" r="7" />
-          <circle cx={operatingX} cy={operatingY} fill="#dc2626" r="6" />
+          {model.system_curve.map((point, index) => {
+            const x = projectX(point.x, model.x_axis);
+            const y = projectY(point.y, model.y_axis);
+            return x == null || y == null ? null : <circle key={`curve-${index}`} cx={x} cy={y} fill={pumpCurveColor} r="3.5" />;
+          })}
 
-          <line
-            stroke="#1d4ed8"
-            strokeDasharray="5 5"
-            strokeWidth="2"
-            x1={operatingX}
-            x2={operatingX}
-            y1={operatingY}
-            y2={height - padding.bottom}
-          />
+          {bestEfficiencyPoint ? (() => {
+            const x = projectX(bestEfficiencyPoint.x, model.x_axis);
+            const y = projectY(bestEfficiencyPoint.y, model.y_axis);
+            return x == null || y == null ? null : <circle cx={x} cy={y} fill={bepColor} r="7.5" stroke="#fff" strokeWidth="2" />;
+          })() : null}
+
+          {operatingPoint ? (() => {
+            const x = projectX(operatingPoint.x, model.x_axis);
+            const y = projectY(operatingPoint.y, model.y_axis);
+            return x == null || y == null ? null : (
+              <>
+                <line
+                  stroke={operatingColor}
+                  strokeDasharray="6 4"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                  x1={padding.left}
+                  x2={x}
+                  y1={y}
+                  y2={y}
+                />
+                <line
+                  stroke={operatingColor}
+                  strokeDasharray="6 4"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                  x1={x}
+                  x2={x}
+                  y1={y}
+                  y2={height - padding.bottom}
+                />
+                <circle cx={x} cy={y} fill={operatingColor} r="6.5" stroke="#fff" strokeWidth="2" />
+              </>
+            );
+          })() : null}
         </svg>
       </div>
 
-      <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          Curva da bomba
-        </span>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          BEP
-        </span>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          Operacao
-        </span>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          Faixa de cavitacao aproximada
-        </span>
+      <div className="flex flex-wrap gap-2 text-xs font-medium">
+        {[
+          { label: "Curva do sistema", color: pumpCurveColor },
+          { label: "BEP", color: bepColor },
+          { label: "Operacao", color: operatingColor },
+          { label: "Faixa de cavitacao aproximada", color: cavitationColor },
+        ].map((item) => (
+          <span
+            key={item.label}
+            className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 shadow-sm"
+            style={{ borderColor: item.color, color: item.color }}
+          >
+            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </span>
+        ))}
       </div>
     </section>
   );

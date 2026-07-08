@@ -1,54 +1,53 @@
-import { REGIME_COLOR, REGIME_LABEL, classifyRegime } from "@/components/viz/velocity-profile";
-import { formatTableNumberText } from "@/lib/table-number";
-import { formatAxisTick } from "@/components/viz/chart-axis-utils";
+export type RegimeKey = "laminar" | "transition" | "turbulent";
 
-const scaleMin = 100;
-const laminarMax = 2300;
-const transitionMax = 4000;
-const scaleMax = 10000;
+export type RegimeRulerModel = {
+  title: string;
+  description: string;
+  domain: {
+    min: number;
+    max: number;
+  };
+  segments: Array<{
+    regime: RegimeKey;
+    label: string;
+    color: string;
+    x: number;
+    width: number;
+  }>;
+  ticks: Array<{
+    value: number;
+    label: string;
+    x: number;
+  }>;
+  marker: {
+    x: number;
+    label: string;
+    status: string;
+    regime: RegimeKey;
+    regime_label: string;
+    color: string;
+    text_anchor: "start" | "middle" | "end";
+  };
+};
 
-const rulerTicks = [100, 500, 1000, 2300, 4000, 6000, 8000, 10000];
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function scaleValue(value: number, start: number, end: number) {
-  const safeValue = clamp(value, scaleMin, scaleMax);
-  return start + ((safeValue - scaleMin) / (scaleMax - scaleMin)) * (end - start);
-}
-
-export function RegimeRuler({ reynolds }: { reynolds: number }) {
-  const regime = classifyRegime(reynolds);
-  const markerX = scaleValue(reynolds, 40, 720);
-  const isBelowScale = reynolds < scaleMin;
-  const isAboveScale = reynolds > scaleMax;
-  const markerLabel = `Re = ${formatTableNumberText(reynolds)}`;
-  const markerStatus = isBelowScale
-    ? "abaixo da escala"
-    : isAboveScale
-      ? "acima da escala"
-      : REGIME_LABEL[regime];
-
+export function RegimeRuler({ model }: { model: RegimeRulerModel }) {
   return (
     <section className="mx-auto mt-3 w-full max-w-[760px] rounded-xl border border-slate-200 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-medium text-slate-800">Regime do escoamento</h3>
+        <h3 className="text-sm font-medium text-slate-800">{model.title}</h3>
         <span
           className="rounded-full border px-2 py-0.5 text-xs font-medium"
           style={{
-            backgroundColor: `${REGIME_COLOR[regime]}20`,
-            borderColor: `${REGIME_COLOR[regime]}50`,
-            color: REGIME_COLOR[regime],
+            backgroundColor: `${model.marker.color}20`,
+            borderColor: `${model.marker.color}50`,
+            color: model.marker.color,
           }}
         >
-          {REGIME_LABEL[regime]}
+          {model.marker.regime_label}
         </span>
       </div>
 
-      <p className="mb-3 text-xs text-muted-foreground">
-        Escala linear de Reynolds de 100 a 10.000. O marcador mostra a posição atual.
-      </p>
+      <p className="mb-3 text-xs text-muted-foreground">{model.description}</p>
 
       <svg
         aria-label="Régua do regime do escoamento"
@@ -64,102 +63,91 @@ export function RegimeRuler({ reynolds }: { reynolds: number }) {
         <rect x="0" y="0" width="760" height="170" fill="#f8fafc" rx="16" />
 
         <g aria-hidden="true">
-          {rulerTicks.map((tick) => {
-            const x = scaleValue(tick, 40, 720);
-
-            return (
-              <line
-                key={`grid-${tick}`}
-                x1={x}
-                x2={x}
-                y1={28}
-                y2={100}
-                stroke="#e2e8f0"
-                strokeDasharray="3 4"
-                strokeWidth="1"
-              />
-            );
-          })}
+          {model.ticks.map((tick) => (
+            <line
+              key={`grid-${tick.value}`}
+              x1={tick.x}
+              x2={tick.x}
+              y1={28}
+              y2={100}
+              stroke="#e2e8f0"
+              strokeDasharray="3 4"
+              strokeWidth="1"
+            />
+          ))}
         </g>
 
-        <rect x="40" y="48" width={scaleValue(laminarMax, 40, 720) - 40} height="28" rx="14" fill="#2563eb" />
-        <rect
-          x={scaleValue(laminarMax, 40, 720)}
-          y="48"
-          width={scaleValue(transitionMax, 40, 720) - scaleValue(laminarMax, 40, 720)}
-          height="28"
-          rx="0"
-          fill="#d97706"
-        />
-        <rect
-          x={scaleValue(transitionMax, 40, 720)}
-          y="48"
-          width={720 - scaleValue(transitionMax, 40, 720)}
-          height="28"
-          rx="14"
-          fill="#dc2626"
-        />
+        {model.segments.map((segment, index) => (
+          <rect
+            key={segment.regime}
+            x={segment.x}
+            y="48"
+            width={segment.width}
+            height="28"
+            rx={index === 1 ? "0" : "14"}
+            fill={segment.color}
+          />
+        ))}
 
         <line x1="40" x2="720" y1="48" y2="48" stroke="#cbd5e1" strokeWidth="1.5" />
         <line x1="40" x2="720" y1="76" y2="76" stroke="#cbd5e1" strokeWidth="1.5" />
 
-        {rulerTicks.map((tick) => {
-          const x = scaleValue(tick, 40, 720);
+        {model.ticks.map((tick) => (
+          <g key={`tick-${tick.value}`}>
+            <line x1={tick.x} x2={tick.x} y1="80" y2="92" stroke="#64748b" strokeWidth="1.5" />
+            <text
+              x={tick.x}
+              y="110"
+              fill="#64748b"
+              fontSize="11"
+              textAnchor="middle"
+            >
+              {tick.label}
+            </text>
+          </g>
+        ))}
 
-          return (
-            <g key={`tick-${tick}`}>
-              <line x1={x} x2={x} y1="80" y2="92" stroke="#64748b" strokeWidth="1.5" />
-              <text
-                x={x}
-                y="110"
-                fill="#64748b"
-                fontSize="11"
-                textAnchor="middle"
-              >
-                {formatAxisTick(tick)}
-              </text>
-            </g>
-          );
-        })}
-
-        <text x="58" y="66" fill="#eff6ff" fontSize="13" fontWeight="600">
-          Laminar
-        </text>
-        <text x={scaleValue(laminarMax, 40, 720) + 16} y="66" fill="#fff7ed" fontSize="13" fontWeight="600">
-          Transição
-        </text>
-        <text x={scaleValue(transitionMax, 40, 720) + 16} y="66" fill="#fef2f2" fontSize="13" fontWeight="600">
-          Turbulento
-        </text>
+        {model.segments.map((segment) => (
+          <text
+            key={`label-${segment.regime}`}
+            x={segment.x + 16}
+            y="66"
+            fill={segment.regime === "laminar" ? "#eff6ff" : segment.regime === "transition" ? "#fff7ed" : "#fef2f2"}
+            fontSize="13"
+            fontWeight="600"
+          >
+            {segment.label}
+          </text>
+        ))}
 
         <line
-          x1={markerX}
-          x2={markerX}
+          x1={model.marker.x}
+          x2={model.marker.x}
           y1="38"
           y2="96"
           stroke="#0f172a"
           strokeWidth="2.5"
         />
-        <circle cx={markerX} cy="52" r="7" fill="#0f172a" />
-        <circle cx={markerX} cy="52" r="3.5" fill="#fff" />
+        <circle cx={model.marker.x} cy="52" r="7" fill="#0f172a" />
+        <circle cx={model.marker.x} cy="52" r="3.5" fill="#fff" />
         <text
-          x={markerX}
+          x={model.marker.x}
           y="24"
           fill="#0f172a"
           fontSize="12"
           fontWeight="600"
-          textAnchor={isBelowScale ? "start" : isAboveScale ? "end" : "middle"}
+          textAnchor={model.marker.text_anchor}
         >
-          {markerLabel}
+          {model.marker.label}
         </text>
         <text
-          x={markerX}
+          x={model.marker.x}
           y="38"
           fill="#475569"
           fontSize="11"
-          textAnchor={isBelowScale ? "start" : isAboveScale ? "end" : "middle"}
+          textAnchor={model.marker.text_anchor}
         >
-          {markerStatus}
+          {model.marker.status}
         </text>
       </svg>
     </section>

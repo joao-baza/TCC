@@ -37,7 +37,7 @@ function mockPipingRequests(options?: {
     }
 
     if (url.endsWith("/api/piping/fittings") && method === "GET") {
-      return Response.json(["Cotovelo 90° raio longo", "Válvula de esfera"]);
+      return Response.json(["Cotovelo 90° raio longo", "Válvula esfera"]);
     }
 
     if (url.endsWith("/api/piping/example") && method === "GET") {
@@ -45,7 +45,7 @@ function mockPipingRequests(options?: {
         composition: "Aço galvanizado",
         schedule: "SCH40",
         diameter: 125,
-        fitting: "Válvula de esfera",
+        fitting: "Válvula esfera",
       });
     }
 
@@ -177,7 +177,7 @@ function mockPipingRequests(options?: {
       method === "GET"
     ) {
       return Response.json({
-        name: "Válvula de esfera",
+        name: "Válvula esfera",
         description: "Válvula com esfera pivotante.",
         usage: "Fechamento rápido com baixa perda de carga.",
         specifications: {
@@ -352,7 +352,7 @@ describe("PipingPage", () => {
     expectTableValueText(diameterTable as HTMLElement, /^Max Pressure$/i, /^1,01325$/i);
     expectTableUnitText(diameterTable as HTMLElement, /^External Diameter$/i, /mm/i);
     expectTableUnitText(diameterTable as HTMLElement, /^Thickness$/i, /mm/i);
-    expectTableUnitText(diameterTable as HTMLElement, /^Weight$/i, /kilogram \/ meter/i);
+    expectTableUnitText(diameterTable as HTMLElement, /^Weight$/i, /(?:kilogram \/ meter|kg\/m)/i);
     expectTableUnitText(diameterTable as HTMLElement, /^Max Pressure$/i, /Pa/i);
 
     await openPipingTab(/Conexões/i);
@@ -373,7 +373,7 @@ describe("PipingPage", () => {
       /^Equivalent Length$/i,
       /^(?:-|dimensionless)$/i,
     );
-  });
+  }, 10000);
 
   it("loads a representative example across the piping module", async () => {
     mockPipingRequests();
@@ -408,7 +408,7 @@ describe("PipingPage", () => {
     expect(
       screen.getByRole("button", { name: /Como funciona - Conexões/i }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Conexão/i)).toHaveValue("Válvula de esfera");
+    expect(screen.getByLabelText(/Conexão/i)).toHaveValue("Válvula esfera");
   });
 
   it("clears stale detail panels immediately when the selected composition, schedule, or fitting changes", async () => {

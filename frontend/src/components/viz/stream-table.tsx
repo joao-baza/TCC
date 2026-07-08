@@ -1,3 +1,8 @@
+import {
+  formatMassBalanceStreamName,
+  MASS_BALANCE_FLOW_UNIT_EXPLANATION,
+  MASS_BALANCE_FLOW_UNIT_LABEL,
+} from "@/lib/mass-balance-display";
 import { formatTableNumberText } from "@/lib/table-number";
 
 type StreamTableRow = {
@@ -13,7 +18,7 @@ type StreamTableProps = {
 };
 
 function formatFlow(value: number) {
-  return `${formatTableNumberText(value)} u. cons.`;
+  return `${formatTableNumberText(value)} ${MASS_BALANCE_FLOW_UNIT_LABEL}`;
 }
 
 function formatCompositionSummary(compositions: Record<string, number>) {
@@ -39,6 +44,7 @@ export function StreamTable({ streams, title = "Tabela de correntes" }: StreamTa
           <p className="text-sm text-muted-foreground">
             Resumo textual das correntes fechadas para leitura rápida e comparação.
           </p>
+          <p className="text-xs text-muted-foreground">{MASS_BALANCE_FLOW_UNIT_EXPLANATION}</p>
         </div>
         <p className="text-sm font-medium text-slate-700">{sortedStreams.length} correntes</p>
       </div>
@@ -78,7 +84,7 @@ export function StreamTable({ streams, title = "Tabela de correntes" }: StreamTa
               {sortedStreams.map((stream) => (
                 <tr key={stream.name} className="bg-white">
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900" scope="row">
-                    {stream.name}
+                    {formatMassBalanceStreamName(stream.name)}
                   </th>
                   <td className="px-4 py-3 text-sm text-slate-700">{stream.direction}</td>
                   <td className="px-4 py-3 text-sm text-slate-900">{formatFlow(stream.flowRate)}</td>

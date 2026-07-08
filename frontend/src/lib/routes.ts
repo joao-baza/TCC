@@ -12,9 +12,4 @@ export const moduleRoutes = [
   { path: "/reactor", label: "CSTR / PFR", group: "Reatores" },
   { path: "/balance", label: "Balanço", group: "Balanço de Massa" },
   { path: "/glossary", label: "Glossário", group: "Ferramentas" },
-  {
-    path: "/exercises",
-    label: "Exercícios Integrados",
-    group: "Ferramentas",
-  },
 ] as const;

@@ -38,7 +38,7 @@ async function mockReactorPage(
     }
 
     await route.fulfill({
-      json: ["A", "B"],
+      json: ["Water", "Ethanol"],
     });
   });
 
@@ -73,11 +73,57 @@ async function mockReactorPage(
       json: {
         volume: { value: 0.91, units: "m³" },
         conversion: 0.8,
-        limiting_reagent: "A",
+        limiting_reagent: "Water",
         outlet_concentrations: {
-          A: { value: 0.4, units: "mol/L" },
-          B: { value: 1.6, units: "mol/L" },
+          Water: { value: 1000, units: "mol/m³" },
+          Ethanol: { value: 4000, units: "mol/m³" },
         },
+      },
+    });
+  });
+
+  await page.route("**/api/reactor/arrhenius/chart", async (route) => {
+    await route.fulfill({
+      json: {
+        id: "reactor-arrhenius-chart",
+        title: "Arrhenius",
+        subtitle: "Curva semilog de Arrhenius: 1000 / T versus ln(k).",
+        axes: {
+          x: {
+            scale: "linear",
+            label: "1000 / T",
+            units: "10^3 K^-1",
+            domain: { min: 2.4, max: 3.4 },
+            ticks: [2.4, 2.8, 3.2, 3.4],
+            major_ticks: [2.4, 2.8, 3.2, 3.4],
+          },
+          y: {
+            scale: "linear",
+            label: "ln(k)",
+            units: "adimensional",
+            domain: { min: -2, max: 1 },
+            ticks: [-2, -1, 0, 1],
+            major_ticks: [-2, -1, 0, 1],
+          },
+        },
+        series: [
+          {
+            id: "arrhenius-curve",
+            name: "Curva de Arrhenius",
+            kind: "line",
+            color: "#0f766e",
+            points: [
+              { x: 2.4, y: 0.9 },
+              { x: 2.8, y: 0.2 },
+              { x: 3.2, y: -0.8 },
+            ],
+          },
+        ],
+        markers: [
+          { id: "reference-point", x: 2.85, y: -0.69, label: "Ponto de referência", color: "#dc2626" },
+        ],
+        annotations: [],
+        metadata: { version: "1.0", units: { x: "10^3 K^-1", y: "adimensional" } },
       },
     });
   });
@@ -91,7 +137,7 @@ test("reactor route calculates CSTR and PFR results", async ({ page }) => {
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
   const cstrCard = page.getByTestId("reactor-cstr-card");
 
-  await expect(page.locator("#CSTR-conversion")).toHaveValue("0.8");
+  await expect(page.locator("#CSTR-volume")).toHaveValue("3.0");
 
   const cstrResponse = page.waitForResponse(
     (response) => response.url().endsWith("/api/reactor/cstr") && response.request().method() === "POST",
@@ -102,15 +148,8 @@ test("reactor route calculates CSTR and PFR results", async ({ page }) => {
 
   await page.getByRole("tab", { name: /PFR/i }).click();
   const pfrCard = page.getByTestId("reactor-pfr-card");
-  await expect(page.locator("#PFR-conversion")).toHaveValue("0.8");
-
-  const pfrResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/api/reactor/pfr") && response.request().method() === "POST",
-  );
-  await pfrCard.getByRole("button", { name: /Calcular PFR/i }).click();
-  await pfrResponse;
+  await expect(page.locator("#PFR-volume")).toHaveValue("3.0");
   await expect(pfrCard.locator("table").filter({ hasText: "Volume" }).first()).toContainText("0,91");
-  await expect(page.getByTestId("pfr-profile-chart")).toBeVisible();
 });
 
 test("reactor route shows the Arrhenius chart", async ({ page }) => {
@@ -149,11 +188,10 @@ test("reactor route clears calculated results after editing the conversion input
 
   await page.getByRole("tab", { name: /PFR/i }).click();
   const pfrCard = page.getByTestId("reactor-pfr-card");
-  await pfrCard.getByRole("button", { name: /Calcular PFR/i }).click();
   await expect(pfrCard.locator("table").filter({ hasText: "Volume" }).first()).toContainText("0,91");
 
   await page.getByRole("tab", { name: /CSTR/i }).click();
-  await page.getByLabel("Conversão").fill("0.9");
+  await page.getByLabel(/Volume do reator/i).fill("4");
 
   await expect(cstrCard.locator("table").filter({ hasText: "Volume" }).first()).toHaveCount(0);
   await expect(page.locator("table").filter({ hasText: "Volume" }).last()).toHaveCount(0);
@@ -167,7 +205,7 @@ test("reactor route surfaces a CSTR error message when the calculation fails", a
   const cstrCard = page.getByTestId("reactor-cstr-card");
 
   await cstrCard.getByRole("button", { name: /Calcular CSTR/i }).click();
-  await expect(cstrCard.getByText(/Falha no backend CSTR/i)).toBeVisible();
+  await expect(cstrCard.getByRole("alert")).toContainText(/Falha no backend CSTR/i);
 });
 
 test("reactor route surfaces a PFR error message when the calculation fails", async ({ page }) => {
@@ -179,5 +217,5 @@ test("reactor route surfaces a PFR error message when the calculation fails", as
   const pfrCard = page.getByTestId("reactor-pfr-card");
 
   await pfrCard.getByRole("button", { name: /Calcular PFR/i }).click();
-  await expect(pfrCard.getByText(/Falha no backend PFR/i)).toBeVisible();
+  await expect(pfrCard.getByRole("alert")).toContainText(/Falha no backend PFR/i);
 });

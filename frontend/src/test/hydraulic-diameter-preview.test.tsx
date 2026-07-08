@@ -1,77 +1,74 @@
 import { render, screen } from "@testing-library/react";
 
-import { HydraulicDiameterPreview } from "@/components/viz/hydraulic-diameter-preview";
+import {
+  HydraulicDiameterPreview,
+  type HydraulicDiameterPreviewModel,
+} from "@/components/viz/hydraulic-diameter-preview";
+
+const previewModel: HydraulicDiameterPreviewModel = {
+  title: "Canal circular",
+  description: "Representação proporcional do canal circular com fluido.",
+  summary: "Segmento circular preenchido, com D, h e R destacados.",
+  view_box: "0 0 320 220",
+  elements: [
+    {
+      type: "path",
+      attrs: {
+        d: "M 106.86 128.4 A 76 76 0 0 0 213.14 128.4 L 106.86 128.4 Z",
+        fill: "#0F5E9C",
+        stroke: "#0F172A",
+        strokeWidth: "2.5",
+        "data-preview-id": "backend-cap-fill",
+      },
+    },
+    {
+      type: "line",
+      attrs: {
+        x1: 160,
+        x2: 214.72,
+        y1: 96,
+        y2: 41.28,
+        stroke: "#94A3B8",
+        strokeWidth: "1.5",
+      },
+    },
+    {
+      type: "text",
+      attrs: {
+        x: 216.72,
+        y: 39.28,
+        fill: "#334155",
+        fontSize: "12",
+      },
+      text: "R",
+    },
+  ],
+  chips: [
+    { label: "D", value: "0,1" },
+    { label: "h", value: "0,03" },
+    { label: "R", value: "0,05" },
+  ],
+};
 
 describe("HydraulicDiameterPreview", () => {
-  function getNumericAttr(node: Element | null | undefined, name: string) {
-    if (!node) {
-      return null;
-    }
-
-    const value = node?.getAttribute(name);
-    return value == null ? null : Number(value);
-  }
-
-  it("renders the triangular preview with the apex on top and edge-aligned labels", () => {
-    const { container } = render(
-      <HydraulicDiameterPreview
-        shape="triangular"
-        parameters={{ side_a: "0.1", side_b: "0.1", side_c: "0.1" }}
-      />,
-    );
-
-    const previewSvg = screen.getByRole("img", { name: /Seção triangular/i });
-    const polygon = previewSvg.querySelector("polygon[fill=\"#0F5E9C\"]");
-    expect(polygon).not.toBeNull();
-
-    const points = polygon?.getAttribute("points")?.trim().split(/\s+/).map((point) => {
-      const [x, y] = point.split(",").map(Number);
-      return { x, y };
-    });
-
-    expect(points).toHaveLength(3);
-    const apexY = Math.min(...(points ?? []).map((point) => point.y));
-    expect(apexY).toBeLessThan((points?.[0].y ?? Number.POSITIVE_INFINITY) + 1);
-    expect(apexY).toBeLessThan((points?.[1].y ?? Number.POSITIVE_INFINITY) + 1);
-    expect(apexY).toBeLessThan((points?.[2].y ?? Number.POSITIVE_INFINITY) + 1);
-
-    const labels = Array.from(container.querySelectorAll("text")).map((node) => ({
-      text: node.textContent,
-      transform: node.getAttribute("transform"),
-    }));
-
-    expect(labels.find((item) => item.text === "a")?.transform).toMatch(/rotate\(/);
-    expect(labels.find((item) => item.text === "b")?.transform).toMatch(/rotate\(/);
-    expect(labels.find((item) => item.text === "c")?.transform).toMatch(/rotate\(/);
-  });
-
-  it("keeps the circular radius guide and label closer to the circle boundary", () => {
-    render(<HydraulicDiameterPreview shape="circular" parameters={{ diameter: "0.1" }} />);
-
-    const previewSvg = screen.getByRole("img", { name: /Seção circular/i });
-    const radiusLine = Array.from(previewSvg.querySelectorAll("line")).find(
-      (line) => line.getAttribute("x1") === "160" && line.getAttribute("y1") === "92",
-    );
-    const radiusLabel = Array.from(previewSvg.querySelectorAll("text")).find((node) => node.textContent === "R");
-
-    expect(getNumericAttr(radiusLine, "x2")).toBeCloseTo(216.2, 1);
-    expect(getNumericAttr(radiusLabel, "x")).toBeCloseTo(218.2, 1);
-    expect((getNumericAttr(radiusLabel, "x") ?? 0) - (getNumericAttr(radiusLine, "x2") ?? 0)).toBeGreaterThan(0);
-    expect((getNumericAttr(radiusLabel, "x") ?? 0) - (getNumericAttr(radiusLine, "x2") ?? 0)).toBeLessThan(5);
-  });
-
-  it("renders a fully filled circular cap when the fluid height reaches the diameter", () => {
-    const { container } = render(<HydraulicDiameterPreview shape="circularCap" parameters={{ diameter: "0.1", height: "0.1" }} />);
+  it("renders the backend-provided preview primitives and chips", () => {
+    render(<HydraulicDiameterPreview preview={previewModel} />);
 
     const previewSvg = screen.getByRole("img", { name: /Canal circular/i });
-    const radiusLine = Array.from(previewSvg.querySelectorAll("line")).find(
-      (line) => line.getAttribute("x1") === "160" && line.getAttribute("y1") === "96",
+    expect(previewSvg.querySelector('path[data-preview-id="backend-cap-fill"]')).not.toBeNull();
+    expect(previewSvg.querySelector("path")?.getAttribute("d")).toBe(
+      "M 106.86 128.4 A 76 76 0 0 0 213.14 128.4 L 106.86 128.4 Z",
     );
-    const radiusLabel = Array.from(previewSvg.querySelectorAll("text")).find((node) => node.textContent === "R");
+    expect(screen.getByText(/Segmento circular preenchido/i)).toBeInTheDocument();
+    expect(screen.getByText(/D = 0,1/i)).toBeInTheDocument();
+    expect(screen.getByText(/h = 0,03/i)).toBeInTheDocument();
+    expect(screen.getByText(/R = 0,05/i)).toBeInTheDocument();
+  });
 
-    expect(previewSvg.querySelector("circle[fill=\"#0F5E9C\"]")).not.toBeNull();
-    expect(container.querySelector("path[fill=\"#0F5E9C\"]")).toBeNull();
-    expect(getNumericAttr(radiusLine, "x2")).toBeCloseTo(216.2, 1);
-    expect(getNumericAttr(radiusLabel, "x")).toBeCloseTo(218.2, 1);
+  it("renders a placeholder while backend preview data is unavailable", () => {
+    render(<HydraulicDiameterPreview preview={null} placeholderText="Informe parâmetros válidos." />);
+
+    expect(screen.getByText(/Pré-visualização geométrica/i)).toBeInTheDocument();
+    expect(screen.getByText(/Informe parâmetros válidos/i)).toBeInTheDocument();
   });
 });

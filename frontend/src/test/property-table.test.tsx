@@ -150,6 +150,21 @@ describe("PropertyTable", () => {
     expect(unitCell?.querySelector(".katex")).toBeNull();
   });
 
+  it("renders compound units through KaTeX in auto mode", () => {
+    render(
+      <PropertyTable
+        rows={[{ label: "Densidade crítica", value: 322, units: "kilogram / meter ** 3" }]}
+      />,
+    );
+
+    const row = getRowContaining("Densidade crítica");
+    const unitCell = row?.querySelector("td:nth-child(3)");
+
+    expect(unitCell?.querySelector(".katex")).not.toBeNull();
+    expect(unitCell).toHaveTextContent("kg");
+    expect(unitCell).toHaveTextContent("m");
+  });
+
   it("centers value and unit headers and cells", () => {
     const { container } = render(
       <PropertyTable rows={[{ label: "Diametro", value: 126.16, units: "millimeter" }]} />,

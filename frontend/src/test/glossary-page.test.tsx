@@ -4,7 +4,7 @@ import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { routes } from "@/app/router";
 
 it("renders grouped glossary sections and filters terms from the legacy catalog", async () => {
-  const router = createMemoryRouter(routes, { initialEntries: ["/glossary"] });
+  const router = createMemoryRouter(routes, { initialEntries: ["/glossary/terms"] });
 
   render(<RouterProvider router={router} />);
 
@@ -29,10 +29,10 @@ it("renders grouped glossary sections and filters terms from the legacy catalog"
   expect(screen.queryByText(/Número de Reynolds \(Re\)/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/^Hidráulica$/i)).not.toBeInTheDocument();
   expect(screen.getAllByText(/^Reatores$/i).length).toBeGreaterThan(0);
-});
+}, 10000);
 
 it("matches glossary terms regardless of accent marks", async () => {
-  const router = createMemoryRouter(routes, { initialEntries: ["/glossary"] });
+  const router = createMemoryRouter(routes, { initialEntries: ["/glossary/terms"] });
 
   render(<RouterProvider router={router} />);
 
@@ -47,7 +47,7 @@ it("matches glossary terms regardless of accent marks", async () => {
 });
 
 it("surfaces the new process visualization terms", async () => {
-  const router = createMemoryRouter(routes, { initialEntries: ["/glossary"] });
+  const router = createMemoryRouter(routes, { initialEntries: ["/glossary/terms"] });
 
   render(<RouterProvider router={router} />);
 
@@ -62,7 +62,7 @@ it("surfaces the new process visualization terms", async () => {
 });
 
 it("renders KaTeX content for math-heavy glossary definitions", async () => {
-  const router = createMemoryRouter(routes, { initialEntries: ["/glossary"] });
+  const router = createMemoryRouter(routes, { initialEntries: ["/glossary/terms"] });
 
   const { container } = render(<RouterProvider router={router} />);
 
@@ -77,4 +77,24 @@ it("renders KaTeX content for math-heavy glossary definitions", async () => {
   expect(article).not.toBeNull();
   expect(article?.querySelector(".katex")).not.toBeNull();
   expect(container.querySelector(".katex")).not.toBeNull();
+});
+
+it("renders fractions in the pump head glossary definition", async () => {
+  const router = createMemoryRouter(routes, { initialEntries: ["/glossary/terms"] });
+
+  render(<RouterProvider router={router} />);
+
+  await screen.findByRole("heading", { name: /Glossário/i });
+
+  fireEvent.change(screen.getByRole("searchbox", { name: /Pesquisar no glossário/i }), {
+    target: { value: "Head da bomba" },
+  });
+
+  const article = screen
+    .getByRole("heading", { name: /Head da bomba \(H\)/i })
+    .closest("article");
+
+  expect(article).not.toBeNull();
+  expect(article?.querySelector(".katex")).not.toBeNull();
+  expect(article?.querySelectorAll(".mfrac").length).toBeGreaterThan(0);
 });

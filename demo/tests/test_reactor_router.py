@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
@@ -143,6 +144,84 @@ def test_pfr_route_returns_physical_units_for_conversion_mode_volume_and_residen
     assert body["residence_time"]["units"] == "second"
 
 
+def test_cstr_first_order_design_matches_analytical_residence_time_and_volume():
+    payload = _reactor_payload()
+    payload["conversion"] = 0.8
+
+    response = client.post("/reactor/cstr", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    expected_tau = payload["conversion"] / (
+        payload["reaction_rate_params"]["k"] * (1 - payload["conversion"])
+    )
+    expected_volume = payload["components"][0]["flow_rate_inlet"] * expected_tau
+    assert body["residence_time"]["value"] == pytest.approx(expected_tau)
+    assert body["volume"]["value"] == pytest.approx(expected_volume)
+
+
+def test_pfr_first_order_design_matches_analytical_residence_time_and_volume():
+    payload = _reactor_payload()
+    payload["conversion"] = 0.8
+
+    response = client.post("/reactor/pfr", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    expected_tau = -math.log(1 - payload["conversion"]) / payload["reaction_rate_params"]["k"]
+    expected_volume = payload["components"][0]["flow_rate_inlet"] * expected_tau
+    assert body["residence_time"]["value"] == pytest.approx(expected_tau)
+    assert body["volume"]["value"] == pytest.approx(expected_volume)
+
+
+def test_higher_temperature_reduces_required_volume_for_same_conversion():
+    cold_payload = _reactor_payload()
+    hot_payload = _reactor_payload()
+
+    cold_payload["conversion"] = 0.8
+    hot_payload["conversion"] = 0.8
+    cold_payload["reaction_rate_params"]["k"] = 0.02
+    hot_payload["reaction_rate_params"]["k"] = 0.08
+
+    cold = client.post("/reactor/pfr", json=cold_payload)
+    hot = client.post("/reactor/pfr", json=hot_payload)
+
+    assert cold.status_code == 200
+    assert hot.status_code == 200
+    assert hot.json()["volume"]["value"] < cold.json()["volume"]["value"]
+    assert hot.json()["residence_time"]["value"] < cold.json()["residence_time"]["value"]
+
+
+def test_pfr_requires_less_volume_than_cstr_for_same_first_order_case():
+    payload = _reactor_payload()
+    payload["conversion"] = 0.8
+
+    cstr = client.post("/reactor/cstr", json=payload)
+    pfr = client.post("/reactor/pfr", json=payload)
+
+    assert cstr.status_code == 200
+    assert pfr.status_code == 200
+    assert pfr.json()["volume"]["value"] < cstr.json()["volume"]["value"]
+    assert pfr.json()["residence_time"]["value"] < cstr.json()["residence_time"]["value"]
+
+
+def test_selected_recycle_ratios_increase_required_pfr_volume_in_current_model():
+    baseline = _reactor_payload(recycling_ratio=0.0)
+    mild_recycle = _reactor_payload(recycling_ratio=0.5)
+    strong_recycle = _reactor_payload(recycling_ratio=2.0)
+
+    baseline["conversion"] = 0.95
+    mild_recycle["conversion"] = 0.95
+    strong_recycle["conversion"] = 0.95
+
+    result_0 = client.post("/reactor/pfr", json=baseline).json()
+    result_05 = client.post("/reactor/pfr", json=mild_recycle).json()
+    result_2 = client.post("/reactor/pfr", json=strong_recycle).json()
+
+    assert result_05["volume"]["value"] >= result_0["volume"]["value"]
+    assert result_2["volume"]["value"] >= result_05["volume"]["value"]
+
+
 def test_pfr_recycle_profile_route_returns_default_sampled_points():
     response = client.post("/reactor/pfr/recycle-profile", json=_recycle_profile_payload())
 
@@ -160,6 +239,16 @@ def test_pfr_recycle_profile_route_can_increase_conversion_with_recycle():
     assert conversions[-1] > conversions[0]
 
 
+def test_pfr_spatial_profile_route_returns_serialized_backend_stations():
+    response = client.post("/reactor/pfr/spatial-profile", json=_profile_chart_payload())
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [station["relative_volume"] for station in payload["stations"]] == [0.0, 0.25, 0.5, 0.75, 1.0]
+    assert payload["stations"][0]["concentrations"]["A"]["units"] == "mole / meter ** 3"
+    assert payload["stations"][-1]["temperature"]["value"] == pytest.approx(450.0)
+
+
 def test_reactor_levenspiel_chart_endpoint_returns_raw_chart_model():
     response = client.post("/reactor/levenspiel/chart", json=_levenspiel_payload())
 
@@ -168,7 +257,16 @@ def test_reactor_levenspiel_chart_endpoint_returns_raw_chart_model():
     assert "chart" not in payload
     assert payload["id"] == "reactor-levenspiel-chart"
     assert payload["axes"]["x"]["label"] == "Conversão"
+    assert payload["axes"]["x"]["units"] == "adimensional"
     assert payload["axes"]["y"]["label"] == "Volume"
+    assert payload["axes"]["y"]["units"] == "m³"
+    assert payload["metadata"]["units"] == {"x": "adimensional", "y": "m³"}
+    max_conversion = max(
+        point["x"] for series in payload["series"] for point in series["points"]
+    )
+    max_volume = max(point["y"] for series in payload["series"] for point in series["points"])
+    assert max_conversion <= payload["axes"]["x"]["domain"]["max"]
+    assert max_volume <= payload["axes"]["y"]["domain"]["max"]
     assert [series["id"] for series in payload["series"]] == ["cstr-volume", "pfr-volume"]
     assert [marker["id"] for marker in payload["markers"]] == [
         "cstr-operating-point",
@@ -189,7 +287,7 @@ def test_reactor_pfr_profile_chart_endpoint_returns_component_and_temperature_se
         "component-b",
         "temperature-profile",
     ]
-    assert payload["markers"][-1]["id"] == "outlet-conversion"
+    assert payload["markers"] == []
 
 
 def test_reactor_pfr_recycle_profile_chart_endpoint_returns_conversion_curve():
@@ -199,6 +297,7 @@ def test_reactor_pfr_recycle_profile_chart_endpoint_returns_conversion_curve():
     payload = response.json()
     assert payload["id"] == "reactor-pfr-recycle-profile-chart"
     assert payload["axes"]["x"]["label"] == "Razão de reciclo"
+    assert payload["axes"]["x"]["domain"]["min"] == 0.0
     assert payload["axes"]["y"]["label"] == "Conversão"
     assert [series["id"] for series in payload["series"]] == ["conversion-vs-recycle"]
     assert payload["markers"][0]["x"] == pytest.approx(0.0)
@@ -214,6 +313,22 @@ def test_reactor_arrhenius_chart_endpoint_returns_raw_chart_model():
     assert payload["axes"]["y"]["label"] == "ln(k)"
     assert [series["id"] for series in payload["series"]] == ["arrhenius-curve"]
     assert payload["markers"][0]["id"] == "reference-point"
+    assert payload["markers"][0]["color"] == "#dc2626"
+
+
+def test_reactor_arrhenius_chart_preserves_reference_point_and_temperature_trend():
+    payload = _arrhenius_chart_payload()
+
+    response = client.post("/reactor/arrhenius/chart", json=payload)
+
+    assert response.status_code == 200
+    chart = response.json()
+    points = chart["series"][0]["points"]
+    reference = chart["markers"][0]
+    assert reference["x"] == pytest.approx(1000 / payload["reference_temperature"])
+    assert reference["y"] == pytest.approx(math.log(payload["reference_rate_constant"]))
+    assert points[0]["x"] > points[-1]["x"]
+    assert points[0]["y"] < points[-1]["y"]
 
 
 def test_pfr_spatial_profile_returns_requested_relative_volume_positions():

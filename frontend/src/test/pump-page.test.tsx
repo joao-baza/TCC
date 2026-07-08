@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 
 import { routes } from "@/app/router";
+import type { ChartModel } from "@/types/chart-model";
 
 const notifyMock = vi.hoisted(() => ({
   success: vi.fn(),
@@ -13,6 +14,126 @@ vi.mock("@/lib/notify", () => ({
 }));
 
 const fetchMock = vi.fn<typeof fetch>();
+
+const headlossChartModel: ChartModel = {
+  id: "pump-headloss-chart",
+  title: "Perda de Carga × Vazão",
+  subtitle: "Curva do sistema ",
+  axes: {
+    x: {
+      scale: "linear",
+      label: "Vazão",
+      units: "m³/s",
+      domain: { min: 0, max: 0.01 },
+      ticks: [0, 0.005, 0.01],
+      major_ticks: [0, 0.005, 0.01],
+    },
+    y: {
+      scale: "linear",
+      label: "Perda de carga",
+      units: "m",
+      domain: { min: 0, max: 10 },
+      ticks: [0, 5, 10],
+      major_ticks: [0, 5, 10],
+    },
+  },
+  series: [
+    {
+      id: "system-curve",
+      name: "Curva do sistema",
+      kind: "line",
+      color: "#2563eb",
+      points: [
+        { x: 0, y: 0 },
+        { x: 0.005, y: 4.25 },
+        { x: 0.01, y: 8.6 },
+      ],
+    },
+  ],
+  markers: [
+    {
+      id: "operating-point",
+      x: 0.005,
+      y: 4.25,
+      label: "Ponto operacional",
+      color: "#dc2626",
+    },
+  ],
+  metadata: { version: "1.0" },
+};
+
+const efficiencyMapModel = {
+  id: "pump-efficiency-map",
+  title: "Eficiência e BEP",
+  subtitle: "Mapa didático resolvido no backend",
+  approximation_notice: "BEP, malha relativa de eficiência e cavitação aproximada calculados no backend.",
+  x_axis: {
+    scale: "linear",
+    label: "Vazão volumétrica (Q)",
+    units: "m³/s",
+    domain: { min: 0, max: 0.011 },
+    ticks: [0, 0.0055, 0.011],
+    major_ticks: [0, 0.0055, 0.011],
+  },
+  y_axis: {
+    scale: "linear",
+    label: "Altura manométrica (H)",
+    units: "m",
+    domain: { min: 0, max: 9.5 },
+    ticks: [0, 4.75, 9.5],
+    major_ticks: [0, 4.75, 9.5],
+  },
+  cells: Array.from({ length: 70 }, (_, index) => ({
+    x: (index % 10) * 0.0011,
+    y: Math.floor(index / 10) * 1.357,
+    width: 0.0011,
+    height: 1.357,
+    efficiency: 0.5,
+    fill: "hsl(180 60% 50%)",
+    tooltip: "Eficiência relativa ≈ 50%",
+  })),
+  system_curve: [
+    { x: 0, y: 0 },
+    { x: 0.005, y: 4.25 },
+    { x: 0.01, y: 8.6 },
+  ],
+  cavitation_band: [
+    { x: 0, y: 0 },
+    { x: 0.0037, y: 0 },
+    { x: 0.0037, y: 2.85 },
+    { x: 0, y: 2.85 },
+  ],
+  markers: [
+    { id: "best-efficiency-point", x: 0.005, y: 4.25, label: "BEP", color: "#16a34a" },
+    { id: "operating-point", x: 0.005, y: 4.25, label: "Operação", color: "#dc2626" },
+  ],
+} as const;
+
+const npshGaugeModel = {
+  id: "pump-npsh-gauge",
+  title: "Margem de NPSH",
+  available: { value: 6.8, units: "meter" },
+  required: { value: 3, units: "meter" },
+  safe_threshold: { value: 3.5, units: "meter" },
+  status: {
+    tone: "safe",
+    label: "Margem segura (NPSHd ≥ NPSHr + 0,5 m) ✓",
+    message: "Margem segura para evitar cavitação.",
+  },
+  axis: {
+    scale: "linear",
+    label: "NPSH",
+    units: "m",
+    domain: { min: 0, max: 6.8 },
+    ticks: [0, 1.7, 3.4, 5.1, 6.8],
+    major_ticks: [0, 1.7, 3.4, 5.1, 6.8],
+  },
+  markers: [
+    { id: "available", x: 6.8, y: 0, label: "NPSHd", color: "#1d4ed8" },
+    { id: "required", x: 3, y: 0, label: "NPSHr", color: "#b45309" },
+    { id: "safe-threshold", x: 3.5, y: 0, label: "Margem segura", color: "#16a34a" },
+  ],
+} as const;
 
 function requestBodiesFor(pathSuffix: string, method = "POST") {
   return fetchMock.mock.calls
@@ -51,10 +172,12 @@ function mockPumpRequests(options?: {
   headlossError?: string;
   frictionFactorError?: string;
   npshError?: string;
+  npshGaugeError?: string;
   headError?: string;
   delayHeadloss?: boolean;
 }) {
   let resolveHeadloss: ((response: Response) => void) | undefined;
+  let rejectHeadloss: ((reason?: unknown) => void) | undefined;
 
   fetchMock.mockImplementation(async (input, init) => {
     const url = String(input);
@@ -79,7 +202,7 @@ function mockPumpRequests(options?: {
           fittings: [
             { fitting: "Cotovelo 45°", quantity: 5 },
             { fitting: "Saída de tanque", quantity: 1 },
-            { fitting: "Válvula de esfera", quantity: 2 },
+            { fitting: "Válvula esfera", quantity: 2 },
           ],
         },
         npsh: {
@@ -111,7 +234,7 @@ function mockPumpRequests(options?: {
         "Válvula gaveta",
         "Cotovelo 45°",
         "Saída de tanque",
-        "Válvula de esfera",
+        "Válvula esfera",
       ]);
     }
 
@@ -120,7 +243,7 @@ function mockPumpRequests(options?: {
       method === "GET"
     ) {
       return Response.json({
-        name: "Válvula de esfera",
+        name: "Válvula esfera",
         description: "Válvula com esfera pivotante.",
         usage: "Fechamento rápido com baixa perda de carga.",
         specifications: {
@@ -192,8 +315,9 @@ function mockPumpRequests(options?: {
 
     if (url.endsWith("/api/pump/headloss") && method === "POST") {
       if (options?.delayHeadloss) {
-        return new Promise<Response>((resolve) => {
+        return new Promise<Response>((resolve, reject) => {
           resolveHeadloss = resolve;
+          rejectHeadloss = reject;
         });
       }
 
@@ -206,6 +330,14 @@ function mockPumpRequests(options?: {
       return Response.json({ value: 4.25, units: "meter" });
     }
 
+    if (url.endsWith("/api/pump/headloss/chart") && method === "POST") {
+      return Response.json(headlossChartModel);
+    }
+
+    if (url.endsWith("/api/pump/efficiency-map/chart") && method === "POST") {
+      return Response.json(efficiencyMapModel);
+    }
+
     if (url.endsWith("/api/pump/npsh-available") && method === "POST") {
       if (options?.npshError) {
         return new Response(JSON.stringify({ detail: options.npshError }), {
@@ -216,6 +348,16 @@ function mockPumpRequests(options?: {
       return Response.json({
         head_loss: { value: 6.8, units: "meter" },
       });
+    }
+
+    if (url.endsWith("/api/pump/npsh-gauge/chart") && method === "POST") {
+      if (options?.npshGaugeError) {
+        return new Response(JSON.stringify({ detail: options.npshGaugeError }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return Response.json(npshGaugeModel);
     }
 
     if (url.endsWith("/api/pump/head") && method === "POST") {
@@ -234,6 +376,9 @@ function mockPumpRequests(options?: {
   return {
     resolveHeadloss(response: Response) {
       resolveHeadloss?.(response);
+    },
+    rejectHeadloss(reason?: unknown) {
+      rejectHeadloss?.(reason);
     },
   };
 }
@@ -279,7 +424,7 @@ describe("PumpPage", () => {
     expect(document.querySelector('a[href="/pump/pressure-profile"]')).toBeNull();
   });
 
-  it("loads the pump worked example", async () => {
+  it("loads the pump worked example and auto-calculates all derived tabs", async () => {
     mockPumpRequests();
     renderPumpPage();
 
@@ -295,14 +440,14 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/Comprimento da linha/i)).toHaveValue(100);
       expect(screen.getByLabelText(/Diâmetro interno/i)).toHaveValue(125);
-      expect(screen.getByLabelText(/Vazão/i)).toHaveValue(0.04);
+      expect(document.getElementById("headloss-flow-rate")).toHaveValue(0.04);
       expect(screen.getByLabelText(/Velocidade na linha/i)).toHaveValue(3.259493234522017);
       expect(screen.getByLabelText(/Número de Reynolds/i)).toHaveValue(3186.1046722863807);
       expect(screen.getByLabelText(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
       expect(getVisibleTextInputs(/Conexão/i)).toHaveLength(3);
       expect(getVisibleTextInputs(/Conexão/i)[0]).toHaveValue("Cotovelo 45°");
       expect(getVisibleTextInputs(/Conexão/i)[1]).toHaveValue("Saída de tanque");
-      expect(getVisibleTextInputs(/Conexão/i)[2]).toHaveValue("Válvula de esfera");
+      expect(getVisibleTextInputs(/Conexão/i)[2]).toHaveValue("Válvula esfera");
     });
 
     fireEvent.click(screen.getByLabelText(/Usar fator informado/i));
@@ -310,21 +455,63 @@ describe("PumpPage", () => {
       expect(screen.getByLabelText(/Fator de atrito/i)).toHaveValue(0.04495094389484752);
     });
 
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/pump/headloss")).toContainEqual({
+        pipe_length: 100,
+        diameter: 125,
+        flow_rate: 0.04,
+        velocity: 3.259493234522017,
+        method: "Darcy-Weisbach",
+        friction_factor: 0.0215,
+        fittings: [
+          { fitting: "Cotovelo 45°", quantity: 5 },
+          { fitting: "Saída de tanque", quantity: 1 },
+          { fitting: "Válvula esfera", quantity: 2 },
+        ],
+      });
+      expect(requestBodiesFor("/api/pump/headloss/chart")).toHaveLength(1);
+      expect(requestBodiesFor("/api/pump/efficiency-map/chart")).toHaveLength(1);
+      expect(requestBodiesFor("/api/pump/npsh-available")).toContainEqual({
+        manometric_pressure: 0,
+        atmospheric_pressure: 1.033,
+        vapor_pressure: 0.023,
+        density: 1000,
+        friction_factor: 10,
+        pump_inlet_velocity: 1.5,
+        gauge_elevation: 3,
+        required: 3,
+      });
+      expect(requestBodiesFor("/api/pump/npsh-gauge/chart")).toHaveLength(1);
+      expect(requestBodiesFor("/api/pump/head")).toContainEqual({
+        pressure1: 101325,
+        pressure2: 101325,
+        elevation1: 0,
+        elevation2: 5,
+        velocity1: 0,
+        velocity2: 3,
+        density: 1000,
+        friction_factor: 2.55887,
+      });
+    });
+
+    await waitFor(() => {
+      expect(getRowContaining(/^Perda de carga$/i)).toBeTruthy();
+    });
+
     await openPumpTab(/NPSH Disponível/i);
     await waitFor(() => {
       expect(screen.getByLabelText(/Pressão atmosférica/i)).toHaveValue(1.033);
       expect(screen.getByLabelText(/NPSHr opcional/i)).toHaveValue(3);
+      expect(screen.getByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /How it works - Margem de NPSH/i })).toBeInTheDocument();
     });
 
     await openPumpTab(/Altura Manométrica/i);
     await waitFor(() => {
       expect(screen.getByLabelText(/Pressão 1/i)).toHaveValue(101325);
-      expect(screen.getByLabelText(/Perda de carga total/i)).toHaveValue(2.55887);
+      expect(screen.getByLabelText(/Perda de carga total/i)).toHaveValue(4.25);
+      expect(getRowContaining(/^Altura manométrica$/i)).toBeTruthy();
     });
-
-    expect(requestBodiesFor("/api/pump/headloss")).toHaveLength(0);
-    expect(requestBodiesFor("/api/pump/npsh-available")).toHaveLength(0);
-    expect(requestBodiesFor("/api/pump/head")).toHaveLength(0);
   });
 
   it("surfaces an error when the friction-factor lookup fails during headloss calculation", async () => {
@@ -437,7 +624,32 @@ describe("PumpPage", () => {
         friction_factor: 0.02,
         fittings: [{ fitting: "Cotovelo 90° raio longo", quantity: 2 }],
       });
+      expect(requestBodiesFor("/api/pump/headloss/chart")).toContainEqual({
+        pipe_length: 25,
+        diameter: 50,
+        flow_rate: 0.005,
+        velocity: expect.any(Number),
+        method: "Darcy-Weisbach",
+        friction_factor: 0.02,
+        fittings: [{ fitting: "Cotovelo 90° raio longo", quantity: 2 }],
+      });
+      expect(requestBodiesFor("/api/pump/efficiency-map/chart")).toContainEqual({
+        pipe_length: 25,
+        diameter: 50,
+        flow_rate: 0.005,
+        velocity: expect.any(Number),
+        method: "Darcy-Weisbach",
+        friction_factor: 0.02,
+        fittings: [{ fitting: "Cotovelo 90° raio longo", quantity: 2 }],
+      });
     });
+    expect(screen.getAllByText("Curva do sistema").length).toBeGreaterThanOrEqual(2);
+    expect(await screen.findByText("Ponto operacional")).toBeInTheDocument();
+    expect(screen.getByText(/Mapa didático resolvido no backend/i)).toBeInTheDocument();
+    expect(screen.getByText(/Faixa de cavitacao aproximada/i)).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Perda de Carga × Vazão/i }).textContent).not.toContain(
+      "Ponto operacional",
+    );
 
     await openPumpTab(/NPSH Disponível/i);
     fireEvent.change(screen.getByLabelText(/Pressão manométrica/i), {
@@ -468,10 +680,23 @@ describe("PumpPage", () => {
     });
     fireEvent.click(screen.getByText(/Calcular NPSH disponível/i, { selector: "button" }));
 
-    expect(await screen.findByText(/NPSHd = 6,8/i)).toBeInTheDocument();
-    expect(screen.getByText(/Margem de NPSH/i)).toBeInTheDocument();
-    expect(screen.getByText(/NPSHd = 6,8/i)).toBeInTheDocument();
-    expect(screen.getByText(/NPSHr = 3/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/pump/npsh-gauge/chart")).toContainEqual({
+        manometric_pressure: 1.2,
+        atmospheric_pressure: 1,
+        vapor_pressure: 0.03,
+        density: 998,
+        friction_factor: 2.1,
+        pump_inlet_velocity: 1.4,
+        gauge_elevation: 3,
+        required: 3,
+      });
+    });
+    expect(await screen.findByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
+    expect(screen.queryByText(/NPSHd = 6,8/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/NPSHr = 3/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /How it works - Margem de NPSH/i })).toBeInTheDocument();
 
     await openPumpTab(/Altura Manométrica/i);
     fireEvent.change(screen.getByLabelText(/Pressão 1/i), {
@@ -503,6 +728,10 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("18,2");
     });
+    const headTable = await screen.findByRole("table", { name: "Decomposição" });
+    expect(headTable).toHaveTextContent("ΔP/(ρg)");
+    expect(headTable).toHaveTextContent("h_{f}");
+    expect(headTable).toHaveTextContent("%");
   });
 
   it("clears stale pump results after dependent input edits", async () => {
@@ -538,7 +767,7 @@ describe("PumpPage", () => {
       });
     });
 
-    fireEvent.change(screen.getByLabelText(/Vazão/i), {
+    fireEvent.change(screen.getByRole("spinbutton", { name: /Vazão/i }), {
       target: { value: "0.006" },
     });
 
@@ -568,15 +797,15 @@ describe("PumpPage", () => {
     });
     fireEvent.click(screen.getByText(/Calcular NPSH disponível/i, { selector: "button" }));
 
-    expect(await screen.findByText(/NPSHd = 6,8/i)).toBeInTheDocument();
-    expect(screen.getByText(/Margem de NPSH/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Margem de NPSH$/i })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/NPSHr opcional/i), {
       target: { value: "4" },
     });
 
     expect(screen.queryByText(/NPSHd = 6,8/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Margem de NPSH/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /^Margem de NPSH$/i })).not.toBeInTheDocument();
 
     await openPumpTab(/Altura Manométrica/i);
     fireEvent.change(screen.getByLabelText(/Pressão 1/i), {
@@ -608,8 +837,8 @@ describe("PumpPage", () => {
     await waitFor(() => {
       expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("18,2");
     });
-    expect(screen.getByText(/Decomposição/i)).toBeInTheDocument();
-    expect(screen.getByText(/^-h_f$/i)).toBeInTheDocument();
+    const staleHeadTable = await screen.findByRole("table", { name: "Decomposição" });
+    expect(staleHeadTable).toHaveTextContent("h_{f}");
 
     fireEvent.change(screen.getByLabelText(/Perda de carga total/i), {
       target: { value: "5" },
@@ -620,7 +849,7 @@ describe("PumpPage", () => {
     expect(screen.queryByText(/Decomposição/i)).not.toBeInTheDocument();
   });
 
-  it("renders the manometric head breakdown as a table with math notation", async () => {
+  it("renders the manometric head decomposition table with the expected terms", async () => {
     mockPumpRequests();
     renderPumpPage();
 
@@ -655,13 +884,12 @@ describe("PumpPage", () => {
     });
     fireEvent.click(screen.getByText(/Calcular altura manométrica/i, { selector: "button" }));
 
-    expect(await screen.findByText(/Decomposição/i)).toBeInTheDocument();
+    const headTable = await screen.findByRole("table", { name: "Decomposição" });
     await waitFor(() => {
-      expect(screen.getByRole("table", { name: /Decomposição/i })).toBeInTheDocument();
-      expect(screen.getByText("ΔP/(ρg)")).toBeInTheDocument();
-      expect(screen.getByText("Δz")).toBeInTheDocument();
-      expect(screen.getByText("ΔV²/(2g)")).toBeInTheDocument();
-      expect(screen.getByText("-h_f")).toBeInTheDocument();
+      expect(headTable).toHaveTextContent("ΔP/(ρg)");
+      expect(headTable).toHaveTextContent("Δz");
+      expect(headTable).toHaveTextContent("ΔV2/(2g)");
+      expect(headTable).toHaveTextContent("h_{f}");
     });
   });
 
@@ -696,6 +924,45 @@ describe("PumpPage", () => {
       expect(screen.queryByText(/h_f = 4,25 m/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/Perda de Carga × Vazão/i)).not.toBeInTheDocument();
     });
+    expect(requestBodiesFor("/api/pump/headloss/chart")).toHaveLength(0);
+    expect(requestBodiesFor("/api/pump/efficiency-map/chart")).toHaveLength(0);
+  });
+
+  it("ignores delayed headloss errors after the user edits the form", async () => {
+    const pumpRequests = mockPumpRequests({ delayHeadloss: true });
+    renderPumpPage();
+
+    expect(
+      await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+      target: { value: "25" },
+    });
+    fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
+      target: { value: "50" },
+    });
+    fireEvent.change(screen.getByLabelText(/Vazão/i), {
+      target: { value: "0.005" },
+    });
+    fireEvent.change(screen.getByLabelText(/Fator de atrito/i), {
+      target: { value: "0.02" },
+    });
+    fireEvent.click(screen.getByText(/Calcular perda de carga/i, { selector: "button" }));
+    fireEvent.change(screen.getByLabelText(/Vazão/i), {
+      target: { value: "0.006" },
+    });
+
+    pumpRequests.rejectHeadloss(new Error("Falha antiga de perda de carga"));
+
+    await waitFor(() => {
+      expect(notifyMock.error).not.toHaveBeenCalledWith(
+        expect.stringContaining("Falha antiga de perda de carga"),
+      );
+    });
+    expect(screen.queryByText(/Falha antiga de perda de carga/i)).not.toBeInTheDocument();
+    expect(requestBodiesFor("/api/pump/headloss/chart")).toHaveLength(0);
+    expect(requestBodiesFor("/api/pump/efficiency-map/chart")).toHaveLength(0);
   });
 
   it("calculates Darcy-Weisbach head loss using composition roughness and multiple fittings", async () => {

@@ -7,8 +7,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+from models.charting import build_chart_model, build_linear_axis, build_series_model
 from models.mass_balance import MassBalance
-from schemas import MassBalanceRequest
+from schemas import ChartMetadataModel, ChartModel, MarkerModel, MassBalanceRequest
+from .i18n import translate_error_message
 
 router = APIRouter(prefix="/mass-balance", tags=["Mass Balance"])
 
@@ -23,6 +25,42 @@ def _legacy_mass_balance_results(results):
     return legacy_results
 
 
+def _build_mass_balance_model(payload: MassBalanceRequest) -> MassBalance:
+    mb = MassBalance(payload.components)
+
+    for stream in payload.streams:
+        mb.add_stream(
+            stream.name,
+            payload.components,
+            stream.direction,
+            stream.flow_rate,
+            stream.compositions,
+        )
+
+    if payload.reactions:
+        for reaction in payload.reactions:
+            mb.add_reaction(
+                reaction.stoichiometry,
+                reaction.key_component,
+                reaction.conversion,
+            )
+
+    if payload.splits:
+        for split in payload.splits:
+            mb.add_split(
+                split.parent_stream,
+                split.recycle_stream,
+                split.purge_stream,
+                split.fraction,
+            )
+
+    return mb
+
+
+def _translate_detail(message: object) -> str:
+    return translate_error_message(str(message))
+
+
 @router.post("/calculate")
 def calculate_mass_balance(payload: MassBalanceRequest):
     try:
@@ -30,39 +68,9 @@ def calculate_mass_balance(payload: MassBalanceRequest):
         for stream in payload.streams:
             is_valid, error_message = MassBalance.validate_stream_compositions(stream)
             if not is_valid:
-                raise HTTPException(status_code=400, detail=str(error_message))
+                raise HTTPException(status_code=400, detail=_translate_detail(error_message))
             
-        # Create mass balance model
-        mb = MassBalance(payload.components)
-        
-        # Add streams
-        for stream in payload.streams:
-            mb.add_stream(
-                stream.name, 
-                payload.components, 
-                stream.direction, 
-                stream.flow_rate, 
-                stream.compositions
-            )
-        
-        # Add reactions
-        if payload.reactions:
-            for reaction in payload.reactions:
-                mb.add_reaction(
-                    reaction.stoichiometry,
-                    reaction.key_component,
-                    reaction.conversion
-                )
-        
-        # Add splits
-        if payload.splits:
-            for split in payload.splits:
-                mb.add_split(
-                    split.parent_stream,
-                    split.recycle_stream,
-                    split.purge_stream,
-                    split.fraction
-                )
+        mb = _build_mass_balance_model(payload)
         
         try:
             # Solve the system
@@ -92,7 +100,7 @@ def calculate_mass_balance(payload: MassBalanceRequest):
             
             # Fail fast if validation failed
             if not is_valid:
-                raise HTTPException(status_code=400, detail=str(error_message))
+                raise HTTPException(status_code=400, detail=_translate_detail(error_message))
             
             # Calculate process metrics if possible
             metrics = {}
@@ -142,11 +150,81 @@ def calculate_mass_balance(payload: MassBalanceRequest):
             # Catch and properly raise validation errors
             return JSONResponse(
                 status_code=400,
-                content={"detail": str(validation_error)}
+                content={"detail": _translate_detail(validation_error)}
             )
             
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=_translate_detail(exc))
+
+
+@router.post("/chart", response_model=ChartModel)
+def chart_mass_balance(payload: MassBalanceRequest):
+    try:
+        for stream in payload.streams:
+            is_valid, error_message = MassBalance.validate_stream_compositions(stream)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=_translate_detail(error_message))
+
+        mb = _build_mass_balance_model(payload)
+        results = mb.get_results()
+        is_valid, error_message = mb.validate_results(results)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=_translate_detail(error_message))
+
+        chart_data = mb.build_chart_data(results)
+        flow_values = [point["y"] for point in chart_data["flow_points"]]
+        series = []
+        for component in payload.components:
+            component_points = []
+            for stream_point, composition_point in zip(
+                chart_data["flow_points"],
+                chart_data["composition_series"][component],
+            ):
+                component_points.append(
+                    {
+                        "x": float(stream_point["x"]),
+                        "y": float(stream_point["y"] * composition_point["y"]),
+                    }
+                )
+            series.append(
+                build_series_model(
+                    name=f"Contribuição de {component}",
+                    series_id=f"component-{component.lower()}",
+                    color=None,
+                    kind="bar",
+                    points=component_points,
+                )
+            )
+
+        return build_chart_model(
+            chart_id="mass-balance-chart",
+            title="Composição mássica das correntes",
+            subtitle="Cada barra representa a vazão da corrente, segmentada pela contribuição mássica dos componentes.",
+            axes={
+                "x": build_linear_axis(
+                    [1.0, float(len(chart_data["stream_names"]))],
+                    label="Corrente",
+                    units="índice",
+                    domain={"min": 1.0, "max": float(len(chart_data["stream_names"]))},
+                ),
+                "flow": build_linear_axis(
+                    flow_values,
+                    label="Vazão mássica da corrente",
+                    units="massa ou mol/tempo",
+                ),
+            },
+            series=series,
+            markers=[],
+            metadata=ChartMetadataModel(
+                version="1.0",
+                units={
+                    "x": "índice",
+                    "flow": "massa ou mol/tempo",
+                },
+            ),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=_translate_detail(exc))
 
 
 @router.post("/plot")
@@ -156,39 +234,9 @@ def plot_mass_balance(payload: MassBalanceRequest):
         for stream in payload.streams:
             is_valid, error_message = MassBalance.validate_stream_compositions(stream)
             if not is_valid:
-                raise HTTPException(status_code=400, detail=str(error_message))
+                raise HTTPException(status_code=400, detail=_translate_detail(error_message))
             
-        # Create mass balance model
-        mb = MassBalance(payload.components)
-        
-        # Add streams
-        for stream in payload.streams:
-            mb.add_stream(
-                stream.name, 
-                payload.components, 
-                stream.direction, 
-                stream.flow_rate, 
-                stream.compositions
-            )
-        
-        # Add reactions
-        if payload.reactions:
-            for reaction in payload.reactions:
-                mb.add_reaction(
-                    reaction.stoichiometry,
-                    reaction.key_component,
-                    reaction.conversion
-                )
-        
-        # Add splits
-        if payload.splits:
-            for split in payload.splits:
-                mb.add_split(
-                    split.parent_stream,
-                    split.recycle_stream,
-                    split.purge_stream,
-                    split.fraction
-                )
+        mb = _build_mass_balance_model(payload)
         
         try:
             # Solve the system
@@ -218,7 +266,7 @@ def plot_mass_balance(payload: MassBalanceRequest):
             
             # Fail fast if validation failed
             if not is_valid:
-                raise HTTPException(status_code=400, detail=str(error_message))
+                raise HTTPException(status_code=400, detail=_translate_detail(error_message))
             
             # Create a figure with subplots
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
@@ -275,11 +323,11 @@ def plot_mass_balance(payload: MassBalanceRequest):
             # Catch and properly raise validation errors
             return JSONResponse(
                 status_code=400,
-                content={"detail": str(validation_error)}
+                content={"detail": _translate_detail(validation_error)}
             )
             
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=_translate_detail(exc))
 
 
 @router.get("/example")
@@ -352,39 +400,10 @@ def calculate_yields(payload: MassBalanceRequest):
         for stream in payload.streams:
             is_valid, error_message = MassBalance.validate_stream_compositions(stream)
             if not is_valid:
-                raise HTTPException(status_code=400, detail=str(error_message))
+                raise HTTPException(status_code=400, detail=_translate_detail(error_message))
             
         # First get the mass balance results
-        mb = MassBalance(payload.components)
-        
-        # Add streams
-        for stream in payload.streams:
-            mb.add_stream(
-                stream.name, 
-                payload.components, 
-                stream.direction, 
-                stream.flow_rate, 
-                stream.compositions
-            )
-        
-        # Add reactions
-        if payload.reactions:
-            for reaction in payload.reactions:
-                mb.add_reaction(
-                    reaction.stoichiometry,
-                    reaction.key_component,
-                    reaction.conversion
-                )
-        
-        # Add splits
-        if payload.splits:
-            for split in payload.splits:
-                mb.add_split(
-                    split.parent_stream,
-                    split.recycle_stream,
-                    split.purge_stream,
-                    split.fraction
-                )
+        mb = _build_mass_balance_model(payload)
         
         try:
             # Solve the system
@@ -414,7 +433,7 @@ def calculate_yields(payload: MassBalanceRequest):
             
             # Fail fast if validation failed
             if not is_valid:
-                raise HTTPException(status_code=400, detail=str(error_message))
+                raise HTTPException(status_code=400, detail=_translate_detail(error_message))
             
             # Identify feed and product streams
             feed_streams = [s for s in payload.streams if s.direction == 1]
@@ -451,9 +470,8 @@ def calculate_yields(payload: MassBalanceRequest):
             # Catch and properly raise validation errors
             return JSONResponse(
                 status_code=400,
-                content={"detail": str(validation_error)}
+                content={"detail": _translate_detail(validation_error)}
             )
             
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-
+        raise HTTPException(status_code=400, detail=_translate_detail(exc))

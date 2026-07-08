@@ -1,9 +1,13 @@
 import {
   buildAxisTicks,
   expandNumericDomain,
+  formatAxisLabel,
   formatAxisTick,
+  formatChartAxisTick,
+  scaleAxisValue,
   type NumericDomain,
 } from "@/components/viz/chart-axis-utils";
+import type { AxisModel } from "@/types/chart-model";
 import { useId } from "react";
 
 type ChartPadding = {
@@ -14,8 +18,6 @@ type ChartPadding = {
 };
 
 type NumericChartGridProps = {
-  xDomain: [number, number];
-  yDomain: [number, number];
   width: number;
   height: number;
   padding: ChartPadding;
@@ -23,17 +25,14 @@ type NumericChartGridProps = {
   yLabel?: string;
   xTickCount?: number;
   yTickCount?: number;
+  xDomain?: [number, number];
+  yDomain?: [number, number];
+  xAxis?: AxisModel;
+  yAxis?: AxisModel;
+  title?: string;
 };
 
 const defaultTickCount = 5;
-
-function scale(value: number, domain: NumericDomain, start: number, end: number) {
-  if (domain.min === domain.max) {
-    return (start + end) / 2;
-  }
-
-  return start + ((value - domain.min) / (domain.max - domain.min)) * (end - start);
-}
 
 function normalizeDomain([left, right]: [number, number]) {
   const min = Math.min(left, right);
@@ -42,9 +41,42 @@ function normalizeDomain([left, right]: [number, number]) {
   return min === max ? expandNumericDomain([min]) : { min, max };
 }
 
+function buildAxisFromDomain(
+  label: string | undefined,
+  domain: NumericDomain,
+  tickCount: number,
+): AxisModel {
+  const ticks = buildAxisTicks(domain.min, domain.max, tickCount);
+
+  return {
+    scale: "linear",
+    label: label ?? "",
+    domain,
+    ticks,
+    major_ticks: ticks,
+  };
+}
+
+function resolveAxis({
+  axis,
+  domain,
+  label,
+  tickCount,
+}: {
+  axis?: AxisModel;
+  domain?: [number, number];
+  label?: string;
+  tickCount: number;
+}) {
+  if (axis) {
+    return axis;
+  }
+
+  const resolvedDomain = domain ? normalizeDomain(domain) : expandNumericDomain([0, 1]);
+  return buildAxisFromDomain(label, resolvedDomain, tickCount);
+}
+
 export function NumericChartGrid({
-  xDomain,
-  yDomain,
   width,
   height,
   padding,
@@ -52,17 +84,24 @@ export function NumericChartGrid({
   yLabel,
   xTickCount = defaultTickCount,
   yTickCount = defaultTickCount,
+  xDomain,
+  yDomain,
+  xAxis,
+  yAxis,
+  title = "Numeric chart grid",
 }: NumericChartGridProps) {
   const titleId = useId();
   const descId = useId();
-  const normalizedXDomain = normalizeDomain(xDomain);
-  const normalizedYDomain = normalizeDomain(yDomain);
+  const resolvedXAxis = resolveAxis({ axis: xAxis, domain: xDomain, label: xLabel, tickCount: xTickCount });
+  const resolvedYAxis = resolveAxis({ axis: yAxis, domain: yDomain, label: yLabel, tickCount: yTickCount });
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
-  const xTicks = buildAxisTicks(normalizedXDomain.min, normalizedXDomain.max, xTickCount);
-  const yTicks = buildAxisTicks(normalizedYDomain.min, normalizedYDomain.max, yTickCount);
-  const xTickText = xTicks.map(formatAxisTick).join(", ");
-  const yTickText = yTicks.map(formatAxisTick).join(", ");
+  const xTickText = resolvedXAxis.ticks.map((tick) => formatChartAxisTick(resolvedXAxis, tick)).join(", ");
+  const yTickText = resolvedYAxis.ticks.map((tick) => formatChartAxisTick(resolvedYAxis, tick)).join(", ");
+  const xAxisLabel = xLabel ?? formatAxisLabel(resolvedXAxis);
+  const yAxisLabel = yLabel ?? formatAxisLabel(resolvedYAxis);
+  const xMajorTicks = new Set(resolvedXAxis.major_ticks ?? []);
+  const yMajorTicks = new Set(resolvedYAxis.major_ticks ?? []);
 
   return (
     <svg
@@ -73,18 +112,19 @@ export function NumericChartGrid({
       preserveAspectRatio="xMidYMid meet"
       className="block h-auto w-full overflow-hidden"
     >
-      <title id={titleId}>Numeric chart grid</title>
+      <title id={titleId}>{title}</title>
       <desc id={descId}>
-        {xLabel ? `X axis ${xLabel}. ` : ""}
-        {yLabel ? `Y axis ${yLabel}. ` : ""}
-        {xTicks.length > 0 ? `X ticks ${xTickText}. ` : ""}
-        {yTicks.length > 0 ? `Y ticks ${yTickText}.` : ""}
+        {xAxisLabel ? `X axis ${xAxisLabel}. ` : ""}
+        {yAxisLabel ? `Y axis ${yAxisLabel}. ` : ""}
+        {resolvedXAxis.ticks.length > 0 ? `X ticks ${xTickText}. ` : ""}
+        {resolvedYAxis.ticks.length > 0 ? `Y ticks ${yTickText}.` : ""}
       </desc>
       <rect x="0" y="0" width={width} height={height} fill="transparent" />
 
       <g aria-hidden="true">
-        {xTicks.map((tick) => {
-          const x = scale(tick, normalizedXDomain, padding.left, width - padding.right);
+        {resolvedXAxis.ticks.map((tick) => {
+          const x = scaleAxisValue(tick, resolvedXAxis, padding.left, width - padding.right);
+          const isMajor = xMajorTicks.has(tick);
 
           return (
             <line
@@ -94,13 +134,15 @@ export function NumericChartGrid({
               y1={padding.top}
               y2={height - padding.bottom}
               stroke="#e2e8f0"
-              strokeWidth="1"
+              strokeWidth={isMajor ? "1.1" : "1"}
+              strokeDasharray={isMajor ? undefined : "2 4"}
             />
           );
         })}
 
-        {yTicks.map((tick) => {
-          const y = scale(tick, normalizedYDomain, height - padding.bottom, padding.top);
+        {resolvedYAxis.ticks.map((tick) => {
+          const y = scaleAxisValue(tick, resolvedYAxis, height - padding.bottom, padding.top);
+          const isMajor = yMajorTicks.has(tick);
 
           return (
             <line
@@ -110,14 +152,15 @@ export function NumericChartGrid({
               y1={y}
               y2={y}
               stroke="#e2e8f0"
-              strokeWidth="1"
+              strokeWidth={isMajor ? "1.1" : "1"}
+              strokeDasharray={isMajor ? undefined : "2 4"}
             />
           );
         })}
       </g>
 
-      {xTicks.map((tick) => {
-        const x = scale(tick, normalizedXDomain, padding.left, width - padding.right);
+      {resolvedXAxis.ticks.map((tick) => {
+        const x = scaleAxisValue(tick, resolvedXAxis, padding.left, width - padding.right);
 
         return (
           <text
@@ -130,13 +173,13 @@ export function NumericChartGrid({
             textAnchor="middle"
             dominantBaseline="hanging"
           >
-            {formatAxisTick(tick)}
+            {formatChartAxisTick(resolvedXAxis, tick)}
           </text>
         );
       })}
 
-      {yTicks.map((tick) => {
-        const y = scale(tick, normalizedYDomain, height - padding.bottom, padding.top);
+      {resolvedYAxis.ticks.map((tick) => {
+        const y = scaleAxisValue(tick, resolvedYAxis, height - padding.bottom, padding.top);
 
         return (
           <text
@@ -149,7 +192,7 @@ export function NumericChartGrid({
             textAnchor="end"
             dominantBaseline="middle"
           >
-            {formatAxisTick(tick)}
+            {formatChartAxisTick(resolvedYAxis, tick)}
           </text>
         );
       })}
@@ -171,7 +214,7 @@ export function NumericChartGrid({
         strokeWidth="1.5"
       />
 
-      {xLabel ? (
+      {xAxisLabel ? (
         <text
           data-chart-label="x"
           x={padding.left + plotWidth / 2}
@@ -181,11 +224,11 @@ export function NumericChartGrid({
           textAnchor="middle"
           dominantBaseline="auto"
         >
-          {xLabel}
+          {xAxisLabel}
         </text>
       ) : null}
 
-      {yLabel ? (
+      {yAxisLabel ? (
         <text
           data-chart-label="y"
           transform={`translate(${8}, ${padding.top + plotHeight / 2}) rotate(-90)`}
@@ -194,7 +237,7 @@ export function NumericChartGrid({
           textAnchor="middle"
           dominantBaseline="auto"
         >
-          {yLabel}
+          {yAxisLabel}
         </text>
       ) : null}
     </svg>

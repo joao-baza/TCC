@@ -49,6 +49,14 @@ class TestReactorComprehensive:
         })
         assert idx == 1
 
+    def test_initialize_reactor_interprets_inlet_concentration_as_mol_per_cubic_meter(
+        self, reactor, base_params
+    ):
+        init_data = reactor._initialize_reactor(base_params)
+
+        assert init_data["F_A0"].to(ureg.mol / ureg.s).magnitude == pytest.approx(10.0)
+        assert init_data["C_lim0"].to(ureg.mol / ureg.m**3).magnitude == pytest.approx(1000.0)
+
     # -------------------------------------------------------------------------
     # UNIT: CSTR & PFR PARAMETRIZED VALIDATION
     # -------------------------------------------------------------------------
@@ -105,6 +113,19 @@ class TestReactorComprehensive:
             res_tau = reactor.pfr(params_tau)
             
         assert abs(res_tau["conversion"].magnitude - target_conversion) < 1e-4
+
+    def test_pfr_conversion_and_kinetics_returns_volume_and_residence_time_with_physical_units(
+        self, reactor, base_params
+    ):
+        params = base_params.copy()
+        params["input_type"] = "conversion_and_kinetics"
+        params["conversion"] = 0.8
+        params["recycling_ratio"] = 0
+
+        result = reactor.pfr(params)
+
+        assert str(result["volume"].units) == "meter ** 3"
+        assert str(result["residence_time"].units) == "second"
 
     # -------------------------------------------------------------------------
     # UNIT: BOUNDARY CONDITIONS & ERRORS

@@ -9,6 +9,17 @@ async function selectComboboxOption(page, label, query) {
 test("sizing module loads the example and calculates diameters", async ({
   page,
 }) => {
+  await page.route("**/api/sizing/example", async (route) => {
+    await route.fulfill({
+      json: {
+        flow_rate: 0.0166667,
+        project_velocity: 1.5,
+        calculated_diameter: 126.16,
+        schedule: "SCH40",
+      },
+    });
+  });
+
   await page.route("**/api/piping/schedules", async (route) => {
     await route.fulfill({
       json: [
@@ -36,28 +47,28 @@ test("sizing module loads the example and calculates diameters", async ({
   await page.goto("/sizing");
   await expect(page.getByRole("heading", { name: /Dimensionamento de Tubulação/i })).toBeVisible();
 
-  await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await expect(page.getByLabel(/Vazão/i)).toHaveValue("0.0166667");
-  await expect(page.getByLabel(/Velocidade de projeto/i)).toHaveValue("1.5");
+  await page.getByLabel(/Vazão/i).fill("0.0166667");
+  await page.getByLabel(/Velocidade de projeto/i).fill("1.5");
 
   const calculatedResponse = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/sizing/calculated-diameter") &&
       response.request().method() === "POST",
   );
+  await page.getByRole("button", { name: /Calcular diâmetro/i }).click();
+  await calculatedResponse;
+  await expect(page.locator("table").filter({ hasText: "Diâmetro calculado" }).first()).toContainText("126,16");
+
+  await page.getByRole("tab", { name: /Diâmetro Real/i }).click();
+  await expect(page.getByLabel(/Diâmetro calculado/i)).toHaveValue("126.16");
+  await selectComboboxOption(page, "Schedule", "SCH40");
   const realResponse = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/sizing/real-diameter") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: /Calcular diâmetro/i }).click();
-  await calculatedResponse;
-  await realResponse;
-  await expect(page.locator("table").filter({ hasText: "Diâmetro calculado" }).first()).toContainText("126,16");
-
-  await page.getByRole("tab", { name: /Diâmetro Real/i }).click();
-  await expect(page.getByLabel(/Diâmetro calculado/i)).toHaveValue("126.16");
   await page.getByRole("button", { name: /Obter diâmetro real/i }).click();
+  await realResponse;
   await expect(page.locator("table").filter({ hasText: "Diâmetro real" }).first()).toContainText("150");
 });
 
@@ -81,6 +92,17 @@ test("sizing module surfaces an error when the schedules catalog fails to load",
 test("sizing module surfaces an error when the calculated diameter request fails", async ({
   page,
 }) => {
+  await page.route("**/api/sizing/example", async (route) => {
+    await route.fulfill({
+      json: {
+        flow_rate: 0.0166667,
+        project_velocity: 1.5,
+        calculated_diameter: 126.16,
+        schedule: "SCH40",
+      },
+    });
+  });
+
   await page.route("**/api/piping/schedules", async (route) => {
     await route.fulfill({
       json: [
@@ -103,7 +125,8 @@ test("sizing module surfaces an error when the calculated diameter request fails
   await page.goto("/sizing");
   await expect(page.getByRole("heading", { name: /Dimensionamento de Tubulação/i })).toBeVisible();
 
-  await page.getByRole("button", { name: /Carregar exemplo/i }).click();
+  await page.getByLabel(/Vazão/i).fill("0.0166667");
+  await page.getByLabel(/Velocidade de projeto/i).fill("1.5");
   await page.getByRole("button", { name: /Calcular diâmetro/i }).click();
 
   await expect(
@@ -142,7 +165,8 @@ test("sizing module surfaces an error when the real diameter request fails", asy
   await page.goto("/sizing");
   await expect(page.getByRole("heading", { name: /Dimensionamento de Tubulação/i })).toBeVisible();
 
-  await page.getByRole("button", { name: /Carregar exemplo/i }).click();
+  await page.getByLabel(/Vazão/i).fill("0.0166667");
+  await page.getByLabel(/Velocidade de projeto/i).fill("1.5");
   await page.getByRole("button", { name: /Calcular diâmetro/i }).click();
   await page.getByRole("tab", { name: /Diâmetro Real/i }).click();
   await selectComboboxOption(page, "Schedule", "SCH40");

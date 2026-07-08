@@ -21,10 +21,6 @@ it("shows the sidebar groups and learning trails on the home page", async () => 
       .getAllByRole("link", { name: /Tubulações/i })
       .some((link) => link.getAttribute("href") === "/piping"),
   ).toBe(true);
-  expect(
-    screen
-      .getAllByRole("link", { name: /Exercícios Integrados/i })
-      .some((link) => link.getAttribute("href") === "/exercises"),
-  ).toBe(true);
+  expect(screen.queryAllByRole("link", { name: /Exercícios Integrados/i })).toHaveLength(0);
   expect(screen.getByText(/Trilhas de Aprendizagem/i)).toBeInTheDocument();
 });

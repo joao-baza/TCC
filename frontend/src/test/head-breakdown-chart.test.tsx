@@ -4,27 +4,34 @@ import { HeadBreakdownChart } from "@/components/viz/head-breakdown-chart";
 
 describe("HeadBreakdownChart", () => {
   it("renders the head decomposition title, total, and all provided terms", () => {
-    render(
+    const { container } = render(
       <HeadBreakdownChart
-        totalHead={18.2}
+        totalHead={20}
         terms={[
-          { label: "ΔP/(ρg)", value: 12.4 },
-          { label: "Δz", value: 5.1 },
-          { label: "ΔV²/(2g)", value: 1.3 },
-          { label: "-h_f", value: -0.6 },
+          { label: "ΔP/(ρg)", value: 10 },
+          { label: "Δz", value: 5 },
+          { label: "ΔV²/(2g)", value: 4 },
+          { label: "-h_f", value: -1 },
         ]}
       />,
     );
 
+    const table = screen.getByRole("table", { name: "Decomposição" });
     expect(screen.getByText("Decomposição")).toBeInTheDocument();
-    expect(screen.getByText("H total = 18,2 m")).toBeInTheDocument();
-    expect(screen.getByText("ΔP/(ρg)")).toBeInTheDocument();
-    expect(screen.getByText("Δz")).toBeInTheDocument();
-    expect(screen.getByText("ΔV²/(2g)")).toBeInTheDocument();
-    expect(screen.getByText("-h_f")).toBeInTheDocument();
-    expect(screen.getAllByText("12,4").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("5,1").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("1,3").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("-0,6").length).toBeGreaterThan(1);
+    expect(screen.getByText("H total = 20 m")).toBeInTheDocument();
+    expect(table).toHaveTextContent("ΔP/(ρg)");
+    expect(table).toHaveTextContent("Δz");
+    expect(table).toHaveTextContent("ΔV2/(2g)");
+    expect(table).toHaveTextContent("h_{f}");
+    expect(table).toHaveTextContent("50%");
+    expect(table).toHaveTextContent("25%");
+    expect(table).toHaveTextContent("20%");
+    expect(table).toHaveTextContent("5%");
+    expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(12);
+    expect(table.closest("section")).toHaveClass(
+      "mx-auto",
+      "w-full",
+      "max-w-[760px]",
+    );
   });
 });

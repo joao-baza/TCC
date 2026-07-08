@@ -2,6 +2,7 @@
 import sys
 import os
 import json
+import math
 from pint import UnitRegistry
 
 # Add parent directory to path to allow imports
@@ -70,9 +71,13 @@ def run_demo():
     try:
         res_cstr_design = reactor_engine.cstr(params_cstr_design)
         vol_required = res_cstr_design["volume"]
+        tau_expected = target_conversion / (
+            base_params["reaction_rate_params"]["k"] * (1 - target_conversion)
+        )
         print(f"   -> Target X: {target_conversion*100}%")
         print(f"   -> Calculated Volume: {vol_required:.4f}")
         print(f"   -> Residence Time: {res_cstr_design['residence_time']:.4f}")
+        print(f"   -> Analytical Tau (1st order): {tau_expected:.4f} s")
     except Exception as e:
         print(f"!! FAILED CSTR Design: {e}")
         return
@@ -131,8 +136,10 @@ def run_demo():
     try:
         res_pfr_std = reactor_engine.pfr(params_pfr_std)
         vol_pfr = res_pfr_std["volume"]
+        tau_pfr_expected = -math.log(1 - target_conversion_pfr) / base_params["reaction_rate_params"]["k"]
         print(f"   -> Target X: {target_conversion_pfr*100}%")
         print(f"   -> Calculated Volume: {vol_pfr:.4f}")
+        print(f"   -> Analytical Tau (1st order): {tau_pfr_expected:.4f} s")
     except Exception as e:
         print(f"!! FAILED PFR Standard: {e}")
 
@@ -175,6 +182,79 @@ def run_demo():
         print(f"   -> Calculated X: {x_calc_pfr.magnitude*100:.4f}%")
     except Exception as e:
         print(f"!! FAILED PFR Check: {e}")
+
+    print("\n[Comparison] Same conversion at two temperatures")
+    temperature_cases = [
+        ("Cold", 0.02),
+        ("Hot", 0.08),
+    ]
+    for label, rate_constant in temperature_cases:
+        params = base_params.copy()
+        params["reaction_rate_params"] = {"k": rate_constant, "reaction_orders": [1, 0]}
+        params["input_type"] = "conversion_and_kinetics"
+        params["conversion"] = 0.8
+        params["recycling_ratio"] = 0.0
+        result = reactor_engine.pfr(params)
+        print(
+            f"   -> {label}: k={rate_constant:.4f} s^-1 | "
+            f"tau={result['residence_time'].magnitude:.4f} s | "
+            f"V={result['volume'].magnitude:.4f} m^3"
+        )
+
+    print("\n[Comparison] CSTR vs PFR at fixed conversion")
+    comparison_conversion = 0.8
+    comparison_params = base_params.copy()
+    comparison_params.update({
+        "input_type": "conversion_and_kinetics",
+        "conversion": comparison_conversion,
+    })
+    cstr_result = reactor_engine.cstr(comparison_params)
+    pfr_result = reactor_engine.pfr({**comparison_params, "recycling_ratio": 0.0})
+    print(f"   -> CSTR V={cstr_result['volume'].magnitude:.4f} m^3")
+    print(f"   -> PFR  V={pfr_result['volume'].magnitude:.4f} m^3")
+    print(
+        f"   -> PFR uses less volume: "
+        f"{pfr_result['volume'].magnitude < cstr_result['volume'].magnitude}"
+    )
+
+    print("\n[Comparison] PFR recycle ratios")
+    for recycle_ratio in (0.0, 0.5, 2.0):
+        params = base_params.copy()
+        params.update({
+            "input_type": "conversion_and_kinetics",
+            "conversion": 0.95,
+            "recycling_ratio": recycle_ratio,
+        })
+        result = reactor_engine.pfr(params)
+        print(
+            f"   -> R={recycle_ratio:.1f} | "
+            f"tau={result['residence_time'].magnitude:.4f} s | "
+            f"V={result['volume'].magnitude:.4f} m^3"
+        )
+
+    # =========================================================================
+    # PART 3: ARRHENIUS INTERPRETATION
+    # =========================================================================
+    print("\n" + "="*60)
+    print(" 3. ARRHENIUS INTERPRETATION ")
+    print("="*60)
+
+    activation_energy = 75_000  # J/mol
+    reference_temperature = 350.0  # K
+    reference_rate_constant = 0.5  # s^-1
+    gas_constant = 8.314462618
+    frequency_factor = reference_rate_constant * math.exp(
+        activation_energy / (gas_constant * reference_temperature)
+    )
+
+    for temperature in (300.0, 350.0, 420.0):
+        rate_constant = frequency_factor * math.exp(
+            -activation_energy / (gas_constant * temperature)
+        )
+        print(
+            f"   -> T={temperature:.0f} K | 1000/T={1000/temperature:.4f} | "
+            f"ln(k)={math.log(rate_constant):.4f} | k={rate_constant:.6f} s^-1"
+        )
 
     print("\n" + "="*60)
     print(" DEMO COMPLETE ")

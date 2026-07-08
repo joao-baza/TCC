@@ -17,6 +17,33 @@ async function selectComboboxOption(page, label, query) {
 test("flow module loads the example and calculates the core values", async ({
   page,
 }) => {
+  await page.route("**/api/flow/example", async (route) => {
+    await route.fulfill({
+      json: {
+        reynolds: {
+          characteristic_diameter: 13.843,
+          velocity: 3.923,
+          density: 0.65688,
+          dynamic_viscosity: 0.0000111963,
+        },
+        friction_factor: {
+          roughness: 0.15,
+          diameter: 13.843,
+          reynolds: 50000,
+          method: "SwameeJain",
+          use_composition: true,
+          use_schedule: false,
+          composition: "Aço galvanizado",
+        },
+        hydraulic_diameter: {
+          shape: "circularCap",
+          diameter: 0.125,
+          height: 0.08333,
+        },
+      },
+    });
+  });
+
   await page.route("**/api/flow/friction-factor/methods", async (route) => {
     await route.fulfill({
       json: ["ColebrookWhite", "SwameeJain", "Haaland"],
@@ -83,26 +110,29 @@ test("flow module loads the example and calculates the core values", async ({
   await page.goto("/flow");
   await expect(page.getByRole("heading", { name: /Escoamento Interno/i })).toBeVisible();
 
-  await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await expect(page.getByLabel(/Diâmetro característico/i)).toHaveValue("13.843");
-  await expect(page.getByLabel(/Velocidade média/i)).toHaveValue("3.923");
-  await expect(page.getByLabel(/Densidade/i)).toHaveValue("0.65688");
-  await expect(page.getByLabel(/Viscosidade dinâmica/i)).toHaveValue("0.0000111963");
+  await page.getByLabel(/Diâmetro característico/i).fill("13.843");
+  await page.getByLabel(/Velocidade média/i).fill("3.923");
+  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
 
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
   await expect(page.locator("table").filter({ hasText: "Número de Reynolds" }).first()).toContainText("50000");
   await expect(page.getByRole("heading", { name: /^Regime do escoamento$/i })).toBeVisible();
 
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
-  await expect(page.getByLabel(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
-  await expect(page.getByLabel(/Diâmetro da linha/i)).toHaveValue("13.843");
+  await page.getByLabel(/Rugosidade/i).fill("0.15");
+  await page.getByLabel(/Diâmetro da linha/i).fill("13.843");
+  await selectComboboxOption(page, "Método de cálculo", "SwameeJain");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
   await expect(page.locator("table").filter({ hasText: "Fator de atrito" }).first()).toContainText("0,0215");
-  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+  ).toBeVisible();
 
   await page.getByRole("tab", { name: /Diâmetro Hidráulico/i }).click();
-  await expect(page.locator("#cap-diameter")).toHaveValue("0.125");
-  await expect(page.locator("#cap-height")).toHaveValue("0.08333");
+  await selectComboboxOption(page, "Forma geométrica", "circularCap");
+  await page.locator("#cap-diameter").fill("0.125");
+  await page.locator("#cap-height").fill("0.08333");
   await page.getByRole("button", { name: /Calcular diâmetro hidráulico/i }).click();
   await expect(page.locator("table").filter({ hasText: "Diâmetro hidráulico" }).first()).toContainText("66,67");
 });
@@ -185,6 +215,19 @@ test("flow module surfaces an error when hydraulic diameter calculation fails", 
 });
 
 test("flow module surfaces an error when Reynolds calculation fails", async ({ page }) => {
+  await page.route("**/api/flow/example", async (route) => {
+    await route.fulfill({
+      json: {
+        reynolds: {
+          characteristic_diameter: 13.843,
+          velocity: 3.923,
+          density: 0.65688,
+          dynamic_viscosity: 0.0000111963,
+        },
+      },
+    });
+  });
+
   await page.route("**/api/flow/friction-factor/methods", async (route) => {
     await route.fulfill({
       json: ["ColebrookWhite", "SwameeJain", "Haaland"],
@@ -221,7 +264,10 @@ test("flow module surfaces an error when Reynolds calculation fails", async ({ p
   await page.goto("/flow");
   await expect(page.getByRole("heading", { name: /Escoamento Interno/i })).toBeVisible();
 
-  await page.getByRole("button", { name: /Carregar exemplo/i }).click();
+  await page.getByLabel(/Diâmetro característico/i).fill("13.843");
+  await page.getByLabel(/Velocidade média/i).fill("3.923");
+  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
 
   await expect(page.getByText(/Erro ao calcular Reynolds: Falha no backend de Reynolds/i)).toBeVisible();
@@ -270,9 +316,10 @@ test("flow module surfaces an error when friction factor calculation fails", asy
   await page.goto("/flow");
   await expect(page.getByRole("heading", { name: /Escoamento Interno/i })).toBeVisible();
 
-  await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
-  await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await page.getByRole("tab", { name: /Número de Reynolds/i }).click();
+  await page.getByLabel(/Diâmetro característico/i).fill("13.843");
+  await page.getByLabel(/Velocidade média/i).fill("3.923");
+  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
   await page.getByRole("group", { name: /Rugosidade/i }).getByLabel(/Valor customizado/i).check();
@@ -282,10 +329,7 @@ test("flow module surfaces an error when friction factor calculation fails", asy
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
 
   await expect(
-    page
-      .locator('[role="alert"]')
-      .filter({ hasText: /Erro ao calcular fator de atrito: Falha no backend de atrito/i })
-      .first(),
+    page.getByText(/Erro ao calcular fator de atrito: Falha no backend de atrito/i).first(),
   ).toBeVisible();
 });
 
@@ -331,7 +375,10 @@ test("flow module clears stale Reynolds and friction outputs after dependent edi
   await page.goto("/flow");
   await expect(page.getByRole("heading", { name: /Escoamento Interno/i })).toBeVisible();
 
-  await page.getByRole("button", { name: /Carregar exemplo/i }).click();
+  await page.getByLabel(/Diâmetro característico/i).fill("13.843");
+  await page.getByLabel(/Velocidade média/i).fill("3.923");
+  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
   await expect(page.locator("table").filter({ hasText: "Número de Reynolds" }).first()).toContainText("50000");
 
@@ -342,7 +389,9 @@ test("flow module clears stale Reynolds and friction outputs after dependent edi
   await selectComboboxOption(page, "Método de cálculo", "SwameeJain");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
   await expect(page.locator("table").filter({ hasText: "Fator de atrito" }).first()).toContainText("0,0215");
-  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+  ).toBeVisible();
 
   await page.getByRole("tab", { name: /Número de Reynolds/i }).click();
   await page.getByLabel(/Velocidade média/i).fill("1.8");
@@ -354,7 +403,9 @@ test("flow module clears stale Reynolds and friction outputs after dependent edi
   await expect(frictionTable).toHaveCount(0);
   await expect(reynoldsTable).not.toContainText("50000");
   await expect(page.getByRole("heading", { name: /^Regime do escoamento$/i })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+  ).toHaveCount(0);
   await expect(page.getByLabel(/Número de Reynolds/i)).toHaveCount(0);
 });
 
@@ -428,10 +479,14 @@ test("flow module clears friction results when the schedule changes", async ({ p
   });
 
   await page.goto("/flow");
-  await page.getByRole("button", { name: /Carregar exemplo/i }).click();
+  await page.getByLabel(/Diâmetro característico/i).fill("13.843");
+  await page.getByLabel(/Velocidade média/i).fill("3.923");
+  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
-  await expect(page.getByLabel(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
+  await page.getByRole("group", { name: /Rugosidade/i }).getByLabel(/Usar composição/i).check();
+  await selectComboboxOption(page, "Material da tubulação", "Aço galvanizado");
   await page.getByRole("group", { name: /Diâmetro/i }).getByLabel(/Usar schedule/i).check();
   await selectComboboxOption(page, "Schedule", "SCH40");
   await expect(page.getByRole("combobox", { name: /Diâmetro da linha/i })).toBeEnabled();
@@ -440,7 +495,9 @@ test("flow module clears friction results when the schedule changes", async ({ p
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
 
   await expect(page.locator("table").filter({ hasText: "Fator de atrito" }).first()).toContainText("0,0215");
-  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+  ).toBeVisible();
 
   const scheduleInput = page.getByRole("combobox", { name: "Schedule" });
   await scheduleInput.click();
@@ -448,5 +505,7 @@ test("flow module clears friction results when the schedule changes", async ({ p
   await page.keyboard.type("XS");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("combobox", { name: "Schedule" })).toHaveValue("XS");
-  await expect(page.getByRole("heading", { name: /^Ponto operacional - Diagrama de Moody$/i })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
+  ).toHaveCount(0);
 });

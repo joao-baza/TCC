@@ -94,7 +94,7 @@ test("piping module loads catalogs and shows composition, diameter, and fitting 
   await expect(diameterTable).toContainText("33,4");
   await expect(diameterTable).toContainText("3,38");
   await expect(diameterTable).toContainText("2,5");
-  await expect(diameterTable).toContainText("kilogram / meter");
+  await expect(diameterTable).toContainText("kg/m");
 
   await page.getByRole("tab", { name: /Conexões/i }).click();
   const fittingInput = page.getByRole("combobox", { name: "Conexão" });

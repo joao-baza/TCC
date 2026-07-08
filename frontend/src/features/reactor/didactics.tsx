@@ -48,9 +48,9 @@ export function PfrRecycleDaHowItWorks() {
   return (
     <HowItWorks title="Como funciona - Conversão x reciclo">
       <p className="text-sm text-slate-700">
-        Este gráfico resume, de forma didática, como a conversão global do PFR com
-        reciclo varia quando a razão de reciclo R muda. Cada curva fixa um valor de
-        Damköhler e permite comparar a sensibilidade da conversão à recirculação.
+        Este gráfico mostra como a conversão global do PFR varia quando a razão de
+        reciclo R muda. O eixo horizontal representa o quanto da corrente de saída volta
+        ao reator e o eixo vertical mostra a conversão obtida para essa condição.
       </p>
       <MathBlock
         expression={
@@ -58,14 +58,40 @@ export function PfrRecycleDaHowItWorks() {
         }
       />
       <p className="text-sm text-slate-700">
-        Leia o eixo horizontal como a razão de reciclo e o eixo vertical como a
-        conversão. Em cada curva, deslocar-se para a direita mostra o efeito de aumentar
-        o reciclo; curvas com menor Da ficam mais altas porque a reação avança mais para
-        a mesma condição operacional.
+        Para interpretar, acompanhe o deslocamento da curva da esquerda para a direita:
+        isso mostra o efeito de aumentar o reciclo sobre a conversão. A inclinação indica
+        se a recirculação ainda traz ganho relevante ou se o sistema já entrou em uma
+        faixa de retorno decrescente.
+      </p>
+      <p className="text-sm text-slate-700">
+        A utilidade prática é comparar sensibilidade operacional. O gráfico ajuda a
+        discutir se vale a pena elevar o reciclo para aumentar conversão ou se isso
+        apenas amplia vazão circulante, custo de bombeamento e complexidade operacional.
+      </p>
+    </HowItWorks>
+  );
+}
+
+export function ArrheniusHowItWorks() {
+  return (
+    <HowItWorks title="Como funciona - Arrhenius">
+      <p className="text-sm text-slate-700">
+        O gráfico de Arrhenius relaciona a cinética com a temperatura. No eixo x aparece
+        1000/T e no eixo y aparece ln(k), de modo que a dependência exponencial da
+        constante de velocidade se torna aproximadamente linear.
+      </p>
+      <p className="text-sm text-slate-700">
+        Para interpretar, observe a inclinação da reta: quanto mais inclinada, maior a
+        sensibilidade de k a mudanças de temperatura e, portanto, maior o efeito da
+        energia de ativação sobre a reação.
+      </p>
+      <p className="text-sm text-slate-700">
+        A utilidade do gráfico é comparar cenários térmicos, estimar tendência de
+        aceleração reacional e explicar por que pequenas mudanças de temperatura podem
+        alterar fortemente a taxa de reação.
       </p>
       <TheoryRef>
-        Use este mapa para comparar desempenho sem perder de vista a cinética de
-        entrada. Ele serve como apoio visual, não como substituto do cálculo completo.
+        Ref.: Fogler, Elements of Chemical Reaction Engineering.
       </TheoryRef>
     </HowItWorks>
   );

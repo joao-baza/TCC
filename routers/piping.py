@@ -15,8 +15,8 @@ def validate_piping_example_catalogs() -> None:
         raise RuntimeError("Schedule 'SCH40' not found")
     if 125 not in piping.diameters("SCH40"):
         raise RuntimeError("Diameter '125' not found for schedule 'SCH40'")
-    if "Válvula de esfera" not in piping.fittings():
-        raise RuntimeError("Fitting 'Válvula de esfera' not found")
+    if "Válvula esfera" not in piping.fittings():
+        raise RuntimeError("Fitting 'Válvula esfera' not found")
 
 
 @router.get("/example", response_model=PipingExampleResponse)
@@ -26,7 +26,7 @@ def get_piping_example():
         "composition": "Aço galvanizado",
         "schedule": "SCH40",
         "diameter": 125,
-        "fitting": "Válvula de esfera",
+        "fitting": "Válvula esfera",
     }
 
 

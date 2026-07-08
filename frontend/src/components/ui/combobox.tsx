@@ -52,8 +52,14 @@ export function Combobox({
   }, [options, searchValue]);
 
   useEffect(() => {
+    if (!open) {
+      setSearchValue("");
+    }
+  }, [open, value]);
+
+  useEffect(() => {
     const normalizedQuery = searchValue.trim();
-    if (!normalizedQuery || visibleOptions.length !== 1) {
+    if (!open || !normalizedQuery || visibleOptions.length !== 1) {
       return;
     }
 

@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+delete process.env.NO_COLOR;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   projects: [

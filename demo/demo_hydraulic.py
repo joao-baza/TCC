@@ -123,6 +123,53 @@ def run_demo():
     except Exception as e:
         print(f"!! FAILED Head Loss (Likely missing fitting data or invalid key): {e}")
 
+    # =========================================================================
+    # PART 4: NPSH AVAILABLE
+    # =========================================================================
+    print("\n" + "="*60)
+    print(" 4. NPSH AVAILABLE ")
+    print("="*60)
+
+    npsh_cases = [
+        (
+            "Example Router Case (Risk Margin)",
+            {
+                "manometric_pressure": 0.0,
+                "atmospheric_pressure": 1.033,
+                "vapor_pressure": 0.023,
+                "density": 1000.0,
+                "head_loss": 10.0,
+                "pump_inlet_velocity": 1.5,
+                "gauge_elevation": 3.0,
+            },
+            3.0,
+        ),
+        (
+            "Positive Suction Head Case (Safe Margin)",
+            {
+                "manometric_pressure": 1.2,
+                "atmospheric_pressure": 1.0,
+                "vapor_pressure": 0.03,
+                "density": 998.0,
+                "head_loss": 2.1,
+                "pump_inlet_velocity": 1.4,
+                "gauge_elevation": 3.0,
+            },
+            3.0,
+        ),
+    ]
+
+    for label, params_npsh, npshr in npsh_cases:
+        try:
+            npsha = hyd_engine.npsh_available(params_npsh)
+            margin = npsha.to("meter").magnitude - npshr
+            print(f"\n[NPSH] {label}")
+            print(f"   -> NPSHa: {npsha:.4f}")
+            print(f"   -> NPSHr: {npshr:.4f} meter")
+            print(f"   -> Margin (NPSHa - NPSHr): {margin:.4f} m")
+        except Exception as e:
+            print(f"!! FAILED NPSH ({label}): {e}")
+
     print("\n" + "="*60)
     print(" DEMO COMPLETE ")
     print("="*60)

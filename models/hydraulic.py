@@ -9,6 +9,22 @@ from base_validator import BaseValidator
 # SI units conversion factor for Hazen-Williams (valid for SI units)
 HAZEN_WILLIAMS_SI_FACTOR = 10.67
 STANDARD_GRAVITY = 9.80665
+MOODY_REFERENCE_ROUGHNESS = [
+    0.0,
+    0.000005,
+    0.00001,
+    0.00002,
+    0.00005,
+    0.0001,
+    0.0002,
+    0.0005,
+    0.001,
+    0.002,
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+]
 
 class Hydraulic(BaseValidator):
     """Hydraulic utility class"""
@@ -94,6 +110,188 @@ class Hydraulic(BaseValidator):
             spec = self.piping.fitting_specifications(f["fitting"])
             total += spec["specifications"]["equivalentLength"].magnitude * diameter_m * f["quantity"]
         return total
+
+    def laminar_friction_factor(self, reynolds: float) -> float:
+        safe_reynolds = float(reynolds)
+        if safe_reynolds <= 0:
+            raise ValueError("Reynolds number must be positive.")
+        return 64 / safe_reynolds
+
+    def swamee_jain_relative_friction_factor(
+        self,
+        relative_roughness: float,
+        reynolds: float,
+    ) -> float:
+        safe_reynolds = max(float(reynolds), 1.0)
+        roughness = max(float(relative_roughness), 0.0)
+        argument = roughness / 3.7 + 5.74 / safe_reynolds ** 0.9
+        return 0.25 / np.log10(argument) ** 2
+
+    def colebrook_white_relative_friction_factor(
+        self,
+        relative_roughness: float,
+        reynolds: float,
+    ) -> float:
+        if reynolds <= 2_000:
+            return self.laminar_friction_factor(reynolds)
+
+        friction_factor = self.swamee_jain_relative_friction_factor(relative_roughness, reynolds)
+
+        for _ in range(30):
+            rhs = -2 * np.log10(
+                max(float(relative_roughness), 0.0) / 3.7
+                + 2.51 / (float(reynolds) * np.sqrt(friction_factor))
+            )
+            next_value = 1 / rhs ** 2
+
+            if not np.isfinite(next_value) or abs(next_value - friction_factor) < 1e-9:
+                break
+
+            friction_factor = next_value
+
+        return float(friction_factor)
+
+    def build_laminar_friction_curve(
+        self,
+        *,
+        start_reynolds: float,
+        end_reynolds: float,
+        sample_count: int = 150,
+    ) -> List[Dict[str, float]]:
+        reynolds_values = np.geomspace(start_reynolds, end_reynolds, sample_count)
+        return [
+            {"x": float(reynolds), "y": self.laminar_friction_factor(float(reynolds))}
+            for reynolds in reynolds_values
+        ]
+
+    def build_moody_curve_points(
+        self,
+        *,
+        relative_roughness: float,
+        start_reynolds: float,
+        end_reynolds: float,
+        sample_count: int = 150,
+    ) -> List[Dict[str, float]]:
+        reynolds_values = np.geomspace(start_reynolds, end_reynolds, sample_count)
+        return [
+            {
+                "x": float(reynolds),
+                "y": self.colebrook_white_relative_friction_factor(relative_roughness, float(reynolds)),
+            }
+            for reynolds in reynolds_values
+        ]
+
+    def build_moody_curve(
+        self,
+        *,
+        relative_roughness: float,
+        start_reynolds: float,
+        end_reynolds: float,
+        sample_count: int = 150,
+    ) -> List[Dict[str, float]]:
+        return self.build_moody_curve_points(
+            relative_roughness=relative_roughness,
+            start_reynolds=start_reynolds,
+            end_reynolds=end_reynolds,
+            sample_count=sample_count,
+        )
+
+    def build_system_headloss_curve(
+        self,
+        *,
+        method: str,
+        flow_rate: float,
+        headloss: float,
+    ) -> List[Dict[str, float]]:
+        if flow_rate <= 0 or headloss < 0:
+            raise ValueError("Flow rate must be positive and head loss cannot be negative.")
+
+        exponent = 1.852 if method == "Hazen-Williams" else 2.0
+        return [
+            {
+                "x": float(flow_rate * ratio),
+                "y": float(headloss * ratio ** exponent),
+            }
+            for ratio in (0.5, 0.75, 1.0, 1.25, 1.5)
+        ]
+
+    def build_headloss_curve_points(
+        self,
+        *,
+        method: str,
+        flow_rate: float,
+        headloss: float,
+    ) -> List[Dict[str, float]]:
+        return self.build_system_headloss_curve(
+            method=method,
+            flow_rate=flow_rate,
+            headloss=headloss,
+        )
+
+    def build_pump_curve_points(
+        self,
+        *,
+        operating_flow_rate: float,
+        operating_head: float,
+        max_flow_rate: float,
+    ) -> List[Dict[str, float]]:
+        if operating_flow_rate < 0 or operating_head < 0 or max_flow_rate <= 0:
+            raise ValueError("Pump curve inputs must be non-negative, with positive max flow rate.")
+
+        effective_flow = max(operating_flow_rate * 1.15, max_flow_rate * 0.85, 0.05)
+        shutoff_head = max(operating_head * 1.22, operating_head + 2, 5)
+        coefficient = (shutoff_head - operating_head) / max(effective_flow ** 2, 1e-6)
+
+        return [
+            {
+                "x": float(flow_rate),
+                "y": float(max(shutoff_head - coefficient * flow_rate ** 2, 0)),
+            }
+            for flow_rate in (ratio * max_flow_rate for ratio in (0.0, 0.25, 0.5, 0.75, 1.0))
+        ]
+
+    def build_pump_curve(
+        self,
+        *,
+        operating_flow_rate: float,
+        operating_head: float,
+        max_flow_rate: float,
+    ) -> List[Dict[str, float]]:
+        return self.build_pump_curve_points(
+            operating_flow_rate=operating_flow_rate,
+            operating_head=operating_head,
+            max_flow_rate=max_flow_rate,
+        )
+
+    def build_head_terms(self, parameters: Dict[str, object]) -> List[Dict[str, float | str]]:
+        req = [
+            "pressure1",
+            "pressure2",
+            "elevation1",
+            "elevation2",
+            "velocity1",
+            "velocity2",
+            "density",
+            "head_loss",
+        ]
+        self._require_keys(parameters, req)
+        self._validate_numeric(parameters, req)
+
+        p1 = parameters["pressure1"] * self.ureg.Pa
+        p2 = parameters["pressure2"] * self.ureg.Pa
+        z1 = parameters["elevation1"] * self.ureg.m
+        z2 = parameters["elevation2"] * self.ureg.m
+        v1 = parameters["velocity1"] * self.ureg.m / self.ureg.s
+        v2 = parameters["velocity2"] * self.ureg.m / self.ureg.s
+        density = parameters["density"] * self.ureg.kg / self.ureg.m**3
+        head_loss = parameters["head_loss"] * self.ureg.m
+
+        return [
+            {"label": "ΔP/(ρg)", "value": ((p2 - p1) / (density * self.g)).to(self.ureg.m).magnitude},
+            {"label": "Δz", "value": (z2 - z1).to(self.ureg.m).magnitude},
+            {"label": "ΔV²/(2g)", "value": ((v2**2 - v1**2) / (2 * self.g)).to(self.ureg.m).magnitude},
+            {"label": "-h_f", "value": (-head_loss).to(self.ureg.m).magnitude},
+        ]
 
     # ------------------------------------------------------------------ #
     #                              PUBLIC                                #

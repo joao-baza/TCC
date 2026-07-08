@@ -48,7 +48,7 @@ class TestPumpHeadlossRouter:
                 "fittings": [
                     {"fitting": "Cotovelo 45°", "quantity": 5},
                     {"fitting": "Saída de tanque", "quantity": 1},
-                    {"fitting": "Válvula de esfera", "quantity": 2},
+                    {"fitting": "Válvula esfera", "quantity": 2},
                 ],
             },
             "npsh": {
@@ -159,6 +159,187 @@ class TestPumpHeadlossRouter:
         methods = response.json()
         assert any(method["value"] == "Darcy-Weisbach" for method in methods)
         assert any(method["value"] == "Hazen-Williams" for method in methods)
+
+    def test_head_chart_endpoint_returns_terms_chart(self):
+        response = client.post(
+            "/pump/head/chart",
+            json={
+                "pressure1": 101325,
+                "pressure2": 101325,
+                "elevation1": 0,
+                "elevation2": 5,
+                "velocity1": 0,
+                "velocity2": 3,
+                "density": 1000,
+                "friction_factor": 2.55887,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["axes"]["x"]["scale"] == "linear"
+        assert payload["series"]
+        assert payload["markers"]
+        assert len(payload["annotations"]) == 4
+
+    def test_headloss_chart_endpoint_returns_curve_model(self):
+        response = client.post(
+            "/pump/headloss/chart",
+            json={
+                "method": "Darcy-Weisbach",
+                "pipe_length": 100,
+                "diameter": 125,
+                "flow_rate": 0.04,
+                "velocity": 3.259493234522017,
+                "friction_factor": 0.04495094389484752,
+                "fittings": [
+                    {"fitting": "Cotovelo 45°", "quantity": 5},
+                    {"fitting": "Saída de tanque", "quantity": 1},
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert "chart" not in payload
+        assert payload["title"] == "Curva da bomba e do sistema"
+        assert payload["axes"]["x"]["scale"] == "linear"
+        assert payload["axes"]["y"]["scale"] == "linear"
+        assert [series["id"] for series in payload["series"]] == ["pump-curve", "system-curve"]
+        assert len(payload["markers"]) == 1
+        assert payload["markers"][0]["id"] == "operating-point"
+        assert payload["markers"][0]["x"] == pytest.approx(0.04)
+        assert payload["markers"][0]["y"] > 0
+        assert payload["markers"][0]["label"] == "Ponto de operação"
+        assert payload["markers"][0]["color"] == "#dc2626"
+        assert payload["approximation_notice"] == (
+            "A curva da bomba usa uma aproximação quadrática didática. Para uma bomba real, um catálogo deve ser usado para analisar."
+        )
+
+    def test_efficiency_map_chart_endpoint_returns_backend_cells_and_markers(self):
+        response = client.post(
+            "/pump/efficiency-map/chart",
+            json={
+                "method": "Darcy-Weisbach",
+                "pipe_length": 100,
+                "diameter": 125,
+                "flow_rate": 0.04,
+                "velocity": 3.259493234522017,
+                "friction_factor": 0.04495094389484752,
+                "fittings": [
+                    {"fitting": "Cotovelo 45°", "quantity": 5},
+                    {"fitting": "Saída de tanque", "quantity": 1},
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["id"] == "pump-efficiency-map"
+        assert payload["x_axis"]["label"] == "Vazão volumétrica (Q)"
+        assert payload["y_axis"]["label"] == "Altura manométrica (H)"
+        assert len(payload["cells"]) == 70
+        assert payload["system_curve"]
+        assert [marker["id"] for marker in payload["markers"]] == [
+            "best-efficiency-point",
+            "operating-point",
+        ]
+
+    def test_npsh_gauge_chart_endpoint_returns_backend_status_axis_and_markers(self):
+        response = client.post(
+            "/pump/npsh-gauge/chart",
+            json={
+                "manometric_pressure": 1.2,
+                "atmospheric_pressure": 1.0,
+                "vapor_pressure": 0.03,
+                "density": 998,
+                "friction_factor": 2.1,
+                "pump_inlet_velocity": 1.4,
+                "gauge_elevation": 3,
+                "required": 3,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["id"] == "pump-npsh-gauge"
+        assert payload["available"]["value"] > 0
+        assert payload["required"]["value"] == pytest.approx(3)
+        assert payload["safe_threshold"]["value"] == pytest.approx(3.5)
+        assert payload["status"]["tone"] in {"safe", "risk"}
+        assert "NPSHd" in payload["status"]["label"]
+        assert payload["axis"]["scale"] == "linear"
+        assert payload["axis"]["domain"]["min"] == pytest.approx(0)
+        assert payload["axis"]["domain"]["max"] >= payload["available"]["value"]
+        assert [marker["id"] for marker in payload["markers"]] == [
+            "available",
+            "required",
+            "safe-threshold",
+        ]
+
+    def test_npsh_available_endpoint_returns_expected_head_for_example_scenario(self):
+        response = client.post(
+            "/pump/npsh-available",
+            json={
+                "manometric_pressure": 0.0,
+                "atmospheric_pressure": 1.033,
+                "vapor_pressure": 0.023,
+                "density": 1000.0,
+                "friction_factor": 10.0,
+                "pump_inlet_velocity": 1.5,
+                "gauge_elevation": 3.0,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "head_loss": {
+                "value": pytest.approx(3.2147180739600167),
+                "units": "meter",
+            }
+        }
+
+    def test_npsh_gauge_chart_marks_example_scenario_as_risk_when_below_safe_margin(self):
+        response = client.post(
+            "/pump/npsh-gauge/chart",
+            json={
+                "manometric_pressure": 0.0,
+                "atmospheric_pressure": 1.033,
+                "vapor_pressure": 0.023,
+                "density": 1000.0,
+                "friction_factor": 10.0,
+                "pump_inlet_velocity": 1.5,
+                "gauge_elevation": 3.0,
+                "required": 3.0,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["available"]["value"] == pytest.approx(3.2147180739600167)
+        assert payload["status"]["tone"] == "risk"
+        assert payload["safe_threshold"]["value"] == pytest.approx(3.5)
+
+    def test_npsh_gauge_chart_handles_missing_required_without_safe_limit(self):
+        response = client.post(
+            "/pump/npsh-gauge/chart",
+            json={
+                "manometric_pressure": 1.2,
+                "atmospheric_pressure": 1.0,
+                "vapor_pressure": 0.03,
+                "density": 998,
+                "friction_factor": 2.1,
+                "pump_inlet_velocity": 1.4,
+                "gauge_elevation": 3,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["required"] is None
+        assert payload["safe_threshold"] is None
+        assert payload["status"]["tone"] == "missing"
+        assert [marker["id"] for marker in payload["markers"]] == ["available"]
 
 
 class TestResolveFlowVelocity:

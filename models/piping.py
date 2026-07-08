@@ -356,10 +356,10 @@ _PIPING_DATA = {
         "Saída de tanque": {
             "equivalentLength": 32
             },
-        "Válvula de diafragma": {
+        "Válvula diafragma": {
             "equivalentLength": 200
             },
-        "Válvula de esfera": {
+        "Válvula esfera": {
             "equivalentLength": 18
             },
         "Filtro em Y": {
@@ -377,10 +377,10 @@ _PIPING_DATA = {
         "Válvula gaveta (1/4 aberta)": {
             "equivalentLength": 900
             },
-        "Válvula de retenção de pé": {
+        "Válvula retenção de pé": {
             "equivalentLength": 150
             },
-        "Válvula de retenção de porta": {
+        "Válvula retenção de porta": {
             "equivalentLength": 135
             },
         "Válvula agulha": {
@@ -419,7 +419,7 @@ _PIPING_DATA = {
         "Tê 90° dupla saída": {
             "equivalentLength": 69
             },
-        "Válvula de retenção, leve": {
+        "Válvula retenção, leve": {
             "equivalentLength": 83.6}
     }
 
@@ -563,8 +563,8 @@ class Piping:
             "Tê (passagem reta)": "Acessório em T com continuidade do fluxo pela linha principal.",
             "Tê (saída lateral)": "Acessório em T com desvio do fluxo pela saída lateral.",
             "Saída de tanque": "Acessório que conecta um tanque ao sistema de tubulação.",
-            "Válvula de diafragma": "Válvula que utiliza um diafragma flexível para controlar o fluxo.",
-            "Válvula de esfera": "Válvula com esfera pivotante para controle de fluxo, com baixa perda de carga quando totalmente aberta."
+            "Válvula diafragma": "Válvula que utiliza um diafragma flexível para controlar o fluxo.",
+            "Válvula esfera": "Válvula com esfera pivotante para controle de fluxo, com baixa perda de carga quando totalmente aberta."
         }
         
         return descriptions.get(fitting, "Acessório utilizado em sistemas de transporte de fluidos.")
@@ -579,8 +579,8 @@ class Piping:
             "Tê (passagem reta)": "Utilizado para criar derivações mantendo o fluxo na linha principal.",
             "Tê (saída lateral)": "Utilizado para desviar parte do fluxo para uma linha derivada.",
             "Saída de tanque": "Utilizado para conectar tanques de armazenamento a sistemas de tubulação.",
-            "Válvula de diafragma": "Utilizada para controle preciso de fluxo e isolamento em aplicações sanitárias.",
-            "Válvula de esfera": "Utilizada para fechamento rápido com baixa perda de carga."
+            "Válvula diafragma": "Utilizada para controle preciso de fluxo e isolamento em aplicações sanitárias.",
+            "Válvula esfera": "Utilizada para fechamento rápido com baixa perda de carga."
         }
         
         return usages.get(fitting, "Comum em sistemas de tubulação industrial e comercial.")

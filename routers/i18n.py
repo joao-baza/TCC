@@ -44,6 +44,8 @@ ERROR_TRANSLATIONS = {
     "Missing flow rate for stream": "Vazão ausente na corrente",
     "Missing compositions for stream": "Composições ausentes na corrente",
     "The system is underdetermined": "O sistema está subdeterminado",
+    "The system is underdetermined or has no solution.": "O sistema está subdeterminado ou não possui solução.",
+    "The system is underdetermined (infinite solutions or symbolic result). Check the degrees of freedom.": "O sistema está subdeterminado (soluções infinitas ou resultado simbólico). Verifique os graus de liberdade.",
     "Check the degrees of freedom.": "Verifique os graus de liberdade.",
     "Temperature max must be greater than temperature min.": "A temperatura máxima deve ser maior que a temperatura mínima.",
     "Pressure max must be greater than pressure min.": "A pressão máxima deve ser maior que a pressão mínima.",
