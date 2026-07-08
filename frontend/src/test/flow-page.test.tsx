@@ -873,7 +873,9 @@ describe("FlowPage", () => {
 
     await expectTableValueMath(/^Número de Reynolds$/i);
     expectTableUnitText(/^Número de Reynolds$/i, "dimensionless");
-    expect(screen.getAllByText(/^Turbulento$/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/^Turbulento$/i).length).toBeGreaterThan(0);
+    });
     expect(requestBodiesFor("/api/flow/reynolds/regime-visualization")).toContainEqual({
       reynolds: 50000,
     });
