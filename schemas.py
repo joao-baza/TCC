@@ -1,5 +1,234 @@
+import math
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional, Dict, Any, Literal
+
+
+# ---------------------------------------------------------------------------
+# Shared Chart Models
+# ---------------------------------------------------------------------------
+
+class AxisDomainModel(BaseModel):
+    min: float = Field(..., description="Lower domain bound")
+    max: float = Field(..., description="Upper domain bound")
+
+    @model_validator(mode="after")
+    def validate_bounds(self):
+        if not math.isfinite(self.min) or not math.isfinite(self.max):
+            raise ValueError("Axis domain bounds must be finite")
+        if self.max <= self.min:
+            raise ValueError("Axis domain max must be greater than min")
+        return self
+
+
+class ChartPointModel(BaseModel):
+    x: float = Field(..., description="Point x coordinate")
+    y: float = Field(..., description="Point y coordinate")
+
+    @model_validator(mode="after")
+    def validate_coordinates(self):
+        if not math.isfinite(self.x) or not math.isfinite(self.y):
+            raise ValueError("Chart points must use finite coordinates")
+        return self
+
+
+class AxisModel(BaseModel):
+    scale: Literal["linear", "log"] = Field(..., description="Axis scale type")
+    label: str = Field(..., description="Axis label")
+    units: Optional[str] = Field(None, description="Axis units")
+    domain: AxisDomainModel = Field(..., description="Axis domain as min/max bounds")
+    ticks: List[float] = Field(..., description="Tick values rendered on the axis")
+    major_ticks: List[float] = Field(
+        default_factory=list,
+        description="Primary tick values, especially useful for logarithmic axes",
+    )
+    tick_format: Optional[str] = Field(None, description="Suggested display format")
+
+    @model_validator(mode="after")
+    def validate_axis(self):
+        if any(not math.isfinite(value) for value in self.ticks):
+            raise ValueError("Axis ticks must be finite")
+        if any(not math.isfinite(value) for value in self.major_ticks):
+            raise ValueError("Axis major ticks must be finite")
+        if self.scale == "log" and self.domain.min <= 0:
+            raise ValueError("Logarithmic axes require a positive domain")
+        return self
+
+
+class SeriesModel(BaseModel):
+    id: str = Field(..., description="Series identifier")
+    name: str = Field(..., description="Series display label")
+    kind: Literal["line", "scatter", "area", "band", "bar"] = Field(
+        ...,
+        description="Series rendering kind",
+    )
+    points: List[ChartPointModel] = Field(..., description="Series points as x/y coordinates")
+    color: Optional[str] = Field(None, description="Series display color")
+
+
+class MarkerModel(BaseModel):
+    id: str = Field(..., description="Marker identifier")
+    x: float = Field(..., description="Marker x coordinate")
+    y: float = Field(..., description="Marker y coordinate")
+    label: str = Field(..., description="Marker display label")
+    color: Optional[str] = Field(None, description="Marker display color")
+
+    @model_validator(mode="after")
+    def validate_marker(self):
+        if not math.isfinite(self.x) or not math.isfinite(self.y):
+            raise ValueError("Markers must use finite coordinates")
+        return self
+
+
+class AnnotationModel(BaseModel):
+    id: str = Field(..., description="Annotation identifier")
+    text: str = Field(..., description="Annotation content")
+    x: Optional[float] = Field(None, description="Optional x anchor")
+    y: Optional[float] = Field(None, description="Optional y anchor")
+    tone: Optional[str] = Field(None, description="Annotation semantic tone")
+
+
+class ChartMetadataModel(BaseModel):
+    units: Dict[str, str] = Field(default_factory=dict, description="Units keyed by series or axis")
+    version: str = Field(..., description="Chart contract version")
+
+
+class ChartModel(BaseModel):
+    id: str = Field(..., description="Chart identifier")
+    title: str = Field(..., description="Chart title")
+    subtitle: Optional[str] = Field(None, description="Optional chart subtitle")
+    approximation_notice: Optional[str] = Field(
+        None,
+        description="Optional notice for didactic approximations",
+    )
+    axes: Dict[str, AxisModel] = Field(..., description="Chart axes keyed by semantic axis name")
+    series: List[SeriesModel] = Field(..., description="Series rendered in the chart")
+    markers: List[MarkerModel] = Field(default_factory=list, description="Highlighted chart markers")
+    annotations: List[AnnotationModel] = Field(default_factory=list, description="Chart annotations")
+    metadata: ChartMetadataModel = Field(..., description="Chart metadata block")
+
+
+class FlowChartResponse(BaseModel):
+    chart: ChartModel = Field(..., description="Flow visualization payload")
+
+
+class PumpChartResponse(BaseModel):
+    chart: ChartModel = Field(..., description="Pump visualization payload")
+
+
+class ReactorChartResponse(BaseModel):
+    chart: ChartModel = Field(..., description="Reactor visualization payload")
+
+
+class ComponentsChartResponse(BaseModel):
+    chart: ChartModel = Field(..., description="Components visualization payload")
+
+
+class PumpEfficiencyMapCellModel(BaseModel):
+    x: float = Field(..., description="Cell x-coordinate in data space")
+    y: float = Field(..., description="Cell y-coordinate in data space")
+    width: float = Field(..., gt=0, description="Cell width in data-space units")
+    height: float = Field(..., gt=0, description="Cell height in data-space units")
+    efficiency: float = Field(..., ge=0, le=1, description="Relative efficiency from 0 to 1")
+    fill: str = Field(..., description="Precomputed fill color")
+    tooltip: str = Field(..., description="Tooltip text shown for the cell")
+
+
+class PumpEfficiencyMapResponse(BaseModel):
+    id: str = Field(..., description="Visualization identifier")
+    title: str = Field(..., description="Chart title")
+    subtitle: Optional[str] = Field(None, description="Chart subtitle")
+    approximation_notice: Optional[str] = Field(
+        None,
+        description="Optional notice for didactic approximations",
+    )
+    x_axis: AxisModel = Field(..., description="Flow-rate axis configuration")
+    y_axis: AxisModel = Field(..., description="Head axis configuration")
+    cells: List[PumpEfficiencyMapCellModel] = Field(..., description="Efficiency-map cells")
+    system_curve: List[ChartPointModel] = Field(..., description="System-curve samples in data space")
+    cavitation_band: List[ChartPointModel] = Field(..., description="Polygon for the didactic cavitation band")
+    markers: List[MarkerModel] = Field(default_factory=list, description="Highlighted operating markers")
+
+
+class TernaryDiagramChartRequest(BaseModel):
+    component_a: str = Field(..., description="First ternary component")
+    component_b: str = Field(..., description="Second ternary component")
+    component_c: str = Field(..., description="Third ternary component")
+    fraction_a: float = Field(..., description="Fraction for component A")
+    fraction_b: float = Field(..., description="Fraction for component B")
+    fraction_c: float = Field(..., description="Fraction for component C")
+    stream_name: str = Field("Corrente atual", description="Label shown for the projected stream")
+
+
+class TernaryGuideLineModel(BaseModel):
+    start: ChartPointModel = Field(..., description="Guide line start point")
+    end: ChartPointModel = Field(..., description="Guide line end point")
+
+
+class TernaryStreamPointModel(BaseModel):
+    label: str = Field(..., description="Projected stream label")
+    summary: str = Field(..., description="Formatted composition summary")
+    x: float = Field(..., description="Projected x coordinate in the ternary plane")
+    y: float = Field(..., description="Projected y coordinate in the ternary plane")
+    color: str = Field(..., description="Marker color")
+
+
+class TernaryDiagramChartResponse(BaseModel):
+    id: str = Field(..., description="Visualization identifier")
+    title: str = Field(..., description="Chart title")
+    subtitle: Optional[str] = Field(None, description="Chart subtitle")
+    component_labels: List[str] = Field(..., description="Ordered labels for the ternary vertices")
+    boundary: List[ChartPointModel] = Field(..., description="Triangle boundary coordinates")
+    guide_lines: List[TernaryGuideLineModel] = Field(..., description="Guide lines for reading the projection")
+    streams: List[TernaryStreamPointModel] = Field(..., description="Projected stream markers")
+
+
+class McCabeThieleChartRequest(BaseModel):
+    fluid1: str = Field(..., description="First binary component")
+    fluid2: str = Field(..., description="Second binary component")
+    pressure: float = Field(..., gt=0, description="Operating pressure in Pa")
+    sample_count: int = Field(..., ge=5, le=60, description="Number of binary-equilibrium samples")
+    distillate_composition: float = Field(..., description="Distillate composition")
+    bottoms_composition: float = Field(..., description="Bottoms composition")
+    feed_composition: float = Field(..., description="Feed composition")
+    reflux_ratio: float = Field(..., ge=0, description="Reflux ratio")
+    q_value: float = Field(..., description="Thermal state line parameter")
+    max_stages: int = Field(10, ge=1, le=30, description="Maximum number of theoretical stages")
+
+
+class PropertySurfaceCellModel(BaseModel):
+    x: float = Field(..., description="Cell x-coordinate in data space")
+    y: float = Field(..., description="Cell y-coordinate in data space")
+    width: float = Field(..., gt=0, description="Cell width in data-space units")
+    height: float = Field(..., gt=0, description="Cell height in data-space units")
+    value: Optional[float] = Field(None, description="Property value represented by the cell")
+    fill: str = Field(..., description="Precomputed fill color")
+    tooltip: str = Field(..., description="Tooltip text shown for the cell")
+
+
+class PropertySurfaceLegendStopModel(BaseModel):
+    offset: float = Field(..., ge=0, le=1, description="Legend offset from 0 to 1")
+    color: str = Field(..., description="Legend color")
+    value: float = Field(..., description="Value represented by the stop")
+
+
+class PropertySurfaceChartResponse(BaseModel):
+    id: str = Field(..., description="Visualization identifier")
+    title: str = Field(..., description="Chart title")
+    subtitle: Optional[str] = Field(None, description="Chart subtitle")
+    fluid: str = Field(..., description="Fluid label")
+    property_label: str = Field(..., description="Property label")
+    property_units: str = Field(..., description="Property units")
+    x_axis: AxisModel = Field(..., description="Temperature axis configuration")
+    y_axis: AxisModel = Field(..., description="Pressure axis configuration")
+    cells: List[PropertySurfaceCellModel] = Field(..., description="Heatmap cells")
+    legend_stops: List[PropertySurfaceLegendStopModel] = Field(..., description="Legend gradient stops")
+    value_min: float = Field(..., description="Minimum finite value")
+    value_max: float = Field(..., description="Maximum finite value")
+
+
+class MassBalanceChartResponse(BaseModel):
+    chart: ChartModel = Field(..., description="Mass-balance visualization payload")
 
 
 # ---------------------------------------------------------------------------
@@ -45,6 +274,30 @@ class CalculatedDiameterRequest(BaseModel):
 class RealDiameterRequest(BaseModel):
     calculated_diameter: float = Field(..., description="Calculated diameter in mm")
     schedule: str = Field(..., description="Pipe schedule")
+
+
+class VelocityProfileRequest(BaseModel):
+    velocity: float = Field(..., gt=0, description="Velocity in m/s")
+    diameter_mm: float = Field(..., gt=0, description="Internal diameter in mm")
+
+
+class VelocityProfileArrowModel(BaseModel):
+    x1: float = Field(..., description="Arrow start x coordinate")
+    y1: float = Field(..., description="Arrow start y coordinate")
+    x2: float = Field(..., description="Arrow end x coordinate")
+    y2: float = Field(..., description="Arrow end y coordinate")
+    tip: str = Field(..., description="Arrow tip polygon points")
+
+
+class VelocityProfileVisualizationResponse(BaseModel):
+    title: str = Field(..., description="Visualization title")
+    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Flow regime")
+    color: str = Field(..., description="Regime color")
+    label: str = Field(..., description="Regime label")
+    reynolds: float = Field(..., description="Calculated Reynolds number")
+    arrows: List[VelocityProfileArrowModel] = Field(..., description="Backend-owned arrow vectors")
+    diameter_mm: float = Field(..., description="Internal diameter in mm")
+    velocity: float = Field(..., description="Fluid velocity in m/s")
 
 
 class PipingExampleResponse(BaseModel):
@@ -93,6 +346,43 @@ class ReynoldsRequest(BaseModel):
         return self
 
 
+class ReynoldsRegimeVisualizationRequest(BaseModel):
+    reynolds: float = Field(..., ge=0, description="Reynolds number to place on the regime ruler")
+
+
+class ReynoldsRegimeTick(BaseModel):
+    value: float = Field(..., description="Tick value in Reynolds units")
+    label: str = Field(..., description="Preformatted tick label")
+    x: float = Field(..., description="Precomputed SVG x coordinate")
+
+
+class ReynoldsRegimeSegment(BaseModel):
+    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Flow regime key")
+    label: str = Field(..., description="Display label")
+    color: str = Field(..., description="Segment color")
+    x: float = Field(..., description="Precomputed SVG x coordinate")
+    width: float = Field(..., ge=0, description="Precomputed SVG segment width")
+
+
+class ReynoldsRegimeMarker(BaseModel):
+    x: float = Field(..., description="Precomputed SVG marker x coordinate")
+    label: str = Field(..., description="Preformatted Reynolds label")
+    status: str = Field(..., description="Marker status text")
+    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Flow regime key")
+    regime_label: str = Field(..., description="Display label for the current regime")
+    color: str = Field(..., description="Marker regime color")
+    text_anchor: Literal["start", "middle", "end"] = Field(..., description="SVG text-anchor")
+
+
+class ReynoldsRegimeVisualizationResponse(BaseModel):
+    title: str = Field(..., description="Visualization title")
+    description: str = Field(..., description="Visualization description")
+    domain: AxisDomainModel = Field(..., description="Backend-owned Reynolds scale domain")
+    ticks: List[ReynoldsRegimeTick] = Field(..., description="Backend-owned ruler ticks")
+    segments: List[ReynoldsRegimeSegment] = Field(..., description="Backend-owned regime bands")
+    marker: ReynoldsRegimeMarker = Field(..., description="Backend-owned marker projection")
+
+
 class FlowExampleMetadata(BaseModel):
     fluid: str = Field(..., description="Fluid used in the worked example")
     pressure: float = Field(..., description="Pressure in Pa")
@@ -128,6 +418,12 @@ class FlowExampleResponse(BaseModel):
         ...,
         description="Hydraulic diameter input parameters",
     )
+
+
+class MoodyChartRequest(BaseModel):
+    reynolds: float = Field(..., gt=0, description="Reynolds number for the operating point")
+    friction_factor: float = Field(..., gt=0, description="Darcy friction factor for the operating point")
+    roughness: float = Field(..., ge=0, le=1, description="Relative roughness ε/D for the operating point")
 
 
 class PumpExampleFitting(BaseModel):
@@ -188,30 +484,30 @@ class FrictionFactorRequest(BaseModel):
 
 class HydraulicDiameterRequest(BaseModel):
     shape: str = Field(..., description="Shape type: circular, rectangular, annular, triangular, or circularCap")
-    
+
     # Circular parameters
     diameter: Optional[float] = Field(None, gt=0, description="Diameter for circular shape (m)")
-    
+
     # Rectangular parameters
     width: Optional[float] = Field(None, gt=0, description="Width for rectangular shape (m)")
     height: Optional[float] = Field(None, gt=0, description="Height for rectangular shape (m)")
-    
+
     # Annular parameters
     outer_diameter: Optional[float] = Field(None, gt=0, description="Outer diameter for annular shape (m)")
     inner_diameter: Optional[float] = Field(None, gt=0, description="Inner diameter for annular shape (m)")
-    
+
     # Triangular parameters
     side_a: Optional[float] = Field(None, gt=0, description="Side A for triangular shape (m)")
     side_b: Optional[float] = Field(None, gt=0, description="Side B for triangular shape (m)")
     side_c: Optional[float] = Field(None, gt=0, description="Side C for triangular shape (m)")
-    
+
     @field_validator("shape")
     @classmethod
     def validate_shape(cls, v):
         if v not in ["circular", "rectangular", "annular", "triangular", "circularCap"]:
             raise ValueError("Shape must be 'circular', 'rectangular', 'annular', 'triangular', or 'circularCap'")
         return v
-    
+
     @field_validator("diameter")
     @classmethod
     def validate_circular(cls, v, info):
@@ -219,39 +515,39 @@ class HydraulicDiameterRequest(BaseModel):
         if field_values.get("shape") == "circular" and v is None:
             raise ValueError("Diameter is required for circular shape")
         return v
-    
+
     @field_validator("width", "height")
     @classmethod
     def validate_rectangular(cls, v, info):
         field_name = info.field_name
         field_values = info.data
-        
+
         if field_values.get("shape") == "rectangular":
             if field_name == "width" and v is None:
                 raise ValueError("Width is required for rectangular shape")
             if field_name == "height" and v is None:
                 raise ValueError("Height is required for rectangular shape")
         return v
-    
+
     @field_validator("outer_diameter", "inner_diameter")
     @classmethod
     def validate_annular(cls, v, info):
         field_name = info.field_name
         field_values = info.data
-        
+
         if field_values.get("shape") == "annular":
             if field_name == "outer_diameter" and v is None:
                 raise ValueError("Outer diameter is required for annular shape")
             if field_name == "inner_diameter" and v is None:
                 raise ValueError("Inner diameter is required for annular shape")
         return v
-    
+
     @field_validator("side_a", "side_b", "side_c")
     @classmethod
     def validate_triangular(cls, v, info):
         field_name = info.field_name
         field_values = info.data
-        
+
         if field_values.get("shape") == "triangular":
             if field_name == "side_a" and v is None:
                 raise ValueError("Side A is required for triangular shape")
@@ -260,19 +556,42 @@ class HydraulicDiameterRequest(BaseModel):
             if field_name == "side_c" and v is None:
                 raise ValueError("Side C is required for triangular shape")
         return v
-    
+
     @field_validator("diameter", "height")
     @classmethod
     def validate_circularCap(cls, v, info):
         field_name = info.field_name
         field_values = info.data
-        
+
         if field_values.get("shape") == "circularCap":
             if field_name == "diameter" and v is None:
                 raise ValueError("Diameter is required for circular cap")
             if field_name == "height" and v is None:
                 raise ValueError("Height is required for circular cap")
         return v
+
+
+class SvgElementModel(BaseModel):
+    type: Literal["circle", "line", "path", "polygon", "rect", "text"] = Field(
+        ...,
+        description="SVG primitive type",
+    )
+    attrs: Dict[str, Any] = Field(..., description="SVG attributes precomputed by the backend")
+    text: Optional[str] = Field(None, description="Text content for text elements")
+
+
+class HydraulicDiameterPreviewChip(BaseModel):
+    label: str = Field(..., description="Chip label")
+    value: str = Field(..., description="Preformatted chip value")
+
+
+class HydraulicDiameterPreviewResponse(BaseModel):
+    title: str = Field(..., description="Preview title")
+    description: str = Field(..., description="Accessible SVG description")
+    summary: str = Field(..., description="Short UI summary shown above the preview")
+    view_box: str = Field(..., description="SVG viewBox")
+    elements: List[SvgElementModel] = Field(..., description="Backend-owned SVG primitives")
+    chips: List[HydraulicDiameterPreviewChip] = Field(..., description="Backend-owned display chips")
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +629,32 @@ class NPSHAvailableRequest(BaseModel):
     gauge_elevation: float = Field(..., description="Gauge elevation in m")
 
 
+class NpshGaugeChartRequest(NPSHAvailableRequest):
+    required: Optional[float] = Field(None, ge=0, description="Required NPSH in m")
+
+
+class NpshGaugeValueModel(BaseModel):
+    value: float = Field(..., description="NPSH value")
+    units: str = Field(..., description="NPSH units")
+
+
+class NpshGaugeStatusModel(BaseModel):
+    tone: Literal["safe", "risk", "missing"] = Field(..., description="Semantic status")
+    label: str = Field(..., description="Status label")
+    message: str = Field(..., description="Status explanation")
+
+
+class NpshGaugeResponse(BaseModel):
+    id: str = Field(..., description="Visualization identifier")
+    title: str = Field(..., description="Gauge title")
+    available: NpshGaugeValueModel = Field(..., description="Available NPSH")
+    required: Optional[NpshGaugeValueModel] = Field(None, description="Required NPSH")
+    safe_threshold: Optional[NpshGaugeValueModel] = Field(None, description="Safe NPSH threshold")
+    status: NpshGaugeStatusModel = Field(..., description="Backend-owned NPSH status")
+    axis: AxisModel = Field(..., description="Gauge axis, domain, and ticks")
+    markers: List[MarkerModel] = Field(default_factory=list, description="Gauge markers")
+
+
 class HeadRequest(BaseModel):
     pressure1: float = Field(..., description="Pressure at point 1 in Pa")
     pressure2: float = Field(..., description="Pressure at point 2 in Pa")
@@ -329,7 +674,7 @@ class ComponentRequest(BaseModel):
     state: str = Field(..., description="State of the component (liquid or gaseous)")
     component_name: str = Field(..., description="Component name")
     flow_rate_inlet: float = Field(..., description="Flow rate inlet in m³/s")
-    molar_concentration_inlet: float = Field(..., description="Molar concentration inlet in mol/L")
+    molar_concentration_inlet: float = Field(..., description="Molar concentration inlet in mol/m³")
 
 
 class ReactorRequest(BaseModel):
@@ -342,14 +687,14 @@ class ReactorRequest(BaseModel):
     volume: Optional[float] = Field(None, gt=0, description="Reactor volume (m³), required for volume_and_kinetics")
     residence_time: Optional[float] = Field(None, gt=0, description="Residence time (s), required for residence_time_and_kinetics")
     operation_conditions: Dict[str, float] = Field(..., description="Operation conditions (initial_temperature, initial_pressure, final_temperature, final_pressure)")
-    
+
     @field_validator("input_type")
     @classmethod
     def check_input_type(cls, v):
         if v not in ["conversion_and_kinetics", "volume_and_kinetics", "residence_time_and_kinetics"]:
             raise ValueError("Input type must be 'conversion_and_kinetics', 'volume_and_kinetics', or 'residence_time_and_kinetics'")
         return v
-    
+
     @field_validator("reaction_rate_params")
     @classmethod
     def check_reaction_rate_params(cls, v):
@@ -358,7 +703,7 @@ class ReactorRequest(BaseModel):
         if "reaction_orders" not in v:
             raise ValueError("Reaction rate parameters must include 'reaction_orders'")
         return v
-    
+
     @field_validator("operation_conditions")
     @classmethod
     def check_operation_conditions(cls, v):
@@ -367,18 +712,18 @@ class ReactorRequest(BaseModel):
             if key not in v:
                 raise ValueError(f"Operation conditions must include '{key}'")
         return v
-    
+
     @model_validator(mode='after')
     def check_required_parameters(self):
         if self.input_type == "conversion_and_kinetics" and self.conversion is None:
             raise ValueError("Conversion is required for conversion_and_kinetics input type")
-        
+
         if self.input_type == "volume_and_kinetics" and self.volume is None:
             raise ValueError("Volume is required for volume_and_kinetics input type")
-        
+
         if self.input_type == "residence_time_and_kinetics" and self.residence_time is None:
             raise ValueError("Residence time is required for residence_time_and_kinetics input type")
-        
+
         return self
 
 
@@ -389,7 +734,9 @@ class ReactorPlotRequest(BaseModel):
     recycling_ratio: Optional[float] = Field(0, description="Recycling ratio for PFR (default: 0)")
     operation_conditions: Dict[str, float] = Field(..., description="Operation conditions (initial_temperature, initial_pressure, final_temperature, final_pressure)")
     max_conversion: Optional[float] = Field(0.99999, ge=0, lt=1, description="Maximum conversion value for the plot (default: 0.99999)")
-    
+    cstr_conversion: Optional[float] = Field(None, ge=0, lt=1, description="Optional CSTR operating conversion marker")
+    pfr_conversion: Optional[float] = Field(None, ge=0, lt=1, description="Optional PFR operating conversion marker")
+
     @field_validator("reaction_rate_params")
     @classmethod
     def check_reaction_rate_params(cls, v):
@@ -398,7 +745,7 @@ class ReactorPlotRequest(BaseModel):
         if "reaction_orders" not in v:
             raise ValueError("Reaction rate parameters must include 'reaction_orders'")
         return v
-    
+
     @field_validator("operation_conditions")
     @classmethod
     def check_operation_conditions(cls, v):
@@ -408,6 +755,61 @@ class ReactorPlotRequest(BaseModel):
                 raise ValueError(f"Operation conditions must include '{key}'")
         return v
 
+
+class ReactorArrheniusChartRequest(BaseModel):
+    activation_energy: float = Field(..., gt=0, description="Activation energy in J/mol")
+    reference_temperature: float = Field(..., gt=0, description="Reference temperature in K")
+    reference_rate_constant: float = Field(..., gt=0, description="Reference rate constant")
+    min_temperature: Optional[float] = Field(None, gt=0, description="Optional minimum sampling temperature in K")
+    max_temperature: Optional[float] = Field(None, gt=0, description="Optional maximum sampling temperature in K")
+
+
+class ReactorRecycleProfileRequest(BaseModel):
+    components: List[ComponentRequest] = Field(..., description="List of all components in the reaction")
+    stoichiometric_coefficients: List[float] = Field(
+        ...,
+        description="Stoichiometric coefficients (negative for reactants, positive for products)",
+    )
+    reaction_rate_params: Dict[str, Any] = Field(
+        ...,
+        description="Parameters for reaction rate calculation (k, reaction_orders)",
+    )
+    operation_conditions: Dict[str, float] = Field(
+        ...,
+        description="Operation conditions (initial_temperature, initial_pressure, final_temperature, final_pressure)",
+    )
+    volume: float = Field(..., gt=0, description="Fixed reactor volume in m³")
+    recycle_ratios: List[float] = Field(
+        default_factory=lambda: [0, 0.25, 0.5, 1, 2, 5, 10],
+        description="Recycle ratios sampled for the current PFR case",
+    )
+
+    @field_validator("reaction_rate_params")
+    @classmethod
+    def check_recycle_profile_reaction_rate_params(cls, v):
+        if "k" not in v:
+            raise ValueError("Reaction rate parameters must include 'k'")
+        if "reaction_orders" not in v:
+            raise ValueError("Reaction rate parameters must include 'reaction_orders'")
+        return v
+
+    @field_validator("operation_conditions")
+    @classmethod
+    def check_recycle_profile_operation_conditions(cls, v):
+        required_keys = ["initial_temperature", "initial_pressure", "final_temperature", "final_pressure"]
+        for key in required_keys:
+            if key not in v:
+                raise ValueError(f"Operation conditions must include '{key}'")
+        return v
+
+    @field_validator("recycle_ratios")
+    @classmethod
+    def check_recycle_ratios(cls, v):
+        if len(v) == 0:
+            raise ValueError("Recycle ratios must include at least one value")
+        if any(value < 0 for value in v):
+            raise ValueError("Recycle ratios must be non-negative")
+        return v
 
 
 class ReactorSpatialProfileRequest(BaseModel):
@@ -458,6 +860,7 @@ class ReactorSpatialProfileRequest(BaseModel):
         if values != sorted(values):
             raise ValueError("Axial positions must be sorted")
         return values
+
 
 # ---------------------------------------------------------------------------
 # Components Models
@@ -599,4 +1002,3 @@ class ComponentsExampleResponse(BaseModel):
     mccabe_thiele: ComponentsExampleMccabeThiele = Field(..., description="McCabe-Thiele example inputs")
     property_surface: ComponentsExamplePropertySurface = Field(..., description="Property surface example inputs")
     phase_envelope: ComponentsExamplePhaseEnvelope = Field(..., description="Phase envelope example inputs")
-
