@@ -201,3 +201,21 @@ def test_pfr_spatial_profile_recycle_case_starts_at_mixer_inlet_conversion():
         0.5 / (0.5 + 1.0) * profile["outlet_conversion"].magnitude
     )
     assert first_station["conversion"].magnitude == pytest.approx(expected_inlet_conversion)
+
+
+def test_pfr_spatial_profile_rejects_negative_recycling_ratio():
+    reactor = ReactorIsothermalHeterogeneous()
+    payload = _spatial_profile_payload()
+    payload["recycling_ratio"] = -0.1
+
+    with pytest.raises(ValueError, match="recycling_ratio must be non-negative"):
+        reactor.pfr_spatial_profile(payload)
+
+
+def test_pfr_spatial_profile_rejects_non_numeric_axial_position():
+    reactor = ReactorIsothermalHeterogeneous()
+    payload = _spatial_profile_payload()
+    payload["axial_positions"] = [0.0, "mid", 1.0]
+
+    with pytest.raises(ValueError, match="axial_positions must contain only numeric values"):
+        reactor.pfr_spatial_profile(payload)

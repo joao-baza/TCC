@@ -687,13 +687,20 @@ class ReactorIsothermalHeterogeneous(BaseValidator):
         """Calculate local station properties along the PFR volume."""
         self._require_keys(parameters, ["volume", "recycling_ratio", "axial_positions"])
 
+        self._validate_numeric(parameters, ["volume", "recycling_ratio"])
+        if parameters["recycling_ratio"] < 0:
+            raise ValueError("recycling_ratio must be non-negative.")
+
         axial_positions = parameters["axial_positions"]
-        if not isinstance(axial_positions, list) or not axial_positions:
-            raise ValueError("axial_positions must be a non-empty list.")
+        if not isinstance(axial_positions, list) or len(axial_positions) < 2:
+            raise ValueError("axial_positions must be a list with at least 2 numeric values.")
+        if not all(isinstance(position, (int, float)) for position in axial_positions):
+            raise ValueError("axial_positions must contain only numeric values.")
+        if any(position < 0 or position > 1 for position in axial_positions):
+            raise ValueError("axial_positions must be within [0, 1].")
         if any(next_position < position for position, next_position in zip(axial_positions, axial_positions[1:])):
             raise ValueError("axial_positions must be sorted in ascending order.")
 
-        self._validate_numeric(parameters, ["volume", "recycling_ratio"])
         init_data = self._initialize_reactor(parameters)
         total_volume = parameters["volume"] * self.ureg.m**3
         recycle_ratio = parameters["recycling_ratio"] * self.ureg.dimensionless
