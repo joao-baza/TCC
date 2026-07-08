@@ -22,7 +22,7 @@ A Tabela \ref{tab:backend_libs} resume as principais bibliotecas e \textit{frame
 \multicolumn{3}{r}{\footnotesize{(Continua na próxima página)}} \\
 \endfoot
 \hline
-\multicolumn{3}{c}{\footnotesize Fonte: Autoria própria.}
+\multicolumn{3}{c}{\footnotesize Fonte: Elaboração própria (2026).}
 \endlastfoot
 \textit{FastAPI} & \textit{Framework} \textit{web} moderno para criação de \textit{APIs RESTful} em \textit{Python}, com validação automática de dados e documentação interativa. & \textit{Backend} para expor os cálculos de engenharia química através de \textit{endpoints} HTTP, permitindo que a interface \textit{web} ou outros sistemas acessem as funções de dimensionamento, balanço de massa, cálculos de reatores etc. \\ \hline
 \textit{Uvicorn} & Servidor \textit{ASGI} para executar aplicações \textit{web} assíncronas em \textit{Python}. & Executa o servidor da \textit{API} \textit{FastAPI}, processando as requisições dos cálculos. \\ \hline
@@ -49,7 +49,7 @@ Na organização da experiência, a interface foi concebida como um painel educa
     \centering
     \caption{Interface gráfica do módulo de cálculos de tubulação (\textit{Piping})}
     \includegraphics[width=\linewidth]{media/cap4_piping_interface.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
     \label{fig:piping_interface}
 \end{figure}
 
@@ -72,7 +72,7 @@ Na organização da experiência, a interface foi concebida como um painel educa
 \textit{KaTeX} & Biblioteca \textit{JavaScript} para renderização rápida de equações em \LaTeX{} diretamente no navegador. \\ \hline
 \textit{Geist Variable} & Família tipográfica variável utilizada para padronizar a leitura visual e reforçar a identidade da interface. \\ \hline
 \end{tabular}
-\fonte{Autoria própria.}
+\fonte{Elaboração própria (2026).}
 \end{table}
 
 Além da pilha principal, a interface utiliza uma camada de componentes visuais próprios para o contexto da Engenharia Química, incluindo cartões de módulo, painéis didáticos, blocos de métricas, indicadores de contexto e visualizações auxiliares para apoiar a interpretação dos fenômenos representados. Essa camada complementa a comunicação com a \textit{API} sem modificar os contratos de dados, ao mesmo tempo em que preserva a consistência visual e a legibilidade dos módulos. O mesmo \textit{frontend} também consome \textit{endpoints} de exemplo, o que permite pré-preencher entradas realistas para módulos como escoamento, dimensionamento, bombas e componentes antes da execução normal dos cálculos no \textit{backend}.

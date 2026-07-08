@@ -16,16 +16,16 @@ Tendo que o passo a passo para consumir via \textit{API} ou \textit{Python} o pr
     \centering
     \caption{Inicialização da biblioteca de componentes via \textit{Python}}
     \includegraphics[width=\linewidth]{media/cap4_inicializacao_biblioteca_componentes_python.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
-No \textit{frontend,} basta acessar a aba “\textit{Components}”, vide imagem abaixo, e \textit{scrollar} para baixo para visualizar as funcionalidades.
+No \textit{frontend}, basta acessar a aba \textit{Components} e rolar a página para visualizar as funcionalidades.
 
 \begin{figure}[H]
     \centering
     \caption{Inicialização da biblioteca de componentes via \textit{frontend}}
     \includegraphics[width=\linewidth]{media/cap4_inicializacao_biblioteca_componentes_frontend.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Listar Componentes}
@@ -36,18 +36,18 @@ A função \textit{list\_all\_components()} interage diretamente com a bibliotec
     \centering
     \caption{Listagem parcial de componentes disponíveis na biblioteca termodinâmica}
     \includegraphics[width=\linewidth]{media/cap4_listagem_componentes_termodinamica.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Valor de Propriedade}
 
-Ao solicitar as propriedades termofísicas para o componente "Water" (Água) nas condições de $3 0 0 K$ e $1 0 1 3 2 5 P a$ ($1 \  a t m$), o sistema retornou valores consistentes com a literatura. A massa específica calculada foi de $9 9 6 , 5 6 \  K g / m^{3}$ e a viscosidade de $8 , 5 4 \cdot 1 0^{- 4} \  P a \cdot s$. Nota-se que o retorno inclui explicitamente as unidades físicas (utilizando a biblioteca \textit{pint}), garantindo a consistência dimensional dos cálculos subsequentes.
+Ao solicitar as propriedades termofísicas para o componente \textit{Water} (água) nas condições de $300\ \mathrm{K}$ e $101325\ \mathrm{Pa}$ ($1\ \mathrm{atm}$), o sistema retornou valores consistentes com a literatura. A massa específica calculada foi de $996{,}56\ \mathrm{kg/m^3}$ e a viscosidade de $8{,}54 \cdot 10^{-4}\ \mathrm{Pa \cdot s}$. Nota-se que o retorno inclui explicitamente as unidades físicas, utilizando a biblioteca \textit{Pint}, garantindo a consistência dimensional dos cálculos subsequentes.
 
 \begin{figure}[H]
     \centering
     \caption{Propriedades termofísicas da água calculadas a 300K e 101,3kPa.}
     \includegraphics[width=\linewidth]{media/cap4_propriedades_agua_300k_101_3kpa.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Nome de Propriedades}
@@ -58,18 +58,18 @@ A função \textit{get\_property\_names()} expõe o mapeamento interno entre as 
     \centering
     \caption{Mapeamento de chaves de propriedades e suas unidades padronizadas.}
     \includegraphics[width=\linewidth]{media/cap4_mapeamento_chaves_unidades.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Propriedades Críticas}
 
-A consulta das propriedades críticas para a água retornou uma temperatura crítica ($T_{c}$) de $6 4 7 , 1 \  K$ e uma pressão crítica $( P_{c} )$ de $2 2 , 0 6 \  M P a$. Estes parâmetros fixos são fundamentais para o cálculo de propriedades reduzidas e para a verificação dos limites de fase da substância nas equações de estado. O sistema também forneceu os dados do ponto triplo, expandindo a utilidade da ferramenta para análises de equilíbrio de fases.
+A consulta das propriedades críticas para a água retornou uma temperatura crítica ($T_{c}$) de $647{,}1\ \mathrm{K}$ e uma pressão crítica ($P_{c}$) de $22{,}06\ \mathrm{MPa}$. Esses parâmetros fixos são fundamentais para o cálculo de propriedades reduzidas e para a verificação dos limites de fase da substância nas equações de estado. O sistema também forneceu os dados do ponto triplo, expandindo a utilidade da ferramenta para análises de equilíbrio de fases.
 
 \begin{figure}[H]
     \centering
     \caption{Propriedades críticas e do ponto triplo calculadas para a água.}
     \includegraphics[width=\linewidth]{media/cap4_propriedades_criticas_ponto_triplo_agua.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Opções de Propriedades de Misturas}
@@ -80,7 +80,7 @@ Para sistemas multicomponentes, a função \textit{get\_property\_mixture\_names
     \centering
     \caption{Propriedades termodinâmicas disponíveis para cálculo em misturas.}
     \includegraphics[width=\linewidth]{media/cap4_chaves_propriedades_mistura.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Valor de Propriedades de Misturas}
@@ -91,12 +91,12 @@ A simulação de uma mistura binária equimolar de Água $( 5 0 \% )$ e Etanol (
     \centering
     \caption{Propriedades termodinâmicas disponíveis para cálculo em misturas.}
     \includegraphics[width=\linewidth]{media/cap4_valores_propriedades_mistura.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsection{Hidráulicos}
 \subsubsection{Perda de Carga}
-Para a validação do cálculo de perda de carga, utilizou-se o método de Darcy-Weisbach, aplicável a fluxos incompressíveis em qualquer regime de escoamento. A equação base para o cálculo é a Equação \ref{eq:darcy}.
+Para a validação do cálculo de perda de carga, utilizou-se o método de Darcy--Weisbach, aplicável a fluxos incompressíveis em qualquer regime de escoamento. A equação base para o cálculo é a Equação \ref{eq:darcy}.
 
 Onde a perda de carga localizada ($\sum h_{local}$) é calculada através do comprimento equivalente ($L_{eq}$) dos acessórios:
 
@@ -304,7 +304,7 @@ O código de validação foi executado conforme a Figura \ref{fig:code_mass_bala
     \caption{Código de validação do Balanço de Massa (Misturador)}
     \includegraphics[width=\linewidth]{media/cap4_codigo_balanco_massa_misturador.png}
     \label{fig:code_mass_balance}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \begin{table}[H]
@@ -319,7 +319,7 @@ O código de validação foi executado conforme a Figura \ref{fig:code_mass_bala
         Fração Etanol $S3$ & 0,50 & 0,50 & 0,00 \\
         \bottomrule
     \end{tabular}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{table}
 
 \subsubsection{Reator de Conversão}
@@ -374,7 +374,7 @@ Conforme apresentado na saída expandida do \textit{software} (Figura \ref{fig:c
     \caption{Resultados expandidos da validação de Balanço de Massa (Misturador, Reator e \textit{Splitter})}
     \includegraphics[width=\linewidth,height=0.85\textheight,keepaspectratio]{media/cap4_codigo_balanco_massa_expandido.png}
     \label{fig:code_mass_balance_exp}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsection{Tubulações}
@@ -389,7 +389,7 @@ A função \textit{fittings()} retorna uma lista de todos os acessórios hidráu
     \centering
     \caption{Lista parcial de acessórios disponíveis (JSON)}
     \includegraphics[width=\linewidth]{media/cap4_lista_acessorios_json.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Especificação de Acessórios}
@@ -401,7 +401,7 @@ Para validação, utilizou-se o acessório \textit{90 degrees Elbow long radius}
     \centering
     \caption{Especificações do acessório Cotovelo 90º Raio Longo (JSON)}
     \includegraphics[width=\linewidth]{media/cap4_especificacao_cotovelo_raio_longo_json.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 
@@ -414,7 +414,7 @@ A função \textit{compositions()} lista os materiais de tubulação disponívei
     \centering
     \caption{Lista parcial de materiais de tubulação (JSON)}
     \includegraphics[width=\linewidth]{media/cap4_lista_materiais_tubulacao_json.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Especificação da Composição}
@@ -426,7 +426,7 @@ Para validação, verificou-se o material \textit{Commercial steel} (Aço comerc
     \centering
     \caption{Especificações do material Aço Comercial (JSON)}
     \includegraphics[width=\linewidth]{media/cap4_especificacao_aco_comercial_json.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 
@@ -439,7 +439,7 @@ A função \textit{schedules()} fornece as classes de pressão/espessura dispon�
     \centering
     \caption{Lista de classes de pressão (\textit{Schedules}) disponíveis (JSON)}
     \includegraphics[width=\linewidth]{media/cap4_lista_schedules_json.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Diâmetros}
@@ -450,7 +450,7 @@ A função \textit{diameters(schedule)} lista os diâmetros nominais (DN) dispon
     \centering
     \caption{Lista parcial de diâmetros para SCH40 (JSON)}
     \includegraphics[width=0.6\linewidth]{media/cap4_lista_diametros_sch40_json.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \subsubsection{Especificação de Diâmetros}
@@ -462,7 +462,7 @@ Para validação, utilizou-se um tubo de \textit{Schedule} 40 com Diâmetro Nomi
     \centering
     \caption{Especificações do tubo SCH40 DN50 (JSON)}
     \includegraphics[width=\linewidth]{media/cap4_especificacao_tubo_sch40_dn50_json.png}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{figure}
 
 
@@ -518,7 +518,7 @@ O módulo \textit{Reactor} foi executado com os mesmos parâmetros.
         Volume ($m^3$) & 1,1333 & 1,1333 & 0,0000 \\
         \bottomrule
     \end{tabular}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{table}
 
 Também validou-se o cálculo inverso (Desempenho), onde fornece-se $V=1,1333 m^3$ e espera-se $X=0,85$. O código retornou exatamente $0,8500$.
@@ -566,7 +566,7 @@ Sabendo que $\ln(0,10) \approx -2,302585$:
         Volume ($m^3$) & 0,4605 & 0,4605 & 0,0000 \\
         \bottomrule
     \end{tabular}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{table}
 
 \subsubsection{\textit{PFR} com Reciclo}
@@ -626,7 +626,7 @@ Sabendo que $\ln(4) \approx 1,38629$:
         Volume ($m^3$) & 0,8318 & 0,8318 & 0,0000 \\
         \bottomrule
     \end{tabular}
-    \fonte{Autoria própria.}
+    \fonte{Elaboração própria (2026).}
 \end{table}
 
 Os testes confirmam que as rotinas computacionais implementam corretamente as equações diferenciais e algébricas fundamentais da engenharia de reações, incluindo cenários complexos de integração numérica com limites variáveis como no caso do reciclo.
