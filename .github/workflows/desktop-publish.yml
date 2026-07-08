@@ -49,7 +49,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends wine64
+          sudo apt-get install -y --no-install-recommends wine wine64
+          wine --version
 
       - name: Build desktop release artifacts
         working-directory: desktop
