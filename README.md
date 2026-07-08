@@ -97,14 +97,15 @@ The project can also be packaged as a standalone installer for macOS, Windows, a
 ```bash
 cd desktop
 npm install
-npm run dist
+npm run dist:local
 ```
 
-This generates:
+On Linux, this generates:
 
-- macOS: `.dmg`
 - Windows: `nsis` installer
 - Linux: `.AppImage`
+
+The macOS `.dmg` is built on macOS runners via `npm run dist`.
 
 Desktop packaging reuses the compiled frontend and the Python backend frozen as a local executable.
 Build scripts automatically resolve Python, preferring the project `.venv` and falling back to `python3` or `python` when needed.
@@ -187,8 +188,8 @@ Published application: [tcc.joao.baza.dev.br](https://tcc.joao.baza.dev.br)
 ## CI/CD
 
 - `ci.yml` runs backend tests, frontend unit tests, frontend Playwright checks, and desktop smoke validation.
-- `docker-publish.yml` publishes the API and frontend images to GHCR on `main` and release tags.
-- `desktop-publish.yml` builds desktop installers on release tags and uploads them as workflow artifacts, with release assets attached for tagged releases.
+- `docker-publish.yml` is a reusable workflow that publishes the API and frontend images to GHCR after the CI jobs pass on `main` and release tags.
+- `desktop-publish.yml` builds desktop installers on `main` and uploads the macOS, Windows, and Linux artifacts from the workflow run.
 
 ## Desktop Packaging
 
@@ -199,7 +200,7 @@ cd frontend
 npm run build
 
 cd ../desktop
-npm run dist
+npm run dist:local
 ```
 
 The desktop backend exposes `GET /health` so the host can validate startup before opening the main window.
