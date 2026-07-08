@@ -186,9 +186,9 @@ Published application: [tcc.joao.baza.dev.br](https://tcc.joao.baza.dev.br)
 
 ## CI/CD
 
-- `ci.yml` runs backend tests, frontend unit tests, frontend Playwright checks, and desktop smoke validation.
-- `docker-publish.yml` publishes the API and frontend images to GHCR on `main` and release tags.
-- `desktop-publish.yml` builds desktop installers on release tags and uploads them as workflow artifacts, with release assets attached for tagged releases.
+- `ci.yml` runs the ordered release pipeline: backend tests, frontend unit tests, frontend Playwright checks, frontend image publish, API image publish, desktop smoke validation, and desktop package builds.
+- `docker-publish.yml` keeps a manual GHCR image publishing path for exceptional runs.
+- `desktop-publish.yml` keeps a manual desktop package publishing path for exceptional runs.
 
 ## Desktop Packaging
 
