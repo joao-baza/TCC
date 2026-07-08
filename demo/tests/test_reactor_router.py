@@ -73,7 +73,7 @@ def _recycle_profile_payload():
 def _spatial_profile_payload():
     payload = _recycle_profile_payload()
     payload["recycling_ratio"] = 0.0
-    payload["relative_volume"] = [0.0, 0.25, 0.5, 1.0]
+    payload["axial_positions"] = [0.0, 0.25, 0.5, 1.0]
     return payload
 
 
@@ -125,6 +125,10 @@ def test_pfr_spatial_profile_returns_requested_relative_volume_positions():
 
     result = reactor.pfr_spatial_profile(_spatial_profile_payload())
 
+    assert all(
+        {"relative_volume", "conversion", "temperature", "concentrations"} <= set(station)
+        for station in result["stations"]
+    )
     assert [station["relative_volume"] for station in result["stations"]] == [0.0, 0.25, 0.5, 1.0]
 
 
