@@ -1,0 +1,26 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{theme/dcou-beamer-theme}
+
+\RequirePackage{xcolor}
+\definecolor{dcoublue}{RGB}{16,64,116}
+\definecolor{dcougold}{RGB}{188,149,59}
+\definecolor{dcouink}{RGB}{34,34,34}
+
+\setbeamercolor{normal text}{fg=dcouink,bg=white}
+\setbeamercolor{structure}{fg=dcoublue}
+\setbeamercolor{frametitle}{fg=white,bg=dcoublue}
+\setbeamercolor{title}{fg=dcoublue}
+\setbeamercolor{subtitle}{fg=dcouink}
+\setbeamercolor{footline}{fg=white,bg=dcoublue}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{
+  \leavevmode
+  \hbox{
+    \begin{beamercolorbox}[wd=.78\paperwidth,ht=2.6ex,dp=1.1ex,leftskip=1em]{footline}
+      \insertshorttitle
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=.18\paperwidth,ht=2.6ex,dp=1.1ex,center]{footline}
+      \insertframenumber/\inserttotalframenumber
+    \end{beamercolorbox}
+  }
+}
