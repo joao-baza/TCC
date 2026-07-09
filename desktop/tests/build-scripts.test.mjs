@@ -34,16 +34,22 @@ test("desktop publish workflow uses the local cross-build on linux and macos on 
   expect(JSON.stringify(workflow)).not.toContain("windows-latest");
 });
 
-test("desktop publish workflow installs wine before cross-building windows artifacts on linux", () => {
+test("desktop publish workflow generates checksums and publishes a release", () => {
   const workflow = yaml.parse(
     readFileSync(path.resolve("../.github/workflows/desktop-publish.yml"), "utf8"),
   );
   const steps = workflow.jobs["build-desktop"].steps;
-  const wineStepIndex = steps.findIndex(
-    (step) => step["name"] === "Install Wine for Windows packaging",
-  );
   const buildStepIndex = steps.findIndex(
     (step) => step["name"] === "Build desktop release artifacts",
+  );
+  const checksumStepIndex = steps.findIndex(
+    (step) => step["name"] === "Generate release checksums",
+  );
+  const uploadStepIndex = steps.findIndex(
+    (step) => step["name"] === "Upload desktop artifacts",
+  );
+  const wineStepIndex = steps.findIndex(
+    (step) => step["name"] === "Install Wine for Windows packaging",
   );
 
   expect(wineStepIndex).toBeGreaterThan(-1);
@@ -53,4 +59,29 @@ test("desktop publish workflow installs wine before cross-building windows artif
   expect(steps[wineStepIndex].run).toContain(" wine");
   expect(steps[wineStepIndex].run).toContain("wine64");
   expect(steps[wineStepIndex].run).toContain("wine --version");
+  expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
+  expect(uploadStepIndex).toBeGreaterThan(checksumStepIndex);
+  expect(steps[checksumStepIndex]["working-directory"]).toBe("desktop/release");
+  expect(steps[checksumStepIndex].run).toContain("shasum -a 256");
+  expect(steps[checksumStepIndex].run).toContain(".sha256");
+  expect(steps[uploadStepIndex].with.path).toContain("desktop/release/**");
+
+  const publishJob = workflow.jobs["publish-release"];
+  expect(publishJob.needs).toBe("build-desktop");
+
+  const downloadStep = publishJob.steps.find(
+    (step) => step["name"] === "Download desktop artifacts",
+  );
+  const releaseStep = publishJob.steps.find(
+    (step) => step["name"] === "Publish desktop release",
+  );
+
+  expect(downloadStep.uses).toBe("actions/download-artifact@v8");
+  expect(downloadStep.with.path).toBe("desktop-release");
+  expect(downloadStep.with.pattern).toBe("desktop-*");
+  expect(downloadStep.with["merge-multiple"]).toBe(true);
+  expect(releaseStep.uses).toBe("softprops/action-gh-release@v2");
+  expect(releaseStep.with.tag_name).toContain("desktop-");
+  expect(releaseStep.with.target_commitish).toBe("${{ github.sha }}");
+  expect(releaseStep.with.files).toBe("desktop-release/**");
 });

@@ -189,7 +189,7 @@ Published application: [tcc.joao.baza.dev.br](https://tcc.joao.baza.dev.br)
 
 - `ci.yml` runs the ordered release pipeline: backend tests, frontend unit tests, frontend Playwright checks, frontend image publish, API image publish, desktop smoke validation, and desktop package builds.
 - `docker-publish.yml` keeps manual and reusable GHCR image publishing paths without its own push trigger.
-- `desktop-publish.yml` keeps a manual desktop package publishing path for exceptional runs.
+- `desktop-publish.yml` keeps a manual desktop package publishing path for exceptional runs and publishes a GitHub Release with the desktop binaries plus `sha256` checksums.
 
 ## Desktop Packaging
 
@@ -202,6 +202,8 @@ npm run build
 cd ../desktop
 npm run dist:local
 ```
+
+For published builds, the generated installers and checksums are attached to the GitHub Release created by the desktop publish workflow.
 
 The desktop backend exposes `GET /health` so the host can validate startup before opening the main window.
 
