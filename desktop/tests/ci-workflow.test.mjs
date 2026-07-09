@@ -45,9 +45,6 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
   const macUploadStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
     (step) => step["name"] === "Upload desktop artifacts",
   );
-  const macReleaseStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
-    (step) => step["name"] === "Publish release assets",
-  );
   const wineStepIndex = ubuntuSteps.findIndex(
     (step) => step["name"] === "Install Wine for Windows packaging",
   );
@@ -60,31 +57,48 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
   const uploadStepIndex = ubuntuSteps.findIndex(
     (step) => step["name"] === "Upload desktop artifacts",
   );
-  const releaseStepIndex = ubuntuSteps.findIndex(
-    (step) => step["name"] === "Publish release assets",
-  );
 
   expect(wineStepIndex).toBeGreaterThan(-1);
   expect(wineStepIndex).toBeLessThan(buildStepIndex);
+  expect(ubuntuSteps[wineStepIndex].run).toContain("dpkg --add-architecture i386");
+  expect(ubuntuSteps[wineStepIndex].run).toContain("wine32:i386");
   expect(ubuntuSteps[buildStepIndex].run).toBe("npm run dist:local");
   expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
   expect(uploadStepIndex).toBeGreaterThan(checksumStepIndex);
-  expect(releaseStepIndex).toBeGreaterThan(uploadStepIndex);
   expect(ubuntuSteps[checksumStepIndex]["working-directory"]).toBe("desktop/release");
   expect(ubuntuSteps[checksumStepIndex].run).toContain("shasum -a 256");
   expect(ubuntuSteps[uploadStepIndex].with.path).toContain("desktop/release/**");
-  expect(ubuntuSteps[releaseStepIndex].with.files).toBe("desktop/release/**");
   expect(macChecksumStepIndex).toBeGreaterThan(macBuildStepIndex);
   expect(macUploadStepIndex).toBeGreaterThan(macChecksumStepIndex);
-  expect(macReleaseStepIndex).toBeGreaterThan(macUploadStepIndex);
   expect(
     ciWorkflow.jobs["build-desktop-macos"].steps[macChecksumStepIndex][
       "working-directory"
     ],
   ).toBe("desktop/release");
-  expect(ciWorkflow.jobs["build-desktop-macos"].steps[macReleaseStepIndex].with.files).toBe(
-    "desktop/release/**",
+  const releaseJob = ciWorkflow.jobs["publish-desktop-release"];
+  expect(releaseJob.needs).toBe("build-desktop-ubuntu");
+  expect(releaseJob.permissions).toMatchObject({
+    actions: "read",
+    contents: "write",
+  });
+  expect(releaseJob.if).toContain("refs/heads/main");
+  expect(releaseJob.if).toContain("refs/tags/v");
+
+  const downloadStep = releaseJob.steps.find(
+    (step) => step["name"] === "Download desktop artifacts",
   );
+  const releaseStep = releaseJob.steps.find(
+    (step) => step["name"] === "Publish release assets",
+  );
+
+  expect(downloadStep.uses).toBe("actions/download-artifact@v8");
+  expect(downloadStep.with.path).toBe("desktop-release");
+  expect(downloadStep.with.pattern).toBe("desktop-*");
+  expect(downloadStep.with["merge-multiple"]).toBe(true);
+  expect(releaseStep.uses).toBe("softprops/action-gh-release@v2");
+  expect(releaseStep.with.tag_name).toContain("desktop-");
+  expect(releaseStep.with.target_commitish).toBe("${{ github.sha }}");
+  expect(releaseStep.with.files).toBe("desktop-release/**");
   expect(JSON.stringify(ciWorkflow.jobs)).not.toContain("windows-latest");
 });
 
