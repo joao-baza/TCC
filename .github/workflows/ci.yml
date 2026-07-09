@@ -233,7 +233,7 @@ jobs:
       - name: Generate release checksums
         working-directory: desktop/release
         run: |
-          find . -type f ! -name '*.sha256' -print0 | while IFS= read -r -d '' file; do
+          find . -maxdepth 1 -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' \) -print0 | while IFS= read -r -d '' file; do
             shasum -a 256 "$file" > "$file.sha256"
           done
 
@@ -242,7 +242,12 @@ jobs:
         with:
           name: desktop-macos-latest
           path: |
-            desktop/release/**
+            desktop/release/*.exe
+            desktop/release/*.exe.sha256
+            desktop/release/*.dmg
+            desktop/release/*.dmg.sha256
+            desktop/release/*.AppImage
+            desktop/release/*.AppImage.sha256
           if-no-files-found: error
 
   build-desktop-ubuntu:
@@ -295,7 +300,7 @@ jobs:
       - name: Generate release checksums
         working-directory: desktop/release
         run: |
-          find . -type f ! -name '*.sha256' -print0 | while IFS= read -r -d '' file; do
+          find . -maxdepth 1 -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' \) -print0 | while IFS= read -r -d '' file; do
             shasum -a 256 "$file" > "$file.sha256"
           done
 
@@ -304,7 +309,12 @@ jobs:
         with:
           name: desktop-ubuntu-latest
           path: |
-            desktop/release/**
+            desktop/release/*.exe
+            desktop/release/*.exe.sha256
+            desktop/release/*.dmg
+            desktop/release/*.dmg.sha256
+            desktop/release/*.AppImage
+            desktop/release/*.AppImage.sha256
           if-no-files-found: error
 
   publish-desktop-release:
@@ -329,4 +339,10 @@ jobs:
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('desktop-{0}', github.run_id) }}
           target_commitish: ${{ github.sha }}
-          files: desktop-release/**
+          files: |
+            desktop-release/*.exe
+            desktop-release/*.exe.sha256
+            desktop-release/*.dmg
+            desktop-release/*.dmg.sha256
+            desktop-release/*.AppImage
+            desktop-release/*.AppImage.sha256
