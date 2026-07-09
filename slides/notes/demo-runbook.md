@@ -7,7 +7,7 @@
 
 ## Runtime proof
 4. Show the local frontend at `http://localhost:5173`.
-5. Mention the backend health route at `http://localhost:5000/health`.
+5. Mention the backend health route at `http://localhost:5000/health`, or the same `/health` path on the selected backend port if `5000` is occupied.
 6. Show the Linux app only as a bonus if time remains.
 
 ## Fallback visuals already available in the repo
