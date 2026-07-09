@@ -58,7 +58,7 @@ jobs:
       - name: Generate release checksums
         working-directory: desktop/release
         run: |
-          find . -type f ! -name '*.sha256' -print0 | while IFS= read -r -d '' file; do
+          find . -maxdepth 1 -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' \) -print0 | while IFS= read -r -d '' file; do
             shasum -a 256 "$file" > "$file.sha256"
           done
 
@@ -67,7 +67,12 @@ jobs:
         with:
           name: desktop-${{ matrix.os }}
           path: |
-            desktop/release/**
+            desktop/release/*.exe
+            desktop/release/*.exe.sha256
+            desktop/release/*.dmg
+            desktop/release/*.dmg.sha256
+            desktop/release/*.AppImage
+            desktop/release/*.AppImage.sha256
           if-no-files-found: error
 
   publish-release:
@@ -90,6 +95,12 @@ jobs:
           tag_name: desktop-${{ github.run_id }}
           target_commitish: ${{ github.sha }}
           name: Desktop build ${{ github.run_number }}
-          files: desktop-release/**
+          files: |
+            desktop-release/*.exe
+            desktop-release/*.exe.sha256
+            desktop-release/*.dmg
+            desktop-release/*.dmg.sha256
+            desktop-release/*.AppImage
+            desktop-release/*.AppImage.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
