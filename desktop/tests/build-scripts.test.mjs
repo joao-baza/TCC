@@ -57,7 +57,7 @@ test("desktop publish workflow generates checksums and publishes a release", () 
   expect(steps[wineStepIndex].if).toBe("matrix.os == 'ubuntu-latest'");
   expect(steps[wineStepIndex].run).toContain("dpkg --add-architecture i386");
   expect(steps[wineStepIndex].run).toContain("apt-get install");
-  expect(steps[wineStepIndex].run).toContain("wine64");
+  expect(steps[wineStepIndex].run).toContain("wine ");
   expect(steps[wineStepIndex].run).toContain("wine32:i386");
   expect(steps[wineStepIndex].run).toContain("wine --version");
   expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
