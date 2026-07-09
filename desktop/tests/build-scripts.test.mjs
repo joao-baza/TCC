@@ -69,6 +69,10 @@ test("desktop publish workflow generates checksums and publishes a release", () 
 
   const publishJob = workflow.jobs["publish-release"];
   expect(publishJob.needs).toBe("build-desktop");
+  expect(publishJob.permissions).toMatchObject({
+    actions: "read",
+    contents: "write",
+  });
 
   const downloadStep = publishJob.steps.find(
     (step) => step["name"] === "Download desktop artifacts",

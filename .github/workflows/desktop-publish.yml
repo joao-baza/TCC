@@ -74,6 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-desktop
     permissions:
+      actions: read
       contents: write
     steps:
       - name: Download desktop artifacts
