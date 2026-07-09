@@ -3,6 +3,25 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import yaml from "yaml";
 
+const releaseAssetUploadPatterns = [
+  "desktop/release/*.exe",
+  "desktop/release/*.exe.sha256",
+  "desktop/release/*.dmg",
+  "desktop/release/*.dmg.sha256",
+  "desktop/release/*.AppImage",
+  "desktop/release/*.AppImage.sha256",
+];
+const releaseAssetPublishPatterns = [
+  "desktop-release/*.exe",
+  "desktop-release/*.exe.sha256",
+  "desktop-release/*.dmg",
+  "desktop-release/*.dmg.sha256",
+  "desktop-release/*.AppImage",
+  "desktop-release/*.AppImage.sha256",
+];
+
+const yamlLines = (value) => value.trim().split("\n");
+
 test("desktop package scripts expose a local linux and windows build", () => {
   const packageJson = JSON.parse(
     readFileSync(path.resolve("package.json"), "utf8"),
@@ -67,9 +86,13 @@ test("desktop publish workflow generates checksums and publishes a release", () 
   expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
   expect(uploadStepIndex).toBeGreaterThan(checksumStepIndex);
   expect(steps[checksumStepIndex]["working-directory"]).toBe("desktop/release");
+  expect(steps[checksumStepIndex].run).toContain("-maxdepth 1");
   expect(steps[checksumStepIndex].run).toContain("shasum -a 256");
   expect(steps[checksumStepIndex].run).toContain(".sha256");
-  expect(steps[uploadStepIndex].with.path).toContain("desktop/release/**");
+  expect(yamlLines(steps[uploadStepIndex].with.path)).toEqual(
+    releaseAssetUploadPatterns,
+  );
+  expect(steps[uploadStepIndex].with.path).not.toContain("desktop/release/**");
 
   const publishJob = workflow.jobs["publish-release"];
   expect(publishJob.needs).toBe("build-desktop");
@@ -92,5 +115,8 @@ test("desktop publish workflow generates checksums and publishes a release", () 
   expect(releaseStep.uses).toBe("softprops/action-gh-release@v2");
   expect(releaseStep.with.tag_name).toContain("desktop-");
   expect(releaseStep.with.target_commitish).toBe("${{ github.sha }}");
-  expect(releaseStep.with.files).toBe("desktop-release/**");
+  expect(yamlLines(releaseStep.with.files)).toEqual(
+    releaseAssetPublishPatterns,
+  );
+  expect(releaseStep.with.files).not.toContain("desktop-release/**");
 });
