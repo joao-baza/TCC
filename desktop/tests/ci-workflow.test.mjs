@@ -36,16 +36,55 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
   );
 
   const ubuntuSteps = ciWorkflow.jobs["build-desktop-ubuntu"].steps;
+  const macChecksumStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
+    (step) => step["name"] === "Generate release checksums",
+  );
+  const macBuildStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
+    (step) => step["name"] === "Build desktop release artifacts",
+  );
+  const macUploadStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
+    (step) => step["name"] === "Upload desktop artifacts",
+  );
+  const macReleaseStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
+    (step) => step["name"] === "Publish release assets",
+  );
   const wineStepIndex = ubuntuSteps.findIndex(
     (step) => step["name"] === "Install Wine for Windows packaging",
   );
   const buildStepIndex = ubuntuSteps.findIndex(
     (step) => step["name"] === "Build desktop release artifacts",
   );
+  const checksumStepIndex = ubuntuSteps.findIndex(
+    (step) => step["name"] === "Generate release checksums",
+  );
+  const uploadStepIndex = ubuntuSteps.findIndex(
+    (step) => step["name"] === "Upload desktop artifacts",
+  );
+  const releaseStepIndex = ubuntuSteps.findIndex(
+    (step) => step["name"] === "Publish release assets",
+  );
 
   expect(wineStepIndex).toBeGreaterThan(-1);
   expect(wineStepIndex).toBeLessThan(buildStepIndex);
   expect(ubuntuSteps[buildStepIndex].run).toBe("npm run dist:local");
+  expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
+  expect(uploadStepIndex).toBeGreaterThan(checksumStepIndex);
+  expect(releaseStepIndex).toBeGreaterThan(uploadStepIndex);
+  expect(ubuntuSteps[checksumStepIndex]["working-directory"]).toBe("desktop/release");
+  expect(ubuntuSteps[checksumStepIndex].run).toContain("shasum -a 256");
+  expect(ubuntuSteps[uploadStepIndex].with.path).toContain("desktop/release/**");
+  expect(ubuntuSteps[releaseStepIndex].with.files).toBe("desktop/release/**");
+  expect(macChecksumStepIndex).toBeGreaterThan(macBuildStepIndex);
+  expect(macUploadStepIndex).toBeGreaterThan(macChecksumStepIndex);
+  expect(macReleaseStepIndex).toBeGreaterThan(macUploadStepIndex);
+  expect(
+    ciWorkflow.jobs["build-desktop-macos"].steps[macChecksumStepIndex][
+      "working-directory"
+    ],
+  ).toBe("desktop/release");
+  expect(ciWorkflow.jobs["build-desktop-macos"].steps[macReleaseStepIndex].with.files).toBe(
+    "desktop/release/**",
+  );
   expect(JSON.stringify(ciWorkflow.jobs)).not.toContain("windows-latest");
 });
 

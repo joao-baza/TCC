@@ -54,6 +54,13 @@ jobs:
         working-directory: desktop
         run: ${{ matrix.os == 'ubuntu-latest' && 'npm run dist:local' || 'npm run dist' }}
 
+      - name: Generate release checksums
+        working-directory: desktop/release
+        run: |
+          find . -type f ! -name '*.sha256' -print0 | while IFS= read -r -d '' file; do
+            shasum -a 256 "$file" > "$file.sha256"
+          done
+
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -61,3 +68,26 @@ jobs:
           path: |
             desktop/release/**
           if-no-files-found: error
+
+  publish-release:
+    runs-on: ubuntu-latest
+    needs: build-desktop
+    permissions:
+      contents: write
+    steps:
+      - name: Download desktop artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: desktop-release
+          pattern: desktop-*
+          merge-multiple: true
+
+      - name: Publish desktop release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-${{ github.run_id }}
+          target_commitish: ${{ github.sha }}
+          name: Desktop build ${{ github.run_number }}
+          files: desktop-release/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
