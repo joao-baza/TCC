@@ -50,6 +50,27 @@ monograph/TEX/**/*.ind
 monograph/TEX/**/*.bcf
 monograph/TEX/**/*.run.xml
 
+# Arquivos gerados pela compilação do LaTeX em slides/
+slides/**/*.aux
+slides/**/*.bbl
+slides/**/*.blg
+slides/**/*.log
+slides/**/*.out
+slides/**/*.toc
+slides/**/*.lof
+slides/**/*.lot
+slides/**/*.nav
+slides/**/*.snm
+slides/**/*.fls
+slides/**/*.fdb_latexmk
+slides/**/*.synctex.gz
+slides/**/*.idx
+slides/**/*.ilg
+slides/**/*.ind
+slides/**/*.bcf
+slides/**/*.run.xml
+slides/**/*.pdf
+
 deploy_app.sh
 deploy_app_external.sh
 

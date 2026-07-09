@@ -11,10 +11,10 @@
 6. Show the Linux app only as a bonus if time remains.
 
 ## Fallback visuals already available in the repo
-- `../monograph/TEX/media/cap7_02_tubulacoes_composicoes_exemplo.png`
-- `../monograph/TEX/media/cap7_07_escoamento_reynolds_exemplo.png`
-- `../monograph/TEX/media/cap7_10_bombas_perda_carga_exemplo.png`
-- `../monograph/TEX/media/cap7_16_componentes_equilibrio_binario_exemplo.png`
-- `../monograph/TEX/media/cap7_19_reatores_cstr_exemplo.png`
-- `../monograph/TEX/media/cap7_23_balanco_componentes_exemplo.png`
-- `../monograph/TEX/media/cap7_28_glossario_termos_reynolds.png`
+- `../assets/monograph/cap7_02_tubulacoes_composicoes_exemplo.png`
+- `../assets/monograph/cap7_07_escoamento_reynolds_exemplo.png`
+- `../assets/monograph/cap7_10_bombas_perda_carga_exemplo.png`
+- `../assets/monograph/cap7_16_componentes_equilibrio_binario_exemplo.png`
+- `../assets/monograph/cap7_19_reatores_cstr_exemplo.png`
+- `../assets/monograph/cap7_23_balanco_componentes_exemplo.png`
+- `../assets/monograph/cap7_28_glossario_termos_reynolds.png`
