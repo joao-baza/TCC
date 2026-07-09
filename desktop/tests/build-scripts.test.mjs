@@ -55,9 +55,10 @@ test("desktop publish workflow generates checksums and publishes a release", () 
   expect(wineStepIndex).toBeGreaterThan(-1);
   expect(wineStepIndex).toBeLessThan(buildStepIndex);
   expect(steps[wineStepIndex].if).toBe("matrix.os == 'ubuntu-latest'");
+  expect(steps[wineStepIndex].run).toContain("dpkg --add-architecture i386");
   expect(steps[wineStepIndex].run).toContain("apt-get install");
-  expect(steps[wineStepIndex].run).toContain(" wine");
   expect(steps[wineStepIndex].run).toContain("wine64");
+  expect(steps[wineStepIndex].run).toContain("wine32:i386");
   expect(steps[wineStepIndex].run).toContain("wine --version");
   expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
   expect(uploadStepIndex).toBeGreaterThan(checksumStepIndex);
@@ -68,6 +69,10 @@ test("desktop publish workflow generates checksums and publishes a release", () 
 
   const publishJob = workflow.jobs["publish-release"];
   expect(publishJob.needs).toBe("build-desktop");
+  expect(publishJob.permissions).toMatchObject({
+    actions: "read",
+    contents: "write",
+  });
 
   const downloadStep = publishJob.steps.find(
     (step) => step["name"] === "Download desktop artifacts",

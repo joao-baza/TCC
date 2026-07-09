@@ -46,8 +46,9 @@ jobs:
       - name: Install Wine for Windows packaging
         if: matrix.os == 'ubuntu-latest'
         run: |
+          sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends wine wine64
+          sudo apt-get install -y --no-install-recommends wine64 wine32:i386
           wine --version
 
       - name: Build desktop release artifacts
@@ -73,6 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-desktop
     permissions:
+      actions: read
       contents: write
     steps:
       - name: Download desktop artifacts
