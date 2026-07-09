@@ -1,3 +1,43 @@
-\begin{frame}{Architecture bootstrap}
-  Build validation frame for the architecture section.
+\begin{frame}{Como o sistema foi construido}
+  \begin{columns}[t]
+    \column{0.31\textwidth}
+      \begin{block}{Frontend}
+        React, TypeScript, navegacao, formularios, visualizacoes e UX responsiva.
+      \end{block}
+    \column{0.31\textwidth}
+      \begin{block}{Backend}
+        FastAPI, modelos de calculo, validacao, propriedades e cenarios de exemplo.
+      \end{block}
+    \column{0.31\textwidth}
+      \begin{block}{Entrega}
+        API aberta, deploy web e distribuicao desktop.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Base computacional reutilizavel}
+  \begin{itemize}
+    \item Rotinas de engenharia encapsuladas no backend
+    \item Contratos claros entre calculo, exemplos e visualizacoes
+    \item Mesma base atendendo web, localhost e desktop
+    \item Organizacao preparada para crescer com novos modulos
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{API, validacao e apoio didatico}
+  \begin{itemize}
+    \item A API expone calculos e modelos de visualizacao
+    \item A validacao protege entradas e consistencia dos resultados
+    \item O backend tambem fornece exemplos coerentes para a interface
+    \item Glossario e explicacoes conectam engenharia e software
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Deploy e distribuicao}
+  \begin{itemize}
+    \item Aplicacao publicada para uso imediato
+    \item Execucao local reforca reproducibilidade do codigo aberto
+    \item Empacotamento desktop demonstra portabilidade em evolucao
+    \item CI/CD e testes sustentam manutencao do projeto
+  \end{itemize}
 \end{frame}
