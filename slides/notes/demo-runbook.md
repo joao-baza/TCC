@@ -1,16 +1,16 @@
 # Demo Runbook
 
-## Primary route
-1. Open the published app at `https://tcc.joao.baza.dev.br`.
-2. Position DCOU as an open teaching platform from the home screen.
-3. Walk quickly through tubulacoes, escoamento, bombas, propriedades, reatores, balanco de massa, glossario, and visualizacoes.
+## Rota principal
+1. Abra a aplicação publicada em `https://tcc.joao.baza.dev.br`.
+2. Posicione o DCOU como uma plataforma aberta de ensino a partir da home.
+3. Percorra rapidamente tubulações, escoamento, bombas, propriedades, reatores, balanço de massa, glossário e visualizações.
 
-## Runtime proof
-4. Show the local frontend at `http://localhost:5173`.
-5. Mention the backend health route at `http://localhost:5000/health`, or the same `/health` path on the selected backend port if `5000` is occupied.
-6. Show the Linux app only as a bonus if time remains.
+## Prova de execução
+4. Mostre o frontend local em `http://localhost:5173`.
+5. Cite a rota de saúde do backend em `http://localhost:5000/health`, ou o mesmo caminho `/health` na porta escolhida se `5000` estiver ocupada.
+6. Mostre o app Linux só como bônus se sobrar tempo.
 
-## Fallback visuals already available in the repo
+## Visuais de contingência já disponíveis no repositório
 - `../assets/monograph/cap7_02_tubulacoes_composicoes_exemplo.png`
 - `../assets/monograph/cap7_07_escoamento_reynolds_exemplo.png`
 - `../assets/monograph/cap7_10_bombas_perda_carga_exemplo.png`
