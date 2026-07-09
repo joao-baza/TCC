@@ -61,7 +61,13 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
   expect(wineStepIndex).toBeGreaterThan(-1);
   expect(wineStepIndex).toBeLessThan(buildStepIndex);
   expect(ubuntuSteps[wineStepIndex].run).toContain("dpkg --add-architecture i386");
+  const wineInstallLine = ubuntuSteps[wineStepIndex].run
+    .split("\n")
+    .find((line) => line.includes("apt-get install"));
+  expect(wineInstallLine).toBeDefined();
+  expect(wineInstallLine.split(/\s+/)).toContain("wine");
   expect(ubuntuSteps[wineStepIndex].run).toContain("wine32:i386");
+  expect(ubuntuSteps[wineStepIndex].run).toContain("wine --version");
   expect(ubuntuSteps[buildStepIndex].run).toBe("npm run dist:local");
   expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
   expect(uploadStepIndex).toBeGreaterThan(checksumStepIndex);
