@@ -1,0 +1,82 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{theme/dcou-beamer-theme}
+
+\RequirePackage{xcolor}
+\RequirePackage{tikz}
+\definecolor{dcoublue}{RGB}{16,64,116}
+\definecolor{dcougold}{RGB}{188,149,59}
+\definecolor{dcouink}{RGB}{34,34,34}
+\definecolor{dcoupaper}{RGB}{250,248,242}
+\definecolor{dcouline}{RGB}{219,226,236}
+
+\setbeamertemplate{background canvas}{
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[dcoupaper] (current page.south west) rectangle (current page.north east);
+    \fill[dcoublue!7] ([xshift=1.2cm,yshift=-1.0cm]current page.north east) circle [radius=4.4cm];
+    \fill[dcougold!14] ([xshift=-2.3cm,yshift=1.8cm]current page.south east) circle [radius=3.3cm];
+    \draw[dcouline,line width=0.9pt] ([yshift=-0.9cm]current page.north west) -- ([yshift=-0.9cm]current page.north east);
+  \end{tikzpicture}
+}
+
+\setbeamercolor{normal text}{fg=dcouink,bg=white}
+\setbeamercolor{structure}{fg=dcoublue}
+\setbeamercolor{alerted text}{fg=dcougold}
+\setbeamercolor{frametitle}{fg=dcoublue,bg=white}
+\setbeamercolor{title}{fg=dcoublue}
+\setbeamercolor{subtitle}{fg=dcouink}
+\setbeamercolor{footline}{fg=white,bg=dcoublue}
+\setbeamercolor{block title}{fg=white,bg=dcoublue}
+\setbeamercolor{block body}{fg=dcouink,bg=white}
+\setbeamercolor{block title alerted}{fg=white,bg=dcougold}
+\setbeamercolor{block body alerted}{fg=dcouink,bg=white}
+\setbeamercolor{block title example}{fg=white,bg=dcoublue!80!black}
+\setbeamercolor{block body example}{fg=dcouink,bg=white}
+\setbeamerfont{title}{series=\bfseries,size=\LARGE}
+\setbeamerfont{subtitle}{series=\mdseries,size=\normalsize}
+\setbeamerfont{frametitle}{series=\bfseries,size=\large}
+\setbeamerfont{footline}{size=\scriptsize}
+\setbeamertemplate{blocks}[rounded][shadow=false]
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{frametitle}{
+  \vspace{0.7em}
+  {\usebeamerfont{frametitle}\color{dcoublue}\insertframetitle\par}
+  \vspace{0.35em}
+  {\color{dcougold}\rule{\linewidth}{0.9pt}}
+  \vspace{0.15em}
+}
+\setbeamertemplate{footline}{
+  \leavevmode
+  \hbox{
+    \begin{beamercolorbox}[wd=.78\paperwidth,ht=2.8ex,dp=1.15ex,leftskip=1em]{footline}
+      {\insertshorttitle}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=.18\paperwidth,ht=2.8ex,dp=1.15ex,center]{footline}
+      {\insertframenumber/\inserttotalframenumber}
+    \end{beamercolorbox}
+  }
+}
+
+\newcommand{\dcouchip}[1]{%
+  \begingroup
+  \setlength{\fboxsep}{0.45em}%
+  \colorbox{dcoublue!10}{\strut\textcolor{dcoublue}{\textbf{\scriptsize #1}}}%
+  \endgroup
+}
+
+\newcommand{\transitionframe}[2]{
+  \begin{frame}[plain,noframenumbering]
+    \begin{tikzpicture}[remember picture,overlay]
+      \fill[dcoublue!8] ([xshift=0.8cm,yshift=-0.7cm]current page.north east) circle [radius=4.0cm];
+      \fill[dcougold!12] ([xshift=-1.8cm,yshift=1.8cm]current page.south west) circle [radius=3.2cm];
+    \end{tikzpicture}
+    \vspace*{2.2em}
+    \begin{center}
+      {\usebeamerfont{title}\fontsize{26}{30}\selectfont\color{dcoublue}#1\par}
+      \vspace{0.8em}
+      {\large\color{dcouink}#2\par}
+      \vspace{0.9em}
+      {\color{dcougold}\rule{0.34\linewidth}{1.2pt}}
+    \end{center}
+    \vfill
+  \end{frame}
+}
