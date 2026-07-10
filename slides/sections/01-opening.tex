@@ -1,0 +1,116 @@
+\begin{frame}[plain]
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[dcoublue!9] ([xshift=1.4cm,yshift=-1.0cm]current page.north east) circle [radius=4.8cm];
+    \fill[dcougold!12] ([xshift=-2.5cm,yshift=2.4cm]current page.south east) circle [radius=3.3cm];
+    \draw[dcouline,line width=1pt] ([xshift=0.8cm,yshift=-1.0cm]current page.north west) -- ([xshift=-0.8cm,yshift=-1.0cm]current page.north east);
+  \end{tikzpicture}
+  \vspace*{\fill}
+  \begin{columns}[c,onlytextwidth]
+    \column{0.72\textwidth}
+      \vspace*{0.4em}
+      {\color{dcoublue}\textbf{\small \coverpresentationtype}\par}
+      \vspace{0.25em}
+      {\usebeamerfont{title}\fontsize{11}{13.0}\selectfont
+      DCOU --- Dimensionamento Computacional de Operações Unitárias:\par
+      uma ferramenta didática para Engenharia Química\par}
+      \vspace{0.2em}
+      {\normalsize\color{dcouink}Apresentação de defesa do TCC\par}
+      \vspace{0.35em}
+      {\normalsize \insertauthor\par}
+      \vspace{0.1em}
+      {\small Orientador: \coveradvisor\par}
+      {\small \coverinstitutionline{} -- \insertdate\par}
+    \column{0.20\textwidth}
+      \vspace*{0.35em}
+      \begin{beamercolorbox}[wd=\linewidth,rounded=true,sep=0.65em,center]{block body}
+        \includegraphics[width=0.78\linewidth]{assets/ufms.png}
+        \vspace{0.35em}
+      {\small\color{dcouink}\textbf{Universidade Federal de}\par}
+      {\small\color{dcouink}\textbf{Mato Grosso do Sul}\par}
+      \vspace{0.1em}
+      {\scriptsize INQUI \textbullet{} Engenharia Química\par}
+      \end{beamercolorbox}
+  \end{columns}
+  \begin{center}
+    {\small\color{dcoublue}\textbf{Ferramenta didática}}
+    \hspace{0.45em}\textcolor{dcouline}{\textbullet}\hspace{0.45em}
+    {\small\color{dcoublue}\textbf{Operações unitárias}}
+    \hspace{0.45em}\textcolor{dcouline}{\textbullet}\hspace{0.45em}
+    {\small\color{dcoublue}\textbf{Software educacional}}
+    \hspace{0.45em}\textcolor{dcouline}{\textbullet}\hspace{0.45em}
+    {\small\color{dcoublue}\textbf{Código aberto}}
+  \end{center}
+\vfill
+\end{frame}
+
+\begin{frame}{O problema não é só calcular}
+  \vspace*{-0.85em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.52\textwidth}
+      \begin{block}{Lacuna observada}
+        {\small
+        \begin{itemize}
+          \setlength{\itemsep}{0.25em}
+          \item Simuladores industriais pagos são robustos, mas têm alto custo de acesso e licenciamento.
+          \item Planilhas e rotinas isoladas resolvem casos, mas fragmentam o aprendizado.
+          \item Muitas ferramentas exigem curva de aprendizado elevada ou apresentam interfaces defasadas.
+          \item O estudante vê o resultado, porém nem sempre enxerga o fenômeno por trás dele.
+        \end{itemize}
+        }
+      \end{block}
+    \column{0.42\textwidth}
+      \begin{alertblock}{Pergunta da defesa}
+        {\small Como construir uma ferramenta aberta que una cálculo de engenharia, leitura didática e execução reprodutível?}
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Motivação acadêmica e técnica}
+  \begin{itemize}
+    \item Operações unitárias dependem de balanços, termodinâmica, escoamento e cinética.
+    \item No ensino, a automação só é útil se preservar hipótese, unidade, equação e interpretação.
+    \item O DCOU foi pensado como ambiente de estudo, não como uma caixa-preta de resultados.
+    \item O caráter aberto permite auditoria, extensão e reaproveitamento por estudantes e docentes.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Objetivo geral}
+  \begin{block}{Objetivo da monografia}
+    Desenvolver o DCOU, um software web modular para cálculo e apoio didático em operações unitárias, com arquitetura cliente-servidor e API aberta.
+  \end{block}
+  \vspace{0.7em}
+  \begin{itemize}
+    \item Integrar rotinas de tubulações, escoamento, bombas, propriedades, reatores e balanços.
+    \item Expor resultados com validação de entrada, unidades e recursos de interpretação.
+    \item Manter uma base evolutiva para uso acadêmico e futuras contribuições.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Objetivos específicos que guiam a apresentação}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{itemize}
+        \item Implementar rotinas clássicas de engenharia.
+        \item Criar interface web interativa e responsiva.
+        \item Integrar propriedades físico-químicas e catálogos locais.
+      \end{itemize}
+    \column{0.48\textwidth}
+      \begin{itemize}
+        \item Adicionar glossário, explicações e visualizações.
+        \item Oferecer exemplos coerentes providos pela API.
+        \item Validar resultados contra literatura e referências.
+      \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Tese central da defesa}
+  \begin{center}
+    {\Large\color{dcoublue}\textbf{O DCOU entrega uma base didática e computacional integrada para operações unitárias.}\par}
+  \end{center}
+  \vspace{0.7em}
+  \begin{itemize}
+    \item O cálculo fica no backend, onde contratos, unidades e validações são controlados.
+    \item A interface organiza a experiência de estudo e torna os fenômenos visíveis.
+    \item A validação compara as rotinas com equações e referências clássicas da área.
+  \end{itemize}
+\end{frame}
