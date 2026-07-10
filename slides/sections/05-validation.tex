@@ -1,84 +1,52 @@
 \transitionframe{Evidências de confiabilidade}{Comparações, validações e integração entre as camadas}
 
-\begin{frame}{Validação e confiabilidade}
-  {\small
-  \begin{tabular}{>{\raggedright\arraybackslash}p{0.22\linewidth} >{\raggedright\arraybackslash}p{0.64\linewidth}}
-    \toprule
-    Evidência & O que sustenta \\
-    \midrule
-    Literatura & Comparações com referências de engenharia química \\
-    Backend & Rotas, validações e módulos de demo/testes \\
-    Frontend & Formulários, exemplos e visualizações coerentes \\
-    Resultado final & Sistema defensável tecnicamente e útil didaticamente \\
-    \bottomrule
-  \end{tabular}
-  }
+\begin{frame}{Como a confiabilidade foi tratada}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{block}{Validação de engenharia}
+        Comparações com equações clássicas, literatura e resultados esperados para Reynolds, atrito, perda de carga, NPSH, diâmetros, reatores e balanços.
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Validação de software}
+        Testes automatizados, validação Pydantic, contratos tipados, exemplos da API e execução local do frontend/backend.
+      \end{block}
+  \end{columns}
 \end{frame}
 
-\begin{frame}{Resultados observados}
+\begin{frame}{Exemplos de concordância numérica}
   \begin{itemize}
-    \item As comparações adotadas indicam coerência entre modelagem, cálculo e resposta apresentada
-    \item A integração entre backend, frontend e visualizações reduz divergências entre entrada e resultado
-    \item Validações, exemplos e testes sustentam um uso defensável em ensino e demonstração
-    \item Esse conjunto de evidências sustenta a conclusão de que o DCOU é uma base confiável para evolução
+    \item \textbf{Perda de carga:} casos de tubulação reta e com acessórios foram comparados com Darcy-Weisbach e Hazen-Williams.
+    \item \textbf{Reynolds:} entradas por viscosidade dinâmica e cinemática retornaram valores coerentes.
+    \item \textbf{Fator de atrito:} Colebrook-White, Swamee-Jain e Haaland foram conferidos.
+    \item \textbf{NPSH e altura manométrica:} termos de Bernoulli foram comparados com cálculo manual.
+    \item \textbf{Componentes:} água, etanol, metanol e outros componentes altamente estudados retornaram propriedades coerentes com referência termodinâmica.
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Conta manual e software}
-  \footnotesize
-  \begin{columns}[T,onlytextwidth]
-    \column{0.49\textwidth}
-      \textbf{CSTR}
-      \begin{align*}
-        V &= \frac{v_0 X}{k(1-X)} \\
-          &= \frac{0,01 \cdot 0,85}{0,05 \cdot 0,15} \\
-          &\approx 1,1333\ \mathrm{m^3}
-      \end{align*}
-      \textbf{Software:} 1,1333 m\textsuperscript{3}
-
-      \vspace{0.4em}
-      \textbf{PFR}
-      \begin{align*}
-        V &= -\frac{v_0}{k}\ln(1-X) \\
-          &= -\frac{0,01}{0,05}\ln(0,10) \\
-          &\approx 0,4605\ \mathrm{m^3}
-      \end{align*}
-      \textbf{Software:} 0,4605 m\textsuperscript{3}
-    \column{0.49\textwidth}
-      O código confirma o resultado final, mas o raciocínio algébrico pode ser reproduzido fora da interface em um script manual simples, por exemplo em \textit{Python}.
-
-      \vspace{0.8em}
-      \textbf{Leitura prática}
-      \begin{itemize}
-        \item A conta manual permite auditoria independente.
-        \item A equivalência com o software valida a implementação.
-        \item Novas pessoas podem revisar e expandir o cálculo sem depender da interface.
-      \end{itemize}
-  \end{columns}
+\begin{frame}{Resultados do trabalho}
+  \begin{itemize}
+    \item A aplicação integra cálculo, validação e visualização em uma experiência única.
+    \item A arquitetura separa regras de engenharia, apresentação e distribuição.
+    \item A biblioteca de visualizações transforma resultados em objetos didáticos.
+    \item A API aberta permite uso pela interface e também por outros consumidores.
+    \item O projeto atinge o objetivo de entregar uma base gratuita, modular e extensível.
+  \end{itemize}
 \end{frame}
 
-\begin{frame}{Passo a passo auditável}
-  \footnotesize
-  \begin{columns}[T,onlytextwidth]
-    \column{0.49\textwidth}
-      \textbf{PFR com reciclo}
-      \begin{align*}
-        X_{in} &= \frac{R}{R+1}X_{out} \\
-               &= \frac{2}{3}\cdot 0,90 = 0,60 \\
-        V &= (R+1)\frac{v_0}{k}\ln\left(\frac{1-X_{in}}{1-X_{out}}\right) \\
-          &= 3\cdot \frac{0,01}{0,05}\ln\left(\frac{0,40}{0,10}\right) \\
-          &\approx 0,8318\ \mathrm{m^3}
-      \end{align*}
-      \textbf{Software:} 0,8318 m\textsuperscript{3}
-    \column{0.49\textwidth}
-      \textbf{Por que isso importa}
-      \begin{itemize}
-        \item O software entrega o valor final para uso prático.
-        \item O passo a passo fica em código manual externo, fácil de reproduzir e revisar.
-        \item Isso permite validação independente e facilita a entrada de novas pessoas no projeto.
-      \end{itemize}
+\begin{frame}{Limitações assumidas}
+  \begin{itemize}
+    \item O DCOU ainda não substitui simuladores industriais completos.
+    \item Módulos como trocadores de calor, absorção, secagem, operações multifásicas e múltiplas reações ficam como evolução.
+    \item Alguns dados de catálogo e propriedades ainda podem crescer para bancos externos.
+  \end{itemize}
+\end{frame}
 
-      \vspace{0.6em}
-      \textbf{Resumo:} cálculo no software para uso; cálculo manual para auditoria.
-  \end{columns}
+\begin{frame}{Perspectivas de continuidade}
+  \begin{itemize}
+    \item Expandir módulos de operações unitárias mantendo a arquitetura atual.
+    \item Ampliar bancos de propriedades, catálogos e validações comparativas.
+    \item Evoluir exportação de relatórios e rastreabilidade dos cenários.
+    \item Estudar integração futura com CAPE-OPEN e ferramentas externas.
+    \item Reforçar colaboração acadêmica por meio do repositório aberto.
+  \end{itemize}
 \end{frame}

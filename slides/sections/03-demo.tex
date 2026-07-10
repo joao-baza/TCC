@@ -1,46 +1,134 @@
-\transitionframe{Demonstração guiada}{Ver o sistema em uso antes de discutir sua base técnica}
-
-\begin{frame}{Roteiro da demonstração}
-  \begin{enumerate}
-    \item Posicionamento geral do DCOU
-    \item Percurso sintético pelos módulos
-    \item Recursos didáticos e visualizações
-    \item Prova de execução online, local e Linux
-  \end{enumerate}
-\end{frame}
-
-\begin{frame}{Checkpoints da demonstração}
-  \begin{itemize}
-    \item Home e proposta do sistema
-    \item Módulos de engenharia em plataforma única
-    \item Validação e apoio didático, não apenas número bruto
-    \item Reprodutibilidade fora do ambiente publicado
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Execução em múltiplos alvos}
-  \begin{columns}[t]
-    \column{0.32\textwidth}
-      \includegraphics[width=\linewidth]{assets/screenshots/demo-online-home.png}
-      \small Publicado
-    \column{0.32\textwidth}
-      \includegraphics[width=\linewidth]{assets/screenshots/demo-localhost-home.png}
-      \small Localhost
-    \column{0.32\textwidth}
-      \includegraphics[width=\linewidth]{assets/screenshots/demo-linux-app.png}
-      \small Linux app
+\begin{frame}[t]{Transporte de fluidos fica visível}
+  \vspace{-0.35em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.60\textwidth}
+      \includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{assets/screenshots/validated-flow-reynolds.png}
+    \column{0.36\textwidth}
+      \begin{block}{Inputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Diâmetro característico.
+          \item Velocidade média.
+          \item Densidade e viscosidade do fluido.
+        \end{itemize}
+      \end{block}
+      \begin{block}{Outputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Número de Reynolds.
+          \item Regime de escoamento.
+          \item Leitura imediata do risco de transição.
+        \end{itemize}
+      \end{block}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Contingência visual da demonstração}
-  \begin{columns}[t]
-    \column{0.48\textwidth}
-      \includegraphics[width=\linewidth,height=0.35\textheight,keepaspectratio]{assets/monograph/cap7_19_reatores_cstr_exemplo.png}
-      \vspace{0.3em}
-      \includegraphics[width=\linewidth,height=0.35\textheight,keepaspectratio]{assets/monograph/cap7_23_balanco_componentes_exemplo.png}
-    \column{0.48\textwidth}
-      \includegraphics[width=\linewidth,height=0.35\textheight,keepaspectratio]{assets/monograph/cap7_10_bombas_perda_carga_exemplo.png}
-      \vspace{0.3em}
-      \includegraphics[width=\linewidth,height=0.35\textheight,keepaspectratio]{assets/monograph/cap7_28_glossario_termos_reynolds.png}
+\begin{frame}[t]{Bombas conectam perda de carga e operação}
+  \vspace{-0.35em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.60\textwidth}
+      \includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{assets/screenshots/validated-pump-headloss.png}
+    \column{0.36\textwidth}
+      \begin{block}{Inputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Comprimento e diâmetro da linha.
+          \item Vazão e velocidade.
+          \item Método de atrito e condição de sucção.
+        \end{itemize}
+      \end{block}
+      \begin{block}{Outputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Perda de carga calculada.
+          \item NPSH disponível.
+          \item Altura manométrica e faixa de operação.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Propriedades deixam de ser só tabela}
+  \vspace{-0.35em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.60\textwidth}
+      \includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{assets/screenshots/validated-components-binary-vle.png}
+    \column{0.36\textwidth}
+      \begin{block}{Inputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Dois componentes.
+          \item Pressão de trabalho.
+          \item Número de amostras da curva.
+        \end{itemize}
+      \end{block}
+      \begin{block}{Outputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Diagrama T-x-y.
+          \item Leitura de equilíbrio líquido-vapor.
+          \item Suporte ao McCabe-Thiele e à separação.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Reatores fecham a cinética}
+  \vspace{-0.35em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.60\textwidth}
+      \includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{assets/screenshots/validated-reactor-pfr.png}
+    \column{0.36\textwidth}
+      \begin{block}{Inputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Volume do reator.
+          \item Cinética e ordem de reação.
+          \item Condições iniciais de operação.
+        \end{itemize}
+      \end{block}
+      \begin{block}{Outputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Conversão calculada.
+          \item Tempo de residência.
+          \item Perfis e leitura operacional.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Balanço de massa fecha a matéria}
+  \vspace{-0.35em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.60\textwidth}
+      \includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{assets/screenshots/validated-balance-results.png}
+    \column{0.36\textwidth}
+      \begin{block}{Inputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Componentes da mistura.
+          \item Correntes de entrada e saída.
+          \item Reações e reciclo.
+        \end{itemize}
+      \end{block}
+      \begin{block}{Outputs}
+        \footnotesize
+        \begin{itemize}
+          \setlength{\itemsep}{0.18em}
+          \item Correntes fechadas.
+          \item Composição calculada.
+          \item Leitura gráfica do balanço.
+        \end{itemize}
+      \end{block}
   \end{columns}
 \end{frame}

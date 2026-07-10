@@ -1,58 +1,119 @@
 \transitionframe{Base computacional}{Da experiência observada para a estrutura que sustenta o DCOU}
 
-\begin{frame}{Como o sistema foi construído}
-  \setlength{\fboxsep}{8pt}
-  \begin{columns}[t,onlytextwidth]
-    \column{0.32\textwidth}
-      \fcolorbox{black!45}{blue!6}{%
-        \parbox[t][0.44\textheight][t]{0.84\linewidth}{%
-          \raggedright
-          \textbf{Frontend}\par\medskip
-          React e TypeScript na interface, com navegação, formulários e resposta visual para o estudo.
-        }%
-      }
-    \column{0.32\textwidth}
-      \fcolorbox{black!45}{green!8}{%
-        \parbox[t][0.44\textheight][t]{0.84\linewidth}{%
-          \raggedright
-          \textbf{Backend}\par\medskip
-          FastAPI reunindo cálculos, propriedades, regras de entrada e lógica de engenharia.
-        }%
-      }
-    \column{0.32\textwidth}
-      \fcolorbox{black!45}{orange!10}{%
-        \parbox[t][0.44\textheight][t]{0.84\linewidth}{%
-          \raggedright
-          \textbf{Entrega}\par\medskip
-          Exposição da API, publicação da aplicação e empacotamento da mesma base.
-        }%
-      }
+\begin{frame}{Arquitetura em três camadas}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.30\textwidth}
+      \begin{block}{Frontend}
+        React, TypeScript, Vite, React Router, Tailwind, shadcn, KaTeX e componentes SVG.
+      \end{block}
+    \column{0.30\textwidth}
+      \begin{block}{Backend}
+        FastAPI, Pydantic, CoolProp, Pint, NumPy e SciPy para cálculos e validações.
+      \end{block}
+    \column{0.30\textwidth}
+      \begin{block}{Entrega}
+        Web publicada, execução local, imagens Docker, CI/CD e empacotamento desktop.
+      \end{block}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Base computacional reutilizável}
+\begin{frame}{O backend é a fonte dos cálculos}
   \begin{itemize}
-    \item Um núcleo de rotinas atende vários módulos sem reescrever fórmulas
-    \item Separação entre cálculo, interface e apoio didático reduz acoplamento
-    \item Componentes compartilhados permitem reaproveitar estruturas entre temas
-    \item Novos módulos podem crescer por extensão, sem duplicar a base existente
+    \item Rotas FastAPI expõem contratos para tubulações, dimensionamento, escoamento, bombas, componentes, reatores e balanço.
+    \item Pydantic bloqueia entradas ausentes, tipos inválidos e combinações incoerentes antes do cálculo.
+    \item Pint e CoolProp preservam consistência dimensional e propriedades termodinâmicas.
+    \item NumPy e SciPy sustentam amostragem, integrações e métodos numéricos como Brent.
   \end{itemize}
 \end{frame}
 
-\begin{frame}{API, validação e apoio didático}
+\begin{frame}{A API também monta visualizações}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.54\textwidth}
+      \begin{itemize}
+        \item Vários endpoints retornam modelos com eixos, séries, marcadores e metadados.
+        \item O frontend renderiza o contrato em componentes SVG reutilizáveis.
+        \item Isso evita que o gráfico tenha uma matemática paralela à do cálculo.
+      \end{itemize}
+    \column{0.40\textwidth}
+      \begin{block}{Exemplos validados no código}
+        Moody, curva de bomba, NPSH, altura manométrica, T-x-y, McCabe-Thiele, envelope de fase, Arrhenius, PFR e balanço.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Fundamentos hidráulicos implementados}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{block}{Continuidade}
+        \[
+          D = \sqrt{\frac{4Q}{\pi V}}
+        \]
+      \end{block}
+      \begin{block}{Reynolds}
+        \[
+          Re = \frac{\rho V D}{\mu}
+        \]
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Darcy-Weisbach}
+        \[
+          h_f = f\frac{L+\sum L_{eq}}{D}\frac{V^2}{2g}
+        \]
+      \end{block}
+      \begin{block}{Leitura didática}
+        Regime, rugosidade, perda de carga e seleção de bomba são apresentados juntos.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Reatores unem cinética e estequiometria}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{block}{Lei de velocidade}
+        \[
+          r = k \prod C_i^{n_i}
+        \]
+      \end{block}
+      \begin{block}{CSTR}
+        \[
+          V = \frac{F_{A0}X}{-r_A}
+        \]
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{PFR}
+        \[
+          V = F_{A0}\int_0^X \frac{dX}{-r_A}
+        \]
+      \end{block}
+      \begin{block}{Visualizações}
+        Levenspiel, Arrhenius e perfis espaciais ajudam a interpretar volume, conversão e temperatura.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Termodinâmica e separações ficam exploráveis}
   \begin{itemize}
-    \item Contratos de entrada e saída padronizam como a interface consome os cálculos
-    \item A validação centralizada bloqueia combinações inconsistentes antes do processamento
-    \item Exemplos prontos ajudam a iniciar cenários coerentes na interface
-    \item Glossário e explicações apoiam a leitura técnica dos resultados
+    \item CoolProp fornece propriedades de fluidos puros, misturas e limites de fase.
+    \item Diagramas T-x-y e McCabe-Thiele tornam visível a construção de estágios teóricos.
+    \item Envelope de fase e pressão de vapor apoiam discussões de mudança de fase e cavitação.
+    \item A superfície T-P mostra sensibilidade de propriedades a temperatura e pressão.
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Deploy e distribuição}
+\begin{frame}{O frontend organiza a experiência de estudo}
   \begin{itemize}
-    \item Aplicação web publicada para uso imediato
-    \item Execução local permite reproduzir resultados e inspecionar o código aberto
-    \item Empacotamento desktop demonstra portabilidade da mesma solução
-    \item CI/CD e testes sustentam a manutenção contínua do projeto
+    \item A navegação por rotas separa módulos, mas preserva um shell comum.
+    \item Cada módulo combina formulário, execução, resultado, visualização e explicação.
+    \item O glossário reúne termos como Reynolds, NPSH, CSTR, PFR, McCabe-Thiele e reciclo.
+    \item Os exemplos da API reduzem a barreira de entrada sem congelar resultados no frontend.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Deploy e distribuição não são acessórios}
+  \begin{itemize}
+    \item A aplicação publicada permite uso imediato por banca, estudantes e docentes.
+    \item A execução local preserva reprodutibilidade e auditoria do código aberto.
+    \item O empacotamento desktop reaproveita a mesma base web e backend local.
+    \item CI/CD reduz regressões entre backend científico, frontend e artefatos distribuíveis.
   \end{itemize}
 \end{frame}
