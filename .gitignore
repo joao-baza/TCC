@@ -86,6 +86,7 @@ frontend/vitest.config.js
 frontend/vitest.config.d.ts
 .superpowers/
 docs/superpowers/
+docs/superpowers/specs/
 .vite/
 /log
 frontend/pnpm-lock.yaml
