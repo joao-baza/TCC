@@ -104,6 +104,9 @@ test("desktop publish workflow generates checksums and publishes a release", () 
   const downloadStep = publishJob.steps.find(
     (step) => step["name"] === "Download desktop artifacts",
   );
+  const metadataStep = publishJob.steps.find(
+    (step) => step["name"] === "Compute desktop release metadata",
+  );
   const releaseStep = publishJob.steps.find(
     (step) => step["name"] === "Publish desktop release",
   );
@@ -112,9 +115,17 @@ test("desktop publish workflow generates checksums and publishes a release", () 
   expect(downloadStep.with.path).toBe("desktop-release");
   expect(downloadStep.with.pattern).toBe("desktop-*");
   expect(downloadStep.with["merge-multiple"]).toBe(true);
+  expect(metadataStep.run).toContain("TZ=Etc/GMT+3");
+  expect(metadataStep.run).toContain("release_name=Aplicação desktop - ");
+  expect(metadataStep.run).toContain("tag_name=desktop-");
   expect(releaseStep.uses).toBe("softprops/action-gh-release@v2");
-  expect(releaseStep.with.tag_name).toContain("desktop-");
+  expect(releaseStep.with.tag_name).toBe(
+    "${{ steps.release_meta.outputs.tag_name }}",
+  );
   expect(releaseStep.with.target_commitish).toBe("${{ github.sha }}");
+  expect(releaseStep.with.name).toBe(
+    "${{ steps.release_meta.outputs.release_name }}",
+  );
   expect(yamlLines(releaseStep.with.files)).toEqual(
     releaseAssetPublishPatterns,
   );
