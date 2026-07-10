@@ -89,12 +89,22 @@ jobs:
           pattern: desktop-*
           merge-multiple: true
 
+      - name: Compute desktop release metadata
+        id: release_meta
+        run: |
+          human_timestamp=$(TZ=Etc/GMT+3 date '+%d/%m/%Y %H:%M:%Sh')
+          tag_timestamp=$(TZ=Etc/GMT+3 date '+%Y-%m-%d-%H-%M-%S')
+          {
+            echo "release_name=Aplicação desktop - ${human_timestamp}"
+            echo "tag_name=desktop-${tag_timestamp}-gmt-3"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Publish desktop release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: desktop-${{ github.run_id }}
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
           target_commitish: ${{ github.sha }}
-          name: Desktop build ${{ github.run_number }}
+          name: ${{ steps.release_meta.outputs.release_name }}
           files: |
             desktop-release/*.exe
             desktop-release/*.exe.sha256
