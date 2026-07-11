@@ -203,7 +203,7 @@ class TestComponentsBinaryVleRouter:
 
         assert response["fluid"] == "Water"
         assert response["property_name"] == "D"
-        assert response["property_label"] == "Densidade"
+        assert response["property_label"] == "Massa específica"
         assert response["property_units"] == "kg/m³"
         assert len(response["temperatures"]) == 5
         assert len(response["pressures"]) == 4
@@ -231,7 +231,7 @@ class TestComponentsBinaryVleRouter:
         payload = response.json()
         assert payload["id"] == "components-property-surface-chart"
         assert payload["fluid"] == "Water"
-        assert payload["property_label"] == "Densidade"
+        assert payload["property_label"] == "Massa específica"
         assert payload["x_axis"]["label"] == "Temperatura"
         assert payload["y_axis"]["label"] == "Pressão"
         assert len(payload["cells"]) == 20

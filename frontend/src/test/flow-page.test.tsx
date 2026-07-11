@@ -379,7 +379,7 @@ describe("FlowPage", () => {
       expect(notifyMock.success).toHaveBeenCalledWith("Exemplo carregado com sucesso.");
       expect(screen.getByLabelText(/Diâmetro característico/i)).toHaveValue(13.843);
       expect(screen.getByLabelText(/Velocidade média/i)).toHaveValue(3.923);
-      expect(screen.getByLabelText(/Densidade/i)).toHaveValue(0.65688);
+      expect(screen.getByLabelText(/Massa específica/i)).toHaveValue(0.65688);
       expect(screen.getByLabelText(/Viscosidade dinâmica/i)).toHaveValue(0.0000111963);
     });
 
@@ -461,7 +461,7 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Velocidade média/i), {
       target: { value: "1.5" },
     });
-    fireEvent.change(screen.getByLabelText(/Densidade/i), {
+    fireEvent.change(screen.getByLabelText(/Massa específica/i), {
       target: { value: "998" },
     });
     fireEvent.change(screen.getByLabelText(/Viscosidade dinâmica/i), {
@@ -533,7 +533,7 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Velocidade média/i), {
       target: { value: "1.5" },
     });
-    fireEvent.change(screen.getByLabelText(/Densidade/i), {
+    fireEvent.change(screen.getByLabelText(/Massa específica/i), {
       target: { value: "998" },
     });
     fireEvent.change(screen.getByLabelText(/Viscosidade dinâmica/i), {
@@ -612,7 +612,7 @@ describe("FlowPage", () => {
       screen.getByRole("button", { name: /Como funciona - Número de Reynolds/i }),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Densidade/i), {
+    fireEvent.change(screen.getByLabelText(/Massa específica/i), {
       target: { value: "998" },
     });
     fireEvent.change(screen.getByLabelText(/Viscosidade dinâmica/i), {
@@ -700,7 +700,7 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Velocidade média/i), {
       target: { value: "1.5" },
     });
-    fireEvent.change(screen.getByLabelText(/Densidade/i), {
+    fireEvent.change(screen.getByLabelText(/Massa específica/i), {
       target: { value: "998" },
     });
     fireEvent.change(screen.getByLabelText(/Viscosidade dinâmica/i), {
@@ -863,7 +863,7 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Velocidade média/i), {
       target: { value: "1.5" },
     });
-    fireEvent.change(screen.getByLabelText(/Densidade/i), {
+    fireEvent.change(screen.getByLabelText(/Massa específica/i), {
       target: { value: "998" },
     });
     fireEvent.change(screen.getByLabelText(/Viscosidade dinâmica/i), {

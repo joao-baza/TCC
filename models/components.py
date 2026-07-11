@@ -142,7 +142,7 @@ class Components:
     def get_property_names(self):
         """Returns a dictionary of available property keys and their descriptions"""
         property_map = {
-            "D": "Densidade [kg/m³]",
+            "D": "Massa específica [kg/m³]",
             "C": "Calor específico [J/(kg·K)]",
             "V": "Viscosidade [Pa·s]",
             "L": "Condutividade térmica [W/(m·K)]",
@@ -192,7 +192,7 @@ class Components:
     def get_property_mixture_names(self):
         """Returns a dictionary of available property keys for mixtures and their descriptions"""
         property_map = {
-            "D": "Densidade [kg/m³]",
+            "D": "Massa específica [kg/m³]",
             "C": "Calor específico [J/(kg·K)]",
             "V": "Viscosidade [Pa·s]",
             "L": "Condutividade térmica [W/(m·K)]",
