@@ -85,6 +85,7 @@ frontend/vite.config.d.ts
 frontend/vitest.config.js
 frontend/vitest.config.d.ts
 .superpowers/
+.codex-review-artifacts/
 docs/superpowers/
 docs/superpowers/specs/
 .vite/
