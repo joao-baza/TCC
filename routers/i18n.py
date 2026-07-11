@@ -100,7 +100,7 @@ REACTOR_TYPE_LABELS = {
 }
 
 PROPERTY_LABELS_PT = {
-    "Density": "Densidade",
+    "Density": "Massa específica",
     "Specific heat": "Calor específico",
     "Viscosity": "Viscosidade",
     "Thermal conductivity": "Condutividade térmica",
@@ -120,7 +120,7 @@ PROPERTY_LABELS_PT = {
     "Dew point pressure": "Pressão do ponto de orvalho",
     "Critical Temperature": "Temperatura crítica",
     "Critical Pressure": "Pressão crítica",
-    "Critical Density": "Densidade crítica",
+    "Critical Density": "Massa específica crítica",
     "Triple Point Temperature": "Temperatura do ponto triplo",
     "Triple Point Pressure": "Pressão do ponto triplo",
 }

@@ -9,7 +9,7 @@ export function CriticalPropertiesHowItWorks() {
       </p>
       <p>
         Nesta consulta, o sistema obtém temperatura crítica, pressão crítica,
-        densidade crítica e propriedades de ponto triplo usando o backend termodinâmico.
+        massa específica crítica e propriedades de ponto triplo usando o backend termodinâmico.
       </p>
       <TheoryRef>
         Ref.: Bell et al., CoolProp - An Open-Source Thermodynamics Library, 2014.
@@ -26,7 +26,7 @@ export function PurePropertiesHowItWorks() {
         condições de temperatura e pressão informadas.
       </p>
       <p>
-        O módulo permite consultar múltiplas propriedades em sequência, como densidade,
+        O módulo permite consultar múltiplas propriedades em sequência, como massa específica,
         viscosidade, entalpia, entropia e condutividade térmica.
       </p>
       <TheoryRef>

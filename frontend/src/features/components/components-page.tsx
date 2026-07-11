@@ -255,7 +255,7 @@ type ExampleBinaryAutoRunSnapshot = {
 const propertySurfaceKeys = new Set(["D", "C", "V", "L", "H", "S", "U", "A", "Z"]);
 
 const propertyLabelsPt: Record<string, string> = {
-  Density: "Densidade",
+  Density: "Massa específica",
   "Specific heat": "Calor específico",
   Viscosity: "Viscosidade",
   "Thermal conductivity": "Condutividade térmica",
@@ -284,7 +284,7 @@ const stateVariableOptions = [
   { value: "H", label: "Entalpia" },
   { value: "S", label: "Entropia" },
   { value: "Q", label: "Título" },
-  { value: "D", label: "Densidade" },
+  { value: "D", label: "Massa específica" },
   { value: "U", label: "Energia interna" },
   { value: "Z", label: "Fator de compressibilidade" },
 ] as const;
@@ -331,7 +331,7 @@ function formatCriticalProperties(result: CriticalPropertiesResponse): PropertyR
   const criticalLabels: Record<string, string> = {
     critical_temperature: "Temperatura crítica",
     critical_pressure: "Pressão crítica",
-    critical_density: "Densidade crítica",
+    critical_density: "Massa específica crítica",
     triple_point_temperature: "Temperatura do ponto triplo",
     triple_point_pressure: "Pressão do ponto triplo",
   };
@@ -1607,7 +1607,7 @@ function ComponentsPureFluidTab() {
             placeholder="Selecione propriedades"
           />
           <label className="block text-sm font-medium text-slate-800" htmlFor="property-temperature">
-            Temperatura do fluido
+            Temperatura do fluido (K)
             <input
               id="property-temperature"
               className={inputClassName}
@@ -1618,7 +1618,7 @@ function ComponentsPureFluidTab() {
             />
           </label>
           <label className="block text-sm font-medium text-slate-800" htmlFor="property-pressure">
-            Pressão do fluido
+            Pressão do fluido (Pa)
             <input
               id="property-pressure"
               className={inputClassName}
@@ -1722,7 +1722,7 @@ function ComponentsMixturesTab() {
           </div>
 
           <label className="block text-sm font-medium text-slate-800" htmlFor="mixture-temperature">
-            Temperatura da mistura
+            Temperatura da mistura (K)
             <input
               id="mixture-temperature"
               className={inputClassName}
@@ -1733,7 +1733,7 @@ function ComponentsMixturesTab() {
             />
           </label>
           <label className="block text-sm font-medium text-slate-800" htmlFor="mixture-pressure">
-            Pressão da mistura
+            Pressão da mistura (Pa)
             <input
               id="mixture-pressure"
               className={inputClassName}
@@ -2135,7 +2135,7 @@ function ComponentsPropertySurfaceTab() {
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
           Mapa T-P para uma propriedade termodinâmica do CoolProp. Útil para ver variações de
-          densidade, entalpia, entropia e outras propriedades sem montar um módulo completo.
+          massa específica, entalpia, entropia e outras propriedades sem montar um módulo completo.
         </p>
 
         <form className="space-y-4" onSubmit={handlePropertySurfaceSubmit}>
@@ -2155,7 +2155,7 @@ function ComponentsPropertySurfaceTab() {
               placeholder="Selecione uma propriedade"
             />
             <label className="block text-sm font-medium text-slate-800" htmlFor="surface-temp-min">
-              Temperatura mínima
+              Temperatura mínima (K)
               <input
                 id="surface-temp-min"
                 className={inputClassName}
@@ -2168,7 +2168,7 @@ function ComponentsPropertySurfaceTab() {
               />
             </label>
             <label className="block text-sm font-medium text-slate-800" htmlFor="surface-temp-max">
-              Temperatura máxima
+              Temperatura máxima (K)
               <input
                 id="surface-temp-max"
                 className={inputClassName}
@@ -2184,7 +2184,7 @@ function ComponentsPropertySurfaceTab() {
 
           <div className="grid gap-4 md:grid-cols-[1fr_1fr_180px_180px]">
             <label className="block text-sm font-medium text-slate-800" htmlFor="surface-pressure-min">
-              Pressão mínima
+              Pressão mínima (Pa)
               <input
                 id="surface-pressure-min"
                 className={inputClassName}
@@ -2197,7 +2197,7 @@ function ComponentsPropertySurfaceTab() {
               />
             </label>
             <label className="block text-sm font-medium text-slate-800" htmlFor="surface-pressure-max">
-              Pressão máxima
+              Pressão máxima (Pa)
               <input
                 id="surface-pressure-max"
                 className={inputClassName}
