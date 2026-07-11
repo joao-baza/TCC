@@ -381,7 +381,7 @@ export function FlowPage() {
       !form.kinematicViscosity
     ) {
       setReynoldsError(
-        "Informe densidade e viscosidade dinâmica, ou viscosidade cinemática.",
+        "Informe massa específica e viscosidade dinâmica, ou viscosidade cinemática.",
       );
       return null;
     }
@@ -714,7 +714,7 @@ export function FlowPage() {
               />
               <NumberField
                 id="density"
-                label="Densidade"
+                label="Massa específica"
                 unit="kg/m³"
                 value={reynoldsForm.density}
                 onChange={(value) => setReynoldsField("density", value)}

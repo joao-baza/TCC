@@ -7,7 +7,7 @@ describe("VariablesTable", () => {
     const { container } = render(
       <VariablesTable
         rows={[
-          { symbol: "\\rho", description: "Densidade do fluido", unit: "kg/m³" },
+          { symbol: "\\rho", description: "Massa específica do fluido", unit: "kg/m³" },
           { symbol: "DN (Diametro Nominal)", description: "Identificador textual", unit: "—" },
         ]}
       />,

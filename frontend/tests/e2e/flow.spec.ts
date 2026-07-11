@@ -203,7 +203,7 @@ test("flow module loads the example and calculates the core values", async ({
 
   await page.getByLabel(/Diâmetro característico/i).fill("13.843");
   await page.getByLabel(/Velocidade média/i).fill("3.923");
-  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Massa específica/i).fill("0.65688");
   await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
 
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
@@ -357,7 +357,7 @@ test("flow module surfaces an error when Reynolds calculation fails", async ({ p
 
   await page.getByLabel(/Diâmetro característico/i).fill("13.843");
   await page.getByLabel(/Velocidade média/i).fill("3.923");
-  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Massa específica/i).fill("0.65688");
   await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
 
@@ -409,7 +409,7 @@ test("flow module surfaces an error when friction factor calculation fails", asy
 
   await page.getByLabel(/Diâmetro característico/i).fill("13.843");
   await page.getByLabel(/Velocidade média/i).fill("3.923");
-  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Massa específica/i).fill("0.65688");
   await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
@@ -496,7 +496,7 @@ test("flow module clears friction results when the schedule changes", async ({ p
   await page.goto("/flow");
   await page.getByLabel(/Diâmetro característico/i).fill("13.843");
   await page.getByLabel(/Velocidade média/i).fill("3.923");
-  await page.getByLabel(/Densidade/i).fill("0.65688");
+  await page.getByLabel(/Massa específica/i).fill("0.65688");
   await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
