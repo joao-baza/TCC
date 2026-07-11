@@ -261,7 +261,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Viscosidade cinemática (ν)",
     category: "Componentes",
     definition:
-      "\\(\\nu = \\mu/\\rho\\) (m²/s ou cSt). Relevante para cálculo de Reynolds quando a densidade é conhecida.",
+      "\\(\\nu = \\mu/\\rho\\) (m²/s ou cSt). Relevante para cálculo de Reynolds quando a massa específica é conhecida.",
   },
   {
     term: "Equação de Antoine",
@@ -362,7 +362,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Superfície de propriedades T-P",
     category: "Termodinâmica",
     definition:
-      "Mapa bidimensional de uma propriedade termodinâmica em função de temperatura e pressão. Mostra como densidade, entalpia, entropia ou outras propriedades variam no domínio do fluido e ajuda a identificar regiões de forte sensibilidade ou mudança de fase.",
+      "Mapa bidimensional de uma propriedade termodinâmica em função de temperatura e pressão. Mostra como massa específica, entalpia, entropia ou outras propriedades variam no domínio do fluido e ajuda a identificar regiões de forte sensibilidade ou mudança de fase.",
   },
   {
     term: "Diagrama ternário",
@@ -435,12 +435,6 @@ export const glossaryEntries: GlossaryEntry[] = [
     category: "Transferência de calor",
     definition:
       "Representação agregada das curvas quente e fria de um processo, usada em análise de pinch para localizar o gargalo térmico e o menor consumo externo de utilidades.",
-  },
-  {
-    term: "<em>Pinch analysis</em>",
-    category: "Transferência de calor",
-    definition:
-      "Método de integração térmica que identifica a menor diferença de temperatura viável entre correntes quentes e frias. O pinch define o limite mínimo para utilidades de aquecimento e resfriamento.",
   },
   {
     term: "Tabela de correntes",

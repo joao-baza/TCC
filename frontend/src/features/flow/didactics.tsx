@@ -13,7 +13,7 @@ export function ReynoldsHowItWorks() {
       <VariablesTable
         rows={[
           { symbol: "Re", description: "Número de Reynolds", unit: "adimensional" },
-          { symbol: "\\rho", description: "Densidade do fluido", unit: "kg/m³" },
+          { symbol: "\\rho", description: "Massa específica do fluido", unit: "kg/m³" },
           { symbol: "v", description: "Velocidade média", unit: "m/s" },
           { symbol: "D", description: "Diâmetro característico", unit: "m" },
           { symbol: "\\mu", description: "Viscosidade dinâmica", unit: "Pa.s" },

@@ -153,11 +153,11 @@ describe("PropertyTable", () => {
   it("renders compound units through KaTeX in auto mode", () => {
     render(
       <PropertyTable
-        rows={[{ label: "Densidade crítica", value: 322, units: "kilogram / meter ** 3" }]}
+        rows={[{ label: "Massa específica crítica", value: 322, units: "kilogram / meter ** 3" }]}
       />,
     );
 
-    const row = getRowContaining("Densidade crítica");
+    const row = getRowContaining("Massa específica crítica");
     const unitCell = row?.querySelector("td:nth-child(3)");
 
     expect(unitCell?.querySelector(".katex")).not.toBeNull();

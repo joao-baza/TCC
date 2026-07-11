@@ -502,9 +502,9 @@ const ternaryChartPayload = {
 const propertySurfaceChartPayload = {
   id: "components-property-surface-chart",
   title: "Superfície T-P",
-  subtitle: "Water · Densidade",
+  subtitle: "Water · Massa específica",
   fluid: "Water",
-  property_label: "Densidade",
+  property_label: "Massa específica",
   property_units: "kg/m³",
   x_axis: {
     scale: "linear",
@@ -523,9 +523,9 @@ const propertySurfaceChartPayload = {
     major_ticks: [101325, 201000, 300675, 400337.5, 500000],
   },
   cells: [
-    { x: 300, y: 101325, width: 50, height: 132891.6667, value: 997, fill: "hsl(232 58% 94%)", tooltip: "300 K · 101.325 kPa · Densidade = 997 kg/m³" },
-    { x: 350, y: 101325, width: 50, height: 132891.6667, value: 992, fill: "hsl(180 70% 60%)", tooltip: "350 K · 101.325 kPa · Densidade = 992 kg/m³" },
-    { x: 400, y: 101325, width: 50, height: 132891.6667, value: 989, fill: "hsl(120 74% 56%)", tooltip: "400 K · 101.325 kPa · Densidade = 989 kg/m³" },
+    { x: 300, y: 101325, width: 50, height: 132891.6667, value: 997, fill: "hsl(232 58% 94%)", tooltip: "300 K · 101.325 kPa · Massa específica = 997 kg/m³" },
+    { x: 350, y: 101325, width: 50, height: 132891.6667, value: 992, fill: "hsl(180 70% 60%)", tooltip: "350 K · 101.325 kPa · Massa específica = 992 kg/m³" },
+    { x: 400, y: 101325, width: 50, height: 132891.6667, value: 989, fill: "hsl(120 74% 56%)", tooltip: "400 K · 101.325 kPa · Massa específica = 989 kg/m³" },
   ],
   legend_stops: [
     { offset: 0, color: "#0f766e", value: 951 },
@@ -565,7 +565,7 @@ function mockComponentsRequests(options?: {
     if (url.endsWith("/api/components/property-names") && method === "GET") {
       return Response.json({
         C: "Specific heat [J/(kg·K)]",
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         V: "Viscosity [Pa·s]",
         Z: "Compressibility factor [-]",
         M: "Molar mass [kg/mol]",
@@ -574,7 +574,7 @@ function mockComponentsRequests(options?: {
 
     if (url.endsWith("/api/components/property-mixture-names") && method === "GET") {
       return Response.json({
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         M: "Molar mass [kg/mol]",
         V: "Viscosity [Pa·s]",
         C: "Calor específico [J/(kg·K)]",
@@ -869,7 +869,7 @@ describe("ComponentsPage", () => {
     if (url.endsWith("/api/components/property-names") && method === "GET") {
       return Response.json({
         C: "Specific heat [J/(kg·K)]",
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         V: "Viscosity [Pa·s]",
         Z: "Compressibility factor [-]",
         M: "Molar mass [kg/mol]",
@@ -878,7 +878,7 @@ describe("ComponentsPage", () => {
 
     if (url.endsWith("/api/components/property-mixture-names") && method === "GET") {
       return Response.json({
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         M: "Massa molar [kg/mol]",
         V: "Viscosity [Pa·s]",
         C: "Calor específico [J/(kg·K)]",
@@ -980,7 +980,7 @@ describe("ComponentsPage", () => {
     fireEvent.change(screen.getByLabelText(/Pressão da mistura/i), {
       target: { value: "101325" },
     });
-    await selectComboboxOption(/Propriedades da mistura/i, "den", /Densidade/i);
+    await selectComboboxOption(/Propriedades da mistura/i, "mass", /Massa específica/i);
     await selectComboboxOption(/Propriedades da mistura/i, "mol", /Massa molar/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular mistura/i }));
 
@@ -999,7 +999,7 @@ describe("ComponentsPage", () => {
     expect(await screen.findByText(/Composição da mistura/i)).toBeInTheDocument();
     expect(screen.getByText(/Water: 0.7/i)).toBeInTheDocument();
     expect(screen.getByText(/Ethanol: 0.3/i)).toBeInTheDocument();
-    await expectRowValueMath(/Densidade/i, "812,5");
+    await expectRowValueMath(/Massa específica/i, "812,5");
     await expectRowValueMath(/Massa molar/i, "0,018");
   }, 10000);
 
@@ -1020,7 +1020,7 @@ describe("ComponentsPage", () => {
     expect(screen.getByLabelText(/Temperatura do fluido/i)).toHaveValue(353.15);
     expect(screen.getByLabelText(/Pressão do fluido/i)).toHaveValue(101325);
     expect(screen.getByRole("button", { name: /Remover Calor específico/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Remover Densidade/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Remover Massa específica/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Remover Viscosidade/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Remover Fator de compressibilidade/i }),
@@ -1060,7 +1060,7 @@ describe("ComponentsPage", () => {
     expect(within(ternaryDiagram).getByText("Ethanol")).toBeInTheDocument();
     expect(within(ternaryDiagram).getByText("Methanol")).toBeInTheDocument();
     expect(await screen.findByText(/Composição da mistura/i)).toBeInTheDocument();
-    await expectRowValueMath(/Densidade/i, "812,5");
+    await expectRowValueMath(/Massa específica/i, "812,5");
 
     await openComponentsTab(/Equilíbrio Binário/i);
     expect(screen.getByLabelText(/Componente 1/i)).toHaveValue("Acetone");
@@ -1100,6 +1100,29 @@ describe("ComponentsPage", () => {
         "/api/components/vapor-pressure/chart",
       ].sort());
     });
+  });
+
+  it("exposes temperature and pressure units in the component forms", async () => {
+    mockComponentsRequests();
+
+    const router = createMemoryRouter(await getRoutes(), { initialEntries: ["/components"] });
+    render(<RouterProvider router={router} />);
+
+    expect(
+      await screen.findByRole("heading", { name: /Propriedades de Componentes/i }),
+    ).toBeInTheDocument();
+
+    await openComponentsTab(/Fluido Puro/i);
+    expect(screen.getByLabelText(/Temperatura do fluido \(K\)/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Pressão do fluido \(Pa\)/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Temperatura mínima \(K\)/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Temperatura máxima \(K\)/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Pressão mínima \(Pa\)/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Pressão máxima \(Pa\)/i)).toBeInTheDocument();
+
+    await openComponentsTab(/Misturas/i);
+    expect(screen.getByLabelText(/Temperatura da mistura \(K\)/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Pressão da mistura \(Pa\)/i)).toBeInTheDocument();
   });
 
   it("keeps the worked example button disabled until the derived processing finishes", async () => {
@@ -1267,7 +1290,7 @@ describe("ComponentsPage", () => {
 
     await openComponentsTab(/Fluido Puro/i);
     await selectComboboxOption(/^Fluido$/i, "wat", "Water");
-    await selectComboboxOption(/^Propriedade$/i, "den", /Densidade/i);
+    await selectComboboxOption(/^Propriedade$/i, "mass", /Massa específica/i);
     fireEvent.change(screen.getByLabelText(/Temperatura mínima/i), {
       target: { value: "300" },
     });
@@ -1283,9 +1306,9 @@ describe("ComponentsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Gerar superfície/i }));
 
     const surface = await screen.findByTestId("property-surface-heatmap");
-    expect(within(surface).getByRole("img", { name: /Superfície T-P de Densidade para Water/i })).toBeInTheDocument();
+    expect(within(surface).getByRole("img", { name: /Superfície T-P de Massa específica para Water/i })).toBeInTheDocument();
     expect(within(surface).getAllByText(/Water/i).length).toBeGreaterThan(0);
-    expect(within(surface).getAllByText(/Densidade/i).length).toBeGreaterThan(0);
+    expect(within(surface).getAllByText(/Massa específica/i).length).toBeGreaterThan(0);
   });
 
   it("clears calculated outputs when dependent component inputs change", async () => {
@@ -1305,7 +1328,7 @@ describe("ComponentsPage", () => {
 
     await openComponentsTab(/Fluido Puro/i);
     await selectComboboxOption(/Fluido puro/i, "wat", "Water");
-    await selectComboboxOption(/Propriedades do fluido/i, "den", /Densidade/i);
+    await selectComboboxOption(/Propriedades do fluido/i, "mass", /Massa específica/i);
     fireEvent.change(screen.getByLabelText(/Temperatura do fluido/i), {
       target: { value: "298.15" },
     });
@@ -1364,7 +1387,7 @@ describe("ComponentsPage", () => {
     fireEvent.change(screen.getByLabelText(/Pressão da mistura/i), {
       target: { value: "101325" },
     });
-    await selectComboboxOption(/Propriedades da mistura/i, "den", /Densidade/i);
+    await selectComboboxOption(/Propriedades da mistura/i, "mass", /Massa específica/i);
     fireEvent.click(screen.getByRole("button", { name: /Calcular mistura/i }));
 
     fireEvent.change(screen.getByLabelText(/Fração molar 1/i), {
@@ -1380,7 +1403,7 @@ describe("ComponentsPage", () => {
     );
 
     await waitFor(() => {
-    expect(getRowContaining(/^Densidade$/i)).toBeUndefined();
+    expect(getRowContaining(/^Massa específica$/i)).toBeUndefined();
     });
   });
 
@@ -1418,11 +1441,11 @@ describe("ComponentsPage", () => {
     await selectComboboxOption(/Fluido crítico/i, "wat", "Water");
     fireEvent.click(screen.getByRole("button", { name: /Obter propriedades críticas/i }));
 
-    await expectRowUnitMath(/Densidade crítica/i);
+    await expectRowUnitMath(/Massa específica crítica/i);
 
     await openComponentsTab(/Fluido Puro/i);
     await selectComboboxOption(/Fluido puro/i, "wat", "Water");
-    await selectComboboxOption(/Propriedades do fluido/i, "den", /Densidade/i);
+    await selectComboboxOption(/Propriedades do fluido/i, "mass", /Massa específica/i);
     fireEvent.change(screen.getByLabelText(/Temperatura do fluido/i), {
       target: { value: "298.15" },
     });
@@ -1431,7 +1454,7 @@ describe("ComponentsPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /^Calcular propriedades$/i }));
 
-    await expectRowUnitMath(/^Densidade$/i);
+    await expectRowUnitMath(/^Massa específica$/i);
   });
 
   it("rejects the critical properties form when no fluid is selected", async () => {
@@ -1483,7 +1506,7 @@ describe("ComponentsPage", () => {
 
     await openComponentsTab(/Fluido Puro/i);
     await selectComboboxOption(/Fluido puro/i, "wat", "Water");
-    await selectComboboxOption(/Propriedades do fluido/i, "den", /Densidade/i);
+    await selectComboboxOption(/Propriedades do fluido/i, "mass", /Massa específica/i);
     fireEvent.change(screen.getByLabelText(/Temperatura do fluido/i), {
       target: { value: "298.15" },
     });

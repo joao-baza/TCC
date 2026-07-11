@@ -25,7 +25,7 @@ router = APIRouter(prefix="/components", tags=["Components"])
 components_obj = Components()
 
 PROPERTY_SURFACE_META = {
-    "D": {"label": "Densidade", "units": "kg/m³"},
+    "D": {"label": "Massa específica", "units": "kg/m³"},
     "C": {"label": "Calor específico", "units": "J/(kg·K)"},
     "V": {"label": "Viscosidade", "units": "Pa·s"},
     "L": {"label": "Condutividade térmica", "units": "W/(m·K)"},

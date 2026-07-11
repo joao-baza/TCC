@@ -18,7 +18,7 @@ test("components module loads catalogs and calculates critical, pure, and mixtur
   await page.route("**/api/components/property-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         V: "Viscosity [Pa·s]",
       },
     });
@@ -27,7 +27,7 @@ test("components module loads catalogs and calculates critical, pure, and mixtur
   await page.route("**/api/components/property-mixture-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         Z: "Compressibility factor [-]",
       },
     });
@@ -93,10 +93,10 @@ test("components module loads catalogs and calculates critical, pure, and mixtur
   await selectComboboxOption(page, "Fluido puro", "Water");
   await selectComboboxOption(page, "Propriedades do fluido", "D");
   await selectComboboxOption(page, "Propriedades do fluido", "V");
-  await page.getByLabel("Temperatura do fluido").fill("298.15");
-  await page.getByLabel("Pressão do fluido").fill("101325");
+  await page.getByLabel("Temperatura do fluido (K)").fill("298.15");
+  await page.getByLabel("Pressão do fluido (Pa)").fill("101325");
   await page.getByRole("button", { name: /Calcular propriedades/i }).click();
-  const pureTable = page.locator("table").filter({ hasText: "Densidade" }).first();
+  const pureTable = page.locator("table").filter({ hasText: "Massa específica" }).first();
   await expect(pureTable).toBeVisible();
   await expect(pureTable).toContainText("997");
   await expect(pureTable).toContainText(/8,9.*10.*4/);
@@ -109,12 +109,12 @@ test("components module loads catalogs and calculates critical, pure, and mixtur
   await page.getByRole("button", { name: /Adicionar fluido/i }).click();
   await selectComboboxOption(page, "Mistura componente 3", "Propane");
   await page.getByLabel("Fração molar 3").fill("0.1");
-  await page.getByLabel("Temperatura da mistura").fill("300");
-  await page.getByLabel("Pressão da mistura").fill("101325");
+  await page.getByLabel("Temperatura da mistura (K)").fill("300");
+  await page.getByLabel("Pressão da mistura (Pa)").fill("101325");
   await selectComboboxOption(page, "Propriedades da mistura", "D");
   await selectComboboxOption(page, "Propriedades da mistura", "Z");
   await page.getByRole("button", { name: /Calcular mistura/i }).click();
-  const mixtureTable = page.locator("table").filter({ hasText: "Densidade" }).last();
+  const mixtureTable = page.locator("table").filter({ hasText: "Massa específica" }).last();
   await expect(mixtureTable).toBeVisible();
   await expect(mixtureTable).toContainText("812,5");
   await expect(mixtureTable).toContainText("0,98");
@@ -140,7 +140,7 @@ test("components module surfaces an error when critical properties lookup fails"
   await page.route("**/api/components/property-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         V: "Viscosity [Pa·s]",
       },
     });
@@ -149,7 +149,7 @@ test("components module surfaces an error when critical properties lookup fails"
   await page.route("**/api/components/property-mixture-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         Z: "Compressibility factor [-]",
       },
     });
@@ -189,7 +189,7 @@ test("components module surfaces an error when the initial catalog load fails", 
   await page.route("**/api/components/property-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
       },
     });
   });
@@ -197,7 +197,7 @@ test("components module surfaces an error when the initial catalog load fails", 
   await page.route("**/api/components/property-mixture-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
       },
     });
   });
@@ -217,7 +217,7 @@ test("components module surfaces an error when pure property lookup fails", asyn
   await page.route("**/api/components/property-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         V: "Viscosity [Pa·s]",
       },
     });
@@ -226,7 +226,7 @@ test("components module surfaces an error when pure property lookup fails", asyn
   await page.route("**/api/components/property-mixture-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         Z: "Compressibility factor [-]",
       },
     });
@@ -254,8 +254,8 @@ test("components module surfaces an error when pure property lookup fails", asyn
   await page.getByRole("tab", { name: /^Fluido Puro$/i }).click();
   await selectComboboxOption(page, "Fluido puro", "Water");
   await selectComboboxOption(page, "Propriedades do fluido", "D");
-  await page.getByLabel("Temperatura do fluido").fill("298.15");
-  await page.getByLabel("Pressão do fluido").fill("101325");
+  await page.getByLabel("Temperatura do fluido (K)").fill("298.15");
+  await page.getByLabel("Pressão do fluido (Pa)").fill("101325");
   await page.getByRole("button", { name: /Calcular propriedades/i }).click();
 
   await expect(page.getByText(/Erro ao obter propriedade: Falha no backend puro/i)).toBeVisible();
@@ -271,7 +271,7 @@ test("components module surfaces an error when mixture property lookup fails", a
   await page.route("**/api/components/property-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         V: "Viscosity [Pa·s]",
       },
     });
@@ -280,7 +280,7 @@ test("components module surfaces an error when mixture property lookup fails", a
   await page.route("**/api/components/property-mixture-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         Z: "Compressibility factor [-]",
       },
     });
@@ -303,8 +303,8 @@ test("components module surfaces an error when mixture property lookup fails", a
   await page.getByLabel("Fração molar 1").fill("0.7");
   await selectComboboxOption(page, "Mistura componente 2", "Ethanol");
   await page.getByLabel("Fração molar 2").fill("0.3");
-  await page.getByLabel("Temperatura da mistura").fill("300");
-  await page.getByLabel("Pressão da mistura").fill("101325");
+  await page.getByLabel("Temperatura da mistura (K)").fill("300");
+  await page.getByLabel("Pressão da mistura (Pa)").fill("101325");
   await page.getByRole("button", { name: /Calcular mistura/i }).click();
 
   await expect(
@@ -326,7 +326,7 @@ test("components module ignores delayed mixture results after the form changes",
   await page.route("**/api/components/property-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         V: "Viscosity [Pa·s]",
       },
     });
@@ -335,7 +335,7 @@ test("components module ignores delayed mixture results after the form changes",
   await page.route("**/api/components/property-mixture-names", async (route) => {
     await route.fulfill({
       json: {
-        D: "Density [kg/m³]",
+        D: "Massa específica [kg/m³]",
         Z: "Compressibility factor [-]",
       },
     });
@@ -365,11 +365,11 @@ test("components module ignores delayed mixture results after the form changes",
   await page.getByLabel("Fração molar 1").fill("0.7");
   await selectComboboxOption(page, "Mistura componente 2", "Ethanol");
   await page.getByLabel("Fração molar 2").fill("0.3");
-  await page.getByLabel("Temperatura da mistura").fill("300");
-  await page.getByLabel("Pressão da mistura").fill("101325");
+  await page.getByLabel("Temperatura da mistura (K)").fill("300");
+  await page.getByLabel("Pressão da mistura (Pa)").fill("101325");
   await page.getByRole("button", { name: /Calcular mistura/i }).click();
 
-  await page.getByLabel("Temperatura da mistura").fill("305");
+  await page.getByLabel("Temperatura da mistura (K)").fill("305");
   resolveMixture?.();
 
   await expect(page.getByText(/812.5 kilogram \/ meter \*\* 3/i)).toHaveCount(0);
