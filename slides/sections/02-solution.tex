@@ -1,5 +1,3 @@
-\transitionframe{Solução proposta}{Da lacuna didática para uma plataforma modular aberta}
-
 \begin{frame}{O que é o DCOU}
   \begin{columns}[T,onlytextwidth]
     \column{0.46\textwidth}
@@ -9,8 +7,7 @@
       \begin{itemize}
         \item Interface navegável por módulos.
         \item API pública documentada pelo FastAPI.
-        \item Execução local, online e
-        iniciado empacotamento desktop.
+        \item Execução online e local; empacotamento desktop em estágio inicial.
       \end{itemize}
     \column{0.50\textwidth}
       \begin{block}{Modos de execução}
@@ -65,14 +62,31 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Trilhas de aprendizagem organizam o uso}
+\begin{frame}{As trilhas organizam uma sequência de raciocínio}
   \begin{itemize}
-    \item \textbf{Transporte de Fluidos:} Tubulações $\rightarrow$ Dimensionamento $\rightarrow$ Escoamento $\rightarrow$ Bombas.
-    \item \textbf{Reatores Ideais:} Componentes $\rightarrow$ CSTR/PFR $\rightarrow$ Levenspiel e Arrhenius.
-    \item \textbf{Balanço de Massa:} Componentes $\rightarrow$ Correntes $\rightarrow$ Reações $\rightarrow$ Reciclo $\rightarrow$ Resultados.
+    \item \textbf{Transporte de fluidos:} geometria e catálogo $\rightarrow$ regime de escoamento $\rightarrow$ perda de carga $\rightarrow$ bomba.
+    \item \textbf{Reatores ideais:} componentes e estequiometria $\rightarrow$ cinética $\rightarrow$ conversão $\rightarrow$ volume ou desempenho.
+    \item \textbf{Balanço de massa:} componentes $\rightarrow$ correntes $\rightarrow$ reações e reciclo $\rightarrow$ conservação e composição.
   \end{itemize}
-  \vspace{0.7em}
-  \begin{alertblock}{Uso em aula}
-    O estudante pode carregar um exemplo, conferir hipóteses, executar o cálculo e alterar uma variável por vez.
+  \vspace{0.55em}
+  \begin{alertblock}{Uso didático}
+    O estudante carrega um exemplo, confere hipóteses, executa o cálculo e altera uma variável por vez para observar a resposta do fenômeno.
   \end{alertblock}
+\end{frame}
+
+\begin{frame}{O que a demonstração precisa provar}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.32\textwidth}
+      \begin{block}{Funciona}
+        A aplicação executa online e localmente, com a mesma base de cálculo.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{Ensina}
+        Cada módulo mostra entrada, equação, resultado e leitura do fenômeno.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{É auditável}
+        O cálculo fica no backend e pode ser confrontado com equações e literatura.
+      \end{block}
+  \end{columns}
 \end{frame}
