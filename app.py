@@ -19,10 +19,20 @@ from routers import (
 )
 from routers.i18n import translate_error_message, translate_validation_errors
 
+
+def get_root_path() -> str:
+    root_path = os.getenv("DCOU_ROOT_PATH", "").strip()
+    if not root_path or root_path == "/":
+        return ""
+
+    return "/" + root_path.strip("/")
+
+
 app = FastAPI(
     title="Chemical Engineering API",
     description="API for chemical engineering calculations",
-    version="1.0.0"
+    version="1.0.0",
+    root_path=get_root_path(),
 )
 
 app.add_middleware(
