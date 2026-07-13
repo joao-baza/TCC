@@ -4,49 +4,59 @@
   \begin{columns}[T,onlytextwidth]
     \column{0.48\textwidth}
       \begin{block}{Validação de engenharia}
-        Comparações com equações clássicas, literatura e resultados esperados para Reynolds, atrito, perda de carga, NPSH, diâmetros, reatores e balanços.
+        Casos manuais e referências clássicas foram usados para comparar resultado esperado e resposta do sistema em hidráulica, propriedades, reatores e balanços.
       \end{block}
     \column{0.48\textwidth}
       \begin{block}{Validação de software}
-        Testes automatizados, validação Pydantic, contratos tipados, exemplos da API e execução local do frontend/backend.
+        Testes automatizados, Pydantic, contratos tipados e execução local reduzem erro de entrada, regressão e divergência entre camadas.
       \end{block}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Exemplos de concordância numérica}
+\begin{frame}{Evidências numéricas selecionadas}
+  \scriptsize
+  \renewcommand{\arraystretch}{1.18}
+  \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}p{0.30\linewidth}p{0.26\linewidth}p{0.24\linewidth}p{0.09\linewidth}}
+    \toprule
+    \textbf{Caso} & \textbf{Referência/manual} & \textbf{DCOU} & \textbf{Erro} \\
+    \midrule
+    Perda de carga reta & $8{,}1577\ \mathrm{m}$ & $8{,}1577\ \mathrm{m}$ & $0{,}00\%$ \\
+    Perda com acessórios & $8{,}2882\ \mathrm{m}$ & $8{,}2882\ \mathrm{m}$ & $0{,}00\%$ \\
+    Reynolds com $\mu$ & $99.600{,}8$ & $99.600{,}8$ & $0{,}00\%$ \\
+    CSTR, $X=0{,}85$ & $1{,}1333\ \mathrm{m^3}$ & $1{,}1333\ \mathrm{m^3}$ & $0{,}00\%$ \\
+    PFR, $X=0{,}90$ & $0{,}4605\ \mathrm{m^3}$ & $0{,}4605\ \mathrm{m^3}$ & $0{,}00\%$ \\
+    \bottomrule
+  \end{tabular*}
+  \vspace{0.55em}
+  {\footnotesize Valores extraídos da validação descrita na monografia para casos hidráulicos e reatores ideais.}
+\end{frame}
+
+\begin{frame}{Resultado técnico da monografia}
   \begin{itemize}
-    \item \textbf{Perda de carga:} casos de tubulação reta e com acessórios foram comparados com Darcy-Weisbach e Hazen-Williams.
-    \item \textbf{Reynolds:} entradas por viscosidade dinâmica e cinemática retornaram valores coerentes.
-    \item \textbf{Fator de atrito:} Colebrook-White, Swamee-Jain e Haaland foram conferidos.
-    \item \textbf{NPSH e altura manométrica:} termos de Bernoulli foram comparados com cálculo manual.
-    \item \textbf{Componentes:} água, etanol, metanol e outros componentes altamente estudados retornaram propriedades coerentes com referência termodinâmica.
+    \item O DCOU integra cálculo, validação e visualização em uma experiência única de estudo.
+    \item A separação backend/frontend evita duplicação de fórmulas e centraliza regras de engenharia.
+    \item A validação comparativa mostra concordância em casos representativos de hidráulica e reatores.
+    \item A contribuição não é apenas funcional: é uma base aberta para explicar, auditar e estender cálculos de operações unitárias.
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Resultados do trabalho}
-  \begin{itemize}
-    \item A aplicação integra cálculo, validação e visualização em uma experiência única.
-    \item A arquitetura separa regras de engenharia, apresentação e distribuição.
-    \item A biblioteca de visualizações transforma resultados em objetos didáticos.
-    \item A API aberta permite uso pela interface e também por outros consumidores.
-    \item O projeto atinge o objetivo de entregar uma base gratuita, modular e extensível.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Limitações assumidas}
-  \begin{itemize}
-    \item O DCOU ainda não substitui simuladores industriais completos.
-    \item Módulos como trocadores de calor, absorção, secagem, operações multifásicas e múltiplas reações ficam como evolução.
-    \item Alguns dados de catálogo e propriedades ainda podem crescer para bancos externos.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Perspectivas de continuidade}
-  \begin{itemize}
-    \item Expandir módulos de operações unitárias mantendo a arquitetura atual.
-    \item Ampliar bancos de propriedades, catálogos e validações comparativas.
-    \item Evoluir exportação de relatórios e rastreabilidade dos cenários.
-    \item Estudar integração futura com CAPE-OPEN e ferramentas externas.
-    \item Reforçar colaboração acadêmica por meio do repositório aberto.
-  \end{itemize}
+\begin{frame}{Limitações e continuidade}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{block}{Limites atuais}
+        \begin{itemize}
+          \item Não substitui simuladores industriais completos.
+          \item Ainda não cobre trocadores, absorção, secagem, multifásicos e múltiplas reações.
+          \item Bancos de propriedades e catálogos podem crescer.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Próximos passos}
+        \begin{itemize}
+          \item Expandir módulos mantendo a arquitetura atual.
+          \item Ampliar validações comparativas.
+          \item Evoluir relatórios, rastreabilidade e integração CAPE-OPEN.
+        \end{itemize}
+      \end{block}
+  \end{columns}
 \end{frame}
