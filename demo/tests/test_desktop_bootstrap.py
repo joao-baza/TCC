@@ -1,4 +1,5 @@
 import socket
+import importlib
 import runpy
 import sys
 from types import SimpleNamespace
@@ -54,3 +55,19 @@ def test_main_passes_the_loaded_app_to_uvicorn(monkeypatch):
     assert not isinstance(args[0], str)
     assert getattr(args[0], "title", None) == "Chemical Engineering API"
     assert kwargs["reload"] is False
+
+
+def test_docs_ui_uses_configured_root_path_for_openapi_url(monkeypatch):
+    monkeypatch.setenv("DCOU_ROOT_PATH", "/api")
+    reloaded_app = importlib.reload(app)
+
+    try:
+        client = TestClient(reloaded_app.app)
+
+        response = client.get("/docs")
+
+        assert response.status_code == 200
+        assert "url: '/api/openapi.json'" in response.text
+    finally:
+        monkeypatch.delenv("DCOU_ROOT_PATH", raising=False)
+        importlib.reload(app)
