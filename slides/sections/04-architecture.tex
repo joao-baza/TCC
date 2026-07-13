@@ -57,39 +57,51 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Arquitetura em três camadas}
+\begin{frame}{A arquitetura precisa preservar a cadeia técnica}
   \begin{columns}[T,onlytextwidth]
-    \column{0.30\textwidth}
-      \begin{block}{Frontend}
-        React, TypeScript, Vite, React Router, Tailwind, shadcn, KaTeX e componentes SVG.
+    \column{0.32\textwidth}
+      \begin{block}{Hipótese}
+        O domínio de validade vem antes do cálculo: fase, regime, unidade, catálogo e condição operacional.
       \end{block}
-    \column{0.30\textwidth}
-      \begin{block}{Backend}
-        FastAPI, Pydantic, CoolProp, Pint, NumPy e SciPy para cálculos e validações.
+    \column{0.32\textwidth}
+      \begin{block}{Modelo}
+        O backend aplica equações, propriedades e métodos numéricos sem duplicar matemática no frontend.
       \end{block}
-    \column{0.30\textwidth}
-      \begin{block}{Entrega}
-        Web publicada, execução local, imagens Docker, CI/CD e empacotamento desktop.
+    \column{0.32\textwidth}
+      \begin{block}{Interpretação}
+        A mesma resposta alimenta tabela, gráfico, validação e explicação didática.
       \end{block}
   \end{columns}
+  \vspace{0.55em}
+  \begin{alertblock}{Critério de projeto}
+    Equação, unidade, gráfico e explicação não podem divergir entre camadas.
+  \end{alertblock}
 \end{frame}
 
-\begin{frame}{O backend é a fonte dos cálculos}
-  \begin{itemize}
-    \item Rotas FastAPI expõem contratos para tubulações, dimensionamento, escoamento, bombas, componentes, reatores e balanço.
-    \item Pydantic bloqueia entradas ausentes, tipos inválidos e combinações incoerentes antes do cálculo.
-    \item Pint e CoolProp preservam consistência dimensional e propriedades termodinâmicas.
-    \item NumPy e SciPy sustentam amostragem, integrações e métodos numéricos como Brent.
-  \end{itemize}
+\begin{frame}{A arquitetura separa interface, modelo e distribuição}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.32\textwidth}
+      \begin{block}{Frontend}
+        Organiza formulário, resultado, gráfico, glossário e exemplos sem recalcular a matemática central.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{Backend}
+        FastAPI, Pydantic, Pint, CoolProp, NumPy e SciPy concentram modelos, unidades e validações.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{Entrega}
+        Web publicada, execução local, Docker, CI/CD e desktop reaproveitam a mesma base validada.
+      \end{block}
+  \end{columns}
 \end{frame}
 
 \begin{frame}{A API também monta visualizações}
   \begin{columns}[T,onlytextwidth]
     \column{0.54\textwidth}
       \begin{itemize}
-        \item Vários endpoints retornam modelos com eixos, séries, marcadores e metadados.
-        \item O frontend renderiza o contrato em componentes SVG reutilizáveis.
-        \item Isso evita que o gráfico tenha uma matemática paralela à do cálculo.
+        \item Endpoints retornam eixos, séries, marcadores e metadados junto ao resultado calculado.
+        \item O frontend renderiza o contrato sem reconstruir curvas com lógica paralela.
+        \item Isso mantém coerência entre valor numérico, curva e explicação didática.
       \end{itemize}
     \column{0.40\textwidth}
       \begin{block}{Exemplos validados no código}
@@ -142,8 +154,8 @@
           V = F_{A0}\int_0^X \frac{dX}{-r_A}
         \]
       \end{block}
-      \begin{block}{Visualizações}
-        Levenspiel, Arrhenius e perfis espaciais ajudam a interpretar volume, conversão e temperatura.
+      \begin{block}{Visualizações e hipótese}
+        Levenspiel, Arrhenius e perfis espaciais ajudam a interpretar volume e conversão; no escopo atual, os reatores são isotérmicos e monofásicos.
       \end{block}
   \end{columns}
 \end{frame}
@@ -154,23 +166,5 @@
     \item Diagramas T-x-y e McCabe-Thiele tornam visível a construção de estágios teóricos.
     \item Envelope de fase e pressão de vapor apoiam discussões de mudança de fase e cavitação.
     \item A superfície T-P mostra sensibilidade de propriedades a temperatura e pressão.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{O frontend organiza a experiência de estudo}
-  \begin{itemize}
-    \item A navegação por rotas separa módulos, mas preserva um shell comum.
-    \item Cada módulo combina formulário, execução, resultado, visualização e explicação.
-    \item O glossário reúne termos como Reynolds, NPSH, CSTR, PFR, McCabe-Thiele e reciclo.
-    \item Os exemplos da API reduzem a barreira de entrada sem congelar resultados no frontend.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Deploy e distribuição não são acessórios}
-  \begin{itemize}
-    \item A aplicação publicada permite uso imediato por banca, estudantes e docentes.
-    \item A execução local preserva reprodutibilidade e auditoria do código aberto.
-    \item O empacotamento desktop reaproveita a mesma base web e backend local.
-    \item CI/CD reduz regressões entre backend científico, frontend e artefatos distribuíveis.
   \end{itemize}
 \end{frame}

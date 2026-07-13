@@ -6,6 +6,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
+    environment:
+      DCOU_ROOT_PATH: /api
     networks:
       - SJNet
     deploy:
