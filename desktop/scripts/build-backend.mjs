@@ -23,6 +23,6 @@ function runPython(args) {
   }
 }
 
+runPython(["-m", "pip", "install", "-r", path.join(repoRoot, "requirements.txt")]);
 runPython(["-m", "pip", "install", "-r", path.join(desktopDir, "requirements-build.txt")]);
 runPython([path.join(scriptDir, "build-backend.py")]);
-

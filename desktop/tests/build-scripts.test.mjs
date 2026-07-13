@@ -31,11 +31,41 @@ test("desktop package scripts expose a local linux and windows build", () => {
     "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml",
   );
   expect(packageJson.scripts["dist:local"]).toBe(
-    "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml --linux AppImage --win nsis",
+    "npm run dist:linux",
+  );
+  expect(packageJson.scripts.checksums).toBe(
+    "node scripts/write-release-checksums.mjs",
+  );
+  expect(packageJson.scripts["dist:linux"]).toBe(
+    "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml --linux AppImage",
+  );
+  expect(packageJson.scripts["dist:windows"]).toBe(
+    "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml --win nsis",
+  );
+  expect(packageJson.scripts["smoke:linux"]).toBe(
+    "node scripts/smoke-packaged-app.mjs --target=linux",
+  );
+  expect(packageJson.scripts["smoke:windows"]).toBe(
+    "node scripts/smoke-packaged-app.mjs --target=windows",
+  );
+  expect(packageJson.scripts["smoke:macos"]).toBe(
+    "node scripts/smoke-packaged-app.mjs --target=macos",
   );
 });
 
-test("desktop publish workflow uses the local cross-build on linux and macos on mac", () => {
+test("backend build installs runtime requirements before packaging", () => {
+  const script = readFileSync(path.resolve("scripts/build-backend.mjs"), "utf8");
+  const runtimeRequirements = 'path.join(repoRoot, "requirements.txt")';
+  const buildRequirements = 'path.join(desktopDir, "requirements-build.txt")';
+
+  expect(script).toContain(runtimeRequirements);
+  expect(script).toContain(buildRequirements);
+  expect(script.indexOf(runtimeRequirements)).toBeLessThan(
+    script.indexOf(buildRequirements),
+  );
+});
+
+test("desktop publish workflow builds each desktop OS on a native runner", () => {
   const workflow = yaml.parse(
     readFileSync(path.resolve("../.github/workflows/desktop-publish.yml"), "utf8"),
   );
@@ -43,14 +73,20 @@ test("desktop publish workflow uses the local cross-build on linux and macos on 
   expect(workflow.jobs["build-desktop"].strategy.matrix.os).toEqual([
     "ubuntu-latest",
     "macos-latest",
+    "windows-latest",
   ]);
 
   const buildStep = workflow.jobs["build-desktop"].steps.find(
     (step) => step["name"] === "Build desktop release artifacts",
   );
-  expect(buildStep.run).toContain("npm run dist:local");
+  const windowsNativeStep = workflow.jobs["build-desktop"].steps.find(
+    (step) => step["name"] === "Install Windows frontend native dependencies",
+  );
+  expect(buildStep.run).toContain("npm run dist:linux");
+  expect(buildStep.run).toContain("npm run dist:windows");
   expect(buildStep.run).toContain("npm run dist");
-  expect(JSON.stringify(workflow)).not.toContain("windows-latest");
+  expect(windowsNativeStep.if).toBe("matrix.os == 'windows-latest'");
+  expect(windowsNativeStep.run).toContain("lightningcss-win32-x64-msvc");
 });
 
 test("desktop publish workflow generates checksums and publishes a release", () => {
@@ -67,28 +103,18 @@ test("desktop publish workflow generates checksums and publishes a release", () 
   const uploadStepIndex = steps.findIndex(
     (step) => step["name"] === "Upload desktop artifacts",
   );
-  const wineStepIndex = steps.findIndex(
-    (step) => step["name"] === "Install Wine for Windows packaging",
+  const smokeStep = steps.find(
+    (step) => step["name"] === "Smoke packaged release artifact",
   );
+  expect(smokeStep["working-directory"]).toBe("desktop");
+  expect(smokeStep.run).toContain("npm run smoke:linux");
+  expect(smokeStep.run).toContain("npm run smoke:windows");
+  expect(smokeStep.run).toContain("npm run smoke:macos");
 
-  expect(wineStepIndex).toBeGreaterThan(-1);
-  expect(wineStepIndex).toBeLessThan(buildStepIndex);
-  expect(steps[wineStepIndex].if).toBe("matrix.os == 'ubuntu-latest'");
-  expect(steps[wineStepIndex].run).toContain("dpkg --add-architecture i386");
-  expect(steps[wineStepIndex].run).toContain("apt-get install");
-  const wineInstallLine = steps[wineStepIndex].run
-    .split("\n")
-    .find((line) => line.includes("apt-get install"));
-  expect(wineInstallLine).toBeDefined();
-  expect(wineInstallLine.split(/\s+/)).toContain("wine");
-  expect(steps[wineStepIndex].run).toContain("wine32:i386");
-  expect(steps[wineStepIndex].run).toContain("wine --version");
   expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
   expect(uploadStepIndex).toBeGreaterThan(checksumStepIndex);
-  expect(steps[checksumStepIndex]["working-directory"]).toBe("desktop/release");
-  expect(steps[checksumStepIndex].run).toContain("-maxdepth 1");
-  expect(steps[checksumStepIndex].run).toContain("shasum -a 256");
-  expect(steps[checksumStepIndex].run).toContain(".sha256");
+  expect(steps[checksumStepIndex]["working-directory"]).toBe("desktop");
+  expect(steps[checksumStepIndex].run).toBe("npm run checksums");
   expect(yamlLines(steps[uploadStepIndex].with.path)).toEqual(
     releaseAssetUploadPatterns,
   );

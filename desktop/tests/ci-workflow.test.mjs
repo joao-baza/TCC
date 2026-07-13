@@ -50,11 +50,16 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
     "publish-api",
   ]);
   expect(ciWorkflow.jobs["build-desktop-macos"].needs).toBe("desktop-smoke");
-  expect(ciWorkflow.jobs["build-desktop-ubuntu"].needs).toBe(
+  expect(ciWorkflow.jobs["build-desktop-windows"]["runs-on"]).toBe("windows-latest");
+  expect(ciWorkflow.jobs["build-desktop-windows"].needs).toBe(
     "build-desktop-macos",
+  );
+  expect(ciWorkflow.jobs["build-desktop-ubuntu"].needs).toBe(
+    "build-desktop-windows",
   );
 
   const ubuntuSteps = ciWorkflow.jobs["build-desktop-ubuntu"].steps;
+  const windowsSteps = ciWorkflow.jobs["build-desktop-windows"].steps;
   const macChecksumStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
     (step) => step["name"] === "Generate release checksums",
   );
@@ -63,9 +68,6 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
   );
   const macUploadStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
     (step) => step["name"] === "Upload desktop artifacts",
-  );
-  const wineStepIndex = ubuntuSteps.findIndex(
-    (step) => step["name"] === "Install Wine for Windows packaging",
   );
   const buildStepIndex = ubuntuSteps.findIndex(
     (step) => step["name"] === "Build desktop release artifacts",
@@ -77,22 +79,44 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
     (step) => step["name"] === "Upload desktop artifacts",
   );
 
-  expect(wineStepIndex).toBeGreaterThan(-1);
-  expect(wineStepIndex).toBeLessThan(buildStepIndex);
-  expect(ubuntuSteps[wineStepIndex].run).toContain("dpkg --add-architecture i386");
-  const wineInstallLine = ubuntuSteps[wineStepIndex].run
-    .split("\n")
-    .find((line) => line.includes("apt-get install"));
-  expect(wineInstallLine).toBeDefined();
-  expect(wineInstallLine.split(/\s+/)).toContain("wine");
-  expect(ubuntuSteps[wineStepIndex].run).toContain("wine32:i386");
-  expect(ubuntuSteps[wineStepIndex].run).toContain("wine --version");
-  expect(ubuntuSteps[buildStepIndex].run).toBe("npm run dist:local");
+  expect(ubuntuSteps[buildStepIndex].run).toBe("npm run dist:linux");
+
+  const ubuntuSmokeStepIndex = ubuntuSteps.findIndex(
+    (step) => step["name"] === "Smoke packaged release artifacts",
+  );
+  expect(ubuntuSmokeStepIndex).toBeGreaterThan(buildStepIndex);
+  expect(ubuntuSmokeStepIndex).toBeLessThan(checksumStepIndex);
+  expect(ubuntuSteps[ubuntuSmokeStepIndex]["working-directory"]).toBe("desktop");
+  expect(ubuntuSteps[ubuntuSmokeStepIndex].run).toBe("npm run smoke:linux");
+
+  const windowsBuildStepIndex = windowsSteps.findIndex(
+    (step) => step["name"] === "Build desktop release artifacts",
+  );
+  const windowsNativeStepIndex = windowsSteps.findIndex(
+    (step) => step["name"] === "Install Windows frontend native dependencies",
+  );
+  const windowsSmokeStepIndex = windowsSteps.findIndex(
+    (step) => step["name"] === "Smoke packaged release artifact",
+  );
+  const windowsChecksumStepIndex = windowsSteps.findIndex(
+    (step) => step["name"] === "Generate release checksums",
+  );
+  expect(windowsSteps[windowsBuildStepIndex].run).toBe("npm run dist:windows");
+  expect(windowsNativeStepIndex).toBeGreaterThan(-1);
+  expect(windowsSteps[windowsNativeStepIndex].run).toContain(
+    "lightningcss-win32-x64-msvc",
+  );
+  expect(windowsSmokeStepIndex).toBeGreaterThan(windowsBuildStepIndex);
+  expect(windowsSmokeStepIndex).toBeLessThan(windowsChecksumStepIndex);
+  expect(windowsSteps[windowsSmokeStepIndex]["working-directory"]).toBe("desktop");
+  expect(windowsSteps[windowsSmokeStepIndex].run).toBe("npm run smoke:windows");
+  expect(windowsSteps[windowsChecksumStepIndex]["working-directory"]).toBe("desktop");
+  expect(windowsSteps[windowsChecksumStepIndex].run).toBe("npm run checksums");
+
   expect(checksumStepIndex).toBeGreaterThan(buildStepIndex);
   expect(uploadStepIndex).toBeGreaterThan(checksumStepIndex);
-  expect(ubuntuSteps[checksumStepIndex]["working-directory"]).toBe("desktop/release");
-  expect(ubuntuSteps[checksumStepIndex].run).toContain("-maxdepth 1");
-  expect(ubuntuSteps[checksumStepIndex].run).toContain("shasum -a 256");
+  expect(ubuntuSteps[checksumStepIndex]["working-directory"]).toBe("desktop");
+  expect(ubuntuSteps[checksumStepIndex].run).toBe("npm run checksums");
   expect(yamlLines(ubuntuSteps[uploadStepIndex].with.path)).toEqual(
     releaseAssetUploadPatterns,
   );
@@ -101,14 +125,27 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
   );
   expect(macChecksumStepIndex).toBeGreaterThan(macBuildStepIndex);
   expect(macUploadStepIndex).toBeGreaterThan(macChecksumStepIndex);
+  const macSmokeStepIndex = ciWorkflow.jobs["build-desktop-macos"].steps.findIndex(
+    (step) => step["name"] === "Smoke packaged release artifact",
+  );
+  expect(macSmokeStepIndex).toBeGreaterThan(macBuildStepIndex);
+  expect(macSmokeStepIndex).toBeLessThan(macChecksumStepIndex);
+  expect(
+    ciWorkflow.jobs["build-desktop-macos"].steps[macSmokeStepIndex][
+      "working-directory"
+    ],
+  ).toBe("desktop");
+  expect(
+    ciWorkflow.jobs["build-desktop-macos"].steps[macSmokeStepIndex].run,
+  ).toBe("npm run smoke:macos");
   expect(
     ciWorkflow.jobs["build-desktop-macos"].steps[macChecksumStepIndex][
       "working-directory"
     ],
-  ).toBe("desktop/release");
+  ).toBe("desktop");
   expect(
     ciWorkflow.jobs["build-desktop-macos"].steps[macChecksumStepIndex].run,
-  ).toContain("-maxdepth 1");
+  ).toBe("npm run checksums");
   expect(
     yamlLines(
       ciWorkflow.jobs["build-desktop-macos"].steps[macUploadStepIndex].with.path,
@@ -141,7 +178,6 @@ test("ci orders desktop packages after publish and smoke jobs", () => {
     releaseAssetPublishPatterns,
   );
   expect(releaseStep.with.files).not.toContain("desktop-release/**");
-  expect(JSON.stringify(ciWorkflow.jobs)).not.toContain("windows-latest");
 });
 
 test("ci avoids duplicate feature-branch runs by using pull requests and protected pushes", () => {
