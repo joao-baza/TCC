@@ -35,6 +35,26 @@ test("desktop package scripts expose a local linux and windows build", () => {
   );
 });
 
+test("backend build installs backend runtime dependencies before packaging", () => {
+  const buildScript = readFileSync(
+    path.resolve("scripts/build-backend.mjs"),
+    "utf8",
+  );
+  const backendRequirementsInstall =
+    'runPython(["-m", "pip", "install", "-r", path.join(repoRoot, "requirements.txt")]);';
+  const buildRequirementsInstall =
+    'runPython(["-m", "pip", "install", "-r", path.join(desktopDir, "requirements-build.txt")]);';
+  const pyinstallerBuild = 'runPython([path.join(scriptDir, "build-backend.py")]);';
+
+  expect(buildScript).toContain(backendRequirementsInstall);
+  expect(buildScript.indexOf(backendRequirementsInstall)).toBeGreaterThan(
+    buildScript.indexOf(buildRequirementsInstall),
+  );
+  expect(buildScript.indexOf(backendRequirementsInstall)).toBeLessThan(
+    buildScript.indexOf(pyinstallerBuild),
+  );
+});
+
 test("desktop publish workflow uses the local cross-build on linux and macos on mac", () => {
   const workflow = yaml.parse(
     readFileSync(path.resolve("../.github/workflows/desktop-publish.yml"), "utf8"),
