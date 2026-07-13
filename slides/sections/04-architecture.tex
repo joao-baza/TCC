@@ -1,5 +1,62 @@
 \transitionframe{Base computacional}{Da experiência observada para a estrutura que sustenta o DCOU}
 
+\begin{frame}{Complexidade química: modelos diferentes}
+  \small
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{block}{Transporte e bombas}
+        Regime de escoamento, rugosidade, diâmetro, fator de atrito, perda de carga, NPSH e altura manométrica dependem de relações acopladas.
+      \end{block}
+      \begin{block}{Propriedades}
+        Temperatura, pressão, componente, mistura e mudança de fase alteram o caminho de cálculo e a interpretação.
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Reatores}
+        Cinética, estequiometria, conversão, volume e perfis espaciais mudam conforme CSTR, PFR ou reciclo.
+      \end{block}
+      \begin{block}{Balanços}
+        Correntes, reações, divisões e reciclos precisam preservar coerência material em todo o sistema.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Complexidade integrada: engenharia em software}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.50\textwidth}
+      \begin{itemize}
+        \item O backend concentra modelos, unidades, validações e métodos numéricos.
+        \item A API transforma cada cálculo em contrato reutilizável.
+        \item A interface consome respostas estruturadas, não fórmulas duplicadas.
+      \end{itemize}
+    \column{0.44\textwidth}
+      \begin{block}{Ponto crítico}
+        A mesma resposta precisa servir ao cálculo, à validação, à tabela, ao gráfico e à explicação didática.
+      \end{block}
+      \begin{alertblock}{Resultado}
+        O rigor químico precisa sobreviver à camada de software.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Complexidade didática: rigor sem caixa-preta}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{block}{Simplificar o uso}
+        Exemplos coerentes, formulários guiados e mensagens de validação reduzem a barreira de entrada.
+      \end{block}
+      \begin{block}{Manter rastreabilidade}
+        Unidades, hipóteses, variáveis e resultados continuam visíveis para discussão técnica.
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Explicar o fenômeno}
+        Gráficos, glossário e blocos conceituais conectam o número à interpretação de engenharia.
+      \end{block}
+      \begin{alertblock}{Equilíbrio buscado}
+        A interface ajuda o estudante sem esconder o raciocínio que sustenta o cálculo.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
 \begin{frame}{Arquitetura em três camadas}
   \begin{columns}[T,onlytextwidth]
     \column{0.30\textwidth}
