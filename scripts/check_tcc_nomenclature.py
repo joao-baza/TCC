@@ -25,8 +25,19 @@ def load_inventory(path: Path) -> list[dict[str, object]]:
     return entries
 
 
+def strip_latex_comments(text: str) -> str:
+    cleaned_lines = []
+    for line in text.splitlines():
+        for index, char in enumerate(line):
+            if char == "%" and (index == 0 or line[index - 1] != "\\"):
+                line = line[:index]
+                break
+        cleaned_lines.append(line)
+    return "\n".join(cleaned_lines)
+
+
 def load_registered_ids(path: Path) -> set[str]:
-    text = path.read_text(encoding="utf-8")
+    text = strip_latex_comments(path.read_text(encoding="utf-8"))
     return set(re.findall(r"\\simbolotcc\{([^{}]+)\}", text))
 
 
