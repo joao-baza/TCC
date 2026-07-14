@@ -40,6 +40,11 @@ o proprio contexto da conta deve explicitar a base de calculo, as unidades dos
 dados relevantes e a unidade do resultado. Para relacoes adimensionais, o texto
 deve declarar explicitamente essa condicao.
 
+Quando a solucao para uma equacao ou conjunto de equacoes for uma tabela local
+de simbolos e unidades, essa tabela deve ser a fonte unica de padronizacao no
+trecho. Nesse caso, o texto ao redor deve ser reduzido para interpretar a
+equacao e nao deve repetir a mesma lista de unidades ja consolidada na tabela.
+
 Essa abordagem foi escolhida porque atende ao criterio estrito de cobrir as 60
 equacoes sem tornar o capitulo de validacao repetitivo demais.
 
@@ -78,6 +83,10 @@ O texto deve informar as unidades das entradas principais e do resultado. Quando
 o sistema usa SI coerente, a descricao deve declarar essa base. Quando a
 interface converte a saida, o texto deve explicar a unidade matematica e a
 unidade apresentada pelo sistema.
+
+Se for inserida uma tabela de unidades para uma equacao teorica ou para um bloco
+curto de equacoes consecutivas, o texto deve apontar para essa tabela ou
+introduzir sua funcao, sem duplicar a relacao simbolo-unidade no paragrafo.
 
 Exemplo de regra: `Q` em `m^3/s` e `V` em `m/s` resultam em `D` em `m`; a
 interface pode apresentar `D` em `mm`.
@@ -132,7 +141,8 @@ marcada como pendencia tecnica em vez de ser resolvida por suposicao.
 4. Classificar cada equacao por tipo.
 5. Definir a regra de unidade aplicavel a cada tipo.
 6. Conferir equacoes tecnicamente sensiveis contra LaTeX, codigo e referencia.
-7. Editar os textos ao redor das equacoes.
+7. Editar os textos ao redor das equacoes, removendo duplicacoes quando uma
+   tabela local concentrar as unidades.
 8. Atualizar a lista de nomenclatura se algum simbolo usado nas descricoes ainda
    nao estiver listado.
 9. Compilar `final-paper/TEX/main.pdf`.
@@ -146,7 +156,8 @@ marcada como pendencia tecnica em vez de ser resolvida por suposicao.
 - Nenhuma equacao fica com status `unreviewed`.
 - Cada equacao tem descricao de unidades, base coerente ou declaracao
   adimensional no contexto imediatamente associado.
+- Quando houver tabela local de unidades, o texto proximo nao duplica a mesma
+  informacao; a unidade fica padronizada em um unico local.
 - O PDF final compila sem erro.
 - O resumo final lista eventuais pendencias tecnicas, se existirem.
 - O trabalho nao altera codigo de backend, frontend ou calculos.
-
