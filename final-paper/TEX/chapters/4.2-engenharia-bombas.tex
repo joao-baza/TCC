@@ -13,18 +13,23 @@ Em que $H$ é a altura manométrica adicionada (se positiva) ou removida (se neg
 
 Essa equação é fundamental para avaliar a necessidade de bombeamento: uma bomba deve fornecer uma $H$ suficiente para superar as perdas e elevar o fluido da condição 1 até 2; inversamente, uma turbomáquina geradora extrairá essa energia do fluido.
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \caption{Cálculo da altura manométrica – Parte 1/2}
-    \includegraphics[width=\linewidth]{media/cap4_head_parte_um.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo da altura manométrica – Parte 2/2}
-    \includegraphics[width=\linewidth]{media/cap4_head_parte_dois.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+    \caption{Etapas do cálculo da altura manométrica}
+    \label{tab:fluxo-altura-manometrica}
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.57\textwidth}}
+        \hline
+        \textbf{Etapa} & \textbf{Descrição} \\
+        \hline
+        Entradas & Pressões, cotas, velocidades, massa específica e perda de carga entre os pontos 1 e 2. \\
+        Processamento & Converte os termos em carga hidráulica e soma as parcelas de pressão, velocidade, cota e perdas. \\
+        Saída & Altura manométrica $H$ em metros. \\
+        Validação & Exige os campos numéricos necessários e mantém unidades coerentes entre os termos. \\
+        \hline
+    \end{tabular}
+    \fonte{Autoria própria.}
+\end{table}
 
 \subsubsection{\textit{NPSH} Disponível}
 
@@ -39,16 +44,20 @@ O resultado da Equação \ref{eq:npsh} é expresso em metros de coluna do líqui
 
 O cálculo de \textit{NPSH} disponível permite verificar se há margem de segurança sobre o \textit{NPSH} requerido da bomba (fornecido pelo fabricante para aquela vazão), garantindo que o líquido não vaporize na entrada da bomba – o que causaria cavitação, danos e redução de desempenho.
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \caption{Cálculo do \textit{NPSH} – Parte 1/2}
-    \includegraphics[width=\linewidth]{media/cap4_npsh_parte_um.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo do \textit{NPSH} – Parte 2/2}
-    \includegraphics[width=\linewidth]{media/cap4_npsh_parte_dois.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+    \caption{Etapas do cálculo do \textit{NPSH} disponível}
+    \label{tab:fluxo-npsh-disponivel}
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.57\textwidth}}
+        \hline
+        \textbf{Etapa} & \textbf{Descrição} \\
+        \hline
+        Entradas & Pressões manométrica, atmosférica e de vapor, massa específica, velocidade na sucção, cota e perda de carga. \\
+        Processamento & Converte pressões para uma base comum e combina os termos de pressão, velocidade, elevação e perdas da sucção. \\
+        Saída & \textit{NPSH} disponível em metros de coluna do líquido. \\
+        Validação & Requer entradas numéricas e permite comparar o resultado com o \textit{NPSH} requerido pelo fabricante. \\
+        \hline
+    \end{tabular}
+    \fonte{Autoria própria.}
+\end{table}

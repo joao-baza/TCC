@@ -28,23 +28,21 @@ Em que:
 
 Essa relação advém diretamente da equação da continuidade para escoamento em regime permanente \cite{white2018}. $Q$ em $\mathrm{m^3/s}$ e $V$ em $\mathrm{m/s}$ dão $D$ em $\mathrm{m}$ na equação; a rotina implementada converte o resultado exibido para $\mathrm{mm}$.
 
-\begin{figure}[H]
-    \centering
-    \caption{Código da função \textit{get\_calculated\_diameter()}}
-    \includegraphics[width=\linewidth]{media/cap4_funcao_get_calculated_diameter.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+\begin{quote}
+\small
+\textbf{Pseudocódigo do dimensionamento de diâmetro.}
+\begin{verbatim}
+receber vazao, velocidade de projeto e unidade
+converter vazao para m3/s
+calcular area = vazao / velocidade
+calcular diametro teorico = sqrt(4 * area / pi)
+comparar diametro teorico com tabela de schedules
+retornar diametro comercial, velocidade real e criterios de selecao
+\end{verbatim}
+\end{quote}
 \subsubsection{Diâmetro Real}
 
 O diâmetro real corresponde ao diâmetro nominal da tubulação a ser utilizada. Fabricantes produzem tubos em geometrias padronizadas (padrões de espessura como SCH 10, SCH 40, SCH 80 etc.). Deve-se calcular inicialmente o diâmetro necessário pelo método anterior e então escolher, em tabela de catálogo, o tubo comercial com diâmetro interno imediatamente superior, no material e \textit{schedule} desejados. Essa lógica é implementada na função \textit{get\_real\_diameter}, garantindo que o diâmetro selecionado comportará a vazão com velocidade dentro do admissível. Após a seleção, verifica-se a perda de carga resultante e, se necessário, itera-se para outro diâmetro.
-
-\begin{figure}[H]
-    \centering
-    \caption{Código da função \textit{get\_real\_diameter()}}
-    \includegraphics[width=\linewidth]{media/cap4_funcao_get_real_diameter.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
 
 \subsubsection{Tubulações}
 
@@ -54,23 +52,44 @@ Para um correto cálculo de perdas de carga e seleção de bombas, o \textit{sof
 
 \textbf{Catálogo de diâmetros.} São armazenadas dimensões padrão de tubulações (diâmetro externo, espessura e diâmetro interno resultante) para diferentes \textit{schedules} (por exemplo, SCH 10, 40 e 80) e materiais. Também podem ser incluídos dados de pressão máxima de trabalho e peso por metro. Isso permite que, dado um diâmetro calculado, o programa selecione o diâmetro nominal comercial mais próximo disponível.
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \caption{Especificações internas para tubulações}
-    \includegraphics[width=\linewidth]{media/cap4_especificacoes_tubulacoes_hardcoded.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+    \caption{Contratos de dados usados no cadastro de tubulações}
+    \label{tab:contratos-tubulacoes}
+    \small
+    \begin{tabular}{>{\raggedright\arraybackslash}p{0.24\textwidth}>{\raggedright\arraybackslash}p{0.28\textwidth}>{\raggedright\arraybackslash}p{0.34\textwidth}}
+        \hline
+        \textbf{Contrato} & \textbf{Campos principais} & \textbf{Uso no cálculo} \\
+        \hline
+        Material & nome, rugosidade, descrição & Define propriedades geométricas e hidráulicas associadas à composição da linha. \\
+        Schedule & diâmetro nominal, diâmetro externo, espessura, diâmetro interno & Seleciona dimensões comerciais para cálculo de velocidade, área e perda de carga. \\
+        Acessório & tipo, diâmetro nominal, comprimento equivalente ou coeficiente local & Converte singularidades em contribuição de perda de carga. \\
+        \hline
+    \end{tabular}
+    \fonte{Autoria própria.}
+\end{table}
 
 \textbf{Coeficientes de perda em acessórios.} Curvas, válvulas, expansões, contrações e conexões diversas introduzem perdas de carga locais. No modelo implementado, cada acessório pode ser contabilizado por um comprimento equivalente $L_{eq}$ ou por um fator adimensional de perda $K$. O comprimento equivalente total da tubulação é obtido pela soma dos acessórios e acrescentado ao comprimento linear. Esses dados, como fatores $K$ ou $L_{eq}$ típicos para cada acessório padrão, foram compilados de literatura de engenharia de escoamento \cite{perry2007}.
 
-No cálculo de perdas de carga totais, o comprimento $L$ da tubulação reta é acrescido do comprimento equivalente $\sum_{}^{} L_{eq}$ das singularidades presentes. Uma estimativa inadequada da rugosidade ou do efeito de acessórios pode produzir erros significativos na previsão de perda de carga, resultando em superdimensionamento ou subdimensionamento de bombas. Assim, o uso de dados acurados de catálogo e correlações de atrito é fundamental para a confiabilidade do dimensionamento. A Figura a seguir exemplifica o cálculo da perda de carga por Darcy--Weisbach utilizando acessórios.
+No cálculo de perdas de carga totais, o comprimento $L$ da tubulação reta é acrescido do comprimento equivalente $\sum_{}^{} L_{eq}$ das singularidades presentes. Uma estimativa inadequada da rugosidade ou do efeito de acessórios pode produzir erros significativos na previsão de perda de carga, resultando em superdimensionamento ou subdimensionamento de bombas. Assim, o uso de dados acurados de catálogo e correlações de atrito é fundamental para a confiabilidade do dimensionamento. A Tabela a seguir resume o fluxo do cálculo de perda de carga por Darcy--Weisbach utilizando acessórios.
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \caption{Cálculo da perda de carga por Darcy--Weisbach com acessórios}
-    \includegraphics[width=\linewidth]{media/cap4_perda_carga_darcy_weisbach_acessorios.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+    \caption{Fluxo de cálculo da perda de carga com acessórios}
+    \label{tab:fluxo-perda-carga-acessorios}
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.57\textwidth}}
+        \hline
+        \textbf{Etapa} & \textbf{Operação e verificação} \\
+        \hline
+        Entradas & Método, fator de atrito, comprimento, diâmetro, velocidade ou vazão e acessórios. \\
+        Preparação & Converte as grandezas para unidades coerentes e soma os comprimentos equivalentes das singularidades. \\
+        Processamento & Aplica Darcy--Weisbach ou Hazen--Williams conforme o método selecionado. \\
+        Saída e validação & Retorna a perda de carga em metros e rejeita entradas ausentes, não numéricas ou resultados não positivos. \\
+        \hline
+    \end{tabular}
+    \fonte{Autoria própria.}
+\end{table}
 
 
 \subsubsection{Escoamento, Perdas de Carga e Diâmetros Hidráulicos}
@@ -124,26 +143,18 @@ Re = \frac{D \cdot V}{\nu}
 
 Com esses símbolos padronizados, tipicamente $Re < 2300$ indica regime laminar, $2300 < Re < 4000$ indica regime de transição, e $Re > 4000$ indica regime turbulento plenamente desenvolvido \cite{white2018}.
 
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo do Reynolds – Parte 1/3}
-    \includegraphics[width=\linewidth]{media/cap4_reynolds_parte_um.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo do Reynolds – Parte 2/3}
-    \includegraphics[width=\linewidth]{media/cap4_reynolds_parte_dois.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo do Reynolds – Parte 3/3}
-    \includegraphics[width=\linewidth]{media/cap4_reynolds_parte_tres.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+\begin{quote}
+\small
+\textbf{Fluxo de cálculo do número de Reynolds.}
+\begin{verbatim}
+receber diametro caracteristico e velocidade
+selecionar viscosidade dinamica com massa especifica
+ou viscosidade cinematica
+converter grandezas para unidades coerentes
+calcular Re = D * V * rho / mu ou Re = D * V / nu
+classificar regime e retornar numero de Reynolds positivo
+\end{verbatim}
+\end{quote}
 
 \subsubsection{Fator de Atrito}
 
@@ -180,19 +191,17 @@ O \textit{software} implementa as equações acima para cálculo de $f$ conforme
     \label{fig:friction_factor_calc}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo do fator de atrito – Parte 1/2}
-    \includegraphics[width=\linewidth]{media/cap4_fator_atrito_parte_um.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo do fator de atrito – Parte 2/2}
-    \includegraphics[width=\linewidth]{media/cap4_fator_atrito_parte_dois.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+\begin{quote}
+\small
+\textbf{Fluxo de cálculo do fator de atrito.}
+\begin{verbatim}
+receber rugosidade, diametro, Reynolds e metodo
+calcular rugosidade relativa
+se metodo = ColebrookWhite, resolver a equacao implicitamente
+se metodo = SwameeJain ou Haaland, aplicar a correlacao explicita
+retornar fator de atrito adimensional ou erro de convergencia
+\end{verbatim}
+\end{quote}
 
 \subsubsection{Perda de Carga -- Darcy--Weisbach e Hazen--Williams}
 
@@ -214,26 +223,17 @@ h_{f} = \frac{4{,}73 L}{C^{1{,}852}D^{4{,}87}} Q^{1{,}852}
 
 Na forma exibida, o coeficiente empírico $4{,}73$ corresponde à convenção inglesa usual da correlação, com $h_f$ e $L$ em pés, $Q$ em $\mathrm{ft^3/s}$ e $D$ em pés; portanto, as unidades devem seguir a convenção associada ao coeficiente. Quando se usa a forma SI, com $h_f$ e $L$ em $\mathrm{m}$, $Q$ em $\mathrm{m^3/s}$ e $D$ em $\mathrm{m}$, o coeficiente empírico muda. Em ambas as formas, $C$ é o coeficiente de Hazen--Williams do material, tratado como adimensional e tabelado para tubulações novas de ferro fundido, aço, PVC etc. Apesar de não possuir fundamentação teórica geral, essa equação fornece boa precisão para água a 20\,°C em tubulações de transporte e é consagrada no projeto de redes de água devido à sua simplicidade \cite{perry2007,white2018}.
 
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo da perda de carga – Parte 1/3}
-    \includegraphics[width=\linewidth]{media/cap4_perda_carga_parte_um.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo da perda de carga – Parte 2/3}
-    \includegraphics[width=\linewidth]{media/cap4_perda_carga_parte_dois.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \caption{Cálculo da perda de carga – Parte 3/3}
-    \includegraphics[width=\linewidth]{media/cap4_perda_carga_parte_tres.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+\begin{quote}
+\small
+\textbf{Fluxo de cálculo da perda de carga.}
+\begin{verbatim}
+receber metodo, geometria, vazao ou velocidade e propriedades da linha
+resolver a velocidade ou a vazao faltante quando necessario
+somar comprimento reto e comprimentos equivalentes
+aplicar Darcy-Weisbach ou Hazen-Williams
+retornar perda de carga em metros e validar sinal e faixa de aplicacao
+\end{verbatim}
+\end{quote}
 
 
 \subsubsection{Diâmetro Hidráulico para Geometrias Diversas}
@@ -273,9 +273,14 @@ Nas Equações \ref{eq:diametro_hidraulico} a \ref{eq:dh_annular}, $D_h$, $D$, $
 
 O programa permite ao usuário informar $A$ e $P$ para cálculo de $D_{h}$ em situações especiais, garantindo flexibilidade para tratar geometrias arbitrárias \cite{white2018}.
 
-\begin{figure}[H]
-    \centering
-    \caption{Exemplo da identificação e critérios de diâmetro hidráulico}
-    \includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{media/cap4_criterios_diametro_hidraulico.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+\begin{quote}
+\small
+\textbf{Fluxo de cálculo do diâmetro hidráulico.}
+\begin{verbatim}
+receber geometria e dimensoes especificas da secao
+calcular area e perimetro molhado conforme a geometria
+aplicar Dh = 4 * area / perimetro
+validar dimensoes, desigualdade triangular ou altura do segmento
+retornar diametro hidraulico na unidade de entrada
+\end{verbatim}
+\end{quote}
