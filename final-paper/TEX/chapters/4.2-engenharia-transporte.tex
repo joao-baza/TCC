@@ -32,12 +32,12 @@ Essa relação advém diretamente da equação da continuidade para escoamento e
 \small
 \textbf{Pseudocódigo do dimensionamento de diâmetro.}
 \begin{verbatim}
-receber vazao, velocidade de projeto e unidade
-converter vazao para m3/s
-calcular area = vazao / velocidade
-calcular diametro teorico = sqrt(4 * area / pi)
-comparar diametro teorico com tabela de schedules
-retornar diametro comercial, velocidade real e criterios de selecao
+receber vazão, velocidade de projeto e unidade
+converter vazão para m3/s
+calcular área = vazão / velocidade
+calcular diâmetro teórico = sqrt(4 * área / pi)
+comparar diâmetro teórico com tabela de schedules
+retornar diâmetro comercial, velocidade real e critérios de seleção
 \end{verbatim}
 \end{quote}
 \subsubsection{Diâmetro Real}
@@ -147,12 +147,12 @@ Com esses símbolos padronizados, tipicamente $Re < 2300$ indica regime laminar,
 \small
 \textbf{Fluxo de cálculo do número de Reynolds.}
 \begin{verbatim}
-receber diametro caracteristico e velocidade
-selecionar viscosidade dinamica com massa especifica
-ou viscosidade cinematica
+receber diâmetro característico e velocidade
+selecionar viscosidade dinâmica com massa específica
+ou viscosidade cinemática
 converter grandezas para unidades coerentes
 calcular Re = D * V * rho / mu ou Re = D * V / nu
-classificar regime e retornar numero de Reynolds positivo
+classificar regime e retornar número de Reynolds positivo
 \end{verbatim}
 \end{quote}
 
@@ -195,11 +195,11 @@ O \textit{software} implementa as equações acima para cálculo de $f$ conforme
 \small
 \textbf{Fluxo de cálculo do fator de atrito.}
 \begin{verbatim}
-receber rugosidade, diametro, Reynolds e metodo
+receber rugosidade, diâmetro, Reynolds e método
 calcular rugosidade relativa
-se metodo = ColebrookWhite, resolver a equacao implicitamente
-se metodo = SwameeJain ou Haaland, aplicar a correlacao explicita
-retornar fator de atrito adimensional ou erro de convergencia
+se método = ColebrookWhite, resolver a equação implicitamente
+se método = SwameeJain ou Haaland, aplicar a correlação explícita
+retornar fator de atrito adimensional ou erro de convergência
 \end{verbatim}
 \end{quote}
 
@@ -227,11 +227,11 @@ Na forma exibida, o coeficiente empírico $4{,}73$ corresponde à convenção in
 \small
 \textbf{Fluxo de cálculo da perda de carga.}
 \begin{verbatim}
-receber metodo, geometria, vazao ou velocidade e propriedades da tubulacao
-resolver a velocidade ou a vazao faltante quando necessario
+receber método, geometria, vazão ou velocidade e propriedades da tubulação
+resolver a velocidade ou a vazão faltante quando necessário
 somar comprimento reto e comprimentos equivalentes
 aplicar Darcy-Weisbach ou Hazen-Williams
-retornar perda de carga em metros e validar sinal e faixa de aplicacao
+retornar perda de carga em metros e validar sinal e faixa de aplicação
 \end{verbatim}
 \end{quote}
 
@@ -277,10 +277,10 @@ O programa permite ao usuário informar $A$ e $P$ para cálculo de $D_{h}$ em si
 \small
 \textbf{Fluxo de cálculo do diâmetro hidráulico.}
 \begin{verbatim}
-receber geometria e dimensoes especificas da secao
-calcular area e perimetro molhado conforme a geometria
-aplicar Dh = 4 * area / perimetro
-validar dimensoes, desigualdade triangular ou altura do segmento
-retornar diametro hidraulico na unidade de entrada
+receber geometria e dimensões específicas da seção
+calcular área e perímetro molhado conforme a geometria
+aplicar Dh = 4 * área / perímetro
+validar dimensões, desigualdade triangular ou altura do segmento
+retornar diâmetro hidráulico na unidade de entrada
 \end{verbatim}
 \end{quote}
