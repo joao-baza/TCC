@@ -70,6 +70,66 @@
 
 | TCC ID | File | Label | Formula Summary | Related Code IDs | Citation Nearby |
 | --- | --- | --- | --- | --- | --- |
+| TCC-4.2-001 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:19` | `eq:diametro_calc` | `D = sqrt(4 Q / (pi V))` | `HYD-01` | `white2018` |
+| TCC-4.2-002 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:83` | `eq:razao_reagente` | `razao_i = N_i0 / abs(nu_i)` | `REA-01` | `felder2005` |
+| TCC-4.2-003 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:105` | `eq:rate_law` | `r = k product(C_i^n_i)` | `REA-07` | `fogler2009`, `levenspiel2000` |
+| TCC-4.2-004 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:121` | `eq:conc_stoich` | `C_i = (C_i0 + (nu_i/abs(nu_A)) C_A0 X) / psi` | `REA-05`, `REA-06` | `levenspiel2000` |
+| TCC-4.2-005 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:137` | `eq:epsilon_def` | `epsilon = y_A0 (sum products nu_i - sum reactants abs(nu_i)) / abs(nu_A)` | `REA-03` | `levenspiel2000` |
+| TCC-4.2-006 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:144` | `eq:dilution_factor` | `psi = (1 + epsilon X) (P0/P) (T/T0)` | `REA-04`, `REA-05`, `REA-06` | `levenspiel2000` |
+| TCC-4.2-007 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:190` | `eq:molar_flow_in` | `N_i0 = Q_i C_i0e` | `REA-02` | `fogler2009` |
+| TCC-4.2-008 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:195` | `eq:total_flow` | `Q_T = sum Q_i` | `REA-02` | `fogler2009` |
+| TCC-4.2-009 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:200` | `eq:initial_conc` | `C_i0 = N_i0 / Q_T` | `REA-02` | `fogler2009` |
+| TCC-4.2-010 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:211` | `eq:cstr_design` | `V = F_A0 X / (-r_A)` | `REA-08`, `REA-09`, `REA-10` | `fogler2009` |
+| TCC-4.2-011 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:220` | `eq:residence_time` | `tau = V / Q_T` | `REA-08`, `REA-10`, `REA-14` | `fogler2009` |
+| TCC-4.2-012 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:259` | `eq:cstr_obj_function` | `f(x) = abs(nu_A) r_A V / F_A0 - X` | `REA-09`, `REA-10` | `fogler2009` |
+| TCC-4.2-013 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:283` | `eq:volume_calc` | `V = Q_T tau` | `REA-10`, `REA-14` | `fogler2009` |
+| TCC-4.2-014 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:7` | `eq:pfr_design` | `V = (R + 1) F_A0 integral from R X/(R+1) to X of dX/(-r_A)` | `REA-11`, `REA-12`, `REA-13`, `REA-14` | `levenspiel2000`, `fogler2009` |
+| TCC-4.2-015 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:85` | `eq:mass_balance_word` | `Accumulation = inputs - outputs + generation - consumption` | `MB-01`, `MB-02` | `felder2005` |
+| TCC-4.2-016 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:92` | `eq:steady_state_mass_balance` | `sum m_dot_in = sum m_dot_out` | `MB-01` | `felder2005` |
+| TCC-4.2-017 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:99` | `eq:component_mass_balance_rxn` | `sum(m_dot_in,i + m_dot_generation,i) = sum(m_dot_out,i + m_dot_consumption,i)` | `MB-02` | `felder2005` |
+| TCC-4.2-018 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:106` | `eq:recycle_flow` | `F_R = f F_P` | `MB-05` | `felder2005` |
+| TCC-4.2-019 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:111` | `eq:gross_product_flow` | `F_G = (1 - f) F_P` | `MB-05` | `felder2005` |
+| TCC-4.2-020 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:133` | `eq:laminar_friction` | `f = 64 / Re` | `HYD-04`, `HYD-16` | `white2018`, `perry2007` |
+| TCC-4.2-021 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:166` | `eq:reynolds_din` | `Re = D V rho / mu` | `HYD-03` | `white2018` |
+| TCC-4.2-022 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:172` | `eq:reynolds_cin` | `Re = D V / nu` | `HYD-03` | `white2018` |
+| TCC-4.2-023 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:204` | `eq:colebrook` | `1/sqrt(f) = -2 log10(epsilon/(3.7 D_h) + 2.51/(Re sqrt(f)))` | `HYD-05`, `HYD-16` | `colebrook1939`, `white2018` |
+| TCC-4.2-024 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:213` | `eq:swamee` | `f = 0.25 / log10(epsilon/(3.7 D) + 5.74/Re^0.9)^2` | `HYD-06`, `HYD-16` | `swamee1976`, `white2018` |
+| TCC-4.2-025 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:220` | `eq:haaland` | `1/sqrt(f) = -1.8 log10((epsilon/D/3.7)^1.11 + 6.9/Re)` | `HYD-07` | `haaland1983`, `white2018` |
+| TCC-4.2-026 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:253` | `eq:darcy` | `h_f = f ((L + sum L_eq) / D) V^2 / (2 g)` | `HYD-08`, `HYD-13` | `perry2007` |
+| TCC-4.2-027 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:262` | `eq:hazen` | `h_f = 4.73 L Q^1.852 / (C^1.852 D^4.87)` | `HYD-09`, `HYD-13` | `perry2007`, `white2018` |
+| TCC-4.2-028 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:294` | `eq:bernoulli` | `H = (P2-P1)/(rho g) + (V2^2-V1^2)/(2g) + z2 - z1 + h_f` | `HYD-10`, `HYD-17` | `white2018` |
+| TCC-4.2-029 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:321` | `eq:npsh` | `NPSH_disp = (P_suc + P_atm - p_vap)/(rho g) + V_suc^2/(2g) + (z_suc-z0) - h_suc` | `HYD-11`, `HYD-18` | `perry2007` |
+| TCC-4.2-030 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:347` | `eq:diametro_hidraulico` | `D_h = 4 A / P` | `HYD-12` | `white2018` |
+| TCC-4.2-031 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:354` | `eq:dh_circular` | `D_h = D` | `HYD-12` | `white2018` |
+| TCC-4.2-032 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:359` | `eq:dh_rect` | `D_h = 4ab / (2(a+b))` | `HYD-12` | `white2018` |
+| TCC-4.2-033 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:364` | `eq:dh_annular` | `D_h = D_o - D_i` | `HYD-12` | `white2018` |
+| TCC-4.4-001 | `final-paper/TEX/chapters/4.4-validacao.tex:105` | `eq:val_len_total` | `L_total = L + sum(L_eq D)` | `HYD-08` | No nearby citation |
+| TCC-4.4-002 | `final-paper/TEX/chapters/4.4-validacao.tex:114` | `eq:val_hf_calc_a` | `h_f = 0.02 (100/0.05) 2^2/(2 g) = 8.1577 m` | `HYD-08` | No nearby citation |
+| TCC-4.4-003 | `final-paper/TEX/chapters/4.4-validacao.tex:128` | `eq:val_hf_calc_b` | `h_f = 0.02 (101.6/0.05) 2^2/(2 g) = 8.2882 m` | `HYD-08` | No nearby citation |
+| TCC-4.4-004 | `final-paper/TEX/chapters/4.4-validacao.tex:290` | `eq:val_mixer_total_flow` | `F_S3 = F_S1 + F_S2 = 200 kg/h` | `MB-01` | No nearby citation |
+| TCC-4.4-005 | `final-paper/TEX/chapters/4.4-validacao.tex:296` | `eq:val_mixer_component_balance` | `F_S3 z_S3,agua = F_S1 z_S1,agua + F_S2 z_S2,agua` | `MB-02` | No nearby citation |
+| TCC-4.4-006 | `final-paper/TEX/chapters/4.4-validacao.tex:300` | `eq:val_mixer_water_fraction` | `200 z_S3,agua = 100(1.0) + 100(0.0), so z_S3,agua = 0.5` | `MB-02`, `MB-03` | No nearby citation |
+| TCC-4.4-007 | `final-paper/TEX/chapters/4.4-validacao.tex:344` | `eq:val_reaction_flow_a` | `F_A,out = F_A,in(1-X_A) = 60 mol/s` | `MB-02`, `MB-04` | No nearby citation |
+| TCC-4.4-008 | `final-paper/TEX/chapters/4.4-validacao.tex:348` | `eq:val_reaction_flow_b` | `F_B,out = F_A,in X_A = 40 mol/s` | `MB-02`, `MB-04` | No nearby citation |
+| TCC-4.4-009 | `final-paper/TEX/chapters/4.4-validacao.tex:353` | `eq:val_reaction_mole_fractions` | `y_A = 60/100 = 0.6; y_B = 40/100 = 0.4` | `MB-03` | No nearby citation |
+| TCC-4.4-010 | `final-paper/TEX/chapters/4.4-validacao.tex:371` | `eq:val_recycle_flow_mass` | `F_Reciclo = 0.2 x 100 = 20 kg/h` | `MB-05` | No nearby citation |
+| TCC-4.4-011 | `final-paper/TEX/chapters/4.4-validacao.tex:375` | `eq:val_product_flow_mass` | `F_Produto = (1 - 0.2) x 100 = 80 kg/h` | `MB-05` | No nearby citation |
+| TCC-4.4-012 | `final-paper/TEX/chapters/4.4-validacao.tex:501` | `eq:val_rate_law` | `-r_A = k C_A = k C_A0 (1-X)` | `REA-07` | No nearby citation |
+| TCC-4.4-013 | `final-paper/TEX/chapters/4.4-validacao.tex:507` | `eq:val_cstr_vol_deriv` | `V_CSTR = C_A0 v0 X / (k C_A0 (1-X)) = v0 X/(k(1-X))` | `REA-08` | No nearby citation |
+| TCC-4.4-014 | `final-paper/TEX/chapters/4.4-validacao.tex:514` | `eq:val_cstr_vol_calc_1` | `V_manual = 0.01 x 0.85 / (0.05 x (1 - 0.85))` | `REA-08` | No nearby citation |
+| TCC-4.4-015 | `final-paper/TEX/chapters/4.4-validacao.tex:518` | `eq:val_cstr_vol_calc_2` | `V_manual = 0.0085/0.0075 ~= 1.1333 m^3` | `REA-08` | No nearby citation |
+| TCC-4.4-016 | `final-paper/TEX/chapters/4.4-validacao.tex:547` | `eq:val_pfr_deriv_1` | `V = F_A0 integral_0^X dX/(k C_A0(1-X))` | `REA-11` | No nearby citation |
+| TCC-4.4-017 | `final-paper/TEX/chapters/4.4-validacao.tex:553` | `eq:val_pfr_deriv_2` | `V = -(v0/k) ln(1-X)` | `REA-11` | No nearby citation |
+| TCC-4.4-018 | `final-paper/TEX/chapters/4.4-validacao.tex:560` | `eq:val_pfr_calc_1` | `V_manual = -(0.01/0.05) ln(1 - 0.90)` | `REA-11` | No nearby citation |
+| TCC-4.4-019 | `final-paper/TEX/chapters/4.4-validacao.tex:564` | `eq:val_pfr_calc_2` | `V_manual = -0.2 ln(0.10)` | `REA-11` | No nearby citation |
+| TCC-4.4-020 | `final-paper/TEX/chapters/4.4-validacao.tex:569` | `eq:val_pfr_calc_3` | `V_manual = -0.2(-2.302585) ~= 0.4605 m^3` | `REA-11` | No nearby citation |
+| TCC-4.4-021 | `final-paper/TEX/chapters/4.4-validacao.tex:595` | `eq:val_recycle_xin` | `X_in = R X_out / (R+1)` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-022 | `final-paper/TEX/chapters/4.4-validacao.tex:601` | `eq:val_recycle_vol_eq` | `V = (R+1) F_A0 integral from X_in to X_out of dX/(-r_A)` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-023 | `final-paper/TEX/chapters/4.4-validacao.tex:607` | `eq:val_recycle_vol_int` | `V = (R+1) (v0/k) ln((1-X_in)/(1-X_out))` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-024 | `final-paper/TEX/chapters/4.4-validacao.tex:616` | `eq:val_recycle_xin_calc` | `X_in = 2/(2+1) x 0.90 = 0.60` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-025 | `final-paper/TEX/chapters/4.4-validacao.tex:622` | `eq:val_recycle_vol_calc_1` | `V_manual = 3 x 0.01/0.05 x ln((1-0.60)/(1-0.90))` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-026 | `final-paper/TEX/chapters/4.4-validacao.tex:626` | `eq:val_recycle_vol_calc_2` | `V_manual = 0.6 ln(4)` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-027 | `final-paper/TEX/chapters/4.4-validacao.tex:631` | `eq:val_recycle_vol_calc_3` | `V_manual = 0.6 x 1.38629 ~= 0.8318 m^3` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
 
 ## Exclusions
 
