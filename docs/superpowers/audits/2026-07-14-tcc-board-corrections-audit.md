@@ -17,7 +17,7 @@
 | W2 | Writing | audio.txt:520-529 | final-paper/TEX/**/*.tex | Search for monografia/Monografia | Inventoried | No source hits for monografia/monograph/defesa de monografia in final paper |
 | W3 | Writing | audio.txt:531-546 | final-paper/TEX/chapters/2-justificativa.tex; final-paper/TEX/chapters/4.1-desenvolvimento.tex | Current justification and open-source/code-auditability wording | Corrected | Task 4 strengthened free/open/auditable rationale, extension path for catalogs/modules, tests, visible calculations, and future academic base |
 | W4 | Writing | audio.txt:552-559 | final-paper/TEX/**/*.tex | Search density/massa especifica context by occurrence | Inventoried | Density terms mapped; most are technical keep, formal consistency can prefer massa específica in prose |
-| W5 | Writing | audio.txt:576-616 | final-paper/TEX/chapters/4.1-desenvolvimento.tex | Figure 1 and pilha/stack wording | Corrected | Task 4 changed visible `Piping` wording to tubulação/tubulações, replaced `pilha principal`, and changed `shell de aplicação` to Portuguese prose; media filename/label may still contain `piping` |
+| W5 | Writing | audio.txt:576-616 | final-paper/TEX/chapters/4.1-desenvolvimento.tex | Figure 1 and pilha/stack wording | Corrected | Task 4 changed visible `Piping` wording to tubulação/tubulações, replaced `pilha principal`, and changed `shell de aplicação` to Portuguese prose; only the media filename still contains `piping` |
 | W6 | Writing | audio.txt:621-627 | final-paper/TEX/**/*.tex | Search linha/corrente/tubo/tubulacao in context | Inventoried | Terms are mostly technical keep; `linha de fluxo` and mixed Piping/tubulação wording merit review |
 | W7 | Writing | audio.txt:765-779 | final-paper/TEX/**/*.tex | Search motor computacional/head and equivalent English terms | Partially corrected | Task 4 replaced `motor computacional` in scoped conceptual-writing files; `head` remains in hydraulic/validation sections outside this task's owned files and is recorded for a later targeted prose/caption pass |
 | N1 | Nomenclature | audio.txt:644-663 | final-paper/TEX/main.tex; final-paper/TEX/chapters/4.2-engenharia-part1.tex | Symbols used in equations and list of siglas | Open | Unreviewed at matrix creation |
@@ -28,7 +28,7 @@
 | E5 | Equation | audio.txt:702-714 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py | Equation 4.11 against 4.13 and code | Open | Unreviewed at matrix creation |
 | E6 | Equation | audio.txt:340-368 | final-paper/TEX/chapters/4.2-engenharia-part2.tex; models/reactor.py | Recycle ratio definition and code basis | Open | Unreviewed at matrix creation |
 | E7 | Equation | audio.txt:388-392 | final-paper/TEX/chapters/4.2-engenharia-part2.tex; models/hydraulic.py; routers/pump.py | Bernoulli/head equation and sign convention | Open | Unreviewed at matrix creation |
-| F1 | Figure | audio.txt:576-597 | final-paper/TEX/chapters/4.1-desenvolvimento.tex; final-paper/TEX/media/ | Figure 1 current file and current app screenshot if needed | Inventoried | Figure 1 source is `media/cap4_piping_interface.png`; PDF list labels it as Piping interface on page 28 |
+| F1 | Figure | audio.txt:576-597 | final-paper/TEX/chapters/4.1-desenvolvimento.tex; final-paper/TEX/media/ | Figure 1 current file and current app screenshot if needed | Partially corrected | Baseline source file remains `media/cap4_piping_interface.png`; Task 4 changed the visible source/PDF caption and label to tubulação wording |
 | F2 | Figure | audio.txt:393-402 | final-paper/TEX/**/*.tex; final-paper/TEX/media/ | Missing-image markers and PDF pages from 102 onward | Inventoried | Missing-image placeholders found around PDF pages 102 and 106-107 |
 
 ## Inventory Findings
@@ -92,6 +92,8 @@ Result: source scan shows McCabe-Thiele in `Métodos e visualizações`, demo/ar
 
 ### W4/W5/W6/W7 - Ambiguous and mixed-language terms
 
+The inventory below records the baseline state found before Task 4 edits. Post-Task-4 current-state results are recorded separately under `Task 4 correction`.
+
 Command:
 
 ```bash
@@ -104,7 +106,7 @@ Findings:
 | --- | --- | --- | --- |
 | W4 | keep | `final-paper/TEX/main.tex:263`; `final-paper/TEX/chapters/4.2-engenharia-part1.tex:9`; `final-paper/TEX/chapters/4.4-validacao.tex:44` | `Massa específica` is already used in the nomenclature and hydraulic context. |
 | W4 | keep | `final-paper/TEX/chapters/4.1-desenvolvimento.tex:30`; `final-paper/TEX/chapters/4.2-engenharia-part2.tex:107,111,119,139,350,366`; `final-paper/TEX/chapters/4.4-validacao.tex:77,88,486`; `final-paper/TEX/chapters/6-guia-de-uso.tex:83` | `densidade` appears as a normal property term. Later prose can optionally standardize formal sections toward `massa específica`, but this is not an inventory blocker. |
-| W5 | change | `final-paper/TEX/chapters/4.1-desenvolvimento.tex:46,50,51` | Figure 1 currently describes the module as `Piping`; board correction likely wants Portuguese naming aligned with `tubulação/tubulações`. |
+| W5 | change | `final-paper/TEX/chapters/4.1-desenvolvimento.tex:46,50,51` | Baseline Figure 1 described the module as `Piping`; board correction wanted Portuguese naming aligned with `tubulação/tubulações`. |
 | W5 | change | `final-paper/TEX/chapters/4.1-desenvolvimento.tex:78` | `pilha principal` is a translation of stack in a software-architecture sentence; use a clearer Portuguese phrase such as `conjunto tecnológico principal`. |
 | W5 | change | `final-paper/TEX/chapters/4.1-desenvolvimento.tex:42` | `shell de aplicação` is mixed-language wording; consider `estrutura/base da aplicação`. |
 | W6 | keep | `final-paper/TEX/chapters/4.4-validacao.tex:274,278,279,351,353,574`; `final-paper/TEX/chapters/6-guia-de-uso.tex:123,127,129,135,139` | `corrente` is correct process terminology in mass-balance context. |
@@ -145,16 +147,18 @@ Remaining hits after Task 4:
 
 ### F1/F2 - Figure references and missing-image markers
 
+The first source/PDF bullets in this section are baseline inventory evidence from before Task 4. Current post-Task-4 Figure 1 evidence is recorded immediately after them.
+
 Command:
 
 ```bash
 rg -n "\\\\imgouplaceholder|Figura 1|includegraphics|cap7_|cap4_" final-paper/TEX/main.tex final-paper/TEX/chapters/*.tex
 ```
 
-Relevant hits:
+Relevant baseline hits:
 
-- `final-paper/TEX/chapters/4.1-desenvolvimento.tex:46`: text introduces Figure `\ref{fig:piping_interface}` as the user interface for the `Piping` module.
-- `final-paper/TEX/chapters/4.1-desenvolvimento.tex:50`: caption is `Interface gráfica do módulo de cálculos de tubulação (\textit{Piping})`.
+- Before Task 4, `final-paper/TEX/chapters/4.1-desenvolvimento.tex:46` introduced Figure `\ref{fig:piping_interface}` as the user interface for the `Piping` module.
+- Before Task 4, `final-paper/TEX/chapters/4.1-desenvolvimento.tex:50` caption was `Interface gráfica do módulo de cálculos de tubulação (\textit{Piping})`.
 - `final-paper/TEX/chapters/4.1-desenvolvimento.tex:51`: Figure 1 source is `media/cap4_piping_interface.png`.
 - `final-paper/TEX/chapters/4.5-recursos-didaticos.tex:12`: `\imgouplaceholder{media/glossario.png}`.
 - `final-paper/TEX/chapters/4.5-recursos-didaticos.tex:24`: `\imgouplaceholder{media/explicacao_teorica.png}`.
@@ -163,15 +167,17 @@ Relevant hits:
 - `final-paper/TEX/chapters/4.5-recursos-didaticos.tex:104`: `\imgouplaceholder{media/trilhas.png}`.
 - `final-paper/TEX/chapters/6-guia-de-uso.tex:21-147`: `cap7_` screenshots are present for the user-guide sequence, including McCabe-Thiele at `final-paper/TEX/chapters/6-guia-de-uso.tex:97`.
 
-PDF cross-check:
+Baseline PDF cross-check:
 
-- `pdftotext -layout -f 1 -l 25 final-paper/TEX/main.pdf - | rg -n "Interface gráfica|Piping|Figura 1|Figura"` shows list entry `Figura 1 – Interface gráfica do módulo de cálculos de tubulação (Piping)` on PDF page 28.
+- Before Task 4, `pdftotext -layout -f 1 -l 25 final-paper/TEX/main.pdf - | rg -n "Interface gráfica|Piping|Figura 1|Figura"` showed list entry `Figura 1 – Interface gráfica do módulo de cálculos de tubulação (Piping)` on PDF page 28.
 - `pdftotext -layout -f 100 -l 106 final-paper/TEX/main.pdf - | rg -n "Figura pendente|McCabe|Levenspiel|Moody|trilhas|glossario|explicacao|explicação|Diagrama"` shows `Figura pendente` for `media/glossario.png` and `media/explicacao_teorica.png` around page 102.
 - Full PDF scan shows additional placeholders: `/tmp/tcc-final-paper.txt:2549` (`media/glossario.png`), `2577` (`media/explicacao_teorica.png`), `2755` (`media/levenspiel.png`), and `2795` (`media/trilhas.png`). The source scan also shows `media/cap4_diagrama_moody.png` at `final-paper/TEX/chapters/4.5-recursos-didaticos.tex:78`.
 
-Decision: `F1` is inventoried for later replacement/renaming of the current Figure 1 screenshot/caption. `F2` is inventoried as missing-image placeholders around the board's page 102 concern and later pages in the same didactic-resources chapter.
+Task 4 current state: Figure 1 now uses source label `fig:tubulacao_interface` and visible caption `Interface gráfica do módulo de cálculos de tubulação`. The current PDF text no longer shows visible `Piping` in that Figure 1 caption/list entry; only the unchanged media filename `cap4_piping_interface.png` retains `piping` internally. `F2` remains inventoried as missing-image placeholders around the board's page 102 concern and later pages in the same didactic-resources chapter.
 
 ### PDF scan
+
+This subsection records the baseline PDF scan from before Task 4. Task 4 resolved the `motor computacional` PDF hit; current verification is recorded in the Task 4 correction and final verification entries.
 
 Commands:
 
@@ -180,11 +186,11 @@ pdftotext -layout final-paper/TEX/main.pdf /tmp/tcc-final-paper.txt
 rg -n "Figura pendente|Chemical Engineering|head|motor computacional|monografia|densidade|McCabe|Bernoulli|reator de conversão" /tmp/tcc-final-paper.txt
 ```
 
-Findings:
+Baseline findings:
 
 - `monografia`: no PDF hits.
 - `head`: PDF list/captions expose `head` at `/tmp/tcc-final-paper.txt:153,154,1539,1548`.
-- `motor computacional`: exposed at `/tmp/tcc-final-paper.txt:2774`.
+- Before Task 4, `motor computacional` was exposed at `/tmp/tcc-final-paper.txt:2774`; current PDF text no longer contains that phrase after Task 4.
 - `Figura pendente`: exposed at `/tmp/tcc-final-paper.txt:2549,2577,2755,2795`.
 - `McCabe`: exposed in the table of figures, table of contents, body, and guide pages, including `/tmp/tcc-final-paper.txt:205,389,2692,2694,3129,3135`.
 - `densidade`: exposed in body text, including `/tmp/tcc-final-paper.txt:563,1330,1355,1374,1646,1681,1906,1909,2399,3088`.
@@ -192,7 +198,7 @@ Findings:
 - `Chemical Engineering`: exposed only in bibliography/reference context at `/tmp/tcc-final-paper.txt:3428`.
 - `reator de conversão`: no PDF hits.
 
-Conclusion: the generated PDF exposes the same inventory issues as the source scan: English `head`, `motor computacional`, McCabe-Thiele classification/wording contexts, density wording, and missing-image placeholders. The defense-term scan remains clean in both source and PDF.
+Conclusion for the baseline scan: the generated PDF exposed the same inventory issues as the baseline source scan: English `head`, `motor computacional`, McCabe-Thiele classification/wording contexts, density wording, and missing-image placeholders. Post-Task-4 current-state verification shows `motor computacional` resolved, while `head` and visible `Piping` occurrences in unowned sections remain for later scoped tasks. The defense-term scan remains clean in both source and PDF.
 
 ## Technical Evidence
 
@@ -252,5 +258,9 @@ Conclusion: the generated PDF exposes the same inventory issues as the source sc
 - PDF text scan: Task 3 ran `pdftotext slides/main.pdf /tmp/tcc-slides.txt`, confirmed no `monografia`/`monograph` hits, and confirmed McCabe-Thiele appears in method/visualization context.
 - Task 4 source scan: `rg -n -i "pilha|motor computacional|curva de reação|head|stack|piping|Chemical Engineering" final-paper/TEX/main.tex final-paper/TEX/chapters/*.tex` recorded remaining kept/out-of-scope hits in the Task 4 correction section.
 - Task 4 diff check: `git diff --check` produced no output.
+- Task 4 review-fix compile: `./final-paper/compile.sh` exited 0 after the paragraph and audit refinements; `latexmk` finished with `All targets (main.pdf) are up-to-date`.
+- Task 4 review-fix scoped source scan: `rg -n -i "motor computacional|pilha|curva de reação" final-paper/TEX/chapters/2-justificativa.tex final-paper/TEX/chapters/4.1-desenvolvimento.tex final-paper/TEX/chapters/4.3-api.tex final-paper/TEX/chapters/4.5-recursos-didaticos.tex` produced no matches.
+- Task 4 review-fix PDF scan: `pdftotext -layout final-paper/TEX/main.pdf /tmp/tcc-final-paper.txt && rg -n "motor computacional|Piping|Interface gráfica do módulo de cálculos de tubulação" /tmp/tcc-final-paper.txt` found the current Figure 1 text without `Piping` at `/tmp/tcc-final-paper.txt:122,650`; it found remaining visible `Piping` only in unowned validation prose at `/tmp/tcc-final-paper.txt:2279`; it found no `motor computacional`.
+- Task 4 review-fix diff check: `git diff --check` produced no output.
 - Figure check: Not run yet; fill during Task 9.
 - Remaining justified terms: Task 4 reviewed architecture/open-project terminology only; broader final terminology pass still belongs to later tasks.
