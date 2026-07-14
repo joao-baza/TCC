@@ -1097,7 +1097,7 @@ export function BalancePage() {
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">Rendimentos</h3>
                   <p className="text-sm text-muted-foreground">
-                    Linhas representam o componente produzido e colunas o componente de referência.
+                    O componente produzido aparece no eixo vertical e o componente de referência no eixo horizontal.
                   </p>
                 </div>
                 <div className="max-h-[28rem] overflow-x-auto overflow-y-auto rounded-2xl border border-slate-200 bg-white">

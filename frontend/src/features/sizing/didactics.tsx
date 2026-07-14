@@ -8,7 +8,7 @@ export function DiameterHowItWorks() {
       <p>
         Para escoamento em secao circular, a equacao da continuidade relaciona a{" "}
         <strong>vazao volumetrica</strong>, a <strong>velocidade media</strong> e a{" "}
-        <strong>area transversal</strong> do tubo:
+        <strong>area transversal</strong> da seção:
       </p>
       <MathBlock expression={"D = \\sqrt{\\dfrac{4Q}{\\pi V}}"} />
       <VariablesTable
@@ -36,7 +36,7 @@ export function RealDiameterHowItWorks() {
   return (
     <HowItWorks title="Como funciona - Diametro Nominal Comercial">
       <p>
-        O diâmetro calculado é um valor contínuo. Na prática, tubos são fabricados em{" "}
+        O diâmetro calculado é um valor contínuo. Na prática, tubulações são fabricadas em{" "}
         <strong>diâmetros nominais padronizados</strong> por <em>schedule</em>.
       </p>
       <p>

@@ -2,11 +2,11 @@ import { HowItWorks } from "@/components/how-it-works";
 
 export function PipingCompositionsHowItWorks() {
   return (
-    <HowItWorks title="Como funciona - Composições">
+    <HowItWorks title="Como funciona - Materiais da tubulação">
       <p>
-        A composição representa o material ou a condição interna da tubulação consultada.
-        Ela resume características que o catálogo usa para descrever o comportamento
-        hidráulico da linha.
+        O material representa a composição construtiva ou a condição interna da tubulação consultada.
+        Ele resume características que o catálogo usa para descrever o comportamento
+        hidráulico da tubulação.
       </p>
       <p>
         <strong>O que interfere:</strong> a rugosidade do material, o estado da superfície
@@ -14,7 +14,7 @@ export function PipingCompositionsHowItWorks() {
         demais cálculos que dependem dessa seleção.
       </p>
       <p>
-        <strong>Importância:</strong> escolher a composição correta evita resultados
+        <strong>Importância:</strong> escolher o material correto evita resultados
         incoerentes e garante que o dimensionamento seja compatível com o fluido, a
         operação e a condição real da tubulação.
       </p>
@@ -26,13 +26,13 @@ export function PipingSchedulesHowItWorks() {
   return (
     <HowItWorks title="Como funciona - Schedules e Diâmetros">
       <p>
-        O schedule define a espessura da parede do tubo e, junto com o diâmetro nominal,
+        O schedule define a espessura da parede da tubulação e, junto com o diâmetro nominal,
         determina o espaço real disponível para escoamento.
       </p>
       <p>
         <strong>O que interfere:</strong> a espessura da parede altera o diâmetro interno,
         a área de passagem, a velocidade do fluido, a perda de carga e a resistência
-        mecânica da linha.
+        mecânica da tubulação.
       </p>
       <p>
         <strong>Importância:</strong> essa escolha conecta o cálculo hidráulico à peça

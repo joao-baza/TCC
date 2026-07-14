@@ -212,7 +212,7 @@ test("flow module loads the example and calculates the core values", async ({
 
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
   await page.getByLabel(/Rugosidade/i).fill("0.15");
-  await page.getByLabel(/Diâmetro da linha/i).fill("13.843");
+  await page.getByLabel(/Diâmetro da tubulação/i).fill("13.843");
   await selectComboboxOption(page, "Método de cálculo", "SwameeJain");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
   await expect(page.locator("table").filter({ hasText: "Fator de atrito" }).first()).toContainText("0,0215");
@@ -415,7 +415,7 @@ test("flow module surfaces an error when friction factor calculation fails", asy
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
   await page.getByRole("group", { name: /Rugosidade/i }).getByLabel(/Valor customizado/i).check();
   await page.getByLabel(/Rugosidade/i).fill("0.045");
-  await page.getByLabel(/Diâmetro da linha/i).fill("50");
+  await page.getByLabel(/Diâmetro da tubulação/i).fill("50");
   await selectComboboxOption(page, "Método de cálculo", "SwameeJain");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
 
@@ -500,12 +500,12 @@ test("flow module clears friction results when the schedule changes", async ({ p
   await page.getByLabel(/Viscosidade dinâmica/i).fill("0.0000111963");
   await page.getByRole("button", { name: /Calcular Reynolds/i }).click();
   await page.getByRole("tab", { name: /Fator de Atrito/i }).click();
-  await page.getByRole("group", { name: /Rugosidade/i }).getByLabel(/Usar composição/i).check();
+  await page.getByRole("group", { name: /Rugosidade/i }).getByLabel(/Usar material da tubulação/i).check();
   await selectComboboxOption(page, "Material da tubulação", "Aço galvanizado");
   await page.getByRole("group", { name: /Diâmetro/i }).getByLabel(/Usar schedule/i).check();
   await selectComboboxOption(page, "Schedule", "SCH40");
-  await expect(page.getByRole("combobox", { name: /Diâmetro da linha/i })).toBeEnabled();
-  await selectComboboxOption(page, "Diâmetro da linha", "60.3");
+  await expect(page.getByRole("combobox", { name: /Diâmetro da tubulação/i })).toBeEnabled();
+  await selectComboboxOption(page, "Diâmetro da tubulação", "60.3");
   await selectComboboxOption(page, "Método de cálculo", "SwameeJain");
   await page.getByRole("button", { name: /Calcular fator de atrito/i }).click();
 

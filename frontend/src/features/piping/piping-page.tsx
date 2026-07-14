@@ -461,15 +461,15 @@ function PipingCompositionsTab() {
 
   return (
     <Card>
-      <CardHeader title="Composições" />
+      <CardHeader title="Materiais da tubulação" />
       <CardContent className="space-y-4">
         <PipingCompositionsHowItWorks />
         <Combobox
-          label="Composição"
+          label="Material da tubulação"
           options={compositions}
           value={selectedComposition}
           onValueChange={setSelectedComposition}
-          placeholder="Selecione uma composição"
+          placeholder="Selecione um material"
         />
 
         {compositionDetails ? (
