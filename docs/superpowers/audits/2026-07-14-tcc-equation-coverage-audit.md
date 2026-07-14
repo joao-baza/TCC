@@ -257,4 +257,9 @@
 
 ## Final Completeness Check
 
-- Task 5 reconciliation resolved all placeholder cells in the Coverage Matrix; Task 6 should convert remaining insufficient/absent classifications into concrete TCC edits.
+- No unresolved open-status cells remain.
+- Every included domain formula has a coverage status across 53 coverage rows.
+- Every excluded formula is visual-only, a no-formula catalog/list/example endpoint, or library-internal and has a reason across 15 exclusion rows.
+- Every future edit has a target file and verification note across 12 future-edit rows.
+- No TCC source was edited during this audit.
+- The audit also records 41 TCC equation rows and 13 no-edit decision rows, making it ready for a later implementation plan that edits the TCC.
