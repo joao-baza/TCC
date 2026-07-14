@@ -277,6 +277,34 @@ def test_reactor_levenspiel_chart_endpoint_returns_raw_chart_model():
     ]
 
 
+@pytest.mark.parametrize("recycling_ratio", [0, None])
+def test_reactor_levenspiel_chart_subtitle_keeps_no_recycle_text_for_empty_ratio(
+    recycling_ratio,
+):
+    payload = _levenspiel_payload()
+    payload["recycling_ratio"] = recycling_ratio
+
+    response = client.post("/reactor/levenspiel/chart", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["subtitle"] == (
+        "Volume necessário em função da conversão para a mesma cinética sem reciclo."
+    )
+
+
+def test_reactor_levenspiel_chart_subtitle_reports_positive_recycle_ratio():
+    payload = _levenspiel_payload()
+    payload["recycling_ratio"] = 0.5
+
+    response = client.post("/reactor/levenspiel/chart", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["subtitle"] == (
+        "Volume necessário em função da conversão para a mesma cinética, "
+        "com razão de reciclo R = 0.5 no PFR."
+    )
+
+
 def test_reactor_pfr_profile_chart_endpoint_returns_component_and_temperature_series():
     response = client.post("/reactor/pfr/profile/chart", json=_profile_chart_payload())
 
