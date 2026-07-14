@@ -48,7 +48,7 @@ O diâmetro real corresponde ao diâmetro nominal da tubulação a ser utilizada
 
 Para um correto cálculo de perdas de carga e seleção de bombas, o \textit{software} incorpora dados de catálogo de tubulações, rugosidades de materiais e comprimentos equivalentes de acessórios.
 
-\textbf{Rugosidade de materiais.} A rugosidade absoluta do material interno do tubo influencia o fator de atrito em regime turbulento por meio da rugosidade relativa $\varepsilon/D$. Materiais metálicos, plásticos ou com incrustações apresentam valores típicos de rugosidade tabelados \cite{white2018}. Com o tempo de operação, depósitos e corrosão podem elevar a rugosidade efetiva, devendo-se considerar fatores de segurança.
+\textbf{Rugosidade de materiais.} A rugosidade absoluta do material interno da tubulação influencia o fator de atrito em regime turbulento por meio da rugosidade relativa $\varepsilon/D$. Materiais metálicos, plásticos ou com incrustações apresentam valores típicos de rugosidade tabelados \cite{white2018}. Com o tempo de operação, depósitos e corrosão podem elevar a rugosidade efetiva, devendo-se considerar fatores de segurança.
 
 \textbf{Catálogo de diâmetros.} São armazenadas dimensões padrão de tubulações (diâmetro externo, espessura e diâmetro interno resultante) para diferentes \textit{schedules} (por exemplo, SCH 10, 40 e 80) e materiais. Também podem ser incluídos dados de pressão máxima de trabalho e peso por metro. Isso permite que, dado um diâmetro calculado, o programa selecione o diâmetro nominal comercial mais próximo disponível.
 
@@ -61,7 +61,7 @@ Para um correto cálculo de perdas de carga e seleção de bombas, o \textit{sof
         \hline
         \textbf{Contrato} & \textbf{Campos principais} & \textbf{Uso no cálculo} \\
         \hline
-        Material & nome, rugosidade, descrição & Define propriedades geométricas e hidráulicas associadas à composição da linha. \\
+        Material & nome, rugosidade, descrição & Define propriedades geométricas e hidráulicas associadas à composição da tubulação. \\
         Schedule & diâmetro nominal, diâmetro externo, espessura, diâmetro interno & Seleciona dimensões comerciais para cálculo de velocidade, área e perda de carga. \\
         Acessório & tipo, diâmetro nominal, comprimento equivalente ou coeficiente local & Converte singularidades em contribuição de perda de carga. \\
         \hline
@@ -94,7 +94,7 @@ No cálculo de perdas de carga totais, o comprimento $L$ da tubulação reta é 
 
 \subsubsection{Escoamento, Perdas de Carga e Diâmetros Hidráulicos}
 
-O comportamento do escoamento em dutos é governado, principalmente, pelo número de Reynolds, que permite classificar o regime como laminar, de transição ou turbulento. Variáveis-chave incluem o diâmetro hidráulico, a velocidade média, a viscosidade e a massa específica do fluido, bem como a rugosidade relativa da parede. Perfis de velocidade, mecanismos de mistura e dissipação de energia por atrito dependem desse regime de escoamento. Para quantificar a perda de carga (queda de pressão) devida ao atrito no escoamento, emprega-se a equação universal de Darcy–Weisbach \cite{white2018}.
+O comportamento do escoamento interno é governado, principalmente, pelo número de Reynolds, que permite classificar o regime como laminar, de transição ou turbulento. Variáveis-chave incluem o diâmetro hidráulico, a velocidade média, a viscosidade e a massa específica do fluido, bem como a rugosidade relativa da parede. Perfis de velocidade, mecanismos de mistura e dissipação de energia por atrito dependem desse regime de escoamento. Para quantificar a perda de carga (queda de pressão) devida ao atrito no escoamento, emprega-se a equação universal de Darcy–Weisbach \cite{white2018}.
 
 No regime turbulento, o fator de atrito $f$ depende de $Re$ e da rugosidade relativa $\varepsilon/D$, não possuindo solução analítica explícita; por isso, utilizam-se relações empíricas ou aproximadas. Já no regime laminar ($Re < 2300$), o perfil de velocidades é parabólico e $f$ admite a expressão simples dada pela Equação \ref{eq:laminar_friction}:
 \begin{equation}
@@ -104,7 +104,7 @@ f = \frac{64}{Re}
 
 Em serviços de água a escoamento turbulento, a fórmula empírica de Hazen--Williams é comumente empregada como aproximação prática \cite{perry2007}. Temperatura e pressão afetam massa específica e viscosidade do fluido, modificando o valor de $Re$ e, consequentemente, as perdas de carga.
 
-Além disso, o material e condições da tubulação (nova, envelhecida) determinam a rugosidade efetiva. Todos esses efeitos impactam diretamente o balanço de energia no escoamento em dutos e a potência requerida em bombas ou compressores \cite{perry2007,white2018}.
+Além disso, o material e condições da tubulação (nova, envelhecida) determinam a rugosidade efetiva. Todos esses efeitos impactam diretamente o balanço de energia no escoamento em tubulações e a potência requerida em bombas ou compressores \cite{perry2007,white2018}.
 
 \begin{table}[H]
     \centering
@@ -127,7 +127,7 @@ Além disso, o material e condições da tubulação (nova, envelhecida) determi
 
 \subsubsection{Número de Reynolds}
 
-O número de Reynolds ($Re$) relaciona as forças inerciais com as forças viscosas no escoamento dentro de um duto:
+O número de Reynolds ($Re$) relaciona as forças inerciais com as forças viscosas no escoamento dentro de uma tubulação:
 
 Usando viscosidade dinâmica $\mu$:
 \begin{equation}
@@ -227,7 +227,7 @@ Na forma exibida, o coeficiente empírico $4{,}73$ corresponde à convenção in
 \small
 \textbf{Fluxo de cálculo da perda de carga.}
 \begin{verbatim}
-receber metodo, geometria, vazao ou velocidade e propriedades da linha
+receber metodo, geometria, vazao ou velocidade e propriedades da tubulacao
 resolver a velocidade ou a vazao faltante quando necessario
 somar comprimento reto e comprimentos equivalentes
 aplicar Darcy-Weisbach ou Hazen-Williams
