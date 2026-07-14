@@ -157,19 +157,19 @@ class TernaryDiagramChartRequest(BaseModel):
     fraction_a: float = Field(..., description="Fraction for component A")
     fraction_b: float = Field(..., description="Fraction for component B")
     fraction_c: float = Field(..., description="Fraction for component C")
-    stream_name: str = Field("Corrente atual", description="Label shown for the projected stream")
+    stream_name: str = Field("Corrente atual", description="Rótulo exibido para a corrente projetada")
 
 
 class TernaryGuideLineModel(BaseModel):
-    start: ChartPointModel = Field(..., description="Guide line start point")
-    end: ChartPointModel = Field(..., description="Guide line end point")
+    start: ChartPointModel = Field(..., description="Ponto inicial da linha-guia")
+    end: ChartPointModel = Field(..., description="Ponto final da linha-guia")
 
 
 class TernaryStreamPointModel(BaseModel):
-    label: str = Field(..., description="Projected stream label")
+    label: str = Field(..., description="Rótulo da corrente projetada")
     summary: str = Field(..., description="Formatted composition summary")
-    x: float = Field(..., description="Projected x coordinate in the ternary plane")
-    y: float = Field(..., description="Projected y coordinate in the ternary plane")
+    x: float = Field(..., description="Coordenada x projetada no plano ternário")
+    y: float = Field(..., description="Coordenada y projetada no plano ternário")
     color: str = Field(..., description="Marker color")
 
 
@@ -179,8 +179,8 @@ class TernaryDiagramChartResponse(BaseModel):
     subtitle: Optional[str] = Field(None, description="Chart subtitle")
     component_labels: List[str] = Field(..., description="Ordered labels for the ternary vertices")
     boundary: List[ChartPointModel] = Field(..., description="Triangle boundary coordinates")
-    guide_lines: List[TernaryGuideLineModel] = Field(..., description="Guide lines for reading the projection")
-    streams: List[TernaryStreamPointModel] = Field(..., description="Projected stream markers")
+    guide_lines: List[TernaryGuideLineModel] = Field(..., description="Linhas-guia para leitura da projeção")
+    streams: List[TernaryStreamPointModel] = Field(..., description="Marcadores das correntes projetadas")
 
 
 class McCabeThieleChartRequest(BaseModel):
@@ -236,9 +236,9 @@ class MassBalanceChartResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class StreamModel(BaseModel):
-    name: str = Field(..., description="Name of the stream")
-    direction: int = Field(..., description="Direction of the stream: +1 for input, -1 for output")
-    flow_rate: Optional[float] = Field(None, description="Flow rate of the stream (can be in any mass units like kg/h, g/min or molar units like mol/s)")
+    name: str = Field(..., description="Nome da corrente")
+    direction: int = Field(..., description="Direção da corrente: +1 para entrada, -1 para saída")
+    flow_rate: Optional[float] = Field(None, description="Vazão da corrente (pode usar unidades mássicas como kg/h, g/min ou molares como mol/s)")
     compositions: Dict[str, Optional[float]] = Field(..., description="Dictionary of component compositions (mass fractions when using mass flow units, molar fractions when using molar flow units)")
 
 
@@ -249,15 +249,15 @@ class ReactionModel(BaseModel):
 
 
 class SplitModel(BaseModel):
-    parent_stream: str = Field(..., description="Name of the parent stream")
-    recycle_stream: str = Field(..., description="Name of the recycle stream")
-    purge_stream: str = Field(..., description="Name of the purge stream")
+    parent_stream: str = Field(..., description="Nome da corrente principal")
+    recycle_stream: str = Field(..., description="Nome da corrente de reciclo")
+    purge_stream: str = Field(..., description="Nome da corrente de purga")
     fraction: float = Field(..., ge=0, le=1, description="Recycle fraction (0-1)")
 
 
 class MassBalanceRequest(BaseModel):
     components: List[str] = Field(..., description="List of component names")
-    streams: List[StreamModel] = Field(..., description="List of streams in the process")
+    streams: List[StreamModel] = Field(..., description="Lista de correntes do processo")
     reactions: Optional[List[ReactionModel]] = Field(None, description="List of reactions")
     splits: Optional[List[SplitModel]] = Field(None, description="List of splits (recycles)")
 
@@ -267,17 +267,17 @@ class MassBalanceRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 class CalculatedDiameterRequest(BaseModel):
-    flow_rate: float = Field(..., description="Flow rate in m³/s")
-    velocity: float = Field(..., description="Velocity in m/s")
+    flow_rate: float = Field(..., description="Vazão em m³/s")
+    velocity: float = Field(..., description="Velocidade do escoamento em m/s")
 
 
 class RealDiameterRequest(BaseModel):
     calculated_diameter: float = Field(..., description="Calculated diameter in mm")
-    schedule: str = Field(..., description="Pipe schedule")
+    schedule: str = Field(..., description="Schedule da tubulação")
 
 
 class VelocityProfileRequest(BaseModel):
-    velocity: float = Field(..., gt=0, description="Velocity in m/s")
+    velocity: float = Field(..., gt=0, description="Velocidade do escoamento em m/s")
     diameter_mm: float = Field(..., gt=0, description="Internal diameter in mm")
 
 
@@ -295,26 +295,26 @@ class VelocityProfileVisualizationResponse(BaseModel):
     color: str = Field(..., description="Regime color")
     label: str = Field(..., description="Regime label")
     reynolds: float = Field(..., description="Calculated Reynolds number")
-    arrows: List[VelocityProfileArrowModel] = Field(..., description="Backend-owned arrow vectors")
+    arrows: List[VelocityProfileArrowModel] = Field(..., description="Vetores das setas calculados pelo backend")
     diameter_mm: float = Field(..., description="Internal diameter in mm")
     velocity: float = Field(..., description="Fluid velocity in m/s")
 
 
 class PipingExampleResponse(BaseModel):
-    composition: str = Field(..., description="Pipe composition selected for the example")
-    schedule: str = Field(..., description="Pipe schedule selected for the example")
+    composition: str = Field(..., description="Composição da tubulação selecionada para o exemplo")
+    schedule: str = Field(..., description="Schedule da tubulação selecionado para o exemplo")
     diameter: float = Field(..., description="Nominal diameter in mm")
-    fitting: str = Field(..., description="Pipe fitting selected for the example")
+    fitting: str = Field(..., description="Acessório da tubulação selecionado para o exemplo")
 
 
 class SizingExampleCalculatedDiameter(BaseModel):
-    flow_rate: float = Field(..., description="Flow rate in m³/s")
-    velocity: float = Field(..., description="Velocity in m/s")
+    flow_rate: float = Field(..., description="Vazão em m³/s")
+    velocity: float = Field(..., description="Velocidade do escoamento em m/s")
 
 
 class SizingExampleRealDiameter(BaseModel):
     calculated_diameter: float = Field(..., description="Calculated diameter in mm")
-    schedule: str = Field(..., description="Pipe schedule")
+    schedule: str = Field(..., description="Schedule da tubulação")
 
 
 class SizingExampleResponse(BaseModel):
@@ -334,7 +334,7 @@ class SizingExampleResponse(BaseModel):
 
 class ReynoldsRequest(BaseModel):
     characteristic_diameter: float = Field(..., description="Characteristic diameter in m")
-    velocity: float = Field(..., description="Velocity in m/s")
+    velocity: float = Field(..., description="Velocidade do escoamento em m/s")
     density: Optional[float] = Field(None, description="Density in kg/m³")
     dynamic_viscosity: Optional[float] = Field(None, description="Dynamic viscosity in kg/(m·s) or Pa·s")
     kinematic_viscosity: Optional[float] = Field(None, description="Kinematic viscosity in m²/s")
@@ -391,29 +391,29 @@ class FlowExampleMetadata(BaseModel):
 
 class FlowExampleReynolds(BaseModel):
     characteristic_diameter: float = Field(..., description="Characteristic diameter in mm")
-    velocity: float = Field(..., description="Velocity in m/s")
+    velocity: float = Field(..., description="Velocidade do escoamento em m/s")
     density: float = Field(..., description="Density in kg/m³")
     dynamic_viscosity: float = Field(..., description="Dynamic viscosity in Pa·s")
 
 
 class FlowExampleFriction(BaseModel):
-    method: Literal["SwameeJain"] = Field(..., description="Friction factor method")
-    roughness_source: Literal["composition"] = Field(..., description="Source for pipe roughness")
-    composition: str = Field(..., description="Pipe composition")
+    method: Literal["SwameeJain"] = Field(..., description="Método do fator de atrito do escoamento")
+    roughness_source: Literal["composition"] = Field(..., description="Fonte da rugosidade da tubulação")
+    composition: str = Field(..., description="Composição da tubulação")
     diameter_source: Literal["custom"] = Field(..., description="Source for the diameter used in friction")
     custom_diameter: float = Field(..., description="Custom diameter in mm")
 
 
 class FlowExampleHydraulicDiameter(BaseModel):
     shape: Literal["circularCap"] = Field(..., description="Hydraulic diameter worked example shape")
-    diameter: float = Field(..., description="Diameter in m")
+    diameter: float = Field(..., description="Diâmetro geométrico em m")
     height: float = Field(..., description="Height in m")
 
 
 class FlowExampleResponse(BaseModel):
     metadata: FlowExampleMetadata = Field(..., description="Example metadata")
     reynolds: FlowExampleReynolds = Field(..., description="Reynolds input parameters")
-    friction: FlowExampleFriction = Field(..., description="Friction factor input parameters")
+    friction: FlowExampleFriction = Field(..., description="Parâmetros de entrada do fator de atrito do escoamento")
     hydraulic_diameter: FlowExampleHydraulicDiameter = Field(
         ...,
         description="Hydraulic diameter input parameters",
@@ -423,28 +423,28 @@ class FlowExampleResponse(BaseModel):
 class MoodyChartRequest(BaseModel):
     reynolds: float = Field(..., gt=0, description="Reynolds number for the operating point")
     friction_factor: float = Field(..., gt=0, description="Darcy friction factor for the operating point")
-    roughness: float = Field(..., ge=0, le=1, description="Relative roughness ε/D for the operating point")
+    roughness: float = Field(..., ge=0, le=1, description="Rugosidade relativa ε/D no ponto de operação")
 
 
 class PumpExampleFitting(BaseModel):
-    fitting: str = Field(..., description="Pipe fitting")
-    quantity: int = Field(..., ge=1, description="Quantity of fittings")
+    fitting: str = Field(..., description="Acessório da tubulação")
+    quantity: int = Field(..., ge=1, description="Quantidade de acessórios")
 
 
 class PumpExampleHeadloss(BaseModel):
     method: Literal["Darcy-Weisbach"] = Field(..., description="Head loss method")
-    pipe_length: float = Field(..., description="Pipe length in m")
-    diameter: float = Field(..., description="Pipe diameter in mm")
-    flow_rate: float = Field(..., description="Flow rate in m³/s")
-    velocity: float = Field(..., description="Velocity in m/s")
-    reynolds: float = Field(..., description="Reynolds number used for friction-factor input")
-    friction_factor: float = Field(..., description="Friction factor used in the worked example")
+    pipe_length: float = Field(..., description="Comprimento da tubulação em m")
+    diameter: float = Field(..., description="Diâmetro da tubulação em mm")
+    flow_rate: float = Field(..., description="Vazão em m³/s")
+    velocity: float = Field(..., description="Velocidade do escoamento em m/s")
+    reynolds: float = Field(..., description="Número de Reynolds usado na entrada do fator de atrito do escoamento")
+    friction_factor: float = Field(..., description="Fator de atrito do escoamento usado no exemplo resolvido")
     friction_method: Literal["ColebrookWhite", "SwameeJain"] = Field(
         ...,
         description="Friction-factor method",
     )
-    composition: str = Field(..., description="Pipe composition")
-    fittings: List[PumpExampleFitting] = Field(..., description="Worked example fittings")
+    composition: str = Field(..., description="Composição da tubulação")
+    fittings: List[PumpExampleFitting] = Field(..., description="Acessórios do exemplo resolvido")
 
 
 class PumpExampleNpsh(BaseModel):
@@ -463,8 +463,8 @@ class PumpExampleHead(BaseModel):
     pressure2: float = Field(..., description="Pressure at point 2 in Pa")
     elevation1: float = Field(..., description="Elevation at point 1 in m")
     elevation2: float = Field(..., description="Elevation at point 2 in m")
-    velocity1: float = Field(..., description="Velocity at point 1 in m/s")
-    velocity2: float = Field(..., description="Velocity at point 2 in m/s")
+    velocity1: float = Field(..., description="Velocidade no ponto 1 em m/s")
+    velocity2: float = Field(..., description="Velocidade no ponto 2 em m/s")
     density: float = Field(..., description="Fluid density in kg/m³")
     friction_factor: float = Field(..., description="Head loss in meters")
 
@@ -476,8 +476,8 @@ class PumpExampleResponse(BaseModel):
 
 
 class FrictionFactorRequest(BaseModel):
-    roughness: float = Field(..., description="Roughness in mm")
-    diameter: float = Field(..., description="Diameter in mm")
+    roughness: float = Field(..., description="Rugosidade da tubulação em mm")
+    diameter: float = Field(..., description="Diâmetro em mm")
     reynolds: float = Field(..., description="Reynolds number (dimensionless)")
     method: str = Field(..., description="Method for calculating friction factor")
 
@@ -486,7 +486,7 @@ class HydraulicDiameterRequest(BaseModel):
     shape: str = Field(..., description="Shape type: circular, rectangular, annular, triangular, or circularCap")
 
     # Circular parameters
-    diameter: Optional[float] = Field(None, gt=0, description="Diameter for circular shape (m)")
+    diameter: Optional[float] = Field(None, gt=0, description="Diâmetro geométrico da forma circular (m)")
 
     # Rectangular parameters
     width: Optional[float] = Field(None, gt=0, description="Width for rectangular shape (m)")
@@ -591,7 +591,7 @@ class HydraulicDiameterPreviewResponse(BaseModel):
     summary: str = Field(..., description="Short UI summary shown above the preview")
     view_box: str = Field(..., description="SVG viewBox")
     elements: List[SvgElementModel] = Field(..., description="Backend-owned SVG primitives")
-    chips: List[HydraulicDiameterPreviewChip] = Field(..., description="Backend-owned display chips")
+    chips: List[HydraulicDiameterPreviewChip] = Field(..., description="Chips de exibição calculados pelo backend")
 
 
 # ---------------------------------------------------------------------------
@@ -600,22 +600,22 @@ class HydraulicDiameterPreviewResponse(BaseModel):
 
 class FittingItem(BaseModel):
     quantity: int = Field(..., gt=0, description="Quantity")
-    fitting: str = Field(..., description="Fitting type")
+    fitting: str = Field(..., description="Tipo de acessório")
 
 
 class HeadLossRequest(BaseModel):
     # Darcy‑Weisbach parameters
-    friction_factor: Optional[float] = Field(None, ge=0, description="Friction factor (dimensionless)")
-    velocity: Optional[float] = Field(None, ge=0, description="Fluid velocity (m/s)")
+    friction_factor: Optional[float] = Field(None, ge=0, description="Fator de atrito do escoamento (adimensional)")
+    velocity: Optional[float] = Field(None, ge=0, description="Velocidade do escoamento (m/s)")
 
     # Hazen‑Williams parameters
-    flow_rate: Optional[float] = Field(None, ge=0, description="Flow rate (m³/s)")
-    roughness_coefficient: Optional[float] = Field(None, ge=0, description="Roughness coefficient (dimensionless)")
+    flow_rate: Optional[float] = Field(None, ge=0, description="Vazão (m³/s)")
+    roughness_coefficient: Optional[float] = Field(None, ge=0, description="Coeficiente de rugosidade (adimensional)")
 
     # Common parameters
-    pipe_length: float = Field(..., ge=0, description="Pipe length (m)")
+    pipe_length: float = Field(..., ge=0, description="Comprimento da tubulação em m")
     diameter: float = Field(..., ge=0, description="Internal diameter (mm)")
-    fittings: Optional[List[FittingItem]] = Field(None, description="List of fittings")
+    fittings: Optional[List[FittingItem]] = Field(None, description="Lista de acessórios da tubulação")
     method: str = Field(..., description="Method: Darcy‑Weisbach | Hazen‑Williams")
 
 
@@ -624,7 +624,7 @@ class NPSHAvailableRequest(BaseModel):
     atmospheric_pressure: float = Field(..., description="Atmospheric pressure in kgf/cm²")
     vapor_pressure: float = Field(..., description="Vapor pressure in kgf/cm²")
     density: float = Field(..., description="Density in kg/m³")
-    friction_factor: float = Field(..., description="Friction factor in m")
+    friction_factor: float = Field(..., description="Perda de carga em m")
     pump_inlet_velocity: float = Field(..., description="Pump inlet velocity in m/s")
     gauge_elevation: float = Field(..., description="Gauge elevation in m")
 
@@ -660,10 +660,10 @@ class HeadRequest(BaseModel):
     pressure2: float = Field(..., description="Pressure at point 2 in Pa")
     elevation1: float = Field(..., description="Elevation at point 1 in m")
     elevation2: float = Field(..., description="Elevation at point 2 in m")
-    velocity1: float = Field(..., description="Velocity at point 1 in m/s")
-    velocity2: float = Field(..., description="Velocity at point 2 in m/s")
+    velocity1: float = Field(..., description="Velocidade no ponto 1 em m/s")
+    velocity2: float = Field(..., description="Velocidade no ponto 2 em m/s")
     density: float = Field(..., description="Density of fluid in kg/m³")
-    friction_factor: float = Field(..., description="Friction factor in m")
+    friction_factor: float = Field(..., description="Perda de carga em m")
 
 
 # ---------------------------------------------------------------------------
@@ -673,7 +673,7 @@ class HeadRequest(BaseModel):
 class ComponentRequest(BaseModel):
     state: str = Field(..., description="State of the component (liquid or gaseous)")
     component_name: str = Field(..., description="Component name")
-    flow_rate_inlet: float = Field(..., description="Flow rate inlet in m³/s")
+    flow_rate_inlet: float = Field(..., description="Vazão de entrada em m³/s")
     molar_concentration_inlet: float = Field(..., description="Molar concentration inlet in mol/m³")
 
 
@@ -974,7 +974,7 @@ class ComponentsExampleMccabeThiele(BaseModel):
     bottoms_composition: float = Field(..., description="Bottoms composition")
     feed_composition: float = Field(..., description="Feed composition")
     reflux_ratio: float = Field(..., description="Reflux ratio")
-    q_value: float = Field(..., description="q-line value")
+    q_value: float = Field(..., description="Valor da linha q")
     max_stages: int = Field(..., description="Maximum number of stages")
 
 

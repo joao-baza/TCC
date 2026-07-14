@@ -53,7 +53,7 @@ def test_flow_example_catalog_validation_raises_when_fluid_is_missing(monkeypatc
 def test_flow_example_catalog_validation_raises_when_composition_is_missing(monkeypatch):
     monkeypatch.setattr(flow_router.piping, "compositions", lambda: [])
 
-    with pytest.raises(RuntimeError, match="Composition 'Aço galvanizado' not found"):
+    with pytest.raises(RuntimeError, match="Composição da tubulação 'Aço galvanizado' não encontrada"):
         flow_router.validate_flow_example_catalogs()
 
 

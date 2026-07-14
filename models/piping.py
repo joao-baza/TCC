@@ -560,7 +560,7 @@ class Piping:
             "Cotovelo 90° raio longo": "Cotovelo de grande raio que desvia o fluxo em 90 graus com menor perda de carga.",
             "Cotovelo 90° raio curto": "Cotovelo compacto que desvia o fluxo em 90 graus com maior perda de carga.",
             "Cotovelo 45°": "Cotovelo que desvia o fluxo em 45 graus.",
-            "Tê (passagem reta)": "Acessório em T com continuidade do fluxo pela linha principal.",
+            "Tê (passagem reta)": "Acessório em T com continuidade do fluxo pelo ramal principal.",
             "Tê (saída lateral)": "Acessório em T com desvio do fluxo pela saída lateral.",
             "Saída de tanque": "Acessório que conecta um tanque ao sistema de tubulação.",
             "Válvula diafragma": "Válvula que utiliza um diafragma flexível para controlar o fluxo.",
@@ -576,8 +576,8 @@ class Piping:
             "Cotovelo 90° raio longo": "Preferido em altas vazões e para minimizar perda de carga em mudanças de direção.",
             "Cotovelo 90° raio curto": "Utilizado quando o espaço é limitado e as vazões são moderadas.",
             "Cotovelo 45°": "Utilizado para mudanças graduais de direção, reduzindo a perda de carga.",
-            "Tê (passagem reta)": "Utilizado para criar derivações mantendo o fluxo na linha principal.",
-            "Tê (saída lateral)": "Utilizado para desviar parte do fluxo para uma linha derivada.",
+            "Tê (passagem reta)": "Utilizado para criar derivações mantendo o fluxo no ramal principal.",
+            "Tê (saída lateral)": "Utilizado para desviar parte do fluxo para um ramal derivado.",
             "Saída de tanque": "Utilizado para conectar tanques de armazenamento a sistemas de tubulação.",
             "Válvula diafragma": "Utilizada para controle preciso de fluxo e isolamento em aplicações sanitárias.",
             "Válvula esfera": "Utilizada para fechamento rápido com baixa perda de carga."
@@ -594,8 +594,8 @@ class Piping:
             "Aço revestido com asfalto": "Tubulação de aço revestida com asfalto para proteção contra corrosão em instalações enterradas.",
             "Aço revestido com esmalte, vinil ou epóxi": "Tubulação de aço com revestimento especial para resistência química.",
             "Alumínio": "Tubulação metálica leve com boa resistência à corrosão.",
-            "Concreto muito rugoso": "Tubo de concreto com alta rugosidade superficial.",
-            "Concreto liso": "Tubo de concreto com baixa rugosidade superficial.",
+            "Concreto muito rugoso": "Tubulação de concreto com alta rugosidade superficial.",
+            "Concreto liso": "Tubulação de concreto com baixa rugosidade superficial.",
             "Latão e cobre": "Tubulação metálica com excelente condutividade térmica e resistência a incrustações biológicas.",
             "Plásticos": "Tubulação polimérica com excelente resistência química e baixo peso."
         }
@@ -607,7 +607,7 @@ class Piping:
         applications = {
             "Aço comercial": "Transporte de água, gás, óleo e vapor em ambientes industriais.",
             "Aço galvanizado": "Sistemas de água potável, sprinklers e irrigação.",
-            "Aço revestido com asfalto": "Linhas enterradas de água e esgoto.",
+            "Aço revestido com asfalto": "Tubulações enterradas de água e esgoto.",
             "Aço revestido com esmalte, vinil ou epóxi": "Processos químicos e ambientes corrosivos.",
             "Alumínio": "Ar comprimido, refrigeração e sistemas de irrigação.",
             "Concreto": "Transporte de água em grandes diâmetros, esgoto e drenagem.",
@@ -625,4 +625,4 @@ class Piping:
             "SCH80": "Schedule de alta espessura para aplicações de alta pressão."
         }
         
-        return descriptions.get(schedule, "Especificação padronizada para dimensões de tubos.")
+        return descriptions.get(schedule, "Especificação padronizada para dimensões de tubulações.")

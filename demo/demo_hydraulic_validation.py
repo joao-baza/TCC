@@ -34,7 +34,7 @@ def check_result(test_name, manual_val, code_val, unit=""):
     return status == "MATCH"
 
 def validate_reynolds():
-    print_header("REYNOLDS NUMBER VALIDATION")
+    print_header("VALIDAÇÃO DO NÚMERO DE REYNOLDS")
     
     # 1. Dynamic Viscosity Method
     D = 50 # mm
@@ -53,7 +53,7 @@ def validate_reynolds():
         "dynamic_viscosity": mu
     }
     re_code = hyd.reynolds(params)
-    check_result("Reynolds (Dynamic Visc)", re_manual, re_code)
+    check_result("Reynolds (viscosidade dinâmica)", re_manual, re_code)
 
     # 2. Kinematic Viscosity Method
     nu = 1.004e-6 # m2/s
@@ -67,10 +67,10 @@ def validate_reynolds():
         "kinematic_viscosity": nu
     }
     re_code_k = hyd.reynolds(params_k)
-    check_result("Reynolds (Kinematic Visc)", re_manual_k, re_code_k)
+    check_result("Reynolds (viscosidade cinemática)", re_manual_k, re_code_k)
 
 def validate_friction_factor():
-    print_header("FRICTION FACTOR VALIDATION")
+    print_header("VALIDAÇÃO DO FATOR DE ATRITO DO ESCOAMENTO")
     
     eps = 0.045 # mm
     D = 50 # mm
@@ -87,7 +87,7 @@ def validate_friction_factor():
     lhs = 1 / np.sqrt(f_val)
     rhs = -2 * np.log10((eps_over_D / 3.71) + (2.51 / (Re * np.sqrt(f_val)))) # Note: Code uses 3.71
     
-    print(f"[CHECK] Colebrook-White Consistency")
+    print(f"[CHECK] Consistência de Colebrook-White")
     print(f"  LHS (1/sqrt(f)): {lhs:.6f}")
     print(f"  RHS (Colebrook): {rhs:.6f}")
     if abs(lhs - rhs) < 1e-4:
@@ -102,7 +102,7 @@ def validate_friction_factor():
     
     params["method"] = "SwameeJain"
     f_code_sj = hyd.friction_factor(params)
-    check_result("Friction (Swamee-Jain)", f_manual_sj, f_code_sj)
+    check_result("Fator de atrito do escoamento (Swamee-Jain)", f_manual_sj, f_code_sj)
 
     # 3. Haaland
     # 1/sqrt(f) = -1.8 log10( (eps/D)/3.7)^1.11 + 6.9/Re )
@@ -112,10 +112,10 @@ def validate_friction_factor():
     
     params["method"] = "Haaland"
     f_code_h = hyd.friction_factor(params)
-    check_result("Friction (Haaland)", f_manual_h, f_code_h)
+    check_result("Fator de atrito do escoamento (Haaland)", f_manual_h, f_code_h)
 
 def validate_head_loss():
-    print_header("HEAD LOSS VALIDATION")
+    print_header("VALIDAÇÃO DA PERDA DE CARGA")
     
     g = 9.80665
     
@@ -144,7 +144,7 @@ def validate_head_loss():
     }
     
     hl_code_dw = hyd.head_loss(params_dw)
-    check_result("Head Loss (Darcy-Weisbach, 0 fittings)", hl_manual_dw, hl_code_dw, "m")
+    check_result("Perda de carga (Darcy-Weisbach, 0 acessórios)", hl_manual_dw, hl_code_dw, "m")
     
     # Case B: With fittings
     # Need to know the equivalent length the code uses for "Elbow, 90 deg"
@@ -159,7 +159,7 @@ def validate_head_loss():
     
     params_dw["fittings"] = [{"fitting": fitting_name, "quantity": qty}]
     hl_code_dw_fit = hyd.head_loss(params_dw)
-    check_result(f"Head Loss (Darcy-Weisbach, {qty} Elbows)", hl_manual_dw_fit, hl_code_dw_fit, "m")
+    check_result(f"Perda de carga (Darcy-Weisbach, {qty} cotovelos)", hl_manual_dw_fit, hl_code_dw_fit, "m")
     
     # 2. Hazen-Williams
     # hl = 10.67 * L * Q^1.85 / (C^1.85 * D^4.87)  (SI units adjustment needed usually)
@@ -182,16 +182,16 @@ def validate_head_loss():
         "fittings": []
     }
     hl_code_hw = hyd.head_loss(params_hw)
-    check_result("Head Loss (Hazen-Williams)", hl_manual_hw, hl_code_hw, "m")
+    check_result("Perda de carga (Hazen-Williams)", hl_manual_hw, hl_code_hw, "m")
 
 def validate_hydraulic_diameter():
-    print_header("HYDRAULIC DIAMETER VALIDATION")
+    print_header("VALIDAÇÃO DO DIÂMETRO HIDRÁULICO")
     
     # 1. Circular
     D = 50
     # Manual: D_h = D
     params = {"shape": "circular", "diameter": D}
-    check_result("Hydraulic D (Circular)", D, hyd.hydraulic_diameter(params), "mm")
+    check_result("Diâmetro hidráulico (circular)", D, hyd.hydraulic_diameter(params), "mm")
     
     # 2. Rectangular
     W = 40
@@ -199,7 +199,7 @@ def validate_hydraulic_diameter():
     # Manual: Dh = 4A/P = 4*(W*H) / (2*(W+H)) = 2*W*H / (W+H)
     dh_rect = (2 * W * H) / (W + H)
     params = {"shape": "rectangular", "width": W, "height": H}
-    check_result("Hydraulic D (Rectangular)", dh_rect, hyd.hydraulic_diameter(params), "mm")
+    check_result("Diâmetro hidráulico (retangular)", dh_rect, hyd.hydraulic_diameter(params), "mm")
     
     # 3. Annular
     Do = 100
@@ -207,14 +207,14 @@ def validate_hydraulic_diameter():
     # Manual: Dh = Do - Di
     dh_ann = Do - Di
     params = {"shape": "annular", "outer_diameter": Do, "inner_diameter": Di}
-    check_result("Hydraulic D (Annular)", dh_ann, hyd.hydraulic_diameter(params), "mm")
+    check_result("Diâmetro hidráulico (anelar)", dh_ann, hyd.hydraulic_diameter(params), "mm")
     
     # 4. Triangular
     sa, sb, sc = 3, 4, 5 # 3-4-5 triangle (Area=6, perim=12)
     # Area = 6, P = 12 -> Dh = 4*6/12 = 2
     dh_tri = 2.0
     params = {"shape": "triangular", "side_a": sa, "side_b": sb, "side_c": sc}
-    check_result("Hydraulic D (Triangular)", dh_tri, hyd.hydraulic_diameter(params), "mm")
+    check_result("Diâmetro hidráulico (triangular)", dh_tri, hyd.hydraulic_diameter(params), "mm")
     
     # 5. Circular Cap (Partially filled pipe)
     # The code uses complex formulas involving arccos. We will verify specific case: H = D/2 (Half full)
@@ -229,7 +229,7 @@ def validate_hydraulic_diameter():
     # Area A = pi * D^2 / 8
     # Dh = 4 * (pi D^2 / 8) / (pi D / 2) = (pi D^2 / 2) / (pi D / 2) = D
     # So for H=D/2, result should be D (100)
-    check_result("Hydraulic D (Circular Cap, Half-Full)", D_cap, hyd.hydraulic_diameter(params), "mm")
+    check_result("Diâmetro hidráulico (canal circular, meia seção)", D_cap, hyd.hydraulic_diameter(params), "mm")
 
 def validate_npsh_head():
     print_header("NPSH & HEAD VALIDATION")

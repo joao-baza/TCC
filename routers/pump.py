@@ -25,11 +25,11 @@ hydraulic = Hydraulic()
 
 def validate_pump_example_catalogs() -> None:
     if "Aço galvanizado" not in hydraulic.piping.compositions():
-        raise RuntimeError("Composition 'Aço galvanizado' not found")
+        raise RuntimeError("Composição da tubulação 'Aço galvanizado' não encontrada")
     available_fittings = set(hydraulic.piping.fittings())
     for fitting in ("Cotovelo 45°", "Saída de tanque", "Válvula esfera"):
         if fitting not in available_fittings:
-            raise RuntimeError(f"Fitting '{fitting}' not found")
+            raise RuntimeError(f"Acessório da tubulação '{fitting}' não encontrado")
     available_methods = hydraulic.friction_factor({})
     if "SwameeJain" not in available_methods:
         raise RuntimeError("Friction method 'SwameeJain' not found")

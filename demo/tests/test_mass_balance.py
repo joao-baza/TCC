@@ -155,7 +155,7 @@ def test_validate_results_rejects_negative_flow():
     mb = MassBalance(components=["Water"])
     is_valid, error_message = mb.validate_results(results)
     assert not is_valid
-    assert "Negative flow rate" in error_message
+    assert "Vazão negativa" in error_message
 
 def test_validate_results_rejects_invalid_composition_sum():
     results = {
@@ -163,7 +163,7 @@ def test_validate_results_rejects_invalid_composition_sum():
     }
     is_valid, error_message = MassBalance(["Water", "Ethanol"]).validate_results(results)
     assert not is_valid
-    assert "do not sum to approximately 1" in error_message
+    assert "não somam aproximadamente 1" in error_message
 
 def test_validate_stream_compositions_valid():
     stream = StreamModel(name="S1", direction=1, flow_rate=100.0, compositions={"Water": 1.0})
@@ -190,7 +190,7 @@ class TestMassBalanceEdgeCases:
         results = {"Out": {"flow_rate": 100.0, "compositions": {"Water": -0.1}}}
         is_valid, error_message = mb.validate_results(results)
         assert not is_valid
-        assert "Negative composition" in error_message
+        assert "Composição negativa" in error_message
 
     def test_validate_results_accepts_sum_at_lower_boundary(self):
         mb = MassBalance(["Water", "Ethanol"])
@@ -203,7 +203,7 @@ class TestMassBalanceEdgeCases:
         results = {"Out": {"flow_rate": 100.0, "compositions": {"Water": 0.49, "Ethanol": 0.49}}}
         is_valid, error_message = mb.validate_results(results)
         assert not is_valid
-        assert "do not sum to approximately 1" in error_message
+        assert "não somam aproximadamente 1" in error_message
 
     def test_validate_stream_compositions_skips_all_none(self):
         stream = StreamModel(name="S1", direction=1, flow_rate=100.0, compositions={"Water": None})
