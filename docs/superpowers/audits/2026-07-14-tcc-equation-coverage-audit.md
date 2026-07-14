@@ -80,7 +80,7 @@
 | TCC-4.2-008 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:195` | `eq:total_flow` | `Q_T = sum Q_i` | `REA-02` | `fogler2009` |
 | TCC-4.2-009 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:200` | `eq:initial_conc` | `C_i0 = N_i0 / Q_T` | `REA-02` | `fogler2009` |
 | TCC-4.2-010 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:211` | `eq:cstr_design` | `V = F_A0 X / (-r_A)` | `REA-08`, `REA-09`, `REA-10` | `fogler2009` |
-| TCC-4.2-011 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:220` | `eq:residence_time` | `tau = V / Q_T` | `REA-08`, `REA-10`, `REA-14` | `fogler2009` |
+| TCC-4.2-011 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:220` | `eq:residence_time` | `tau = V / Q_T` | `REA-08`, `REA-09`, `REA-10`, `REA-12`, `REA-13`, `REA-14` | `fogler2009` |
 | TCC-4.2-012 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:259` | `eq:cstr_obj_function` | `f(x) = abs(nu_A) r_A V / F_A0 - X` | `REA-09`, `REA-10` | `fogler2009` |
 | TCC-4.2-013 | `final-paper/TEX/chapters/4.2-engenharia-part1.tex:283` | `eq:volume_calc` | `V = Q_T tau` | `REA-10`, `REA-14` | `fogler2009` |
 | TCC-4.2-014 | `final-paper/TEX/chapters/4.2-engenharia-part2.tex:7` | `eq:pfr_design` | `V = (R + 1) F_A0 integral from R X/(R+1) to X of dX/(-r_A)` | `REA-11`, `REA-12`, `REA-13`, `REA-14` | `levenspiel2000`, `fogler2009` |
@@ -118,18 +118,18 @@
 | TCC-4.4-013 | `final-paper/TEX/chapters/4.4-validacao.tex:507` | `eq:val_cstr_vol_deriv` | `V_CSTR = C_A0 v0 X / (k C_A0 (1-X)) = v0 X/(k(1-X))` | `REA-08` | No nearby citation |
 | TCC-4.4-014 | `final-paper/TEX/chapters/4.4-validacao.tex:514` | `eq:val_cstr_vol_calc_1` | `V_manual = 0.01 x 0.85 / (0.05 x (1 - 0.85))` | `REA-08` | No nearby citation |
 | TCC-4.4-015 | `final-paper/TEX/chapters/4.4-validacao.tex:518` | `eq:val_cstr_vol_calc_2` | `V_manual = 0.0085/0.0075 ~= 1.1333 m^3` | `REA-08` | No nearby citation |
-| TCC-4.4-016 | `final-paper/TEX/chapters/4.4-validacao.tex:547` | `eq:val_pfr_deriv_1` | `V = F_A0 integral_0^X dX/(k C_A0(1-X))` | `REA-11` | No nearby citation |
-| TCC-4.4-017 | `final-paper/TEX/chapters/4.4-validacao.tex:553` | `eq:val_pfr_deriv_2` | `V = -(v0/k) ln(1-X)` | `REA-11` | No nearby citation |
-| TCC-4.4-018 | `final-paper/TEX/chapters/4.4-validacao.tex:560` | `eq:val_pfr_calc_1` | `V_manual = -(0.01/0.05) ln(1 - 0.90)` | `REA-11` | No nearby citation |
-| TCC-4.4-019 | `final-paper/TEX/chapters/4.4-validacao.tex:564` | `eq:val_pfr_calc_2` | `V_manual = -0.2 ln(0.10)` | `REA-11` | No nearby citation |
-| TCC-4.4-020 | `final-paper/TEX/chapters/4.4-validacao.tex:569` | `eq:val_pfr_calc_3` | `V_manual = -0.2(-2.302585) ~= 0.4605 m^3` | `REA-11` | No nearby citation |
+| TCC-4.4-016 | `final-paper/TEX/chapters/4.4-validacao.tex:547` | `eq:val_pfr_deriv_1` | `V = F_A0 integral_0^X dX/(k C_A0(1-X))` | `REA-11`, `REA-12` | No nearby citation |
+| TCC-4.4-017 | `final-paper/TEX/chapters/4.4-validacao.tex:553` | `eq:val_pfr_deriv_2` | `V = -(v0/k) ln(1-X)` | `REA-11`, `REA-12` | No nearby citation |
+| TCC-4.4-018 | `final-paper/TEX/chapters/4.4-validacao.tex:560` | `eq:val_pfr_calc_1` | `V_manual = -(0.01/0.05) ln(1 - 0.90)` | `REA-11`, `REA-12` | No nearby citation |
+| TCC-4.4-019 | `final-paper/TEX/chapters/4.4-validacao.tex:564` | `eq:val_pfr_calc_2` | `V_manual = -0.2 ln(0.10)` | `REA-11`, `REA-12` | No nearby citation |
+| TCC-4.4-020 | `final-paper/TEX/chapters/4.4-validacao.tex:569` | `eq:val_pfr_calc_3` | `V_manual = -0.2(-2.302585) ~= 0.4605 m^3` | `REA-11`, `REA-12` | No nearby citation |
 | TCC-4.4-021 | `final-paper/TEX/chapters/4.4-validacao.tex:595` | `eq:val_recycle_xin` | `X_in = R X_out / (R+1)` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
-| TCC-4.4-022 | `final-paper/TEX/chapters/4.4-validacao.tex:601` | `eq:val_recycle_vol_eq` | `V = (R+1) F_A0 integral from X_in to X_out of dX/(-r_A)` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
-| TCC-4.4-023 | `final-paper/TEX/chapters/4.4-validacao.tex:607` | `eq:val_recycle_vol_int` | `V = (R+1) (v0/k) ln((1-X_in)/(1-X_out))` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-022 | `final-paper/TEX/chapters/4.4-validacao.tex:601` | `eq:val_recycle_vol_eq` | `V = (R+1) F_A0 integral from X_in to X_out of dX/(-r_A)` | `REA-11`, `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-023 | `final-paper/TEX/chapters/4.4-validacao.tex:607` | `eq:val_recycle_vol_int` | `V = (R+1) (v0/k) ln((1-X_in)/(1-X_out))` | `REA-11`, `REA-12`, `REA-13`, `REA-14` | No nearby citation |
 | TCC-4.4-024 | `final-paper/TEX/chapters/4.4-validacao.tex:616` | `eq:val_recycle_xin_calc` | `X_in = 2/(2+1) x 0.90 = 0.60` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
-| TCC-4.4-025 | `final-paper/TEX/chapters/4.4-validacao.tex:622` | `eq:val_recycle_vol_calc_1` | `V_manual = 3 x 0.01/0.05 x ln((1-0.60)/(1-0.90))` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
-| TCC-4.4-026 | `final-paper/TEX/chapters/4.4-validacao.tex:626` | `eq:val_recycle_vol_calc_2` | `V_manual = 0.6 ln(4)` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
-| TCC-4.4-027 | `final-paper/TEX/chapters/4.4-validacao.tex:631` | `eq:val_recycle_vol_calc_3` | `V_manual = 0.6 x 1.38629 ~= 0.8318 m^3` | `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-025 | `final-paper/TEX/chapters/4.4-validacao.tex:622` | `eq:val_recycle_vol_calc_1` | `V_manual = 3 x 0.01/0.05 x ln((1-0.60)/(1-0.90))` | `REA-11`, `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-026 | `final-paper/TEX/chapters/4.4-validacao.tex:626` | `eq:val_recycle_vol_calc_2` | `V_manual = 0.6 ln(4)` | `REA-11`, `REA-12`, `REA-13`, `REA-14` | No nearby citation |
+| TCC-4.4-027 | `final-paper/TEX/chapters/4.4-validacao.tex:631` | `eq:val_recycle_vol_calc_3` | `V_manual = 0.6 x 1.38629 ~= 0.8318 m^3` | `REA-11`, `REA-12`, `REA-13`, `REA-14` | No nearby citation |
 
 ## Exclusions
 
