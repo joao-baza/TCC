@@ -457,7 +457,7 @@ export function FlowPage() {
     }
 
     if (sources.roughnessSource === "composition" && !form.composition) {
-      setFrictionError("Selecione uma composição de material.");
+      setFrictionError("Selecione um material da tubulação.");
       return null;
     }
 
@@ -679,7 +679,7 @@ export function FlowPage() {
         <>
           <p>
             Cálculo de Reynolds, fator de atrito e diâmetro hidráulico para apoiar a análise de
-            escoamento em dutos e geometrias não circulares.
+            escoamento interno em seções circulares e geometrias não circulares.
           </p>
           {pageError ? <p className="text-red-600">{pageError}</p> : null}
         </>
@@ -804,7 +804,7 @@ export function FlowPage() {
                       clearFrictionDerived();
                     }}
                   />
-                  Usar composição
+                  Usar material da tubulação
                 </label>
               </fieldset>
 
@@ -826,7 +826,7 @@ export function FlowPage() {
                   options={compositions}
                   value={frictionForm.composition}
                   onValueChange={(value) => setFrictionField("composition", value)}
-                  placeholder="Selecione uma composição"
+                  placeholder="Selecione um material"
                 />
               )}
 
@@ -862,7 +862,7 @@ export function FlowPage() {
 
               {diameterSource === "custom" ? (
                 <label className="block text-sm font-medium text-slate-800" htmlFor="custom-diameter">
-                  Diâmetro da linha
+                  Diâmetro da tubulação
                   <input
                     id="custom-diameter"
                     className={inputClassName}
@@ -893,7 +893,7 @@ export function FlowPage() {
                   />
 
                   <Combobox
-                    label="Diâmetro da linha"
+                    label="Diâmetro da tubulação"
                     options={diameters.map((diameter) => ({
                       value: String(diameter.external_diameter),
                       label: `${diameter.nominal_diameter} mm`,

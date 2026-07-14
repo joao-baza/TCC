@@ -65,7 +65,7 @@ export function McCabeThieleChart({ model }: McCabeThieleChartProps) {
             </p>
             <p>
               A diagonal y = x serve como referência, a curva de equilíbrio mostra a troca
-              real entre as fases e as linhas de enriquecimento, esgotamento e q-line definem
+              real entre as fases e as linhas de enriquecimento, esgotamento e linha q definem
               as condições de operação e alimentação da coluna.
             </p>
             <p>

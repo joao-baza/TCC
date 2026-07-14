@@ -21,7 +21,7 @@ export function ReynoldsHowItWorks() {
         ]}
       />
       <p>
-        Em tubos, valores menores que <strong>2300</strong> indicam regime laminar; entre{" "}
+        No escoamento interno, valores menores que <strong>2300</strong> indicam regime laminar; entre{" "}
         <strong>2300</strong> e <strong>3999</strong>, a faixa é de transição; a partir de{" "}
         <strong>4000</strong>, o escoamento tende a ser turbulento.
       </p>
@@ -35,7 +35,7 @@ export function FrictionFactorHowItWorks() {
     <HowItWorks title="Como funciona - Fator de Atrito">
       <p>
         O fator de atrito de Darcy quantifica a resistência ao escoamento ao longo de uma
-        linha pressurizada e entra diretamente na equação de Darcy-Weisbach.
+        tubulação pressurizada e entra diretamente na equação de Darcy-Weisbach.
       </p>
       <MathBlock expression={"h_f = f\\,\\dfrac{L}{D}\\,\\dfrac{V^2}{2g}"} />
       <p>
@@ -82,7 +82,7 @@ export function HydraulicDiameterHowItWorks() {
     <HowItWorks title="Como funciona - Diâmetro Hidráulico">
       <p>
         O diâmetro hidráulico é uma dimensão equivalente usada para representar seções não
-        circulares em correlações desenvolvidas para tubos.
+        circulares em correlações desenvolvidas para seções circulares.
       </p>
       <MathBlock expression={"D_h = \\dfrac{4A}{P_{molhado}}"} />
       <VariablesTable

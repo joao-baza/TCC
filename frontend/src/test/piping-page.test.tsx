@@ -296,10 +296,10 @@ describe("PipingPage", () => {
       await screen.findByRole("heading", { name: /Tubulações e Acessórios/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Como funciona - Composições/i }),
+      screen.getByRole("button", { name: /Como funciona - Materiais da tubulação/i }),
     ).toBeInTheDocument();
 
-    await selectOption(/Composição/i, "Aço comercial");
+    await selectOption(/Material da tubulação/i, "Aço comercial");
     await waitFor(() => {
       expect(getRowContaining(/^Roughness$/i)).toBeDefined();
     });
@@ -325,10 +325,10 @@ describe("PipingPage", () => {
       /^(?:-|dimensionless)$/i,
     );
 
-    fireEvent.change(screen.getByLabelText(/Composição/i), {
+    fireEvent.change(screen.getByLabelText(/Material da tubulação/i), {
       target: { value: "" },
     });
-    closeCombobox(/Composição/i);
+    closeCombobox(/Material da tubulação/i);
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
 
     await openPipingTab(/Schedules e Diâmetros/i);
@@ -385,13 +385,13 @@ describe("PipingPage", () => {
       await screen.findByRole("heading", { name: /Tubulações e Acessórios/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Como funciona - Composições/i }),
+      screen.getByRole("button", { name: /Como funciona - Materiais da tubulação/i }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Carregar exemplo/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Composição/i)).toHaveValue("Aço galvanizado");
+      expect(screen.getByLabelText(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
     });
 
     await openPipingTab(/Schedules e Diâmetros/i);
@@ -421,15 +421,15 @@ describe("PipingPage", () => {
       await screen.findByRole("heading", { name: /Tubulações e Acessórios/i }),
     ).toBeInTheDocument();
 
-    await selectOption(/Composição/i, "Aço comercial");
+    await selectOption(/Material da tubulação/i, "Aço comercial");
     await waitFor(() => {
       expect(getRowContaining(/^Roughness$/i)).toBeDefined();
     });
 
-    fireEvent.change(screen.getByLabelText(/Composição/i), {
+    fireEvent.change(screen.getByLabelText(/Material da tubulação/i), {
       target: { value: "" },
     });
-    closeCombobox(/Composição/i);
+    closeCombobox(/Material da tubulação/i);
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
 
     await openPipingTab(/Schedules e Diâmetros/i);
@@ -469,8 +469,8 @@ describe("PipingPage", () => {
       await screen.findByRole("heading", { name: /Tubulações e Acessórios/i }),
     ).toBeInTheDocument();
 
-    await selectOption(/Composição/i, "Aço comercial");
-    fireEvent.change(screen.getByLabelText(/Composição/i), {
+    await selectOption(/Material da tubulação/i, "Aço comercial");
+    fireEvent.change(screen.getByLabelText(/Material da tubulação/i), {
       target: { value: "" },
     });
 
@@ -533,7 +533,7 @@ describe("PipingPage", () => {
       await screen.findByRole("heading", { name: /Tubulações e Acessórios/i }),
     ).toBeInTheDocument();
 
-    await selectOption(/Composição/i, "Aço comercial");
+    await selectOption(/Material da tubulação/i, "Aço comercial");
 
     await waitFor(() => {
       expect(notifyMock.error).toHaveBeenCalledWith(

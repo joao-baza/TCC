@@ -45,7 +45,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Curva de perda de carga",
     category: "Hidráulica",
     definition:
-      "Curva que relaciona a perda de carga total com a vazão do sistema. Em linhas reais cresce rapidamente com o aumento da vazão, normalmente com comportamento aproximadamente quadrático.",
+      "Curva que relaciona a perda de carga total com a vazão do sistema. Em tubulações reais cresce rapidamente com o aumento da vazão, normalmente com comportamento aproximadamente quadrático.",
   },
   {
     term: "Diâmetro hidráulico (D_h)",
@@ -81,13 +81,13 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Comprimento equivalente (L_eq)",
     category: "Hidráulica",
     definition:
-      "Perda localizada de acessórios (curvas, válvulas, expansões) expressa como tubo reto: \\(L_{tot} = L_{reta} + \\sum L_{eq}\\). Permite usar Darcy-Weisbach para toda a linha. Valores de \\(L_{eq}/D\\) tabelados por tipo de acessório.",
+      "Perda localizada de acessórios (curvas, válvulas, expansões) expressa como tubulação reta: \\(L_{tot} = L_{reta} + \\sum L_{eq}\\). Permite usar Darcy-Weisbach para toda a tubulação. Valores de \\(L_{eq}/D\\) tabelados por tipo de acessório.",
   },
   {
     term: "Altura manométrica (H)",
     category: "Hidráulica",
     definition:
-      "Bernoulli estendida entre dois pontos de uma linha: \\[H = \\frac{P_2 - P_1}{\\rho g} + \\frac{V_2^2 - V_1^2}{2g} + (z_2 - z_1) + h_f\\] H &gt; 0 → bomba necessária; H &lt; 0 → energia extraída (turbina).",
+      "Bernoulli estendida entre dois pontos da tubulação: \\[H = \\frac{P_2 - P_1}{\\rho g} + \\frac{V_2^2 - V_1^2}{2g} + (z_2 - z_1) + h_f\\] H &gt; 0 → bomba necessária; H &lt; 0 → energia extraída (turbina).",
   },
   {
     term: "Diagrama de Moody",
@@ -105,7 +105,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "<em>Schedule</em> (ASME)",
     category: "Dimensionamento",
     definition:
-      "Norma para espessura de parede de tubo metálico (ex: Sch 40, Sch 80). Maior número → parede mais espessa → diâmetro interno menor.",
+      "Norma para espessura de parede de tubulação metálica (ex: Sch 40, Sch 80). Maior número → parede mais espessa → diâmetro interno menor.",
   },
   {
     term: "DN / NPS",
@@ -380,7 +380,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "McCabe-Thiele",
     category: "Termodinâmica",
     definition:
-      "Método gráfico para estimar o número de estágios teóricos em uma coluna de destilação binária. Usa a curva de equilíbrio, a linha de operação, a q-line e a construção em degraus entre alimentação, destilado e fundo.",
+      "Método gráfico para estimar o número de estágios teóricos em uma coluna de destilação binária. Usa a curva de equilíbrio, a linha de operação, a linha q e a construção em degraus entre alimentação, destilado e fundo.",
   },
   {
     term: "Mapa de eficiência da bomba",
@@ -416,7 +416,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Perfil de pressão por trecho/acessório",
     category: "Bombas",
     definition:
-      "Queda acumulada de pressão ao longo da linha, destacando cada trecho reto e cada acessório. Ajuda a localizar onde a maior perda de carga ocorre.",
+      "Queda acumulada de pressão ao longo da tubulação, destacando cada trecho reto e cada acessório. Ajuda a localizar onde a maior perda de carga ocorre.",
   },
   {
     term: "Perfil de PFR",
