@@ -11,8 +11,8 @@
 
 | ID | Area | Board source | Files | Evidence needed | Status | Decision |
 | --- | --- | --- | --- | --- | --- | --- |
-| S1 | Slides | audio.txt:520-529 | slides/sections/*.tex | Search for monografia/Monografia and defense terms | Inventoried | No source hits for monografia/monograph/defesa de monografia in slides |
-| S2 | Slides | audio.txt:403-420 | slides/sections/02-solution.tex; slides/sections/03-demo.tex; slides/sections/04-architecture.tex | Search coverage lists for methods classified as properties | Inventoried | McCabe-Thiele is grouped under Propriedades in coverage slide; no other clear misgrouped method found in scan |
+| S1 | Slides | audio.txt:520-529 | slides/sections/*.tex | Search for monografia/Monografia and defense terms | Verified | Task 3 scan found no `monografia`/`monograph` hits in slide sources; no slide source edit required |
+| S2 | Slides | audio.txt:403-420 | slides/sections/02-solution.tex; slides/sections/03-demo.tex; slides/sections/04-architecture.tex | Search coverage lists for methods classified as properties | Corrected | `slides/sections/02-solution.tex` now separates `Propriedades e equilíbrios` from `Métodos e visualizações`; McCabe-Thiele remains only in method/visualization context |
 | W1 | Writing | audio.txt:273-284 | final-paper/TEX/chapters/4.1-desenvolvimento.tex; final-paper/TEX/chapters/4.3-api.tex | Current architecture paragraphs and API/backend explanation | Open | Unreviewed at matrix creation |
 | W2 | Writing | audio.txt:520-529 | final-paper/TEX/**/*.tex | Search for monografia/Monografia | Inventoried | No source hits for monografia/monograph/defesa de monografia in final paper |
 | W3 | Writing | audio.txt:531-546 | final-paper/TEX/chapters/2-justificativa.tex; final-paper/TEX/chapters/4.1-desenvolvimento.tex | Current justification and open-source/code-auditability wording | Open | Unreviewed at matrix creation |
@@ -43,6 +43,14 @@ rg -n -i "monografia|monograph|defesa de monografia" slides final-paper/TEX
 
 Result: no matches. No `S1` or `W2` source hit needs correction in the current slides or final paper.
 
+Task 3 recheck:
+
+```bash
+rg -n -i "monografia|monograph" slides/sections/*.tex slides/main.tex
+```
+
+Result: no matches. S1 required no source edit after the slide scan.
+
 ### S2 - Slide classification
 
 Command:
@@ -62,7 +70,25 @@ Relevant hits:
 - `slides/sections/04-architecture.tex:108`: `Moody, curva de bomba, NPSH, altura manométrica, T-x-y, McCabe-Thiele, envelope de fase, Arrhenius, PFR e balanço.`
 - `slides/sections/04-architecture.tex:166`: `Diagramas T-x-y e McCabe-Thiele tornam visível a construção de estágios teóricos.`
 
-Decision: `change` for `slides/sections/02-solution.tex:35-36` if the next task edits slides, because McCabe-Thiele is a method/diagram grouped under `Propriedades`. The architecture/demo hits classify McCabe-Thiele as diagram/visualization and can be kept. No other clear method/diagram is incorrectly grouped by this scan.
+Decision before Task 3: `change` for `slides/sections/02-solution.tex:35-36` if the next task edits slides, because McCabe-Thiele is a method/diagram grouped under `Propriedades`. The architecture/demo hits classify McCabe-Thiele as diagram/visualization and can be kept. No other clear method/diagram is incorrectly grouped by this scan.
+
+Task 3 correction:
+
+- `slides/sections/02-solution.tex:35-36` changed the block title from `Propriedades` to `Propriedades e equilíbrios` and removed McCabe-Thiele from the property list.
+- `slides/sections/02-solution.tex:45-46` added `Métodos e visualizações` with `Diagramas T-x-y, McCabe-Thiele, Moody, Levenspiel e curvas de sistema...`.
+
+Task 3 verification commands:
+
+```bash
+nl -ba slides/sections/02-solution.tex | sed -n '1,120p'
+rg -n "Propriedades|Métodos|metodos|diagramas|Diagramas|curvas|Curvas|McCabe|Moody|Levenspiel|Arrhenius|NPSH|BEP" slides/sections/*.tex
+./slides/compile.sh
+pdftotext slides/main.pdf /tmp/tcc-slides.txt
+rg -n -i "monografia|monograph" /tmp/tcc-slides.txt
+rg -n -i "McCabe|Propriedades|Métodos|metodos" /tmp/tcc-slides.txt
+```
+
+Result: source scan shows McCabe-Thiele in `Métodos e visualizações`, demo/architecture visualization contexts, and references; no comparable method-as-property issue was found. `./slides/compile.sh` exited 0 and regenerated `slides/main.pdf`. PDF text scan had no `monografia`/`monograph` matches; McCabe-Thiele appears under the PDF text sequence `Métodos e visualizações` / `Diagramas T-x-y, McCabe-Thiele, Moody...`.
 
 ### W4/W5/W6/W7 - Ambiguous and mixed-language terms
 
@@ -193,8 +219,8 @@ Conclusion: the generated PDF exposes the same inventory issues as the source sc
 
 ## Final Verification
 
-- Slides compile after edits: Not run yet; fill during Task 9.
-- Final paper compile after edits: Not run yet; fill during Task 9.
-- PDF text scan: Not run yet; fill during Task 9.
+- Slides compile after edits: Task 3 ran `./slides/compile.sh`; command exited 0 and wrote `slides/main.pdf`.
+- Final paper compile after edits: Not run in Task 3; slide-only scope did not edit final-paper sources.
+- PDF text scan: Task 3 ran `pdftotext slides/main.pdf /tmp/tcc-slides.txt`, confirmed no `monografia`/`monograph` hits, and confirmed McCabe-Thiele appears in method/visualization context.
 - Figure check: Not run yet; fill during Task 9.
 - Remaining justified terms: Not reviewed yet; fill during Task 9.
