@@ -38,6 +38,9 @@ const defaultStroke = "#2563eb";
 const dashedThinSeriesIds = new Set(["q-line", "rectifying-line", "stripping-line"]);
 const guidedMarkerIds = new Set(["operating-point", "triple-point", "critical-point"]);
 const mccabeGuideMarkerIds = new Set(["xD", "xB"]);
+const levenspielOperationalMarkerIds = new Set(["cstr-operating-point", "pfr-operating-point"]);
+const levenspielChartId = "reactor-levenspiel-chart";
+const operationalVolumeGuideLabel = "volume operacional calculado";
 
 function projectPoint(
   point: { x: number; y: number },
@@ -261,6 +264,39 @@ function renderVerticalGuide(
   );
 }
 
+function renderOperationalVolumeGuide(
+  markerY: number,
+  width: number,
+  padding: ChartPadding,
+) {
+  const labelY = markerY - 8 < padding.top + 12 ? markerY + 16 : markerY - 8;
+
+  return (
+    <>
+      <line
+        data-marker-guide-id="operational-volume"
+        stroke="#475569"
+        strokeDasharray="4 4"
+        strokeLinecap="round"
+        strokeWidth="1.2"
+        x1={padding.left}
+        x2={width - padding.right}
+        y1={markerY}
+        y2={markerY}
+      />
+      <text
+        fill="#475569"
+        fontSize="12"
+        fontWeight="600"
+        x={padding.left + 12}
+        y={labelY}
+      >
+        {operationalVolumeGuideLabel}
+      </text>
+    </>
+  );
+}
+
 function buildStackedBarSegments(
   series: SeriesModel[],
   model: ChartModel,
@@ -419,6 +455,13 @@ export function ChartModelRenderer({
     ? scaleRenderableAxisValue(yAxis.domain.min, yAxis, height - padding.bottom, padding.top)
     : null;
   const feedMarkerPosition = projectedMarkerPositions.get("zF");
+  const operationalVolumeGuidePosition =
+    normalizedModel.id === levenspielChartId
+      ? visibleMarkers
+          .filter((marker) => levenspielOperationalMarkerIds.has(marker.id))
+          .map((marker) => projectedMarkerPositions.get(marker.id))
+          .find((position): position is { x: number; y: number } => position != null)
+      : null;
 
   const chartBody = !xAxis || !yAxis ? (
     <p className="text-sm text-muted-foreground">
@@ -564,6 +607,10 @@ export function ChartModelRenderer({
             );
           })}
 
+          {operationalVolumeGuidePosition
+            ? renderOperationalVolumeGuide(operationalVolumeGuidePosition.y, width, padding)
+            : null}
+
           {visibleMarkers.map((marker) => {
             const projected = projectedMarkerPositions.get(marker.id);
             const markerX = projected?.x ?? null;
@@ -594,7 +641,9 @@ export function ChartModelRenderer({
                   stroke="#fff"
                   strokeWidth="2"
                 />
-                {hiddenMarkerLabelIds?.includes(marker.id) ? null : (
+                {hiddenMarkerLabelIds?.includes(marker.id) ||
+                (normalizedModel.id === levenspielChartId &&
+                  levenspielOperationalMarkerIds.has(marker.id)) ? null : (
                   <text
                     x={markerX + 8}
                     y={markerY - 8}

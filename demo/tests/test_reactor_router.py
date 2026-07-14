@@ -258,6 +258,9 @@ def test_reactor_levenspiel_chart_endpoint_returns_raw_chart_model():
     assert payload["id"] == "reactor-levenspiel-chart"
     assert payload["axes"]["x"]["label"] == "Conversão"
     assert payload["axes"]["x"]["units"] == "adimensional"
+    assert payload["axes"]["x"]["domain"] == {"min": 0.0, "max": 1.0}
+    assert payload["axes"]["x"]["ticks"][0] == 0.0
+    assert payload["axes"]["x"]["ticks"][-1] == 1.0
     assert payload["axes"]["y"]["label"] == "Volume"
     assert payload["axes"]["y"]["units"] == "m³"
     assert payload["metadata"]["units"] == {"x": "adimensional", "y": "m³"}

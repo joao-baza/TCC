@@ -10,12 +10,14 @@ import { RemoveButton } from "@/components/remove-button";
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import type { PropertyRow } from "@/components/property-table";
 import { ResultTableSection } from "@/components/result-table-section";
+import { normalizeChartColors } from "@/components/viz/chart-color-utils";
 import { ChartModelRenderer } from "@/components/viz/chart-model-renderer";
 import { ChartSeriesLegend } from "@/components/viz/chart-series-legend";
 import { PfrProfileChart } from "@/components/viz/pfr-profile-chart";
 import {
   ArrheniusHowItWorks,
   CstrHowItWorks,
+  LevenspielHowItWorks,
   PfrHowItWorks,
 } from "@/features/reactor/didactics";
 import {
@@ -73,6 +75,11 @@ type PlotFormState = {
 };
 
 type ReactorComparableBasis = {
+  inputType: string;
+  conversion: string;
+  volume: string;
+  residenceTime: string;
+  recyclingRatio: string;
   components: Array<{
     state: ReactorComponentState["state"];
     componentName: string;
@@ -321,6 +328,11 @@ function buildComparableBasis(form: ReactorFormState): ReactorComparableBasis | 
   }
 
   return {
+    inputType: normalizeScalar(form.inputType),
+    conversion: normalizeScalar(form.conversion),
+    volume: normalizeScalar(form.volume),
+    residenceTime: normalizeScalar(form.residenceTime),
+    recyclingRatio: normalizeScalar(form.recyclingRatio),
     components: indexes.map((index) => ({
       state: form.components[index].state,
       componentName: normalizeScalar(form.components[index].component_name),
@@ -443,7 +455,7 @@ function buildLevenspielChartPayload(
       Number(form.stoichiometricCoefficients[index]),
     ),
     reaction_rate_params: {
-      k: Number(plot.rateConstant || form.rateConstant),
+      k: Number(form.rateConstant),
       reaction_orders: indexes.map((index) => Number(form.reactionOrders[index])),
     },
     operation_conditions: {
@@ -743,16 +755,34 @@ function LevenspielTabContent({
   comparableForms: boolean;
   loading: boolean;
 }) {
+  const normalizedChartModel = chartModel == null ? null : normalizeChartColors(chartModel);
+  const legendItems =
+    normalizedChartModel == null
+      ? []
+      : [
+          ...normalizedChartModel.series.map((series) => ({
+            id: series.id,
+            label: series.name,
+            color: series.color ?? "#2563eb",
+          })),
+          ...normalizedChartModel.markers.map((marker) => ({
+            id: marker.id,
+            label: marker.label,
+            color: marker.color ?? "#64748b",
+          })),
+        ];
+
   return (
     <Card>
       <CardContent className="space-y-4 pt-6">
+        <LevenspielHowItWorks />
         {!hasResults ? (
           <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
             Calcule CSTR e PFR para gerar o diagrama comparativo.
           </div>
         ) : !comparableForms ? (
           <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">
-            Alinhe conversão, cinética e alimentação entre CSTR e PFR para gerar o diagrama.
+            Alinhe todos os parâmetros de projeto entre CSTR e PFR para gerar o diagrama.
           </div>
         ) : loading ? (
           <div
@@ -766,11 +796,17 @@ function LevenspielTabContent({
           <div className="flex min-h-48 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
             Defina dados válidos de conversão, vazão e cinética para gerar o diagrama comparativo.
           </div>
-        ) : (
-          <div data-testid="levenspiel-chart">
-            <ChartModelRenderer model={chartModel} />
+        ) : normalizedChartModel ? (
+          <div className="space-y-3" data-testid="levenspiel-chart">
+            <ChartModelRenderer model={normalizedChartModel} />
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                Legenda do gráfico
+              </p>
+              <ChartSeriesLegend items={legendItems} />
+            </div>
           </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

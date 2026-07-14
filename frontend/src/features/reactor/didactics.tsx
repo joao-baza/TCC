@@ -72,6 +72,30 @@ export function PfrRecycleDaHowItWorks() {
   );
 }
 
+export function LevenspielHowItWorks() {
+  return (
+    <HowItWorks title="Como funciona - Levenspiel">
+      <p className="text-sm text-slate-700">
+        O diagrama compara o volume necessário para atingir uma conversão X usando a
+        mesma alimentação, estequiometria, cinética e parâmetros de projeto nos modelos
+        CSTR e PFR.
+      </p>
+      <MathBlock expression={"V_{CSTR} = \\frac{F_{A0}X}{-r_{A,saida}}"} />
+      <MathBlock expression={"V_{PFR} = F_{A0}\\int_0^X \\frac{dX}{-r_A}"} />
+      <p className="text-sm text-slate-700">
+        Cada curva é calculada pelo backend para uma sequência de conversões. Os pontos
+        operacionais indicam as conversões obtidas nos cálculos atuais de CSTR e PFR.
+      </p>
+      <TheoryRef>
+        Use a distância entre as curvas para discutir por que o PFR normalmente exige
+        menor volume quando a taxa depende principalmente do reagente. Se a taxa depender
+        de produto inicialmente ausente, a comparação pode mudar porque o PFR começa com
+        pouca ou nenhuma concentração desse produto.
+      </TheoryRef>
+    </HowItWorks>
+  );
+}
+
 export function ArrheniusHowItWorks() {
   return (
     <HowItWorks title="Como funciona - Arrhenius">
