@@ -397,85 +397,53 @@ O módulo de tubulações atua como um banco de dados de engenharia, fornecendo 
 
 A função \textit{fittings()} retorna uma lista de todos os acessórios hidráulicos cadastrados no sistema. Esta funcionalidade permite que outros módulos (como o de Perda de Carga) validem a entrada de dados do usuário e utilizem os coeficientes corretos.
 
-\begin{figure}[H]
-    \centering
-    \caption{Lista parcial de acessórios disponíveis (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_lista_acessorios_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
 \subsubsection{Especificação de Acessórios}
 
 A função \textit{fitting\_specifications(nome)} retorna os detalhes técnicos de um acessório, incluindo seu comprimento equivalente adimensional ($L_{eq}/D$) ou coeficiente de perda de carga ($K$).
 Para validação, utilizou-se o acessório \textit{90 degrees Elbow long radius} (Cotovelo 90º Raio Longo).
 
-\begin{figure}[H]
-    \centering
-    \caption{Especificações do acessório Cotovelo 90º Raio Longo (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_especificacao_cotovelo_raio_longo_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-
-
 \subsubsection{Composição}
 
 A função \textit{compositions()} lista os materiais de tubulação disponíveis, associando-os às suas respectivas rugosidades absolutas, parâmetro crítico para o cálculo do Fator de Atrito de Darcy.
-
-\begin{figure}[H]
-    \centering
-    \caption{Lista parcial de materiais de tubulação (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_lista_materiais_tubulacao_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
 
 \subsubsection{Especificação da Composição}
 
 A função \textit{composition\_specifications(nome)} retorna as propriedades de um material específico.
 Para validação, verificou-se o material \textit{Commercial steel} (Aço comercial).
 
-\begin{figure}[H]
-    \centering
-    \caption{Especificações do material Aço Comercial (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_especificacao_aco_comercial_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-
-
 \subsubsection{\textit{Schedules}}
 
 A função \textit{schedules()} fornece as classes de pressão/espessura disponíveis (ex: SCH40, SCH80), permitindo a seleção adequada conforme a norma ANSI/ASME B36.10M.
 
-\begin{figure}[H]
-    \centering
-    \caption{Lista de classes de pressão (\textit{Schedules}) disponíveis (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_lista_schedules_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
 \subsubsection{Diâmetros}
 
 A função \textit{diameters(schedule)} lista os diâmetros nominais (DN) disponíveis para uma determinada classe (\textit{schedule}).
-
-\begin{figure}[H]
-    \centering
-    \caption{Lista parcial de diâmetros para SCH40 (JSON)}
-    \includegraphics[width=0.6\linewidth]{media/cap4_lista_diametros_sch40_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
 
 \subsubsection{Especificação de Diâmetros}
 
 A função \textit{diameter\_specifications(schedule, dn)} retorna as dimensões reais do tubo, incluindo diâmetro externo, espessura de parede e diâmetro interno (calculado).
 Para validação, utilizou-se um tubo de \textit{Schedule} 40 com Diâmetro Nominal 50 (aprox. 2 polegadas).
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \caption{Especificações do tubo SCH40 DN50 (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_especificacao_tubo_sch40_dn50_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+    \caption{Resumo dos contratos validados no módulo de tubulações}
+    \label{tab:contratos-validacao-tubulacoes}
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.28\textwidth}p{0.31\textwidth}}
+        \hline
+        \textbf{Contrato} & \textbf{Consulta validada} & \textbf{Evidência verificada} \\
+        \hline
+        Acessórios & \textit{fittings()} & Lista reutilizável para validação de entradas e perdas locais. \\
+        Especificação de acessório & \textit{fitting\_specifications(}\\\textit{nome)} & Comprimento equivalente ou coeficiente $K$ do cotovelo de 90 graus de raio longo. \\
+        Composição & \textit{compositions()} & Materiais disponíveis e suas rugosidades absolutas. \\
+        Especificação de composição & \textit{composition\_}\\\textit{specifications(}\\\textit{nome)} & Propriedades do material Aço Comercial. \\
+        Schedules & \textit{schedules()} & Classes de pressão e espessura, como SCH40 e SCH80. \\
+        Diâmetros & \textit{diameters(schedule)} & Diâmetros nominais disponíveis para o SCH40. \\
+        Especificação de diâmetro & \textit{diameter\_specifications(}\\\textit{schedule, dn)} & Diâmetro externo, espessura e diâmetro interno do tubo SCH40 DN50. \\
+        \hline
+    \end{tabular}
+    \fonte{Autoria própria.}
+\end{table}
 
 
 
