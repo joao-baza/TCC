@@ -9,7 +9,7 @@ V = {( R + 1 ) \cdot F}_{A 0} \cdot \int_{\frac{R}{R + 1} X \ }^{X} \frac{d X}{-
 \label{eq:pfr_design}
 \end{equation}
 
-Tendo que $R$ representa a razão de reciclo ou recirculação, definida na mesma base do parâmetro de entrada do sistema como vazão reciclada dividida pela vazão fresca de alimentação. Assim, o termo $( R + 1 )$ acomoda o aumento da vazão que atravessa o reator na integração. No código, essa integral é avaliada numericamente (por exemplo, via \textit{scipy.integrate.quad}). Para o caso inverso, em que $V$ é conhecido e se busca $X$, utiliza-se novamente um procedimento iterativo (método de Brent) aplicando a equação de \textit{design} diferencial até encontrar a conversão cujo volume calculado corresponda ao especificado \cite{fogler2009}.
+Tendo que $R$ é adimensional e representa a razão de reciclo ou recirculação, definida como vazão reciclada dividida pela vazão fresca de alimentação. Assim, o termo $( R + 1 )$ acomoda o aumento da vazão que atravessa o reator na integração. No código, essa integral é avaliada numericamente (por exemplo, via \textit{scipy.integrate.quad}). Para o caso inverso, em que $V$ é conhecido e se busca $X$, utiliza-se novamente um procedimento iterativo (método de Brent) aplicando a equação de \textit{design} diferencial até encontrar a conversão cujo volume calculado corresponda ao especificado \cite{fogler2009}.
 
 Considerando a similaridade estrutural e semântica com as rotinas de cálculo do \textit{CSTR}, destaca-se a diferença na função objetivo usada para o cálculo de volume, representada na Figura a seguir.
 
