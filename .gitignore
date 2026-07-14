@@ -50,6 +50,25 @@ monograph/TEX/**/*.ind
 monograph/TEX/**/*.bcf
 monograph/TEX/**/*.run.xml
 
+# Arquivos gerados pela compilação do LaTeX em final-paper/TEX
+final-paper/TEX/**/*.aux
+final-paper/TEX/**/*.bbl
+final-paper/TEX/**/*.blg
+final-paper/TEX/**/*.log
+final-paper/TEX/**/*.out
+final-paper/TEX/**/*.toc
+final-paper/TEX/**/*.lof
+final-paper/TEX/**/*.lot
+final-paper/TEX/**/*.fls
+final-paper/TEX/**/*.fdb_latexmk
+final-paper/TEX/**/*.synctex.gz
+final-paper/TEX/**/*.idx
+final-paper/TEX/**/*.ilg
+final-paper/TEX/**/*.ind
+final-paper/TEX/**/*.bcf
+final-paper/TEX/**/*.run.xml
+final-paper/TEX/main.pdf
+
 # Arquivos gerados pela compilação do LaTeX em slides/
 slides/**/*.aux
 slides/**/*.bbl

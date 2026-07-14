@@ -74,7 +74,7 @@ A consulta das propriedades críticas para a água retornou uma temperatura crí
 
 \subsubsection{Opções de Propriedades de Misturas}
 
-Para sistemas multicomponentes, a função \textit{get\_property\_mixture\_names()} delimita o subconjunto de propriedades que podem ser calculadas. Diferentemente das substâncias puras, observa-se que certas propriedades de transporte específicas ou tensão superficial podem não estar disponíveis dependendo do modelo de mistura (\textit{HEOS}) empregado. A listagem confirma a disponibilidade das variáveis de estado essenciais (entalpia, entropia, densidade) necessárias para o dimensionamento de reatores e tubulações.
+Para sistemas multicomponentes, a função \textit{get\_property\_mixture\_names()} delimita o subconjunto de propriedades que podem ser calculadas. Diferentemente das substâncias puras, observa-se que certas propriedades de transporte específicas ou tensão superficial podem não estar disponíveis dependendo do modelo de mistura (\textit{HEOS}) empregado. A listagem confirma a disponibilidade das variáveis de estado essenciais (entalpia, entropia, massa específica) necessárias para o dimensionamento de reatores e tubulações.
 
 \begin{figure}[H]
     \centering
@@ -85,7 +85,7 @@ Para sistemas multicomponentes, a função \textit{get\_property\_mixture\_names
 
 \subsubsection{Valor de Propriedades de Misturas}
 
-A simulação de uma mistura binária equimolar de Água $( 5 0 \% )$ e Etanol ($5 0 \% )$a $3 0 0 K$ e $1 a t m$ resultou em uma densidade de mistura de $8 1 4 , 0 4 \  k g / m^{3}$. O código utiliza internamente a regra de mistura baseada na energia livre de Helmholtz (HEOS) do \textit{CoolProp} para ponderar as interações moleculares entre os componentes. Este valor intermediário entre a densidade da água pura ($9 9 7 k g / m^{3}$) e do etanol puro ($7 8 9 k g / m^{3}$) demonstra a eficácia do algoritmo em prever o comportamento não-ideal da solução.
+A simulação de uma mistura binária equimolar de Água $( 5 0 \% )$ e Etanol ($5 0 \% )$a $3 0 0 K$ e $1 a t m$ resultou em uma massa específica de mistura de $8 1 4 , 0 4 \  k g / m^{3}$. O código utiliza internamente a regra de mistura baseada na energia livre de Helmholtz (HEOS) do \textit{CoolProp} para ponderar as interações moleculares entre os componentes. Este valor intermediário entre a massa específica da água pura ($9 9 7 k g / m^{3}$) e do etanol puro ($7 8 9 k g / m^{3}$) demonstra a eficácia do algoritmo em prever o comportamento não-ideal da solução.
 
 \begin{figure}[H]
     \centering
@@ -97,6 +97,8 @@ A simulação de uma mistura binária equimolar de Água $( 5 0 \% )$ e Etanol (
 \subsection{Hidráulicos}
 \subsubsection{Perda de Carga}
 Para a validação do cálculo de perda de carga, utilizou-se o método de Darcy--Weisbach, aplicável a fluxos incompressíveis em qualquer regime de escoamento. A equação base para o cálculo é a Equação \ref{eq:darcy}.
+
+Nesta validação, comprimentos e diâmetros são tratados em metros, a velocidade em $m/s$, $g$ em $m/s^2$ e a perda de carga calculada $h_f$ é reportada em metros.
 
 Onde a perda de carga localizada ($\sum h_{local}$) é calculada através do comprimento equivalente ($L_{eq}$) dos acessórios:
 
@@ -192,7 +194,7 @@ A função de seleção de diâmetro comercial verifica o próximo diâmetro nom
 \end{itemize}
 
 \subsubsection{Diâmetro Calculado}
-O dimensionamento preliminar baseia-se na equação da continuidade para tubos circulares.
+O dimensionamento preliminar baseia-se na equação da continuidade para dutos circulares.
 
 (ver Equação \ref{eq:diametro_calc})
 
@@ -216,7 +218,7 @@ O cálculo do \textit{Net Positive Suction Head} disponível ($NPSH_a$) utiliza 
     \item \textbf{Status:} [MATCH] (Desvio: < 0,01\%)
 \end{itemize}
 
-\subsubsection{Head}
+\subsubsection{Altura manométrica}
 A carga manométrica total da bomba ($H_{man}$) é calculada pela diferença de energia entre sucção e descarga:
 
 \begin{center} Utilizando a Equação \ref{eq:bernoulli} \end{center}
@@ -273,6 +275,8 @@ A relação geral é definida na Equação \ref{eq:diametro_hidraulico}.
 
 A validação do balanço de massa foi realizada considerando um misturador ideal (Mixer) alimentado por duas correntes puras.
 
+Nos exemplos de balanço desta seção, cada soma ou subtração mantém uma única base de vazão: mássica no misturador e no divisor de corrente, molar no reator de conversão.
+
 \textbf{Definição do Caso Teste:}
 \begin{itemize}
     \item \textbf{Corrente 1 (S1):} $100\,\mathrm{kg/h}$ de Água pura ($z_{\mathrm{agua}}=1{,}0$).
@@ -284,14 +288,17 @@ A validação do balanço de massa foi realizada considerando um misturador idea
 \begin{enumerate}
     \item \textbf{Balanço Global:}
     \begin{equation}
+        \label{eq:val_mixer_total_flow}
         F_{S3} = F_{S1} + F_{S2} = 100 + 100 = 200 \ kg/h
     \end{equation}
     
     \item \textbf{Balanço por Componente (Água):}
     \begin{equation}
+        \label{eq:val_mixer_component_balance}
         F_{S3} \cdot z_{S3,agua} = F_{S1} \cdot z_{S1,agua} + F_{S2} \cdot z_{S2,agua}
     \end{equation}
     \begin{equation}
+        \label{eq:val_mixer_water_fraction}
         200 \cdot z_{S3,agua} = 100 \cdot 1,0 + 100 \cdot 0,0 \implies z_{S3,agua} = 0,5
     \end{equation}
 \end{enumerate}
@@ -335,13 +342,16 @@ Neste caso, avalia-se a geração e consumo de espécies químicas em um sistema
 \textbf{Cálculo Manual:}
 Pela estequiometria, para cada mol de A consumido, gera-se 1 mol de B.
 \begin{equation}
+    \label{eq:val_reaction_flow_a}
     F_{A,out} = F_{A,in}(1 - X_A) = 100(1 - 0,40) = 60 \ mol/s
 \end{equation}
 \begin{equation}
+    \label{eq:val_reaction_flow_b}
     F_{B,out} = F_{A,in} X_A = 100(0,40) = 40 \ mol/s
 \end{equation}
 A vazão molar total permanece constante ($60+40=100$), resultando nas frações molares:
 \begin{equation}
+    \label{eq:val_reaction_mole_fractions}
     y_A = \frac{60}{100} = 0,6; \quad y_B = \frac{40}{100} = 0,4
 \end{equation}
 
@@ -359,9 +369,11 @@ Simula-se uma operação de separação física onde uma corrente é dividida em
 
 \textbf{Cálculo Manual:}
 \begin{equation}
+    \label{eq:val_recycle_flow_mass}
     F_{Reciclo} = 0,2 \cdot 100 = 20 \ kg/h
 \end{equation}
 \begin{equation}
+    \label{eq:val_product_flow_mass}
     F_{Produto} = (1 - 0,2) \cdot 100 = 80 \ kg/h
 \end{equation}
 A composição deve permanecer inalterada: $z_A=0,5; z_B=0,5$ em ambas as saídas.
@@ -379,7 +391,7 @@ Conforme apresentado na saída expandida do \textit{software} (Figura \ref{fig:c
 
 \subsection{Tubulações}
 
-O módulo de tubulações (\textit{Piping}) atua como um banco de dados de engenharia, fornecendo especificações padronizadas para acessórios, materiais e dimensões de tubos. A validação deste módulo consiste na verificação da conformidade dos dados retornados com as tabelas normativas padrão.
+O módulo de tubulações atua como um banco de dados de engenharia, fornecendo especificações padronizadas para acessórios, materiais e dimensões de tubos. A validação deste módulo consiste na verificação da conformidade dos dados retornados com as tabelas normativas padrão.
 
 \subsubsection{Acessórios}
 
@@ -483,7 +495,9 @@ Para todos os casos, adotou-se uma reação irreversível de primeira ordem $A \
 
 A equação de projeto (balanço molar) para um \textit{CSTR} operando em regime estacionário é a Equação \ref{eq:cstr_design}.
 
-Para uma reação de primeira ordem em fase líquida (densidade constante), a taxa de reação é dada por:
+Para esta validação, a base dimensional segue os parâmetros globais acima; a cinética de primeira ordem gera $-r_A$ em $\mathrm{mol/(m^3\,s)}$ e as conversões permanecem adimensionais.
+
+Para uma reação de primeira ordem em fase líquida (massa específica constante), a taxa de reação é dada por:
 \begin{equation}
     -r_A = k C_A = k C_{A0} (1-X)
     \label{eq:val_rate_law}
@@ -526,6 +540,8 @@ Também validou-se o cálculo inverso (Desempenho), onde fornece-se $V=1,1333 m^
 \subsubsection{\textit{PFR}: Reator Tubular}
 
 A equação de projeto para um \textit{PFR} é obtida através do balanço diferencial de massa (Equação \ref{eq:pfr_design}).
+
+Na validação do \textit{PFR}, $F_{A0}/(-r_A)$ tem unidade de volume ao combinar vazão molar com taxa molar de reação por volume de reator, e a integração ocorre sobre conversão adimensional.
 
 Substituindo a cinética de primeira ordem:
 \begin{equation}
@@ -571,7 +587,9 @@ Sabendo que $\ln(0,10) \approx -2,302585$:
 
 \subsubsection{\textit{PFR} com Reciclo}
 
-Em reatores com reciclo, parte da corrente de saída retorna à entrada. Para uma razão de reciclo $R$ (vazão de reciclo / vazão de saída do sistema), a conversão na entrada do reator ($X_{in}$) é diferente de zero, pois há mistura de reagentes frescos ($X=0$) com reagentes reciclados ($X=X_{out}$).
+Em reatores com reciclo, parte da corrente de saída retorna à entrada. Para uma razão de reciclo $R$ (vazão reciclada / vazão fresca de alimentação), a conversão na entrada do reator ($X_{in}$) é diferente de zero, pois há mistura de reagentes frescos ($X=0$) com reagentes reciclados ($X=X_{out}$).
+
+Na validação com reciclo, $R$, $X_{in}$ e a variável de integração $X$ permanecem adimensionais; $F_{A0}/(-r_A)$ define a escala de volume do reator.
 
 A relação de balanço de massa no ponto de mistura fornece:
 \begin{equation}

@@ -10,7 +10,13 @@
     "build:frontend": "npm --prefix ../frontend run build",
     "build:backend": "node scripts/build-backend.mjs",
     "dist": "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml",
-    "dist:local": "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml --linux AppImage --win nsis"
+    "dist:linux": "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml --linux AppImage",
+    "dist:windows": "npm run build:frontend && npm run build:backend && electron-builder --config electron-builder.yml --win nsis",
+    "dist:local": "npm run dist:linux",
+    "checksums": "node scripts/write-release-checksums.mjs",
+    "smoke:linux": "node scripts/smoke-packaged-app.mjs --target=linux",
+    "smoke:windows": "node scripts/smoke-packaged-app.mjs --target=windows",
+    "smoke:macos": "node scripts/smoke-packaged-app.mjs --target=macos"
   },
   "dependencies": {
     "express": "^5.1.0",
