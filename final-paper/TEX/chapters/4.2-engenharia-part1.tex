@@ -28,7 +28,7 @@ Em que:
     \item $D$ -- diâmetro hidráulico do duto circular.
 \end{itemize}
 
-Essa relação advém diretamente da equação da continuidade para escoamento em regime permanente \cite{white2018}. Em unidades coerentes do SI, $Q$ em $\mathrm{m^3/s}$ e $V$ em $\mathrm{m/s}$ produzem $D$ em $\mathrm{m}$. No código, a função \textit{get\_calculated\_diameter} presente na classe dos cálculos hidráulicos utiliza o controle de unidades via \textit{Pint}, realiza as conversões necessárias e reporta o resultado em milímetros, assegurando consistência dimensional.
+Essa relação advém diretamente da equação da continuidade para escoamento em regime permanente \cite{white2018}. $Q$ em $\mathrm{m^3/s}$ e $V$ em $\mathrm{m/s}$ dão $D$ em $\mathrm{m}$ na equação; a rotina implementada converte o resultado exibido para $\mathrm{mm}$.
 
 \begin{figure}[H]
     \centering
@@ -56,12 +56,35 @@ Modelos ideais como \textit{CSTR}, \textit{PFR} e batelada fornecem limites úte
 
 No escopo deste projeto, são considerados reatores isotérmicos e monofásicos (todos os reagentes e produtos em uma única fase, líquida ou gasosa). O código rejeita misturas de componentes em estados físicos diferentes, a fim de garantir a validade dos balanços e do coeficiente de variação volumétrica utilizado para o estado atual dos módulos de cálculo para reatores.
 
+A Tabela \ref{tab:unidades-reatores-estequiometria} padroniza a leitura dimensional das Equações \ref{eq:razao_reagente} a \ref{eq:dilution_factor}. Assim, os parágrafos seguintes se concentram no papel físico de cada relação.
+
+\begin{table}[H]
+    \centering
+    \caption{Unidades e natureza dos símbolos nas relações estequiométricas e cinéticas de reatores}
+    \label{tab:unidades-reatores-estequiometria}
+    \begin{tabular}{|p{0.30\textwidth}|p{0.60\textwidth}|}
+        \hline
+        \textbf{Símbolo} & \textbf{Unidade ou natureza} \\ \hline
+        $N_{i0}$ & Vazão molar, por exemplo $\mathrm{mol/s}$. \\ \hline
+        $\nu_i$, $\nu_A$, $\nu_P$, $\nu_R$ & Coeficientes estequiométricos adimensionais. \\ \hline
+        $C_i$, $C_{i0}$, $C_{A0}$ & Concentração molar, por exemplo $\mathrm{mol/m^3}$. \\ \hline
+        $X$ & Conversão adimensional. \\ \hline
+        $y_{A0}$ & Fração molar adimensional do reagente limitante na alimentação. \\ \hline
+        $\varepsilon$ & Coeficiente de variação volumétrica adimensional. \\ \hline
+        $\psi$ & Fator de diluição adimensional. \\ \hline
+        $P$, $P_0$ & Pressões em unidades coerentes entre si, usadas apenas na razão $P_0/P$. \\ \hline
+        $T$, $T_0$ & Temperaturas absolutas em $\mathrm{K}$, usadas apenas na razão $T/T_0$. \\ \hline
+        $r$ ou $-r_A$ & Taxa molar de reação por volume de reator, por exemplo $\mathrm{mol/(m^3\,s)}$. \\ \hline
+        $k$ & Constante cinética com unidades definidas pela ordem global da reação. \\ \hline
+    \end{tabular}
+\end{table}
+
 Algumas lógicas gerais se aplicam a todos os tipos de reatores implementados. Por exemplo, a determinação do reagente limitante identifica o reagente cuja disponibilidade inicial por unidade estequiométrica é a menor entre os reagentes presentes. Em termos de cálculo, percorrem-se apenas os reagentes (coeficientes estequiométricos negativos), calculando conforme a Equação \ref{eq:razao_reagente}:
 \begin{equation}
 \mathrm{razao}_{i} = \frac{N_{i0}}{|\nu_i|}
 \label{eq:razao_reagente}
 \end{equation}
-em que $N_{i0}$ é a vazão molar de entrada do reagente $i$ e $\nu_i$ é seu coeficiente estequiométrico. O valor absoluto $|\nu_i|$ evita a inversão de sinal causada pela convenção negativa dos reagentes; o reagente com menor valor de $\mathrm{razao}_{i}$ é o limitante \cite{felder2005}.
+O quociente compara a disponibilidade molar de cada reagente por unidade estequiométrica. O valor absoluto $|\nu_i|$ evita a inversão de sinal causada pela convenção negativa dos reagentes; o reagente com menor valor de $\mathrm{razao}_{i}$ é o limitante \cite{felder2005}.
 
 \begin{figure}[H]
     \centering
@@ -84,12 +107,7 @@ r = k \cdot \prod_{}^{} C_{i}^{n_{i}}
 \label{eq:rate_law}
 \end{equation}
 
-Em que:
-\begin{itemize}
-    \item $C_{i}^{n_{i}}$ -- concentração do reagente $i$ elevada à sua ordem de velocidade;
-    \item $r$ -- taxa de reação por unidade de volume;
-    \item $k$ -- constante de velocidade.
-\end{itemize}
+A Equação \ref{eq:rate_law} representa uma lei de potência: cada concentração entra elevada à sua ordem de velocidade, e $k$ assume a unidade necessária para que o produto resulte em taxa volumétrica de reação.
 
 \begin{figure}[H]
     \centering
@@ -105,16 +123,7 @@ C_{i} = \frac{C_{i0} + \left( \frac{\nu_i}{|\nu_A|} \cdot C_{A0} \cdot X \right)
 \label{eq:conc_stoich}
 \end{equation}
 
-Em que:
-\begin{itemize}
-    \item $C_{i}$ -- concentração do componente na saída;
-    \item $C_{i0}$ -- concentração do componente na entrada;
-    \item $\psi$ -- fator de diluição total;
-    \item $X$ -- conversão do reagente limitante;
-    \item $C_{A0}$ -- concentração de entrada do reagente limitante;
-    \item $\nu_i$ -- coeficiente estequiométrico do componente;
-    \item $\nu_A$ -- coeficiente estequiométrico do reagente limitante.
-\end{itemize}
+A Equação \ref{eq:conc_stoich} ajusta a concentração de cada componente pela conversão do reagente limitante. O numerador representa consumo ou formação estequiométrica, enquanto o denominador aplica a diluição total do meio.
 
 \begin{figure}[H]
     \centering
@@ -130,13 +139,7 @@ Para determinação do coeficiente de variação volumétrica para reações gas
 \label{eq:epsilon_def}
 \end{equation}
 
-Em que:
-\begin{itemize}
-    \item $\sum_{\nu_i>0} \nu_i$ -- somatório dos coeficientes estequiométricos positivos dos produtos gasosos;
-    \item $\sum_{\nu_i<0} |\nu_i|$ -- somatório dos módulos dos coeficientes estequiométricos negativos dos reagentes gasosos;
-    \item $y_{A0}$ -- fração molar do reagente limitante na alimentação;
-    \item $\nu_{A}$ -- coeficiente estequiométrico do reagente limitante.
-\end{itemize}
+O numerador compara a quantidade estequiométrica formada e consumida na fase gasosa, normalizada pelo reagente limitante. O sinal de $\varepsilon$ indica expansão ou contração molar associada à reação.
 
 \begin{equation}
 \psi = ( 1 + \varepsilon X ) \frac{P_{0}}{P} \frac{T}{T_{0}}
@@ -157,6 +160,26 @@ Onde $\varepsilon$ representa a variação volumétrica ou molar por mol de $A$ 
 O reator do tipo \textit{CSTR} é um tanque agitado operando em regime contínuo. Assume-se mistura completa no interior do tanque (composição uniforme em todo o volume). A conversão é desenvolvida integralmente dentro do volume do reator, dependendo do balanço entre a cinética de reação e o tempo de residência dos reagentes no tanque.
 
 No sistema implementado, são suportados três casos de uso: (i) conversão desejada e cinética conhecidas (calcula-se o volume do reator necessário), (ii) volume disponível e cinética conhecidas (calcula-se a conversão atingida) e (iii) tempo de residência e cinética conhecidos (calcula-se a conversão atingida). As saídas calculadas pelo algoritmo incluem, entre outros: conversão do reagente limitante $X$, vazão molar do reagente limitante na entrada $F_{A0}$, vazão volumétrica total na saída $Q_{T}$, volume do reator $V$, taxa de reação $r$ no interior, concentrações de saída $C_{i,\mathrm{saida}}$, fator de diluição $\psi$, coeficiente de variação volumétrica $\varepsilon$ e tempo de residência $\tau$.
+
+A Tabela \ref{tab:unidades-cstr} resume as unidades locais da sequência de cálculo do \textit{CSTR}; essas definições valem para as Equações \ref{eq:molar_flow_in} a \ref{eq:volume_calc}.
+
+\begin{table}[H]
+    \centering
+    \caption{Unidades e natureza dos símbolos na sequência de cálculo do \textit{CSTR}}
+    \label{tab:unidades-cstr}
+    \begin{tabular}{|p{0.30\textwidth}|p{0.60\textwidth}|}
+        \hline
+        \textbf{Símbolo} & \textbf{Unidade ou natureza} \\ \hline
+        $N_{i0}$, $F_{A0}$ & Vazão molar, por exemplo $\mathrm{mol/s}$. \\ \hline
+        $Q_i$, $Q_T$ & Vazão volumétrica, por exemplo $\mathrm{m^3/s}$. \\ \hline
+        $C_{i0}$, $C_{i0e}$ & Concentração molar, por exemplo $\mathrm{mol/m^3}$. \\ \hline
+        $V$ & Volume do reator, por exemplo $\mathrm{m^3}$. \\ \hline
+        $X$ & Conversão adimensional. \\ \hline
+        $-r_A$ & Taxa molar de reação por volume de reator, por exemplo $\mathrm{mol/(m^3\,s)}$. \\ \hline
+        $\tau$ & Tempo de residência, por exemplo $\mathrm{s}$. \\ \hline
+        $f(X)$ em \ref{eq:cstr_obj_function} & Resíduo objetivo: diferença numérica entre conversões adimensionais. \\ \hline
+    \end{tabular}
+\end{table}
 
 \paragraph{Conversão e Cinética (Cálculo do Volume)}
 
@@ -190,11 +213,7 @@ V = \frac{F_{A 0} \cdot X}{- r_{A}}
 \label{eq:cstr_design}
 \end{equation}
 
-Em que:
-\begin{itemize}
-    \item $F_{A0}$ -- vazão molar de $A$ na entrada;
-    \item $r$ -- taxa de consumo de $A$ por unidade de volume no interior do reator.
-\end{itemize}
+Nessa expressão, o produto $F_{A0}X$ representa a vazão molar convertida do reagente limitante, e a divisão pela taxa de consumo volumétrica fornece o volume requerido do tanque.
 
 Cálculo do tempo de residência:
 
