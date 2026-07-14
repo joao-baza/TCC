@@ -116,7 +116,7 @@ h_f = 0,02 \cdot \frac{100}{0,05} \cdot \frac{2^2}{2 \cdot 9,80665} = 40 \cdot 0
 \label{eq:val_hf_calc_a}
 \end{equation}
     \item \textbf{\textit{Software}:} $8,1577 \ m$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \textbf{Teste B: Com Acessórios (2 Curvas 90º Raio Longo)}
@@ -130,7 +130,7 @@ h_f = 0,02 \cdot \frac{101,6}{0,05} \cdot \frac{2^2}{2 \cdot 9,80665} = 8,2882 \
 \label{eq:val_hf_calc_b}
 \end{equation}
     \item \textbf{\textit{Software}:} $8,2882 \ m$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \subsubsection{Reynolds}
@@ -142,7 +142,7 @@ O Número de Reynolds ($Re$) foi validado utilizando as duas formas de entrada s
     \item \textbf{Dados:} $\rho=998 kg/m^3, V=2,0 m/s, D=0,05 m, \mu=1,002 \cdot 10^{-3} Pa \cdot s$
     \item \textbf{Cálculo Manual:} $Re = \frac{998 \cdot 2 \cdot 0,05}{0,001002} = 99.600,8$
     \item \textbf{\textit{Software}:} $99.600,8$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \textbf{Método 2: Viscosidade Cinemática}
@@ -151,7 +151,7 @@ O Número de Reynolds ($Re$) foi validado utilizando as duas formas de entrada s
     \item \textbf{Dados:} $V=2,0 m/s, D=0,05 m, \nu=1,004 \cdot 10^{-6} m^2/s$
     \item \textbf{Cálculo Manual:} $Re = \frac{2 \cdot 0,05}{1,004 \cdot 10^{-6}} = 99.601,6$
     \item \textbf{\textit{Software}:} $99.601,6$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \subsubsection{Fator de Atrito}
@@ -164,7 +164,7 @@ Verificou-se a convergência da solução numérica da \textit{API} comparando o
     \item \textbf{Dados:} $\varepsilon=0,045mm, D=50mm, Re=100.000$
     \item \textbf{\textit{Software} ($f$):} $0,021614$
     \item \textbf{Check:} \textit{LHS} = 6,802; \textit{RHS} = 6,802
-    \item \textbf{Status:} [CONVERGÊNCIA CONFIRMADA]
+    \item \textbf{Status:} Convergência confirmada.
 \end{itemize}
 
 \textbf{B. Equação de Swamee-Jain (Explícita) \cite{swamee1976}}
@@ -172,7 +172,7 @@ Verificou-se a convergência da solução numérica da \textit{API} comparando o
 \begin{itemize}
     \item \textbf{Cálculo Manual:} $f = 0,02199$
     \item \textbf{\textit{Software}:} $0,02199$
-    \item \textbf{Status:} [MATCH]
+    \item \textbf{Status:} Resultado concordante.
 \end{itemize}
 
 \textbf{C. Equação de Haaland (Explícita) \cite{haaland1983}}
@@ -180,7 +180,7 @@ Verificou-se a convergência da solução numérica da \textit{API} comparando o
 \begin{itemize}
     \item \textbf{Cálculo Manual:} $f = 0,02161$
     \item \textbf{\textit{Software}:} $0,02161$
-    \item \textbf{Status:} [MATCH]
+    \item \textbf{Status:} Resultado concordante.
 \end{itemize}
 
 \subsubsection{Diâmetro Real}
@@ -190,7 +190,7 @@ A função de seleção de diâmetro comercial verifica o próximo diâmetro nom
     \item \textbf{Entrada:} Diâmetro Calculado = 45,0 mm. \textit{Schedule} = SCH40.
     \item \textbf{Lógica Manual:} Consultar tabela SCH40. Diâmetros disponíveis: ..., 32, 40, 50, 65... O próximo maior que 45 é 50.
     \item \textbf{\textit{Software}:} $50,0 \ mm$
-    \item \textbf{Status:} [MATCH]
+    \item \textbf{Status:} Resultado concordante.
 \end{itemize}
 
 \subsubsection{Diâmetro Calculado}
@@ -202,7 +202,7 @@ O dimensionamento preliminar baseia-se na equação da continuidade para dutos c
     \item \textbf{Dados:} $Q=0,005 m^3/s, V=1,5 m/s$
     \item \textbf{Cálculo Manual:} $D = \sqrt{\frac{4 \cdot 0,005}{\pi \cdot 1,5}} = \sqrt{0,004244} = 0,06515 \ m \ (65,15 mm)$
     \item \textbf{\textit{Software}:} $65,15 \ mm$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \subsubsection{\textit{NPSH} Disponível}
@@ -215,7 +215,7 @@ O cálculo do \textit{Net Positive Suction Head} disponível ($NPSH_a$) utiliza 
     \item \textbf{Termos de Pressão (m.c.a):} $H_{press} = \frac{(0{,}5+1{,}033) \cdot 98.066{,}5}{9.806{,}6} = 15{,}33\,\mathrm{m}$, $H_{vap} = 0{,}2\,\mathrm{m}$
     \item \textbf{Cálculo Manual:} $15,33 + 2,0 + 0,11 - 1,0 - 0,2 = 16,24 \ m$
     \item \textbf{\textit{Software}:} $16,24 \ m$
-    \item \textbf{Status:} [MATCH] (Desvio: < 0,01\%)
+    \item \textbf{Status:} Resultado concordante, com desvio inferior a 0,01\%.
 \end{itemize}
 
 \subsubsection{Altura manométrica}
@@ -227,7 +227,7 @@ A carga manométrica total da bomba ($H_{man}$) é calculada pela diferença de 
     \item \textbf{Dados:} $\Delta P=101.325 Pa, \Delta Z=10m, V_1=1m/s, V_2=2m/s, h_f=5m$
     \item \textbf{Cálculo Manual:} $\frac{101.325}{9806} + 10 + \frac{4-1}{19,6} + 5 = 10,33 + 10 + 0,15 + 5 = 25,48 \ m$
     \item \textbf{\textit{Software}:} $25,48 \ m$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \subsubsection{Diâmetro Hidráulico}
@@ -239,35 +239,35 @@ A relação geral é definida na Equação \ref{eq:diametro_hidraulico}.
 \begin{itemize}
     \item \textbf{Dados:} $D=50mm$
     \item \textbf{Manual:} $D_h = D = 50mm$
-    \item \textbf{\textit{Software}:} $50mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $50mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \textbf{2. Retangular}
 \begin{itemize}
     \item \textbf{Dados:} $L=40mm, H=30mm$
     \item \textbf{Manual:} $A=1200, P=140 \rightarrow D_h = \frac{4800}{140} = 34,29 \ mm$
-    \item \textbf{\textit{Software}:} $34,29mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $34,29mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \textbf{3. Anular (Tubo Concêntrico)}
 \begin{itemize}
     \item \textbf{Dados:} $D_{ext}=100mm, D_{int}=50mm$
     \item \textbf{Manual:} $D_h = D_{ext} - D_{int} = 50mm$
-    \item \textbf{\textit{Software}:} $50mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $50mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \textbf{4. Triangular}
 \begin{itemize}
     \item \textbf{Dados:} Lados 3, 4, 5 (Triângulo Retângulo). $A=6, P=12$.
     \item \textbf{Manual:} $D_h = \frac{4 \cdot 6}{12} = 2,0mm$
-    \item \textbf{\textit{Software}:} $2,0mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $2,0mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \textbf{5. Canal Circular (Meia Seção)}
 \begin{itemize}
     \item \textbf{Dados:} $D=100mm$, Nível $H=50mm$ (Metade).
     \item \textbf{Manual:} Para meia seção cheia, $A = \pi R^2 / 2$, $P = \pi R$. Logo $D_h = \frac{4 (\pi R^2/2)}{\pi R} = 2R = D = 100mm$.
-    \item \textbf{\textit{Software}:} $100,0mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $100,0mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \subsection{Balanços de Massa}
