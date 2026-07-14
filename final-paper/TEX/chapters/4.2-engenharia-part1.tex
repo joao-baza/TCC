@@ -10,7 +10,7 @@ O dimensionamento consiste em definir o diâmetro nominal e o \textit{schedule} 
 
 Na prática, calcula-se um diâmetro a partir da vazão e velocidade alvo e seleciona-se o diâmetro comercial imediatamente superior disponível, verificando em seguida a perda de carga pelo método de Darcy–Weisbach e a integridade mecânica conforme normas aplicáveis. Temperatura e pressão afetam propriedades físicas do fluido e critérios de espessura da tubulação; adicionalmente, a topografia da planta e o número de acessórios elevam o comprimento equivalente total.
 
-Subdimensionar uma linha implica grandes perdas de carga e custos energéticos; superdimensionar acarreta CAPEX elevado e pode gerar velocidades muito baixas (favorecendo sedimentação em linhas com sólidos). O embasamento teórico combina a equação de continuidade, correlações de atrito e seleção de materiais, apoiado no uso do diagrama de Moody \cite{white2018}.
+Subdimensionar uma tubulação implica grandes perdas de carga e custos energéticos; superdimensionar acarreta CAPEX elevado e pode gerar velocidades muito baixas (favorecendo sedimentação em tubulações com sólidos). O embasamento teórico combina a equação de continuidade, correlações de atrito e seleção de materiais, apoiado no uso do diagrama de Moody \cite{white2018}.
 
 \subsubsection{Diâmetro Calculado}
 
@@ -39,7 +39,7 @@ Essa relação advém diretamente da equação da continuidade para escoamento e
 
 \subsubsection{Diâmetro Real}
 
-O diâmetro real corresponde ao diâmetro nominal da tubulação a ser utilizada. Fabricantes produzem tubos em geometrias padronizadas (padrões de espessura como SCH 10, SCH 40, SCH 80 etc.). Deve-se calcular inicialmente o diâmetro necessário pelo método anterior e então escolher, em tabela de catálogo, a tubulação comercial com diâmetro interno imediatamente superior, no material e \textit{schedule} desejados. Essa lógica é implementada na função \textit{get\_real\_diameter}, garantindo que o diâmetro selecionado comportará a vazão com velocidade dentro do admissível. Após a seleção, verifica-se a perda de carga resultante e, se necessário, itera-se para outro diâmetro.
+O diâmetro real corresponde ao diâmetro nominal da tubulação a ser utilizada. Fabricantes produzem tubos em geometrias padronizadas (padrões de espessura como SCH 10, SCH 40, SCH 80 etc.). Deve-se calcular inicialmente o diâmetro necessário pelo método anterior e então escolher, em tabela de catálogo, o tubo comercial com diâmetro interno imediatamente superior, no material e \textit{schedule} desejados. Essa lógica é implementada na função \textit{get\_real\_diameter}, garantindo que o diâmetro selecionado comportará a vazão com velocidade dentro do admissível. Após a seleção, verifica-se a perda de carga resultante e, se necessário, itera-se para outro diâmetro.
 
 \begin{figure}[H]
     \centering
@@ -54,7 +54,7 @@ Reatores são equipamentos projetados para promover reações químicas, convert
 
 Modelos ideais como \textit{CSTR}, \textit{PFR} e batelada fornecem limites úteis para projeto e análise de desempenho. As variáveis centrais envolvidas no projeto de reatores incluem conversão dos reagentes, seletividade e rendimento (em caso de múltiplas reações), velocidade de reação, tempo de residência, volume do reator e condições de operação (temperatura, pressão). Industrialmente, o correto dimensionamento de reatores afeta diretamente a capacidade produtiva, a qualidade do produto e a segurança, especialmente no controle de remoção de calor em reações exotérmicas. A cinética química depende fortemente da temperatura (lei de Arrhenius) e da forma funcional da taxa de reação (ordem de reação, efeitos de inibição, presença de inertes, variação volumétrica em fase gasosa etc.). Erros na previsão de conversão ou no cálculo do volume reacional podem levar a baixa seletividade, formação de pontos quentes (\textit{hot spots}) e riscos operacionais. A base teórica conjuga balanços de massa por componente com leis cinéticas apropriadas, integradas no espaço (\textit{PFR}) ou no tempo de residência (\textit{CSTR}), podendo incluir balanço de energia quando o regime térmico é relevante \cite{fogler2009,levenspiel2000}.
 
-No escopo deste projeto, são considerados reatores isotérmicos e monofásicos (todos os reagentes e produtos em uma única fase, líquida ou gasosa). O código rejeita misturas de componentes em estados físicos diferentes, a fim de garantir a validade dos balanços e do fator de expansão volumétrica utilizado para o estado atual dos módulos de cálculo para reatores.
+No escopo deste projeto, são considerados reatores isotérmicos e monofásicos (todos os reagentes e produtos em uma única fase, líquida ou gasosa). O código rejeita misturas de componentes em estados físicos diferentes, a fim de garantir a validade dos balanços e do fator de variação volumétrica utilizado para o estado atual dos módulos de cálculo para reatores.
 
 Algumas lógicas gerais se aplicam a todos os tipos de reatores implementados. Por exemplo, a determinação do reagente limitante, onde: identifica-se aquele reagente cuja razão entre a vazão molar de entrada e seu coeficiente estequiométrico é a menor dentre os reagentes presentes. Em termos de cálculo, percorrem-se os reagentes (coeficientes estequiométricos negativos), calculando conforme a Equação \ref{eq:razao_reagente}:
 \begin{equation}
@@ -109,7 +109,7 @@ Em que:
 \begin{itemize}
     \item $C_{i}$ -- concentração do componente na saída;
     \item $C_{i0}$ -- concentração do componente na entrada;
-    \item $\varepsilon$ -- coeficiente de expansão volumétrico;
+    \item $\varepsilon$ -- coeficiente de variação volumétrica da reação;
     \item $X$ -- conversão do reagente limitante;
     \item $C_{A}$ -- concentração do reagente limitante;
     \item $n_{i}$ -- coeficiente estequiométrico do componente;
@@ -123,7 +123,7 @@ Em que:
     \fonte{Elaboração própria (2026).}
 \end{figure}
 
-Para determinação do coeficiente de expansão volumétrico para reações gasosas, a Equação \ref{eq:epsilon_def} deve ser utilizada.
+Para determinação do coeficiente de variação volumétrica para reações gasosas, a Equação \ref{eq:epsilon_def} deve ser utilizada.
 
 \begin{equation}
 \varepsilon = y_{A0} \cdot \frac{\sum_{}^{} n_{P} - \sum_{}^{} n_{R}}{|n_{A}|}
@@ -150,13 +150,13 @@ Em que:
     \fonte{Elaboração própria (2026).}
 \end{figure}
 
-Onde $\varepsilon$ representa a variação de número de mols por mol de $A$ reagido. O fator $\psi$ agrega a expansão/contração estequiométrica (via $\varepsilon X$) e as correções de pressão e temperatura em relação às condições iniciais \cite{levenspiel2000}. Essas relações estequiométricas permitem calcular as concentrações de saída de todos os componentes a partir da conversão $X$ do reagente limitante, sendo a base para os balanços nos diferentes modelos de reatores.
+Onde $\varepsilon$ representa a variação de número de mols por mol de $A$ reagido. O fator $\psi$ agrega a variação volumétrica estequiométrica (via $\varepsilon X$) e as correções de pressão e temperatura em relação às condições iniciais \cite{levenspiel2000}. Essas relações estequiométricas permitem calcular as concentrações de saída de todos os componentes a partir da conversão $X$ do reagente limitante, sendo a base para os balanços nos diferentes modelos de reatores.
 
 \subsubsection{Reator do Tipo \textit{CSTR}}
 
 O reator do tipo \textit{CSTR} é um tanque agitado operando em regime contínuo. Assume-se mistura completa no interior do tanque (composição uniforme em todo o volume). A conversão é desenvolvida integralmente dentro do volume do reator, dependendo do balanço entre a cinética de reação e o tempo de residência dos reagentes no tanque.
 
-No sistema implementado, são suportados três casos de uso: (i) conversão desejada e cinética conhecidas (calcula-se o volume do reator necessário), (ii) volume disponível e cinética conhecidas (calcula-se a conversão atingida) e (iii) tempo de residência e cinética conhecidos (calcula-se a conversão atingida). As saídas calculadas pelo algoritmo incluem, entre outros: conversão do reagente limitante $X$, vazão molar do reagente limitante na entrada $F_{A0}$, vazão volumétrica total na saída $Q_{T}$, volume do reator $V$, taxa de reação $r$ no interior, concentrações de saída $C_{i,\mathrm{saida}}$, fator de diluição $\psi$, coeficiente de expansão $\varepsilon$ e tempo de residência $\tau$.
+No sistema implementado, são suportados três casos de uso: (i) conversão desejada e cinética conhecidas (calcula-se o volume do reator necessário), (ii) volume disponível e cinética conhecidas (calcula-se a conversão atingida) e (iii) tempo de residência e cinética conhecidos (calcula-se a conversão atingida). As saídas calculadas pelo algoritmo incluem, entre outros: conversão do reagente limitante $X$, vazão molar do reagente limitante na entrada $F_{A0}$, vazão volumétrica total na saída $Q_{T}$, volume do reator $V$, taxa de reação $r$ no interior, concentrações de saída $C_{i,\mathrm{saida}}$, fator de diluição $\psi$, coeficiente de variação volumétrica $\varepsilon$ e tempo de residência $\tau$.
 
 \paragraph{Conversão e Cinética (Cálculo do Volume)}
 
