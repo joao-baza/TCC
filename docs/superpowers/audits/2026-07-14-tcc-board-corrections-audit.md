@@ -21,13 +21,13 @@
 | W6 | Writing | audio.txt:621-627 | final-paper/TEX/**/*.tex | Search linha/corrente/tubo/tubulacao in context | Corrected | Task 5 replaced nonstandard pipe-design `linha` uses, kept `linha de sucção` and `linhas operacionais`, and aligned `tubo`/`tubulação`/`duto` by context |
 | W7 | Writing | audio.txt:765-779 | final-paper/TEX/**/*.tex | Search motor computacional/head and equivalent English terms | Partially corrected | Task 4 replaced `motor computacional` in scoped conceptual-writing files; `head` remains in hydraulic/validation sections outside this task's owned files and is recorded for a later targeted prose/caption pass |
 | N1 | Nomenclature | audio.txt:644-663 | final-paper/TEX/main.tex; final-paper/TEX/chapters/4.2-engenharia-part1.tex | Symbols used in equations and list of siglas | Corrected with concern | Task 5 kept the symbol list consistent with current formulas by deferring `\nu_i`, renamed `\varepsilon` as coefficient of volumetric variation, and kept `\psi`; Task 6/7 must resolve current stoichiometric-symbol and `\varphi`/`\psi` conflicts |
-| E1 | Equation | audio.txt:628-638 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/hydraulic.py; routers/sizing.py | Diameter equation units and backend conversion | Open | Unreviewed at matrix creation |
-| E2 | Equation | audio.txt:307-321 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py; routers/reactor.py | Limiting reagent formula and code behavior | Open | Unreviewed at matrix creation |
-| E3 | Equation | audio.txt:323-339 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py; routers/reactor.py | Concentration equation, dilution factor, and reference | Open | Unreviewed at matrix creation |
-| E4 | Equation | audio.txt:665-701 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py | Volumetric variation and dilution-factor symbol consistency | Open | Unreviewed at matrix creation |
-| E5 | Equation | audio.txt:702-714 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py | Equation 4.11 against 4.13 and code | Open | Unreviewed at matrix creation |
-| E6 | Equation | audio.txt:340-368 | final-paper/TEX/chapters/4.2-engenharia-part2.tex; models/reactor.py | Recycle ratio definition and code basis | Open | Unreviewed at matrix creation |
-| E7 | Equation | audio.txt:388-392 | final-paper/TEX/chapters/4.2-engenharia-part2.tex; models/hydraulic.py; routers/pump.py | Bernoulli/head equation and sign convention | Open | Unreviewed at matrix creation |
+| E1 | Equation | audio.txt:628-638 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/hydraulic.py; routers/sizing.py | Diameter equation units and backend conversion | Verified | Keep equation; later prose can explicitly state Q in m³/s, V in m/s, and D converted from m to mm in code |
+| E2 | Equation | audio.txt:307-321 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py; routers/reactor.py | Limiting reagent formula and code behavior | Change needed | Formula should use inlet molar flow divided by absolute stoichiometric coefficient; current LaTeX denominator/sign notation is ambiguous |
+| E3 | Equation | audio.txt:323-339 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py; routers/reactor.py | Concentration equation, dilution factor, and reference | Change needed | Current concentration equation conflates stoichiometric coefficient, limiting concentration, and dilution-factor symbols; align with implemented limiting-reactant basis |
+| E4 | Equation | audio.txt:665-701 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py | Volumetric variation and dilution-factor symbol consistency | Change needed | Keep epsilon definition concept, but fix `\varphi`/`\psi` conflict and denominator pressure-temperature factor to match code |
+| E5 | Equation | audio.txt:702-714 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py | Equation 4.11 against 4.13 and code | Change needed | Residence-time equation is inverted relative to code and standard definition; should be V/Q_T |
+| E6 | Equation | audio.txt:340-368 | final-paper/TEX/chapters/4.2-engenharia-part2.tex; models/reactor.py | Recycle ratio definition and code basis | Change needed | Equation structure matches code for PFR with recycle, but prose defines R incorrectly as non-limiting/inert reagent ratio |
+| E7 | Equation | audio.txt:388-392 | final-paper/TEX/chapters/4.2-engenharia-part2.tex; models/hydraulic.py; routers/pump.py | Bernoulli/head equation and sign convention | Change needed | Add the loss term to the displayed head equation and align prose/sign convention with code |
 | F1 | Figure | audio.txt:576-597 | final-paper/TEX/chapters/4.1-desenvolvimento.tex; final-paper/TEX/media/ | Figure 1 current file and current app screenshot if needed | Partially corrected | Baseline source file remains `media/cap4_piping_interface.png`; Task 4 changed the visible source/PDF caption and label to tubulação wording |
 | F2 | Figure | audio.txt:393-402 | final-paper/TEX/**/*.tex; final-paper/TEX/media/ | Missing-image markers and PDF pages from 102 onward | Inventoried | Missing-image placeholders found around PDF pages 102 and 106-107 |
 
@@ -213,52 +213,52 @@ Conclusion for the baseline scan: the generated PDF exposed the same inventory i
 
 ### Equation E1
 
-- LaTeX: Not reviewed yet; fill during Task 6.
-- Code: Not reviewed yet; fill during Task 6.
-- Reference: Not reviewed yet; fill during Task 6.
-- Decision: Not reviewed yet; fill during Task 6.
+- LaTeX: `final-paper/TEX/chapters/4.2-engenharia-part1.tex:17-31` states `D = \sqrt{4Q/(\pi V)}` and says `get_calculated_diameter` uses Pint and returns millimeters.
+- Code: `routers/sizing.py:47-53` passes `flow_rate` in m³/s and `velocity` in m/s into `hydraulic.get_calculated_diameter`. `models/hydraulic.py:560-574` builds `Q` as m³/s and `V` as m/s, computes `(4 * Q / (np.pi * V)) ** 0.5`, converts the result to `mm`, and rejects nonpositive diameters.
+- Reference: LaTeX cites `white2018` at `final-paper/TEX/chapters/4.2-engenharia-part1.tex:31`; bibliography key exists at `final-paper/TEX/bibliografia.bib:66-73`. Local reference-file search found no White book/PDF; only project files/images matched reference names, so external bibliographic confirmation remains pending.
+- Decision: Keep the equation. It is dimensionally correct for SI `Q` and `V`, and the code explicitly converts the computed length to millimeters. Later prose may clarify the units if Task 7 edits text.
 
 ### Equation E2
 
-- LaTeX: Not reviewed yet; fill during Task 6.
-- Code: Not reviewed yet; fill during Task 6.
-- Reference: Not reviewed yet; fill during Task 6.
-- Decision: Not reviewed yet; fill during Task 6.
+- LaTeX: `final-paper/TEX/chapters/4.2-engenharia-part1.tex:59-64` defines `{razao}_{i} = N_{i0}/N_{u0}` and says the smallest value identifies the limiting reagent, citing `felder2005`.
+- Code: `routers/reactor.py:485-496` exposes `/limiting-reagent` and passes `components` plus `stoichiometric_coefficients`. `models/reactor.py:891-931` iterates only reactants (`coef < 0`), computes inlet molar flow as `flow_rate_inlet * molar_concentration_inlet`, then compares `(flow_rate * molar_concentration / abs(coef)).magnitude`.
+- Reference: LaTeX cites `felder2005`; bibliography key exists at `final-paper/TEX/bibliografia.bib:30-37`. Local reference-file search found no Felder book/PDF; external bibliographic confirmation remains pending.
+- Decision: Change later. The implemented basis is sound, but the LaTeX denominator `N_{u0}` is ambiguous and does not show the absolute stoichiometric coefficient used by the code; the equation should be rewritten as a limiting-reactant availability ratio such as `F_{i0}/|\nu_i|`.
 
 ### Equation E3
 
-- LaTeX: Not reviewed yet; fill during Task 6.
-- Code: Not reviewed yet; fill during Task 6.
-- Reference: Not reviewed yet; fill during Task 6.
-- Decision: Not reviewed yet; fill during Task 6.
+- LaTeX: `final-paper/TEX/chapters/4.2-engenharia-part1.tex:101-117` gives `C_i = [C_{i0} \pm ((n_i/n_A) C_A X)]/\varepsilon`, describes `\varepsilon` as coefficient of volumetric variation, and uses `C_A` as limiting-reactant concentration.
+- Code: `models/reactor.py:57-100` computes concentrations by case: limiting reactant `C0_i[i] * (1 - X) / dilution_factor`, other reactants using a stoichiometric ratio and `X_i`, products as `(C0_i[i] + stoichiometric_ratio * C_lim0 * X) / dilution_factor`, and inerts as `C0_i[i] / dilution_factor`. `routers/reactor.py:48-68` and `routers/reactor.py:88-103` pass components, stoichiometric coefficients, reaction-rate parameters, operation conditions, and conversion to the model.
+- Reference: The surrounding reactor theory cites `fogler2009` and `levenspiel2000` at `final-paper/TEX/chapters/4.2-engenharia-part1.tex:55`; bibliography keys exist at `final-paper/TEX/bibliografia.bib:39-55`. Local reference-file search found no Fogler/Levenspiel book/PDF; external bibliographic confirmation remains pending.
+- Decision: Change later. The current LaTeX equation uses `\varepsilon` where the code divides by the total dilution factor, and product formation should be based on inlet limiting concentration (`C_lim0`/`C_{A0}`), not an ambiguous current `C_A`.
 
 ### Equation E4
 
-- LaTeX: Not reviewed yet; fill during Task 6.
-- Code: Not reviewed yet; fill during Task 6.
-- Reference: Not reviewed yet; fill during Task 6.
-- Decision: Not reviewed yet; fill during Task 6.
+- LaTeX: `final-paper/TEX/chapters/4.2-engenharia-part1.tex:126-153` defines `\varepsilon = y_{A0}(\sum n_P - \sum n_R)/|n_A|`, then defines `\varphi = (1 + \epsilon X) P/P_0 \, T_0/T`, while prose immediately below names the total factor as `\psi`.
+- Code: `models/reactor.py:44-55` computes epsilon as `(mols_prod - mols_reag) / abs(stoichiometric_coefficients[limiting]) * y_A0` for gas-phase systems and zero otherwise. `models/reactor.py:137-144` computes `expansion_factor = (P0 * T / (P * T0)).magnitude`; `models/reactor.py:186-188`, `models/reactor.py:375-377`, and `models/reactor.py:490-492` use `dilution_factor = (1 + epsilon * X) * expansion_factor`.
+- Reference: LaTeX cites `levenspiel2000` at `final-paper/TEX/chapters/4.2-engenharia-part1.tex:153`; bibliography key exists at `final-paper/TEX/bibliografia.bib:48-55`. Local reference-file search found no Levenspiel book/PDF; external bibliographic confirmation remains pending.
+- Decision: Change later. The epsilon definition aligns with code at the conceptual level, but the total dilution-factor equation should use the same symbol as prose/nomenclature (`\psi`) and should match the code denominator `(1+\varepsilon X)(P_0/P)(T/T_0)`.
 
 ### Equation E5
 
-- LaTeX: Not reviewed yet; fill during Task 6.
-- Code: Not reviewed yet; fill during Task 6.
-- Reference: Not reviewed yet; fill during Task 6.
-- Decision: Not reviewed yet; fill during Task 6.
+- LaTeX: `final-paper/TEX/chapters/4.2-engenharia-part1.tex:186-204` gives the CSTR design equation `V = F_{A0}X/(-r_A)` and then states `\tau = Q_T/V`.
+- Code: `models/reactor.py:204-210` computes limiting-reagent consumption rate, calculates `V = F_A0 * X / rate_lim`, and then computes `residence_time = V / q_vol`.
+- Reference: The CSTR step cites `fogler2009` at `final-paper/TEX/chapters/4.2-engenharia-part1.tex:182`; bibliography key exists at `final-paper/TEX/bibliografia.bib:39-46`. Local reference-file search found no Fogler book/PDF; external bibliographic confirmation remains pending.
+- Decision: Change later. The volume equation matches the code's positive consumption-rate convention, but the residence-time equation is inverted in LaTeX; it should be `\tau = V/Q_T` to match the implementation and standard residence-time definition.
 
 ### Equation E6
 
-- LaTeX: Not reviewed yet; fill during Task 6.
-- Code: Not reviewed yet; fill during Task 6.
-- Reference: Not reviewed yet; fill during Task 6.
-- Decision: Not reviewed yet; fill during Task 6.
+- LaTeX: `final-paper/TEX/chapters/4.2-engenharia-part2.tex:5-12` gives `V = (R+1)F_{A0}\int_{R/(R+1)X}^{X} dX/(-r_A)`, but defines `R` as a ratio of non-limiting inert reagents relative to the limiting reagent.
+- Code: `routers/reactor.py:88-103` passes `payload.recycling_ratio` as `recycling_ratio` to the PFR model. `models/reactor.py:452-488` sets `R = parameters["recycling_ratio"]`, integrates from `R/(R+1)*X` to `X`, and multiplies the integral by `(R+1) * F_A0`.
+- Reference: LaTeX cites `levenspiel2000` at `final-paper/TEX/chapters/4.2-engenharia-part2.tex:5` and `fogler2009` at `final-paper/TEX/chapters/4.2-engenharia-part2.tex:12`; bibliography keys exist at `final-paper/TEX/bibliografia.bib:39-55`. Local reference-file search found no Fogler/Levenspiel book/PDF; external bibliographic confirmation remains pending.
+- Decision: Change later. The displayed equation matches the code structure for a PFR with recycle, but the prose definition of `R` is wrong for the implementation; it should define `R` as the recycle ratio/recirculation ratio, not an inert or non-limiting reagent ratio.
 
 ### Equation E7
 
-- LaTeX: Not reviewed yet; fill during Task 6.
-- Code: Not reviewed yet; fill during Task 6.
-- Reference: Not reviewed yet; fill during Task 6.
-- Decision: Not reviewed yet; fill during Task 6.
+- LaTeX: `final-paper/TEX/chapters/4.2-engenharia-part2.tex:252-263` introduces extended Bernoulli/head with losses, but the displayed equation is `H = (P_2-P_1)/(\rho g) + (V_2^2-V_1^2)/(2g) + z_2-z_1` and omits `h_f`; the following prose says `h_f` includes distributed and local losses.
+- Code: `routers/pump.py:116-126` maps the request field `friction_factor` to model key `head_loss`, and `routers/pump.py:472-485` calls `hydraulic.head`. `models/hydraulic.py:667-699` requires `head_loss` and computes `head = pressure_term + elevation_term + velocity_term + head_loss`. `models/hydraulic.py:266-294` builds chart terms from the same quantities, though its display helper labels the loss term as `-h_f`, which should be checked when the prose/charts are edited.
+- Reference: LaTeX cites `white2018` at `final-paper/TEX/chapters/4.2-engenharia-part2.tex:261`; bibliography key exists at `final-paper/TEX/bibliografia.bib:66-73`. Local reference-file search found no White book/PDF; external bibliographic confirmation remains pending.
+- Decision: Change later. Add `+ h_f` to the displayed head equation for the current convention, because the code adds losses to the required pump head. Also review the chart-term label `-h_f` before finalizing related captions or explanations.
 
 ## Final Verification
 
@@ -277,5 +277,10 @@ Conclusion for the baseline scan: the generated PDF exposed the same inventory i
 - Task 5 review-fix compile: `./final-paper/compile.sh` exited 0 and rebuilt `final-paper/TEX/main.pdf`.
 - Task 5 review-fix scoped source scan: `rg -n '\\nu_i|n_i|n_A|n_P|n_R|fator de variação volumétrica|coeficiente de variação volumétrica|densidade' final-paper/TEX/main.tex final-paper/TEX/chapters/4.1-desenvolvimento.tex final-paper/TEX/chapters/4.2-engenharia-part1.tex final-paper/TEX/chapters/4.2-engenharia-part2.tex final-paper/TEX/chapters/4.4-validacao.tex final-paper/TEX/chapters/6-guia-de-uso.tex docs/superpowers/audits/2026-07-14-tcc-board-corrections-audit.md` confirmed `\nu_i` appears only in audit deferral notes, `densidade` remains in property-list/property-name contexts, and `fator de variação volumétrica` no longer appears.
 - Task 5 review-fix diff check: `git diff --check` produced no output.
+- Task 6 hydraulic scan: `rg -n "diameter|diâmetro|diametro|head|Bernoulli|h_f|head_loss|perda|NPSH|rho|density" models routers schemas.py` found the sizing, head-loss, head, NPSH, and hydraulic-diameter implementation evidence now recorded in E1 and E7.
+- Task 6 reactor scan: `rg -n "limiting|reagent|stoich|nu|epsilon|dilution|phi|psi|concentration|rate|recycle|Levenspiel|PFR|CSTR|conversion" models/reactor.py routers/reactor.py schemas.py` found the limiting-reagent, concentration/rate, epsilon/dilution, CSTR, PFR, recycle-profile, and Levenspiel endpoint evidence now recorded in E2-E6.
+- Task 6 bibliography scan: `rg -n "felder|fogler|levenspiel|white|perry|fox|mccabe" final-paper/TEX/bibliografia.bib final-paper/TEX/chapters/4.2-engenharia-part1.tex final-paper/TEX/chapters/4.2-engenharia-part2.tex` found cited keys `felder2005`, `fogler2009`, `levenspiel2000`, `perry2007`, `white2018`, `mccabe2005`, and `fox2011`; E1-E7 record the specific keys used by each equation point.
+- Task 6 local reference-file scan: `rg --files | rg -i "(felder|fogler|levenspiel|white|perry|fox|mccabe|smith|seader|poling|karassik)"` found only project source/tests/images (`frontend/src/components/viz/levenspiel-chart.tsx`, `frontend/src/components/viz/mccabe-thiele-chart.tsx`, related tests, and final-paper media), not local reference books/PDFs; external bibliographic confirmation is marked pending in E1-E7.
+- Task 6 diff/status check: `git diff -- docs/superpowers/audits/2026-07-14-tcc-board-corrections-audit.md` showed only audit evidence/matrix updates, and `git status --short` showed only `M docs/superpowers/audits/2026-07-14-tcc-board-corrections-audit.md`.
 - Figure check: Not run yet; fill during Task 9.
 - Remaining justified terms: Task 5 leaves `densidade` in property-list/property-name contexts, including the qualified CoolProp property-name context in the owned engineering chapter and an unowned CoolProp property list in `4.1-desenvolvimento.tex`; keeps standard `linha de sucção` and McCabe-Thiele `linhas operacionais`; and defers stoichiometric-symbol plus `\varphi`/`\psi` equation-symbol decisions to Task 6/7.
