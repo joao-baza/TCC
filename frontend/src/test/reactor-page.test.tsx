@@ -806,6 +806,32 @@ describe("ReactorPage", () => {
     selectReactorTab("CSTR");
   }, 10000);
 
+  it("keeps the Levenspiel comparison available when only the PFR has recycle", async () => {
+    mockReactorRequests();
+    renderReactorPage();
+
+    expect(await screen.findByText(/Cálculos de Reator/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Carregar exemplo/i));
+
+    selectReactorTab("PFR");
+    const pfrCard = await screen.findByTestId("reactor-pfr-card");
+    const recyclingRatio = within(pfrCard).getByLabelText(/Razão de reciclo/i);
+    fireEvent.change(recyclingRatio, { target: { value: "0.5" } });
+    fireEvent.click(within(pfrCard).getByText(/Calcular PFR/i));
+    await expectCardValueMath(pfrCard, /^Volume$/i);
+
+    selectReactorTab("CSTR");
+    const cstrCard = await screen.findByTestId("reactor-cstr-card");
+    fireEvent.click(within(cstrCard).getByText(/Calcular CSTR/i));
+    await expectCardValueMath(cstrCard, /^Volume$/i);
+
+    selectReactorTab("Levenspiel");
+    expect(await screen.findByTestId("levenspiel-chart")).toBeInTheDocument();
+    expect(requestBodiesFor("/api/reactor/levenspiel/chart")).toContainEqual(
+      expect.objectContaining({ recycling_ratio: 0.5 }),
+    );
+  }, 10000);
+
   it("shows a loading state while the comparative Levenspiel chart is being fetched", async () => {
     const requests = mockReactorRequests({ delayLevenspiel: true });
     renderReactorPage();

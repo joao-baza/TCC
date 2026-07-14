@@ -157,6 +157,13 @@ def calculate_pfr_spatial_profile(payload: ReactorSpatialProfileRequest):
 def build_levenspiel_chart(payload: ReactorPlotRequest):
     try:
         components = _components_to_dicts(payload.components)
+        recycling_ratio = float(payload.recycling_ratio or 0.0)
+        subtitle = (
+            "Volume necessário em função da conversão para a mesma cinética sem reciclo."
+            if recycling_ratio <= 0
+            else "Volume necessário em função da conversão para a mesma cinética, "
+            f"com razão de reciclo R = {recycling_ratio:.6g} no PFR."
+        )
         chart_data = reactor_isothermal.conversion_vs_volume_data(
             {
                 "components": components,
@@ -165,7 +172,7 @@ def build_levenspiel_chart(payload: ReactorPlotRequest):
                 "operation_conditions": payload.operation_conditions,
                 "max_conversion": payload.max_conversion,
                 "num_points": 50,
-                "recycling_ratio_pfr": payload.recycling_ratio or 0.0,
+                "recycling_ratio_pfr": recycling_ratio,
             }
         )
         cstr_points = [{"x": point["y"], "y": point["x"]} for point in chart_data["cstr"]]
@@ -204,7 +211,7 @@ def build_levenspiel_chart(payload: ReactorPlotRequest):
                     "stoichiometric_coefficients": payload.stoichiometric_coefficients,
                     "reaction_rate_params": payload.reaction_rate_params,
                     "operation_conditions": payload.operation_conditions,
-                    "recycling_ratio": payload.recycling_ratio or 0.0,
+                    "recycling_ratio": recycling_ratio,
                     "conversion": payload.pfr_conversion,
                 }
             )
@@ -221,7 +228,7 @@ def build_levenspiel_chart(payload: ReactorPlotRequest):
         return build_chart_model(
             chart_id="reactor-levenspiel-chart",
             title="Comparação Levenspiel CSTR vs PFR",
-            subtitle="Volume necessário em função da conversão para a mesma cinética sem reciclo.",
+            subtitle=subtitle,
             axes={
                 "x": build_linear_axis(
                     x_values,
