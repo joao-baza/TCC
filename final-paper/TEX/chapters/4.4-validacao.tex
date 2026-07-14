@@ -284,14 +284,17 @@ A validação do balanço de massa foi realizada considerando um misturador idea
 \begin{enumerate}
     \item \textbf{Balanço Global:}
     \begin{equation}
+        \label{eq:val_mixer_total_flow}
         F_{S3} = F_{S1} + F_{S2} = 100 + 100 = 200 \ kg/h
     \end{equation}
     
     \item \textbf{Balanço por Componente (Água):}
     \begin{equation}
+        \label{eq:val_mixer_component_balance}
         F_{S3} \cdot z_{S3,agua} = F_{S1} \cdot z_{S1,agua} + F_{S2} \cdot z_{S2,agua}
     \end{equation}
     \begin{equation}
+        \label{eq:val_mixer_water_fraction}
         200 \cdot z_{S3,agua} = 100 \cdot 1,0 + 100 \cdot 0,0 \implies z_{S3,agua} = 0,5
     \end{equation}
 \end{enumerate}
@@ -335,13 +338,16 @@ Neste caso, avalia-se a geração e consumo de espécies químicas em um sistema
 \textbf{Cálculo Manual:}
 Pela estequiometria, para cada mol de A consumido, gera-se 1 mol de B.
 \begin{equation}
+    \label{eq:val_reaction_flow_a}
     F_{A,out} = F_{A,in}(1 - X_A) = 100(1 - 0,40) = 60 \ mol/s
 \end{equation}
 \begin{equation}
+    \label{eq:val_reaction_flow_b}
     F_{B,out} = F_{A,in} X_A = 100(0,40) = 40 \ mol/s
 \end{equation}
 A vazão molar total permanece constante ($60+40=100$), resultando nas frações molares:
 \begin{equation}
+    \label{eq:val_reaction_mole_fractions}
     y_A = \frac{60}{100} = 0,6; \quad y_B = \frac{40}{100} = 0,4
 \end{equation}
 
@@ -359,9 +365,11 @@ Simula-se uma operação de separação física onde uma corrente é dividida em
 
 \textbf{Cálculo Manual:}
 \begin{equation}
+    \label{eq:val_recycle_flow_mass}
     F_{Reciclo} = 0,2 \cdot 100 = 20 \ kg/h
 \end{equation}
 \begin{equation}
+    \label{eq:val_product_flow_mass}
     F_{Produto} = (1 - 0,2) \cdot 100 = 80 \ kg/h
 \end{equation}
 A composição deve permanecer inalterada: $z_A=0,5; z_B=0,5$ em ambas as saídas.
