@@ -25,11 +25,20 @@ def load_inventory(path: Path) -> list[dict[str, object]]:
     return entries
 
 
+def is_escaped_percent(line: str, index: int) -> bool:
+    slash_count = 0
+    cursor = index - 1
+    while cursor >= 0 and line[cursor] == "\\":
+        slash_count += 1
+        cursor -= 1
+    return slash_count % 2 == 1
+
+
 def strip_latex_comments(text: str) -> str:
     cleaned_lines = []
     for line in text.splitlines():
         for index, char in enumerate(line):
-            if char == "%" and (index == 0 or line[index - 1] != "\\"):
+            if char == "%" and not is_escaped_percent(line, index):
                 line = line[:index]
                 break
         cleaned_lines.append(line)
