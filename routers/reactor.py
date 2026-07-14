@@ -227,7 +227,7 @@ def build_levenspiel_chart(payload: ReactorPlotRequest):
                     x_values,
                     label="Conversão",
                     units="adimensional",
-                    domain={"min": 0.0, "max": max(x_values) * 1.05 if x_values else 1.0},
+                    domain={"min": 0.0, "max": 1.0},
                 ),
                 "y": build_linear_axis(
                     [0.0, *y_values],

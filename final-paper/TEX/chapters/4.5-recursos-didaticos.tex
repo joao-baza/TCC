@@ -9,7 +9,7 @@ O glossário reúne 49 termos técnicos organizados em oito categorias (\textit{
 \begin{figure}[H]
     \centering
     \caption{Glossário técnico com busca e equações renderizadas}
-    \imgouplaceholder{media/glossario.png}
+    \imgouplaceholder{media/cap7_28_glossario_termos_reynolds.png}
     \fonte{Elaboração própria (2026).}
     \label{fig:glossario}
 \end{figure}
@@ -42,7 +42,7 @@ A curva da bomba e do sistema foi adicionada para discutir o ponto operacional c
 
 \subsubsection{Diagrama de Levenspiel}
 
-O diagrama de \textit{Levenspiel} foi mantido como peça central do módulo de reatores porque ele transforma a comparação entre \textit{CSTR} e \textit{PFR} em uma relação geométrica facilmente interpretável pelo estudante. Na implementação atual, o gráfico destaca os pontos operacionais de ambos os modelos e compara a demanda volumétrica associada a uma mesma conversão, deixando visível por que o \textit{PFR} tende a requerer menor volume em cinéticas positivas quando comparado ao \textit{CSTR}. Sua presença na monografia é particularmente importante porque ele não atua como ornamento visual: ele traduz em forma gráfica a própria equação de projeto dos reatores ideais, articulando diretamente cálculo e interpretação \cite{levenspiel2000,fogler2009}.
+O diagrama de \textit{Levenspiel} foi mantido como peça central do módulo de reatores porque ele transforma a comparação entre \textit{CSTR} e \textit{PFR} em uma relação geométrica facilmente interpretável pelo estudante. Na implementação atual, o gráfico destaca os pontos operacionais de ambos os modelos e compara a demanda volumétrica associada a uma mesma conversão, deixando visível por que o \textit{PFR} tende a requerer menor volume em cinéticas positivas quando comparado ao \textit{CSTR}. Sua presença no TCC é particularmente importante porque ele não atua como ornamento visual: ele traduz em forma gráfica a própria equação de projeto dos reatores ideais, articulando diretamente cálculo e interpretação \cite{levenspiel2000,fogler2009}.
 
 \subsubsection{Gráfico de Arrhenius}
 
@@ -54,7 +54,7 @@ Os perfis espaciais no \textit{PFR} foram adicionados para evitar uma leitura ex
 
 \subsubsection{Diagrama \textit{T-x-y} Binário}
 
-O diagrama \textit{T-x-y} binário foi incluído para representar o equilíbrio líquido-vapor em misturas binárias a pressão fixa. A presença simultânea das curvas de bolha e de orvalho permite discutir início de vaporização, início de condensação, coexistência entre fases e volatilidade relativa sem depender apenas de tabelas termodinâmicas. Como o \textit{backend} calcula os pontos de equilíbrio e entrega as séries já estruturadas para renderização, o estudante observa o comportamento do sistema a partir de dados consistentes com o mesmo motor termodinâmico usado nas demais consultas de propriedades \cite{smith2018}.
+O diagrama \textit{T-x-y} binário foi incluído para representar o equilíbrio líquido-vapor em misturas binárias a pressão fixa. A presença simultânea das curvas de bolha e de orvalho permite discutir início de vaporização, início de condensação, coexistência entre fases e volatilidade relativa sem depender apenas de tabelas termodinâmicas. Como o \textit{backend} calcula os pontos de equilíbrio e entrega as séries já estruturadas para renderização, o estudante observa o comportamento do sistema a partir de dados consistentes com o mesmo núcleo termodinâmico usado nas demais consultas de propriedades \cite{smith2018}.
 
 \subsubsection{Diagrama de McCabe-Thiele}
 
@@ -74,8 +74,8 @@ Por fim, a superfície \textit{T-P} de propriedades foi adicionada para evidenci
 
 \begin{figure}[H]
     \centering
-    \caption{Diagrama de \textit{Moody} com o ponto operacional do problema destacado}
-    \imgouplaceholder{media/cap4_diagrama_moody.png}
+    \caption{Recorte do painel do diagrama de \textit{Moody} com o ponto operacional destacado}
+    \imgouplaceholder{media/cap4_moody_ponto_operacional_recorte.png}
     \fonte{Elaboração própria (2026).}
     \label{fig:viz_moody}
 \end{figure}
@@ -83,7 +83,7 @@ Por fim, a superfície \textit{T-P} de propriedades foi adicionada para evidenci
 \begin{figure}[H]
     \centering
     \caption{Diagrama de \textit{Levenspiel} comparando reatores \textit{CSTR} e \textit{PFR}}
-    \imgouplaceholder{media/levenspiel.png}
+    \imgouplaceholder{media/cap7_21_reatores_levenspiel_exemplo.png}
     \fonte{Elaboração própria (2026).}
     \label{fig:viz_levenspiel}
 \end{figure}
@@ -92,7 +92,7 @@ Por fim, a superfície \textit{T-P} de propriedades foi adicionada para evidenci
 
 Além das visualizações, o sistema oferece cenários de exemplo providos pela própria \textit{API} para acelerar a exploração didática dos módulos. Em vez de armazenar resultados prontos no \textit{frontend}, esses \textit{endpoints} retornam conjuntos coerentes de entradas para escoamento, dimensionamento, bombas, propriedades de componentes e outros contextos, respeitando os catálogos e limites disponíveis no \textit{backend}. A interface utiliza esses dados para pré-preencher os formulários e, em seguida, executa o mesmo fluxo de cálculo usado em situações reais.
 
-Essa estratégia possui valor pedagógico relevante por dois motivos. Primeiro, reduz a barreira inicial para o estudante, que passa a observar um caso funcional antes de montar um cenário próprio do zero. Segundo, preserva a rastreabilidade entre entradas, equações e visualizações, pois os exemplos não contornam o motor computacional: eles apenas selecionam condições iniciais representativas, como um caso de transição em número de \textit{Reynolds}, um sistema com margem de \textit{NPSH} explícita ou uma separação binária que justifique a construção de um diagrama de \textit{McCabe-Thiele}.
+Essa estratégia possui valor pedagógico relevante por dois motivos. Primeiro, reduz a barreira inicial para o estudante, que passa a observar um caso funcional antes de montar um cenário próprio do zero. Segundo, preserva a rastreabilidade entre entradas, equações e visualizações, pois os exemplos não contornam as rotinas de cálculo: eles apenas selecionam condições iniciais representativas, como um caso de transição em número de \textit{Reynolds}, um sistema com margem de \textit{NPSH} explícita ou uma separação binária que justifique a construção de um diagrama de \textit{McCabe-Thiele}.
 
 \subsection{Trilhas de Aprendizagem}
 
@@ -101,7 +101,7 @@ A página inicial organiza o uso dos módulos em três trilhas de aprendizagem, 
 \begin{figure}[H]
     \centering
     \caption{Trilhas de aprendizagem apresentadas na página inicial}
-    \imgouplaceholder{media/trilhas.png}
+    \imgouplaceholder{media/cap7_01_tela_inicial_trilhas.png}
     \fonte{Elaboração própria (2026).}
     \label{fig:trilhas}
 \end{figure}
