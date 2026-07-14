@@ -1,8 +1,8 @@
-# TCC Monograph Presentation Design
+# TCC Defense Presentation Design
 
 ## Goal
 
-Definir a apresentação em `Beamer` da monografia do DCOU como uma defesa de `40 minutos` com narrativa de produto/projeto, preservando caráter explícito de monografia e usando uma demonstração ao vivo como evidência central de que o sistema existe, funciona e possui valor didático e computacional.
+Definir a apresentação em `Beamer` do TCC do DCOU como uma defesa de TCC de `40 minutos` com narrativa de produto/projeto, preservando caráter explícito de TCC acadêmico e usando uma demonstração ao vivo como evidência central de que o sistema existe, funciona e possui valor didático e computacional.
 
 ## Scope
 
@@ -26,7 +26,7 @@ Este design não cobre ainda:
 
 ## Current Context
 
-A monografia está centralizada em [monograph/TEX/main.tex](/home/jpbgr/Área%20de%20trabalho/Projetos/Pessoais/TCC/monograph/TEX/main.tex) e capítulos associados, com foco no desenvolvimento do DCOU como ferramenta didática aberta para Engenharia Química.
+O texto do TCC está centralizado em [final-paper/TEX/main.tex](/home/jpbgr/Área%20de%20trabalho/Projetos/Pessoais/TCC/final-paper/TEX/main.tex) e capítulos associados, com foco no desenvolvimento do DCOU como ferramenta didática aberta para Engenharia Química.
 
 Os capítulos já estabelecem os eixos que a apresentação precisa reutilizar:
 
@@ -38,18 +38,18 @@ Os capítulos já estabelecem os eixos que a apresentação precisa reutilizar:
 - recursos didáticos
 - resultados e conclusões
 
-O material existente também já oferece muitas imagens candidatas a reaproveitamento em slides, especialmente em [monograph/TEX/media](/home/jpbgr/Área%20de%20trabalho/Projetos/Pessoais/TCC/monograph/TEX/media).
+O material existente também já oferece muitas imagens candidatas a reaproveitamento em slides, especialmente em [final-paper/TEX/media](/home/jpbgr/Área%20de%20trabalho/Projetos/Pessoais/TCC/final-paper/TEX/media).
 
 ## Audience and Positioning
 
-A apresentação deve ser tratada como `monografia com um pé em produto`.
+A apresentação deve ser tratada como `defesa de TCC com um pé em produto`.
 
 Isso significa:
 
 - o trabalho precisa parecer academicamente defensável, não um pitch
 - o sistema precisa aparecer como artefato real e inovador
 - a banca deve perceber equilíbrio entre valor didático e solidez técnica
-- a monografia continua sendo a moldura principal da defesa
+- o TCC continua sendo a moldura principal da defesa
 
 ## Presentation Objectives
 
@@ -242,7 +242,7 @@ Evitar:
 - excesso de texto
 - excesso de equações
 - screenshots sem função narrativa
-- repetição literal da monografia em bullets
+- repetição literal do texto do TCC em bullets
 
 ## Visual Direction
 
@@ -294,7 +294,7 @@ O design será considerado correto se o deck final:
 
 - couber com conforto em `40 minutos`
 - sustentar uma demo ao vivo de `8 a 10 minutos`
-- parecer uma defesa de monografia, não um pitch
+- parecer uma defesa de TCC, não um pitch
 - provar amplitude do sistema sem aprofundar demais um único módulo
 - apresentar validação com peso suficiente para credibilidade
 - encerrar com contribuição acadêmica e perspectiva institucional clara

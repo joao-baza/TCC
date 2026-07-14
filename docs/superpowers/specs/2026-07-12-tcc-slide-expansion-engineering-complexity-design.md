@@ -7,7 +7,7 @@ Adicionar `5 slides` a apresentacao Beamer do DCOU para reforcar dois pontos da 
 - por que o projeto e interessante para Engenharia Quimica;
 - por que sua complexidade vai alem de uma colecao de calculadoras.
 
-A expansao deve manter o tom hibrido ja aprovado para a defesa: monografia academica com um pe em produto tecnico inovador.
+A expansao deve manter o tom hibrido ja aprovado para a defesa de TCC: TCC academico com um pe em produto tecnico inovador.
 
 ## Current Context
 
