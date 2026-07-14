@@ -13,13 +13,13 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | S1 | Slides | audio.txt:520-529 | slides/sections/*.tex | Search for monografia/Monografia and defense terms | Verified | Task 3 scan found no `monografia`/`monograph` hits in slide sources; no slide source edit required |
 | S2 | Slides | audio.txt:403-420 | slides/sections/02-solution.tex; slides/sections/03-demo.tex; slides/sections/04-architecture.tex | Search coverage lists for methods classified as properties | Corrected | `slides/sections/02-solution.tex` now separates `Propriedades e equilíbrios` from `Métodos e visualizações`; McCabe-Thiele remains only in method/visualization context |
-| W1 | Writing | audio.txt:273-284 | final-paper/TEX/chapters/4.1-desenvolvimento.tex; final-paper/TEX/chapters/4.3-api.tex | Current architecture paragraphs and API/backend explanation | Open | Unreviewed at matrix creation |
+| W1 | Writing | audio.txt:273-284 | final-paper/TEX/chapters/4.1-desenvolvimento.tex; final-paper/TEX/chapters/4.3-api.tex | Current architecture paragraphs and API/backend explanation | Corrected | Task 4 added plain-language explanations for `backend`, `frontend`, `API`, `endpoint`, `deploy`, and `desktop` before framework-level details |
 | W2 | Writing | audio.txt:520-529 | final-paper/TEX/**/*.tex | Search for monografia/Monografia | Inventoried | No source hits for monografia/monograph/defesa de monografia in final paper |
-| W3 | Writing | audio.txt:531-546 | final-paper/TEX/chapters/2-justificativa.tex; final-paper/TEX/chapters/4.1-desenvolvimento.tex | Current justification and open-source/code-auditability wording | Open | Unreviewed at matrix creation |
+| W3 | Writing | audio.txt:531-546 | final-paper/TEX/chapters/2-justificativa.tex; final-paper/TEX/chapters/4.1-desenvolvimento.tex | Current justification and open-source/code-auditability wording | Corrected | Task 4 strengthened free/open/auditable rationale, extension path for catalogs/modules, tests, visible calculations, and future academic base |
 | W4 | Writing | audio.txt:552-559 | final-paper/TEX/**/*.tex | Search density/massa especifica context by occurrence | Inventoried | Density terms mapped; most are technical keep, formal consistency can prefer massa específica in prose |
-| W5 | Writing | audio.txt:576-616 | final-paper/TEX/chapters/4.1-desenvolvimento.tex | Figure 1 and pilha/stack wording | Inventoried | Figure 1 is current Piping screenshot; `Piping`, `pilha principal`, and `shell de aplicação` are change candidates |
+| W5 | Writing | audio.txt:576-616 | final-paper/TEX/chapters/4.1-desenvolvimento.tex | Figure 1 and pilha/stack wording | Corrected | Task 4 changed visible `Piping` wording to tubulação/tubulações, replaced `pilha principal`, and changed `shell de aplicação` to Portuguese prose; media filename/label may still contain `piping` |
 | W6 | Writing | audio.txt:621-627 | final-paper/TEX/**/*.tex | Search linha/corrente/tubo/tubulacao in context | Inventoried | Terms are mostly technical keep; `linha de fluxo` and mixed Piping/tubulação wording merit review |
-| W7 | Writing | audio.txt:765-779 | final-paper/TEX/**/*.tex | Search motor computacional/head and equivalent English terms | Inventoried | `head` captions/section and `motor computacional` are change candidates; NPSH acronym kept |
+| W7 | Writing | audio.txt:765-779 | final-paper/TEX/**/*.tex | Search motor computacional/head and equivalent English terms | Partially corrected | Task 4 replaced `motor computacional` in scoped conceptual-writing files; `head` remains in hydraulic/validation sections outside this task's owned files and is recorded for a later targeted prose/caption pass |
 | N1 | Nomenclature | audio.txt:644-663 | final-paper/TEX/main.tex; final-paper/TEX/chapters/4.2-engenharia-part1.tex | Symbols used in equations and list of siglas | Open | Unreviewed at matrix creation |
 | E1 | Equation | audio.txt:628-638 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/hydraulic.py; routers/sizing.py | Diameter equation units and backend conversion | Open | Unreviewed at matrix creation |
 | E2 | Equation | audio.txt:307-321 | final-paper/TEX/chapters/4.2-engenharia-part1.tex; models/reactor.py; routers/reactor.py | Limiting reagent formula and code behavior | Open | Unreviewed at matrix creation |
@@ -114,6 +114,34 @@ Findings:
 | W7 | keep | `final-paper/TEX/main.tex:242-244`; `final-paper/TEX/chapters/4.4-validacao.tex:207` | `NPSH` and `Net Positive Suction Head` are standard acronym expansions. |
 | W7 | change | `final-paper/TEX/chapters/4.3-api.tex:11`; `final-paper/TEX/chapters/4.5-recursos-didaticos.tex:95` | `motor computacional` can be replaced by a more precise `núcleo de cálculo`/`rotinas de cálculo`, if later writing edits target this wording. |
 | W7 | keep | PDF-only bibliography hit for `Chemical Engineering`: `/tmp/tcc-final-paper.txt:3428` | This is the reference title `Introduction to Chemical Engineering Thermodynamics`, not body prose. |
+
+Task 4 correction:
+
+- `final-paper/TEX/chapters/2-justificativa.tex` now states that the tool is free/open, reduces dependence on closed commercial licenses, allows code-to-equation/reference auditing, supports extension of property databases/module catalogs/calculation routines, uses tests and visible calculations to identify errors, and can continue as an academic base for future students.
+- `final-paper/TEX/chapters/4.1-desenvolvimento.tex` now introduces `backend`, `frontend`, `API`, `endpoint`, `deploy`, and `desktop` in plain language before framework-level details. It also changes visible Figure 1 wording from `Piping` to tubulação/tubulações, replaces `pilha principal` with `conjunto principal de tecnologias`, replaces `shell de aplicação` with Portuguese prose, and changes `curvas de reação` to `curvas associadas a modelos de reação`.
+- `final-paper/TEX/chapters/4.3-api.tex` now explains the `API` as a communication contract and the `endpoint` as a route to a specific functionality. It replaces `motor computacional` with `rotinas de cálculo`.
+- `final-paper/TEX/chapters/4.5-recursos-didaticos.tex` was edited because the search found conceptual/mixed-language terms in scope. It replaces `motor computacional` with `rotinas de cálculo` and `motor termodinâmico` with `núcleo termodinâmico`.
+- `final-paper/TEX/chapters/6-guia-de-uso.tex` was not edited. The scan found only accepted contextual use of `desktop`, with no Task 4 conceptual ambiguity.
+
+Task 4 verification scans:
+
+```bash
+rg -n -i "pilha|motor computacional|curva de reação|shell de aplicação|Piping" final-paper/TEX/chapters/2-justificativa.tex final-paper/TEX/chapters/4.1-desenvolvimento.tex final-paper/TEX/chapters/4.3-api.tex final-paper/TEX/chapters/4.5-recursos-didaticos.tex final-paper/TEX/chapters/6-guia-de-uso.tex
+```
+
+Result: no confusing prose hits remain in the Task 4 edited/read files. The only remaining hit is `final-paper/TEX/chapters/4.1-desenvolvimento.tex:51`, the image filename `media/cap4_piping_interface.png`, which was kept because the task did not rename media assets.
+
+```bash
+rg -n -i "pilha|motor computacional|curva de reação|head|stack|piping|Chemical Engineering" final-paper/TEX/main.tex final-paper/TEX/chapters/*.tex
+```
+
+Remaining hits after Task 4:
+
+- Kept: `final-paper/TEX/main.tex:242-244` and `final-paper/TEX/chapters/4.4-validacao.tex:207` contain standard `NPSH`/`Net Positive Suction Head` acronym expansion.
+- Kept: `final-paper/TEX/chapters/4.1-desenvolvimento.tex:16,20` are LaTeX longtable commands `\endfirsthead`/`\endhead`, not terminology.
+- Kept: `final-paper/TEX/chapters/4.1-desenvolvimento.tex:51` is the existing media filename `cap4_piping_interface.png`, not visible prose.
+- Needs later task/scope decision: `final-paper/TEX/chapters/4.2-engenharia-part2.tex:267,274` captions still use `\textit{head}` and related image filenames contain `head`; this chapter was outside the Task 4 owned-file list.
+- Needs later task/scope decision: `final-paper/TEX/chapters/4.4-validacao.tex:219` still has subsection title `Head`, and `final-paper/TEX/chapters/4.4-validacao.tex:382` still uses visible `Piping`; this validation chapter was outside the Task 4 owned-file list.
 
 ### F1/F2 - Figure references and missing-image markers
 
@@ -220,7 +248,9 @@ Conclusion: the generated PDF exposes the same inventory issues as the source sc
 ## Final Verification
 
 - Slides compile after edits: Task 3 ran `./slides/compile.sh`; command exited 0 and wrote `slides/main.pdf`.
-- Final paper compile after edits: Not run in Task 3; slide-only scope did not edit final-paper sources.
+- Final paper compile after Task 4 edits: `./final-paper/compile.sh` exited 0. `latexmk` rebuilt affected chapters and finished with `All targets (main.pdf) are up-to-date`; script reported `PDF gerado em: /home/jpbgr/Área de trabalho/Projetos/Pessoais/TCC/final-paper/TEX/main.pdf`.
 - PDF text scan: Task 3 ran `pdftotext slides/main.pdf /tmp/tcc-slides.txt`, confirmed no `monografia`/`monograph` hits, and confirmed McCabe-Thiele appears in method/visualization context.
+- Task 4 source scan: `rg -n -i "pilha|motor computacional|curva de reação|head|stack|piping|Chemical Engineering" final-paper/TEX/main.tex final-paper/TEX/chapters/*.tex` recorded remaining kept/out-of-scope hits in the Task 4 correction section.
+- Task 4 diff check: `git diff --check` produced no output.
 - Figure check: Not run yet; fill during Task 9.
-- Remaining justified terms: Not reviewed yet; fill during Task 9.
+- Remaining justified terms: Task 4 reviewed architecture/open-project terminology only; broader final terminology pass still belongs to later tasks.

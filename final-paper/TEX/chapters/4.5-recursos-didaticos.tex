@@ -54,7 +54,7 @@ Os perfis espaciais no \textit{PFR} foram adicionados para evitar uma leitura ex
 
 \subsubsection{Diagrama \textit{T-x-y} Binário}
 
-O diagrama \textit{T-x-y} binário foi incluído para representar o equilíbrio líquido-vapor em misturas binárias a pressão fixa. A presença simultânea das curvas de bolha e de orvalho permite discutir início de vaporização, início de condensação, coexistência entre fases e volatilidade relativa sem depender apenas de tabelas termodinâmicas. Como o \textit{backend} calcula os pontos de equilíbrio e entrega as séries já estruturadas para renderização, o estudante observa o comportamento do sistema a partir de dados consistentes com o mesmo motor termodinâmico usado nas demais consultas de propriedades \cite{smith2018}.
+O diagrama \textit{T-x-y} binário foi incluído para representar o equilíbrio líquido-vapor em misturas binárias a pressão fixa. A presença simultânea das curvas de bolha e de orvalho permite discutir início de vaporização, início de condensação, coexistência entre fases e volatilidade relativa sem depender apenas de tabelas termodinâmicas. Como o \textit{backend} calcula os pontos de equilíbrio e entrega as séries já estruturadas para renderização, o estudante observa o comportamento do sistema a partir de dados consistentes com o mesmo núcleo termodinâmico usado nas demais consultas de propriedades \cite{smith2018}.
 
 \subsubsection{Diagrama de McCabe-Thiele}
 
@@ -92,7 +92,7 @@ Por fim, a superfície \textit{T-P} de propriedades foi adicionada para evidenci
 
 Além das visualizações, o sistema oferece cenários de exemplo providos pela própria \textit{API} para acelerar a exploração didática dos módulos. Em vez de armazenar resultados prontos no \textit{frontend}, esses \textit{endpoints} retornam conjuntos coerentes de entradas para escoamento, dimensionamento, bombas, propriedades de componentes e outros contextos, respeitando os catálogos e limites disponíveis no \textit{backend}. A interface utiliza esses dados para pré-preencher os formulários e, em seguida, executa o mesmo fluxo de cálculo usado em situações reais.
 
-Essa estratégia possui valor pedagógico relevante por dois motivos. Primeiro, reduz a barreira inicial para o estudante, que passa a observar um caso funcional antes de montar um cenário próprio do zero. Segundo, preserva a rastreabilidade entre entradas, equações e visualizações, pois os exemplos não contornam o motor computacional: eles apenas selecionam condições iniciais representativas, como um caso de transição em número de \textit{Reynolds}, um sistema com margem de \textit{NPSH} explícita ou uma separação binária que justifique a construção de um diagrama de \textit{McCabe-Thiele}.
+Essa estratégia possui valor pedagógico relevante por dois motivos. Primeiro, reduz a barreira inicial para o estudante, que passa a observar um caso funcional antes de montar um cenário próprio do zero. Segundo, preserva a rastreabilidade entre entradas, equações e visualizações, pois os exemplos não contornam as rotinas de cálculo: eles apenas selecionam condições iniciais representativas, como um caso de transição em número de \textit{Reynolds}, um sistema com margem de \textit{NPSH} explícita ou uma separação binária que justifique a construção de um diagrama de \textit{McCabe-Thiele}.
 
 \subsection{Trilhas de Aprendizagem}
 
