@@ -100,7 +100,7 @@
 
 ## Final Verification
 
-- Equation count after edits: 60 (`rg -n '\\begin\{equation\}' final-paper/TEX/chapters/4.2-engenharia-part1.tex final-paper/TEX/chapters/4.2-engenharia-part2.tex final-paper/TEX/chapters/4.4-validacao.tex | wc -l`).
-- PDF compile: Passed for the Task 5 checkpoint. `./final-paper/compile.sh` returned exit code 0 and generated `final-paper/TEX/main.pdf`.
-- PDF text scan: Open for Task 6; not rerun in Task 5.
+- Equation count after edits: 60.
+- PDF compile: `./final-paper/compile.sh` exited 0.
+- PDF text scan: unit and adimensional markers present in extracted PDF text.
 - Remaining partial rows: none.
