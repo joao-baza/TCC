@@ -379,15 +379,24 @@ Simula-se uma operação de separação física onde uma corrente é dividida em
 A composição deve permanecer inalterada: $z_A=0,5; z_B=0,5$ em ambas as saídas.
 
 \textbf{Validação:}
-Conforme apresentado na saída expandida do \textit{software} (Figura \ref{fig:code_mass_balance_exp}), os valores de vazão foram exatos ($20$ e $80 \ kg/h$) e a composição manteve-se constante, validando a lógica do divisor.
+Conforme sintetizado na representação didática (Tabela \ref{fig:code_mass_balance_exp}), os valores de vazão foram exatos ($20$ e $80 \ kg/h$) e a composição manteve-se constante, validando a lógica do divisor.
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \caption{Resultados expandidos da validação de Balanço de Massa (Misturador, Reator e \textit{Splitter})}
-    \includegraphics[width=\linewidth,height=0.85\textheight,keepaspectratio]{media/cap4_codigo_balanco_massa_expandido.png}
+    \caption{Representação didática do balanço de massa validado}
     \label{fig:code_mass_balance_exp}
+    \footnotesize
+    \begin{tabular}{@{}p{0.15\textwidth}p{0.28\textwidth}p{0.31\textwidth}p{0.17\textwidth}@{}}
+        \hline
+        \textbf{Etapa} & \textbf{Entradas} & \textbf{Processamento} & \textbf{Saídas verificadas} \\
+        \hline
+        Misturador & $S1=S2=100\ \mathrm{kg/h}$; água e etanol puros. & Soma da vazão global e balanço por componente, sem reação. & $F_{S3}=200\ \mathrm{kg/h}$; $z_{agua}=z_{etanol}=0,5$. \\
+        Reator & $F_{A,in}=100\ \mathrm{mol/s}$; $X_A=0,40$; $A\to B$. & Aplicação da estequiometria 1:1: $F_{A,out}=F_{A,in}(1-X_A)$ e $F_{B,out}=F_{A,in}X_A$. & $F_{A,out}=60\ \mathrm{mol/s}$; $F_{B,out}=40\ \mathrm{mol/s}$. \\
+        \textit{Splitter} & $F_{in}=100\ \mathrm{kg/h}$; $z_A=z_B=0,5$; fração de reciclo $0,2$. & $F_{Reciclo}=0,2F_{in}$ e $F_{Produto}=(1-0,2)F_{in}$, preservando a composição. & $F_{Reciclo}=20\ \mathrm{kg/h}$; $F_{Produto}=80\ \mathrm{kg/h}$. \\
+        \hline
+    \end{tabular}
     \fonte{Elaboração própria (2026).}
-\end{figure}
+\end{table}
 
 \subsection{Tubulações}
 
@@ -434,12 +443,12 @@ Para validação, utilizou-se um tubo de \textit{Schedule} 40 com Diâmetro Nomi
         \textbf{Contrato} & \textbf{Consulta validada} & \textbf{Evidência verificada} \\
         \hline
         Acessórios & \textit{fittings()} & Lista reutilizável para validação de entradas e perdas locais. \\
-        Especificação de acessório & \textit{fitting\_specifications(}\\\textit{nome)} & Comprimento equivalente ou coeficiente $K$ do cotovelo de 90 graus de raio longo. \\
+        Especificação de acessório & \textit{fitting\_specifications(}\\\textit{nome)} & Comprimento equivalente $L_{eq}/D=16$ do cotovelo de 90 graus de raio longo. \\
         Composição & \textit{compositions()} & Materiais disponíveis e suas rugosidades absolutas. \\
-        Especificação de composição & \textit{composition\_}\\\textit{specifications(}\\\textit{nome)} & Propriedades do material Aço Comercial. \\
+        Especificação de composição & \textit{composition\_}\\\textit{specifications(}\\\textit{nome)} & Aço comercial: rugosidade absoluta $0,06\ \mathrm{mm}$ e coeficiente de rugosidade $C=135$. \\
         Schedules & \textit{schedules()} & Classes de pressão e espessura, como SCH40 e SCH80. \\
         Diâmetros & \textit{diameters(schedule)} & Diâmetros nominais disponíveis para o SCH40. \\
-        Especificação de diâmetro & \textit{diameter\_specifications(}\\\textit{schedule, dn)} & Diâmetro externo, espessura e diâmetro interno do tubo SCH40 DN50. \\
+        Especificação de diâmetro & \textit{diameter\_specifications(}\\\textit{schedule, dn)} & SCH40 DN50: diâmetro externo $60,3\ \mathrm{mm}$, espessura $3,91\ \mathrm{mm}$, massa linear $4,44\ \mathrm{kg/m}$ e pressão máxima $7,93\ \mathrm{MPa}$ (catalogada como $1150\ \mathrm{psi}$). \\
         \hline
     \end{tabular}
     \fonte{Autoria própria.}
