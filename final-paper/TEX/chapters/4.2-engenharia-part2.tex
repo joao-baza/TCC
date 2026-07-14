@@ -9,7 +9,7 @@ V = {( R + 1 ) \cdot F}_{A 0} \cdot \int_{\frac{R}{R + 1} X \ }^{X} \frac{d X}{-
 \label{eq:pfr_design}
 \end{equation}
 
-Tendo que $R$ representa a razão de reagentes não limitantes inertes em relação ao limitante (se houver variação de vazão volumétrica) e o termo $( R + 1 )$ acomoda a variação de vazão na integração. No código, essa integral é avaliada numericamente (por exemplo, via \textit{scipy.integrate.quad}). Para o caso inverso, em que $V$ é conhecido e se busca $X$, utiliza-se novamente um procedimento iterativo (método de Brent) aplicando a equação de \textit{design} diferencial até encontrar a conversão cujo volume calculado corresponda ao especificado \cite{fogler2009}.
+Tendo que $R$ representa a razão de reciclo ou recirculação, definida na mesma base do parâmetro de entrada do sistema como vazão reciclada dividida pela vazão fresca de alimentação. Assim, o termo $( R + 1 )$ acomoda o aumento da vazão que atravessa o reator na integração. No código, essa integral é avaliada numericamente (por exemplo, via \textit{scipy.integrate.quad}). Para o caso inverso, em que $V$ é conhecido e se busca $X$, utiliza-se novamente um procedimento iterativo (método de Brent) aplicando a equação de \textit{design} diferencial até encontrar a conversão cujo volume calculado corresponda ao especificado \cite{fogler2009}.
 
 Considerando a similaridade estrutural e semântica com as rotinas de cálculo do \textit{CSTR}, destaca-se a diferença na função objetivo usada para o cálculo de volume, representada na Figura a seguir.
 
@@ -254,11 +254,11 @@ Em que $Q$ é a vazão volumétrica e $C$ é o coeficiente de Hazen--Williams do
 A forma estendida da equação de Bernoulli é utilizada para avaliar as variações de carga (energia por unidade de peso do fluido) entre dois pontos de um duto de escoamento, incluindo perdas:
 
 \begin{equation}
-H = \frac{P_{2} - P_{1}}{\rho g} + \frac{V_{2}^{2} - V_{1}^{2}}{2 g} + z_{2} - z_{1}
+H = \frac{P_{2} - P_{1}}{\rho g} + \frac{V_{2}^{2} - V_{1}^{2}}{2 g} + z_{2} - z_{1} + h_f
 \label{eq:bernoulli}
 \end{equation}
 
-Em que $H$ é a altura manométrica adicionada (se positiva) ou removida (se negativa) entre os pontos 1 e 2. Nessa equação, $\frac{P_{2} - P_{1}}{\rho g}$ representa a variação de pressão estática convertida em altura de coluna de fluido, $z_{2} - z_{1}$ é a variação de cota geométrica, o termo de velocidades representa a variação de energia cinética e $h_{f}$ engloba todas as perdas de carga (distribuídas e localizadas) entre os pontos \cite{white2018}.
+Em que $H$ é a altura manométrica adicionada (se positiva) ou removida (se negativa) entre os pontos 1 e 2. Nessa equação, $\frac{P_{2} - P_{1}}{\rho g}$ representa a variação de pressão estática convertida em altura de coluna de fluido, $z_{2} - z_{1}$ é a variação de cota geométrica, o termo de velocidades representa a variação de energia cinética e $h_{f}$ engloba todas as perdas de carga (distribuídas e localizadas) entre os pontos. Com essa convenção, perdas positivas aumentam a altura requerida pela bomba \cite{white2018}.
 
 Essa equação é fundamental para avaliar a necessidade de bombeamento: uma bomba deve fornecer uma $H$ suficiente para superar as perdas e elevar o fluido da condição 1 até 2; inversamente, uma turbomáquina geradora extrairá essa energia do fluido.
 

@@ -24,11 +24,11 @@ D = \sqrt{\frac{4 \cdot Q}{\pi \cdot V}}
 Em que:
 \begin{itemize}
     \item $Q$ -- vazão volumétrica do fluido;
-    \item $V$ -- velocidade do fluido;
+    \item $V$ -- velocidade média do fluido;
     \item $D$ -- diâmetro hidráulico do duto circular.
 \end{itemize}
 
-Essa relação advém diretamente da equação da continuidade para escoamento em regime permanente \cite{white2018}. No código, a função \textit{get\_calculated\_diameter} presente na classe dos cálculos hidráulicos utiliza o controle de unidades via \textit{Pint} e retorna o resultado em milímetros, assegurando consistência dimensional.
+Essa relação advém diretamente da equação da continuidade para escoamento em regime permanente \cite{white2018}. Em unidades coerentes do SI, $Q$ em $\mathrm{m^3/s}$ e $V$ em $\mathrm{m/s}$ produzem $D$ em $\mathrm{m}$. No código, a função \textit{get\_calculated\_diameter} presente na classe dos cálculos hidráulicos utiliza o controle de unidades via \textit{Pint}, realiza as conversões necessárias e reporta o resultado em milímetros, assegurando consistência dimensional.
 
 \begin{figure}[H]
     \centering
@@ -56,12 +56,12 @@ Modelos ideais como \textit{CSTR}, \textit{PFR} e batelada fornecem limites úte
 
 No escopo deste projeto, são considerados reatores isotérmicos e monofásicos (todos os reagentes e produtos em uma única fase, líquida ou gasosa). O código rejeita misturas de componentes em estados físicos diferentes, a fim de garantir a validade dos balanços e do coeficiente de variação volumétrica utilizado para o estado atual dos módulos de cálculo para reatores.
 
-Algumas lógicas gerais se aplicam a todos os tipos de reatores implementados. Por exemplo, a determinação do reagente limitante, onde: identifica-se aquele reagente cuja razão entre a vazão molar de entrada e seu coeficiente estequiométrico é a menor dentre os reagentes presentes. Em termos de cálculo, percorrem-se os reagentes (coeficientes estequiométricos negativos), calculando conforme a Equação \ref{eq:razao_reagente}:
+Algumas lógicas gerais se aplicam a todos os tipos de reatores implementados. Por exemplo, a determinação do reagente limitante identifica o reagente cuja disponibilidade inicial por unidade estequiométrica é a menor entre os reagentes presentes. Em termos de cálculo, percorrem-se apenas os reagentes (coeficientes estequiométricos negativos), calculando conforme a Equação \ref{eq:razao_reagente}:
 \begin{equation}
-{razao}_{i} = \frac{N_{i 0}}{N_{u 0}}
+\mathrm{razao}_{i} = \frac{N_{i0}}{|\nu_i|}
 \label{eq:razao_reagente}
 \end{equation}
-em que $N_{i0}$ é a vazão molar de entrada do componente $i$ e $N_{u0}$ é seu coeficiente estequiométrico. O reagente com menor valor de ${razao}_{i}$ é o limitante \cite{felder2005}.
+em que $N_{i0}$ é a vazão molar de entrada do reagente $i$ e $\nu_i$ é seu coeficiente estequiométrico. O valor absoluto $|\nu_i|$ evita a inversão de sinal causada pela convenção negativa dos reagentes; o reagente com menor valor de $\mathrm{razao}_{i}$ é o limitante \cite{felder2005}.
 
 \begin{figure}[H]
     \centering
@@ -98,10 +98,10 @@ Em que:
     \fonte{Elaboração própria (2026).}
 \end{figure}
 
-A integração da cinética com a estequiometria é feita via conversão $X$ do reagente limitante. Os balanços estequiométricos relacionam as concentrações de saída de cada componente à conversão $X$. Para cada componente $i$ na reação, têm-se a seguinte relação geral, sendo o valor do mais ou menos positivo para formação (produtos), negativo para consumo (reagentes) e, claro, uma conversão igual a zero para inertes.
+A integração da cinética com a estequiometria é feita via conversão $X$ do reagente limitante. Os balanços estequiométricos relacionam as concentrações de saída de cada componente à conversão $X$. Para cada componente $i$ na reação, tem-se a seguinte relação geral: o termo estequiométrico é positivo para formação (produtos), negativo para consumo (reagentes) e nulo para inertes.
 
 \begin{equation}
-C_{i} = \frac{C_{i 0} \pm ( \frac{n_{i}}{n_{A}} \cdot C_{A} \cdot X )}{\varepsilon}
+C_{i} = \frac{C_{i0} + \left( \frac{\nu_i}{|\nu_A|} \cdot C_{A0} \cdot X \right)}{\psi}
 \label{eq:conc_stoich}
 \end{equation}
 
@@ -109,11 +109,11 @@ Em que:
 \begin{itemize}
     \item $C_{i}$ -- concentração do componente na saída;
     \item $C_{i0}$ -- concentração do componente na entrada;
-    \item $\varepsilon$ -- coeficiente de variação volumétrica da reação;
+    \item $\psi$ -- fator de diluição total;
     \item $X$ -- conversão do reagente limitante;
-    \item $C_{A}$ -- concentração do reagente limitante;
-    \item $n_{i}$ -- coeficiente estequiométrico do componente;
-    \item $n_{A}$ -- coeficiente estequiométrico do reagente limitante.
+    \item $C_{A0}$ -- concentração de entrada do reagente limitante;
+    \item $\nu_i$ -- coeficiente estequiométrico do componente;
+    \item $\nu_A$ -- coeficiente estequiométrico do reagente limitante.
 \end{itemize}
 
 \begin{figure}[H]
@@ -126,20 +126,20 @@ Em que:
 Para determinação do coeficiente de variação volumétrica para reações gasosas, a Equação \ref{eq:epsilon_def} deve ser utilizada.
 
 \begin{equation}
-\varepsilon = y_{A0} \cdot \frac{\sum_{}^{} n_{P} - \sum_{}^{} n_{R}}{|n_{A}|}
+\varepsilon = y_{A0} \cdot \frac{\sum_{}^{} \nu_{P} - \sum_{}^{} \nu_{R}}{|\nu_{A}|}
 \label{eq:epsilon_def}
 \end{equation}
 
 Em que:
 \begin{itemize}
-    \item $\sum_{}^{} n_{P}$ -- somatório dos coeficientes estequiométricos dos produtos gasosos;
-    \item $\sum_{}^{} n_{R}$ -- somatório dos coeficientes estequiométricos dos reagentes gasosos;
+    \item $\sum_{}^{} \nu_{P}$ -- somatório dos coeficientes estequiométricos dos produtos gasosos;
+    \item $\sum_{}^{} \nu_{R}$ -- somatório dos coeficientes estequiométricos dos reagentes gasosos;
     \item $y_{A0}$ -- fração molar do reagente limitante na alimentação;
-    \item $n_{A}$ -- coeficiente estequiométrico do reagente limitante.
+    \item $\nu_{A}$ -- coeficiente estequiométrico do reagente limitante.
 \end{itemize}
 
 \begin{equation}
-\varphi = ( 1 + \epsilon X ) \frac{P}{P_{0}} \frac{T_{0}}{T}
+\psi = ( 1 + \varepsilon X ) \frac{P_{0}}{P} \frac{T}{T_{0}}
 \label{eq:dilution_factor}
 \end{equation}
 
@@ -150,7 +150,7 @@ Em que:
     \fonte{Elaboração própria (2026).}
 \end{figure}
 
-Onde $\varepsilon$ representa a variação de número de mols por mol de $A$ reagido. O fator $\psi$ agrega a variação volumétrica estequiométrica (via $\varepsilon X$) e as correções de pressão e temperatura em relação às condições iniciais \cite{levenspiel2000}. Essas relações estequiométricas permitem calcular as concentrações de saída de todos os componentes a partir da conversão $X$ do reagente limitante, sendo a base para os balanços nos diferentes modelos de reatores.
+Onde $\varepsilon$ representa a variação volumétrica ou molar por mol de $A$ reagido, podendo indicar expansão ou contração conforme a estequiometria e a fase gasosa. O fator $\psi$ agrega a variação volumétrica estequiométrica (via $\varepsilon X$) e as correções de pressão e temperatura em relação às condições iniciais \cite{levenspiel2000}. Essas relações estequiométricas permitem calcular as concentrações de saída de todos os componentes a partir da conversão $X$ do reagente limitante, sendo a base para os balanços nos diferentes modelos de reatores.
 
 \subsubsection{Reator do Tipo \textit{CSTR}}
 
@@ -199,7 +199,7 @@ Em que:
 Cálculo do tempo de residência:
 
 \begin{equation}
-\tau = \frac{Q_{T}}{V}
+\tau = \frac{V}{Q_{T}}
 \label{eq:residence_time}
 \end{equation}
 
