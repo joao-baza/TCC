@@ -33,6 +33,11 @@ def _components_to_dicts(components):
     ]
 
 
+def _format_recycling_ratio(value: float) -> str:
+    formatted = f"{value:.6f}".rstrip("0").rstrip(".")
+    return formatted.replace(".", ",")
+
+
 @router.get("/cstr/calculation-types")
 def get_cstr_calculation_types():
     return catalog_options(
@@ -162,7 +167,7 @@ def build_levenspiel_chart(payload: ReactorPlotRequest):
             "Volume necessário em função da conversão para a mesma cinética sem reciclo."
             if recycling_ratio <= 0
             else "Volume necessário em função da conversão para a mesma cinética, "
-            f"com razão de reciclo R = {recycling_ratio:.6g} no PFR."
+            f"com razão de reciclo R = {_format_recycling_ratio(recycling_ratio)} no PFR."
         )
         chart_data = reactor_isothermal.conversion_vs_volume_data(
             {
