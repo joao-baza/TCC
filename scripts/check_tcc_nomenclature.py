@@ -50,15 +50,19 @@ def load_registered_ids(path: Path) -> set[str]:
     return set(re.findall(r"\\simbolotcc\{([^{}]+)\}", text))
 
 
+def latex_field(value: object) -> str:
+    return str(value).replace("\\\\", "\\")
+
+
 def emit_latex(entries: list[dict[str, object]]) -> None:
     for entry in entries:
-        locations = "; ".join(str(item).replace("\\\\ref", "\\ref") for item in entry["locations"])
+        locations = "; ".join(latex_field(item) for item in entry["locations"])
         print(
             "\\simbolotcc"
-            f"{{{entry['id']}}}"
-            f"{{{entry['symbol']}}}"
-            f"{{{entry['description']}}}"
-            f"{{{entry['unit']}}}"
+            f"{{{latex_field(entry['id'])}}}"
+            f"{{{latex_field(entry['symbol'])}}}"
+            f"{{{latex_field(entry['description'])}}}"
+            f"{{{latex_field(entry['unit'])}}}"
             f"{{{locations}}}"
         )
 
