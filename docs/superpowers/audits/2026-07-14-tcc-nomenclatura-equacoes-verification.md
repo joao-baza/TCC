@@ -10,9 +10,9 @@
 
 ```bash
 python3 scripts/check_tcc_nomenclature.py
-cd final-paper/TEX && latexmk -pdf -interaction=nonstopmode main.tex
+(cd final-paper/TEX && latexmk -pdf -interaction=nonstopmode main.tex)
 rg -n "undefined references|Reference .* undefined|There were undefined references|LaTeX Warning: Label" final-paper/TEX/main.log
-pdftotext final-paper/TEX/main.pdf - | rg -n "\?\?"
+pdftotext final-paper/TEX/main.pdf - | rg -n "\\?\\?"
 python3 - <<'PY'
 from pathlib import Path
 import re
@@ -32,7 +32,7 @@ PY
 ## Results
 
 - Nomenclature checker: OK: 77 nomenclature entries registered.
-- PDF build tail:
+- PDF build tail: run from `final-paper/TEX`; returned up-to-date successfully without a full rebuild.
 
 ```text
 Rc files read:
