@@ -86,6 +86,9 @@
 }
 \makeatother
 
+% Lista de simbolos do TCC: id interno, simbolo, descricao, unidade e localizacao.
+\newcommand{\simbolotcc}[5]{#2 & #3 & #4 & #5\\}
+
 % --- Esse trecho é responsável por alinhar o texto ao topo. Se preferível que haja espaçamento entre os parágrafos para ocupar todo o espaço disponível, descomente a linha abaixo.
 \raggedbottom
 
@@ -247,29 +250,92 @@ Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Compu
   \item[\textit{SVG}] \textit{Scalable Vector Graphics}
   \item[\textit{UI}] \textit{User Interface}
   \item[\textit{UX}] \textit{User Experience}
-  \item[$Q$] Vazão volumétrica
-  \item[$D$] Diâmetro
-  \item[$D_h$] Diâmetro hidráulico
-  \item[$H$] Altura manométrica
-  \item[$Re$] Número de Reynolds
-  \item[$T$] Temperatura
-  \item[$P$] Pressão
-  \item[$P_c$] Pressão crítica
-  \item[$T_c$] Temperatura crítica
-  \item[$X$] Conversão
-  \item[$Z$] Fator de compressibilidade
-  \item[$h_f$] Perda de carga
-  \item[$k$] Constante cinética
-  \item[$\rho$] Massa específica do fluido
-  \item[$\gamma$] Peso específico do fluido
-  \item[$\mu$] Viscosidade dinâmica
-  \item[$\nu$] Viscosidade cinemática
-  \item[$\nu_i$] Coeficiente estequiométrico do componente $i$
-  \item[$\tau$] Tempo de residência
-  \item[$\varepsilon$] Coeficiente de variação volumétrica da reação
-  \item[$\psi$] Fator de diluição
-  \item[$g$] Aceleração da gravidade
 \end{siglas}
+\cleardoublepage
+
+\pdfbookmark[0]{Lista de simbolos}{los}
+\chapter*{Lista de simbolos}
+\begin{longtable}{p{0.14\textwidth}p{0.33\textwidth}p{0.18\textwidth}p{0.25\textwidth}}
+\textbf{Simbolo} & \textbf{Descricao} & \textbf{Unidade} & \textbf{Localizacao}\\
+\hline
+\simbolotcc{A}{$A$}{Area da secao transversal ou area molhada}{$m^2$}{Eq. \ref{eq:diametro_hidraulico}}
+\simbolotcc{a}{$a$}{Lado da secao retangular}{$m$}{Eq. \ref{eq:dh_rect}}
+\simbolotcc{b}{$b$}{Outro lado da secao retangular}{$m$}{Eq. \ref{eq:dh_rect}}
+\simbolotcc{C_Hazen}{$C$}{Coeficiente empirico de Hazen-Williams}{adimensional na forma empirica adotada}{Eq. \ref{eq:hazen}}
+\simbolotcc{C_i}{$C_i$}{Concentracao do componente $i$}{$mol/m^3$}{Eq. \ref{eq:rate_law}; Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:initial_conc}}
+\simbolotcc{C_A}{$C_A$}{Concentracao do componente A}{$mol/m^3$}{Eq. \ref{eq:val_rate_law}; Eq. \ref{eq:val_cstr_vol_deriv}; Eq. \ref{eq:val_pfr_deriv_1}}
+\simbolotcc{D}{$D$}{Diametro interno ou diametro caracteristico}{$m$}{Eq. \ref{eq:diametro_calc}; Eq. \ref{eq:reynolds_din}; Eq. \ref{eq:reynolds_cin}; Eq. \ref{eq:swamee}; Eq. \ref{eq:haaland}; Eq. \ref{eq:darcy}; Eq. \ref{eq:hazen}; Eq. \ref{eq:dh_circular}}
+\simbolotcc{D_h}{$D_h$}{Diametro hidraulico}{$m$}{Eq. \ref{eq:colebrook}; Eq. \ref{eq:diametro_hidraulico}; Eq. \ref{eq:dh_circular}; Eq. \ref{eq:dh_rect}; Eq. \ref{eq:dh_annular}}
+\simbolotcc{D_i}{$D_i$}{Diametro interno do anulo}{$m$}{Eq. \ref{eq:dh_annular}}
+\simbolotcc{D_o}{$D_o$}{Diametro externo do anulo}{$m$}{Eq. \ref{eq:dh_annular}}
+\simbolotcc{dX}{$dX$}{Diferencial da conversao}{adimensional}{Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_recycle_vol_eq}}
+\simbolotcc{epsilon_vol}{$\\varepsilon$}{Fator de variacao volumetrica da reacao}{adimensional}{Eq. \ref{eq:epsilon_def}; Eq. \ref{eq:dilution_factor}}
+\simbolotcc{epsilon_rough}{$\\varepsilon$}{Rugosidade absoluta da tubulacao}{$m$}{Eq. \ref{eq:colebrook}; Eq. \ref{eq:swamee}; Eq. \ref{eq:haaland}}
+\simbolotcc{F_A0}{$F_{A0}$}{Vazao molar inicial do componente A}{$mol/s$}{Eq. \ref{eq:cstr_design}; Eq. \ref{eq:cstr_obj_function}; Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_recycle_vol_eq}}
+\simbolotcc{F_A_in}{$F_{A,in}$}{Vazao molar de entrada do componente A}{$mol/s$}{Eq. \ref{eq:val_reaction_flow_a}; Eq. \ref{eq:val_reaction_flow_b}}
+\simbolotcc{F_A_out}{$F_{A,out}$}{Vazao molar de saida do componente A}{$mol/s$}{Eq. \ref{eq:val_reaction_flow_a}}
+\simbolotcc{F_B_out}{$F_{B,out}$}{Vazao molar de saida do componente B}{$mol/s$}{Eq. \ref{eq:val_reaction_flow_b}}
+\simbolotcc{F_G}{$F_G$}{Vazao bruta antes da retirada do reciclo}{mesma unidade de $F_P$}{Eq. \ref{eq:gross_product_flow}}
+\simbolotcc{F_P}{$F_P$}{Vazao de produto na base de calculo adotada}{unidade de vazao da base adotada}{Eq. \ref{eq:recycle_flow}; Eq. \ref{eq:gross_product_flow}}
+\simbolotcc{F_R}{$F_R$}{Vazao de reciclo na base de calculo adotada}{unidade de vazao da base adotada}{Eq. \ref{eq:recycle_flow}}
+\simbolotcc{F_Produto}{$F_{Produto}$}{Vazao massica de produto no exemplo de validacao}{$kg/h$}{Eq. \ref{eq:val_product_flow_mass}}
+\simbolotcc{F_Reciclo}{$F_{Reciclo}$}{Vazao massica de reciclo no exemplo de validacao}{$kg/h$}{Eq. \ref{eq:val_recycle_flow_mass}}
+\simbolotcc{F_S}{$F_S$}{Vazao massica de uma corrente material do exemplo de mistura}{$kg/h$}{Eq. \ref{eq:val_mixer_total_flow}; Eq. \ref{eq:val_mixer_component_balance}}
+\simbolotcc{f_atrito}{$f$}{Fator de atrito de Darcy}{adimensional}{Eq. \ref{eq:laminar_friction}; Eq. \ref{eq:colebrook}; Eq. \ref{eq:swamee}; Eq. \ref{eq:haaland}; Eq. \ref{eq:darcy}}
+\simbolotcc{f_reciclo}{$f$}{Fracao de reciclo em relacao ao produto}{adimensional}{Eq. \ref{eq:recycle_flow}; Eq. \ref{eq:gross_product_flow}}
+\simbolotcc{g}{$g$}{Aceleracao da gravidade}{$m/s^2$}{Eq. \ref{eq:darcy}; Eq. \ref{eq:bernoulli}; Eq. \ref{eq:npsh}}
+\simbolotcc{H}{$H$}{Altura manometrica}{$m$}{Eq. \ref{eq:bernoulli}}
+\simbolotcc{h_f}{$h_f$}{Perda de carga}{$m$}{Eq. \ref{eq:darcy}; Eq. \ref{eq:hazen}; Eq. \ref{eq:bernoulli}; Eq. \ref{eq:val_hf_calc_a}; Eq. \ref{eq:val_hf_calc_b}}
+\simbolotcc{h_suc}{$h_{suc}$}{Perda de carga na succao}{$m$}{Eq. \ref{eq:npsh}}
+\simbolotcc{k}{$k$}{Constante cinetica da lei de velocidade}{depende da ordem global da reacao}{Eq. \ref{eq:rate_law}; Eq. \ref{eq:val_rate_law}; Eq. \ref{eq:val_cstr_vol_deriv}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_pfr_deriv_2}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{L}{$L$}{Comprimento real da tubulacao}{$m$}{Eq. \ref{eq:darcy}; Eq. \ref{eq:hazen}; Eq. \ref{eq:val_len_total}}
+\simbolotcc{L_eq}{$L_{eq}$}{Comprimento equivalente de acessorios}{multiplo de diametro ou $m$, conforme definicao do trecho}{Eq. \ref{eq:darcy}; Eq. \ref{eq:val_len_total}}
+\simbolotcc{L_total}{$L_{total}$}{Comprimento total equivalente}{$m$}{Eq. \ref{eq:val_len_total}}
+\simbolotcc{m_dot}{$\\dot{m}$}{Vazao massica}{$kg/s$ ou $kg/h$, conforme base do exemplo}{Eq. \ref{eq:steady_state_mass_balance}; Eq. \ref{eq:component_mass_balance_rxn}}
+\simbolotcc{mu}{$\\mu$}{Viscosidade dinamica}{$Pa\\cdot s$}{Eq. \ref{eq:reynolds_din}}
+\simbolotcc{N_i0}{$N_{i0}$}{Vazao molar inicial do componente $i$}{$mol/s$}{Eq. \ref{eq:razao_reagente}; Eq. \ref{eq:molar_flow_in}; Eq. \ref{eq:initial_conc}}
+\simbolotcc{n_i}{$n_i$}{Ordem parcial da reacao em relacao ao componente $i$}{adimensional}{Eq. \ref{eq:rate_law}}
+\simbolotcc{NPSH_disp}{$NPSH_{disp}$}{NPSH disponivel}{$m$}{Eq. \ref{eq:npsh}}
+\simbolotcc{nu_cin}{$\\nu$}{Viscosidade cinematica}{$m^2/s$}{Eq. \ref{eq:reynolds_cin}}
+\simbolotcc{nu_i}{$\\nu_i$}{Coeficiente estequiometrico do componente $i$}{adimensional}{Eq. \ref{eq:razao_reagente}; Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:epsilon_def}}
+\simbolotcc{nu_A}{$\\nu_A$}{Coeficiente estequiometrico do componente A}{adimensional}{Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:epsilon_def}}
+\simbolotcc{P_pressao}{$P$}{Pressao absoluta do sistema}{$Pa$}{Eq. \ref{eq:dilution_factor}}
+\simbolotcc{P_perimetro}{$P$}{Perimetro molhado}{$m$}{Eq. \ref{eq:diametro_hidraulico}}
+\simbolotcc{P0}{$P_0$}{Pressao inicial ou de referencia}{$Pa$}{Eq. \ref{eq:dilution_factor}}
+\simbolotcc{P1}{$P_1$}{Pressao no ponto 1}{$Pa$}{Eq. \ref{eq:bernoulli}}
+\simbolotcc{P2}{$P_2$}{Pressao no ponto 2}{$Pa$}{Eq. \ref{eq:bernoulli}}
+\simbolotcc{P_atm}{$P_{atm}$}{Pressao atmosferica}{$Pa$}{Eq. \ref{eq:npsh}}
+\simbolotcc{P_suc}{$P_{suc}$}{Pressao na succao}{$Pa$}{Eq. \ref{eq:npsh}}
+\simbolotcc{p_vap}{$p_{vap}$}{Pressao de vapor do fluido}{$Pa$}{Eq. \ref{eq:npsh}}
+\simbolotcc{psi}{$\\psi$}{Fator de diluicao}{adimensional}{Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:dilution_factor}}
+\simbolotcc{Q}{$Q$}{Vazao volumetrica}{$m^3/s$}{Eq. \ref{eq:diametro_calc}; Eq. \ref{eq:hazen}}
+\simbolotcc{Q_i}{$Q_i$}{Vazao volumetrica da corrente ou componente $i$}{$m^3/s$}{Eq. \ref{eq:molar_flow_in}; Eq. \ref{eq:total_flow}}
+\simbolotcc{Q_T}{$Q_T$}{Vazao volumetrica total}{$m^3/s$}{Eq. \ref{eq:total_flow}; Eq. \ref{eq:initial_conc}; Eq. \ref{eq:residence_time}; Eq. \ref{eq:volume_calc}}
+\simbolotcc{R}{$R$}{Razao de reciclo}{adimensional}{Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_recycle_xin}; Eq. \ref{eq:val_recycle_vol_eq}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{razao_i}{$\\mathrm{razao}_i$}{Razao para escolha do reagente limitante}{$mol/s$}{Eq. \ref{eq:razao_reagente}}
+\simbolotcc{Re}{$Re$}{Numero de Reynolds}{adimensional}{Eq. \ref{eq:laminar_friction}; Eq. \ref{eq:reynolds_din}; Eq. \ref{eq:reynolds_cin}; Eq. \ref{eq:colebrook}; Eq. \ref{eq:swamee}; Eq. \ref{eq:haaland}}
+\simbolotcc{rho}{$\\rho$}{Massa especifica do fluido}{$kg/m^3$}{Eq. \ref{eq:reynolds_din}; Eq. \ref{eq:bernoulli}; Eq. \ref{eq:npsh}}
+\simbolotcc{r}{$r$}{Taxa de reacao generica}{$mol/(m^3\\cdot s)$}{Eq. \ref{eq:rate_law}}
+\simbolotcc{r_A}{$r_A$}{Taxa de reacao do componente A}{$mol/(m^3\\cdot s)$}{Eq. \ref{eq:cstr_design}; Eq. \ref{eq:cstr_obj_function}; Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_rate_law}; Eq. \ref{eq:val_recycle_vol_eq}}
+\simbolotcc{T}{$T$}{Temperatura absoluta do sistema}{$K$}{Eq. \ref{eq:dilution_factor}}
+\simbolotcc{T0}{$T_0$}{Temperatura inicial ou de referencia}{$K$}{Eq. \ref{eq:dilution_factor}}
+\simbolotcc{tau}{$\\tau$}{Tempo de residencia}{$s$}{Eq. \ref{eq:residence_time}; Eq. \ref{eq:volume_calc}}
+\simbolotcc{V_volume}{$V$}{Volume do reator ou volume calculado}{$m^3$}{Eq. \ref{eq:cstr_design}; Eq. \ref{eq:residence_time}; Eq. \ref{eq:cstr_obj_function}; Eq. \ref{eq:volume_calc}; Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_pfr_deriv_2}; Eq. \ref{eq:val_recycle_vol_eq}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{V_vel}{$V$}{Velocidade media de escoamento}{$m/s$}{Eq. \ref{eq:diametro_calc}; Eq. \ref{eq:reynolds_din}; Eq. \ref{eq:reynolds_cin}; Eq. \ref{eq:darcy}; Eq. \ref{eq:bernoulli}}
+\simbolotcc{V_CSTR}{$V_{CSTR}$}{Volume calculado para o CSTR}{$m^3$}{Eq. \ref{eq:val_cstr_vol_deriv}}
+\simbolotcc{V_manual}{$V_{manual}$}{Volume calculado manualmente na validacao}{$m^3$}{Eq. \ref{eq:val_cstr_vol_calc_1}; Eq. \ref{eq:val_cstr_vol_calc_2}; Eq. \ref{eq:val_pfr_calc_1}; Eq. \ref{eq:val_pfr_calc_2}; Eq. \ref{eq:val_pfr_calc_3}; Eq. \ref{eq:val_recycle_vol_calc_1}; Eq. \ref{eq:val_recycle_vol_calc_2}; Eq. \ref{eq:val_recycle_vol_calc_3}}
+\simbolotcc{V_suc}{$V_{suc}$}{Velocidade na succao}{$m/s$}{Eq. \ref{eq:npsh}}
+\simbolotcc{v0}{$v_0$}{Vazao volumetrica inicial}{$m^3/s$}{Eq. \ref{eq:val_cstr_vol_deriv}; Eq. \ref{eq:val_pfr_deriv_2}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{v_A}{$v_A$}{Coeficiente estequiometrico de A na funcao objetivo}{adimensional}{Eq. \ref{eq:cstr_obj_function}}
+\simbolotcc{X}{$X$}{Conversao}{adimensional}{Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:dilution_factor}; Eq. \ref{eq:cstr_design}; Eq. \ref{eq:cstr_obj_function}; Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_rate_law}; Eq. \ref{eq:val_cstr_vol_deriv}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_pfr_deriv_2}}
+\simbolotcc{X_A}{$X_A$}{Conversao do componente A}{adimensional}{Eq. \ref{eq:val_reaction_flow_a}; Eq. \ref{eq:val_reaction_flow_b}}
+\simbolotcc{X_in}{$X_{in}$}{Conversao na entrada do reator com reciclo}{adimensional}{Eq. \ref{eq:val_recycle_xin}; Eq. \ref{eq:val_recycle_vol_eq}; Eq. \ref{eq:val_recycle_vol_int}; Eq. \ref{eq:val_recycle_xin_calc}}
+\simbolotcc{X_out}{$X_{out}$}{Conversao na saida do reator com reciclo}{adimensional}{Eq. \ref{eq:val_recycle_xin}; Eq. \ref{eq:val_recycle_vol_eq}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{y_A}{$y_A$}{Fracao molar do componente A}{adimensional}{Eq. \ref{eq:epsilon_def}; Eq. \ref{eq:val_reaction_mole_fractions}}
+\simbolotcc{y_B}{$y_B$}{Fracao molar do componente B}{adimensional}{Eq. \ref{eq:val_reaction_mole_fractions}}
+\simbolotcc{z}{$z$}{Cota geometrica}{$m$}{Eq. \ref{eq:bernoulli}; Eq. \ref{eq:npsh}}
+\simbolotcc{z_S_agua}{$z_{S,agua}$}{Fracao massica de agua em uma corrente do exemplo de mistura}{adimensional}{Eq. \ref{eq:val_mixer_component_balance}; Eq. \ref{eq:val_mixer_water_fraction}}
+\end{longtable}
 \cleardoublepage
 
 % ---
