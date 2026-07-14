@@ -150,6 +150,56 @@ const pointGuideChart: ChartModel = {
   ],
 };
 
+const levenspielOperationalVolumeChart: ChartModel = {
+  id: "reactor-levenspiel-chart",
+  title: "Levenspiel",
+  axes: {
+    x: {
+      scale: "linear",
+      label: "Conversao",
+      units: "adimensional",
+      domain: { min: 0, max: 1 },
+      ticks: [0, 0.5, 1],
+      major_ticks: [0, 0.5, 1],
+    },
+    y: {
+      scale: "linear",
+      label: "Volume",
+      units: "m3",
+      domain: { min: 0, max: 6 },
+      ticks: [0, 3, 6],
+      major_ticks: [0, 3, 6],
+    },
+  },
+  series: [
+    {
+      id: "cstr-volume",
+      name: "CSTR",
+      kind: "line",
+      color: "#2563eb",
+      points: [
+        { x: 0.1, y: 0.8 },
+        { x: 0.33, y: 3 },
+      ],
+    },
+    {
+      id: "pfr-volume",
+      name: "PFR",
+      kind: "line",
+      color: "#dc2626",
+      points: [
+        { x: 0.1, y: 0.7 },
+        { x: 0.39, y: 3 },
+      ],
+    },
+  ],
+  markers: [
+    { id: "cstr-operating-point", x: 0.33, y: 3, label: "CSTR operacional", color: "#2563eb" },
+    { id: "pfr-operating-point", x: 0.39, y: 3, label: "PFR operacional", color: "#dc2626" },
+  ],
+  metadata: { version: "1.0" },
+};
+
 const stackedBarChart: ChartModel = {
   id: "stacked-bar-chart",
   title: "Composição mássica das correntes",
@@ -260,6 +310,21 @@ describe("ChartModelRenderer", () => {
     expect(container.querySelector("circle[fill='#b45309']")).toBeTruthy();
     expect(container.querySelector("text[fill='#0f766e']")).toBeTruthy();
     expect(container.querySelector("text[fill='#b45309']")).toBeTruthy();
+  });
+
+  it("uses one horizontal operational volume guide instead of marker labels on Levenspiel charts", () => {
+    const { container } = render(<ChartModelRenderer model={levenspielOperationalVolumeChart} />);
+
+    expect(screen.getByText("volume operacional calculado")).toBeInTheDocument();
+    expect(screen.queryByText("CSTR operacional")).not.toBeInTheDocument();
+    expect(screen.queryByText("PFR operacional")).not.toBeInTheDocument();
+
+    const guide = container.querySelector('[data-marker-guide-id="operational-volume"]');
+    expect(guide).toBeTruthy();
+    expect(guide?.getAttribute("stroke-dasharray")).toBe("4 4");
+    expect(guide?.getAttribute("stroke-width")).toBe("1.2");
+    expect(guide?.getAttribute("y1")).toBe(guide?.getAttribute("y2"));
+    expect(container.querySelectorAll('[data-marker-guide-id="operational-volume"]')).toHaveLength(1);
   });
 
   it("skips invalid log-scale points and preserves detached annotations as textual notes", () => {
