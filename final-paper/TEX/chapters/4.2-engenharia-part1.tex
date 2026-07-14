@@ -126,14 +126,14 @@ Em que:
 Para determinação do coeficiente de variação volumétrica para reações gasosas, a Equação \ref{eq:epsilon_def} deve ser utilizada.
 
 \begin{equation}
-\varepsilon = y_{A0} \cdot \frac{\sum_{}^{} \nu_{P} - \sum_{}^{} \nu_{R}}{|\nu_{A}|}
+\varepsilon = y_{A0} \cdot \frac{\sum_{\nu_i>0} \nu_i - \sum_{\nu_i<0} |\nu_i|}{|\nu_{A}|}
 \label{eq:epsilon_def}
 \end{equation}
 
 Em que:
 \begin{itemize}
-    \item $\sum_{}^{} \nu_{P}$ -- somatório dos coeficientes estequiométricos dos produtos gasosos;
-    \item $\sum_{}^{} \nu_{R}$ -- somatório dos coeficientes estequiométricos dos reagentes gasosos;
+    \item $\sum_{\nu_i>0} \nu_i$ -- somatório dos coeficientes estequiométricos positivos dos produtos gasosos;
+    \item $\sum_{\nu_i<0} |\nu_i|$ -- somatório dos módulos dos coeficientes estequiométricos negativos dos reagentes gasosos;
     \item $y_{A0}$ -- fração molar do reagente limitante na alimentação;
     \item $\nu_{A}$ -- coeficiente estequiométrico do reagente limitante.
 \end{itemize}
