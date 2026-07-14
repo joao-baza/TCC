@@ -104,11 +104,11 @@ Esses parâmetros permitem fechar balanços em sistemas com recirculação e cal
     \label{fig:mass_balance_results}
 \end{figure}
 
-O balanço de massa fundamenta o dimensionamento de equipamentos como misturadores, separadores, reatores e redes de processo, além de embasar análises econômicas (minimizando perdas de matérias-primas) e de segurança (evitando acúmulo indesejado de compostos). Vale notar que temperatura e pressão influenciam o balanço apenas através de propriedades físicas (densidade, volumes específicos), ou mudanças de fase que afetem as vazões mássicas e molares de cada corrente \cite{felder2005}.
+O balanço de massa fundamenta o dimensionamento de equipamentos como misturadores, separadores, reatores e redes de processo, além de embasar análises econômicas (minimizando perdas de matérias-primas) e de segurança (evitando acúmulo indesejado de compostos). Vale notar que temperatura e pressão influenciam o balanço apenas através de propriedades físicas (massa específica, volumes específicos), ou mudanças de fase que afetem as vazões mássicas e molares de cada corrente \cite{felder2005}.
 
 \subsection{Escoamento, Perdas de Carga e Diâmetros Hidráulicos}
 
-O comportamento do escoamento em dutos é governado, principalmente, pelo número de Reynolds, que permite classificar o regime como laminar, de transição ou turbulento. Variáveis-chave incluem o diâmetro hidráulico, a velocidade média, a viscosidade e a densidade do fluido, bem como a rugosidade relativa da parede. Perfis de velocidade, mecanismos de mistura e dissipação de energia por atrito dependem desse regime de escoamento. Para quantificar a perda de carga (queda de pressão) devida ao atrito no escoamento, emprega-se a equação universal de Darcy–Weisbach \cite{white2018}.
+O comportamento do escoamento em dutos é governado, principalmente, pelo número de Reynolds, que permite classificar o regime como laminar, de transição ou turbulento. Variáveis-chave incluem o diâmetro hidráulico, a velocidade média, a viscosidade e a massa específica do fluido, bem como a rugosidade relativa da parede. Perfis de velocidade, mecanismos de mistura e dissipação de energia por atrito dependem desse regime de escoamento. Para quantificar a perda de carga (queda de pressão) devida ao atrito no escoamento, emprega-se a equação universal de Darcy–Weisbach \cite{white2018}.
 
 No regime turbulento, o fator de atrito $f$ depende de $Re$ e da rugosidade relativa $\varepsilon/D$, não possuindo solução analítica explícita; por isso, utilizam-se relações empíricas ou aproximadas. Já no regime laminar ($Re < 2300$), o perfil de velocidades é parabólico e $f$ admite a expressão simples dada pela Equação \ref{eq:laminar_friction}:
 \begin{equation}
@@ -116,9 +116,9 @@ f = \frac{64}{Re}
 \label{eq:laminar_friction}
 \end{equation}.
 
-Em serviços de água a escoamento turbulento, a fórmula empírica de Hazen--Williams é comumente empregada como aproximação prática \cite{perry2007}. Temperatura e pressão afetam densidade e viscosidade do fluido, modificando o valor de $Re$ e, consequentemente, as perdas de carga.
+Em serviços de água a escoamento turbulento, a fórmula empírica de Hazen--Williams é comumente empregada como aproximação prática \cite{perry2007}. Temperatura e pressão afetam massa específica e viscosidade do fluido, modificando o valor de $Re$ e, consequentemente, as perdas de carga.
 
-Além disso, o material e condições da tubulação (nova, envelhecida) determinam a rugosidade efetiva. Todos esses efeitos impactam diretamente o balanço de energia em uma linha de fluxo e a potência requerida em bombas ou compressores \cite{perry2007,white2018}.
+Além disso, o material e condições da tubulação (nova, envelhecida) determinam a rugosidade efetiva. Todos esses efeitos impactam diretamente o balanço de energia no escoamento em dutos e a potência requerida em bombas ou compressores \cite{perry2007,white2018}.
 
 \subsubsection{Número de Reynolds}
 
@@ -136,7 +136,7 @@ Re = \frac{D \cdot V}{\nu}
 \label{eq:reynolds_cin}
 \end{equation}
 
-Onde $D$ é o diâmetro hidráulico, $\rho$ é a densidade do fluido, $V$ é a velocidade média e $\mu$ é a viscosidade dinâmica. Tipicamente, $Re < 2300$ indica regime laminar, $2300 < Re < 4000$ indica regime de transição, e $Re > 4000$ indica regime turbulento plenamente desenvolvido \cite{white2018}.
+Onde $D$ é o diâmetro hidráulico, $\rho$ é a massa específica do fluido, $V$ é a velocidade média e $\mu$ é a viscosidade dinâmica. Tipicamente, $Re < 2300$ indica regime laminar, $2300 < Re < 4000$ indica regime de transição, e $Re > 4000$ indica regime turbulento plenamente desenvolvido \cite{white2018}.
 
 \begin{figure}[H]
     \centering
@@ -251,7 +251,7 @@ Em que $Q$ é a vazão volumétrica e $C$ é o coeficiente de Hazen--Williams do
 
 \subsubsection{Altura Manométrica entre Dois Pontos}
 
-A forma estendida da equação de Bernoulli é utilizada para avaliar as variações de carga (energia por unidade de peso do fluido) entre dois pontos de uma linha de escoamento, incluindo perdas:
+A forma estendida da equação de Bernoulli é utilizada para avaliar as variações de carga (energia por unidade de peso do fluido) entre dois pontos de um duto de escoamento, incluindo perdas:
 
 \begin{equation}
 H = \frac{P_{2} - P_{1}}{\rho g} + \frac{V_{2}^{2} - V_{1}^{2}}{2 g} + z_{2} - z_{1}
@@ -347,7 +347,7 @@ O programa permite ao usuário informar $A$ e $P$ para cálculo de $D_{h}$ em si
 
 \subsection{Propriedades Termofísicas}
 
-Propriedades termofísicas – como densidade, viscosidade, calor específico, condutividade térmica, entalpia e entropia – são insumos essenciais em praticamente todos os cálculos de processos. Em misturas, a predição de propriedades requer modelos mais complexos do que simples somas ponderadas, considerando interações moleculares e desvios da idealidade. Tais propriedades alimentam balanços de massa e energia, o dimensionamento térmico de trocadores, o cálculo de Reynolds e de fatores de atrito, o desempenho de separações, entre outros. Temperatura e pressão são variáveis determinantes: utilizam-se correlações empíricas (por exemplo, equação de Antoine para pressão de vapor) ou equações de estado (gás ideal, Peng-Robinson, SRK) conforme o sistema. Erros na estimativa de viscosidade ou densidade afetam o cálculo de Reynolds, fator de atrito e potência de bombeamento; imprecisões em calores específicos ou entalpias propagam-se em balanços de energia e projeto de utilidades.
+Propriedades termofísicas – como massa específica, viscosidade, calor específico, condutividade térmica, entalpia e entropia – são insumos essenciais em praticamente todos os cálculos de processos. Em misturas, a predição de propriedades requer modelos mais complexos do que simples somas ponderadas, considerando interações moleculares e desvios da idealidade. Tais propriedades alimentam balanços de massa e energia, o dimensionamento térmico de trocadores, o cálculo de Reynolds e de fatores de atrito, o desempenho de separações, entre outros. Temperatura e pressão são variáveis determinantes: utilizam-se correlações empíricas (por exemplo, equação de Antoine para pressão de vapor) ou equações de estado (gás ideal, Peng-Robinson, SRK) conforme o sistema. Erros na estimativa de viscosidade ou massa específica afetam o cálculo de Reynolds, fator de atrito e potência de bombeamento; imprecisões em calores específicos ou entalpias propagam-se em balanços de energia e projeto de utilidades.
 
 \begin{figure}[H]
     \centering
@@ -363,7 +363,7 @@ Propriedades termofísicas – como densidade, viscosidade, calor específico, c
     \fonte{Elaboração própria (2026).}
 \end{figure}
 
-No \textit{software} desenvolvido, um módulo de propriedades utiliza a biblioteca \textit{CoolProp} para recuperar propriedades de fluidos puros (e misturas) a partir de dados de entrada de $T$ e $P$. São obtidas propriedades como densidade, viscosidade, calor específico ($c_{p}$ e $c_{v}$), condutividade térmica, entalpia, entropia, massa molar e tensão superficial, além de propriedades críticas e pontos de saturação (bolha/orvalho) quando aplicável. A visualização desse cálculo de propriedades, com foco no resultado para uma mistura, é apresentada na Figura \ref{fig:mixture_properties}.
+No \textit{software} desenvolvido, um módulo de propriedades utiliza a biblioteca \textit{CoolProp} para recuperar propriedades de fluidos puros (e misturas) a partir de dados de entrada de $T$ e $P$. São obtidas propriedades como densidade ($\rho$, massa específica), viscosidade, calor específico ($c_{p}$ e $c_{v}$), condutividade térmica, entalpia, entropia, massa molar e tensão superficial, além de propriedades críticas e pontos de saturação (bolha/orvalho) quando aplicável. A visualização desse cálculo de propriedades, com foco no resultado para uma mistura, é apresentada na Figura \ref{fig:mixture_properties}.
 
 \begin{figure}[H]
     \centering
