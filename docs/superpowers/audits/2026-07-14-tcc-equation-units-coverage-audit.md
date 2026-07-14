@@ -82,7 +82,7 @@
 
 ### 4.2 Engenharia Part 1
 
-- Evidence status: Open.
+- Evidence status: U01-U13 covered by local unit tables and adjacent interpretive prose.
 
 ### 4.2 Engenharia Part 2
 
@@ -101,6 +101,6 @@
 ## Final Verification
 
 - Equation count after edits: 60 (`rg -n '\\begin\{equation\}' final-paper/TEX/chapters/4.2-engenharia-part1.tex final-paper/TEX/chapters/4.2-engenharia-part2.tex final-paper/TEX/chapters/4.4-validacao.tex | wc -l`).
-- PDF compile: Blocked. `./final-paper/compile.sh` returned shell exit code 0, but `latexmk` reported `Missing $ inserted` at `main.tex:272` in the pre-existing symbol table entry `\simbolotcc{epsilon_vol}{$\\varepsilon$}...`; no `final-paper/TEX/main.pdf` was present after the run. The blocked file is outside the Task 4 write scope.
-- PDF text scan: Not rerun because the PDF compile is blocked before chapter content rendering.
+- PDF compile: Passed for the Task 5 checkpoint. `./final-paper/compile.sh` returned exit code 0 and generated `final-paper/TEX/main.pdf`.
+- PDF text scan: Open for Task 6; not rerun in Task 5.
 - Remaining partial rows: none.
