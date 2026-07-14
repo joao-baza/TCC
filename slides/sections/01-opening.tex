@@ -51,9 +51,9 @@
         {\small
         \begin{itemize}
           \setlength{\itemsep}{0.25em}
-          \item Simuladores industriais pagos são robustos, mas têm alto custo de acesso e licenciamento.
-          \item Planilhas e rotinas isoladas resolvem casos, mas fragmentam o aprendizado.
-          \item Muitas ferramentas exigem curva de aprendizado elevada ou apresentam interfaces defasadas.
+          \item Simuladores como Aspen Plus, HYSYS e ChemCAD são robustos, mas têm alto custo de acesso e licenciamento.
+          \item Alternativas como DWSIM, Excel e MATLAB apoiam cálculos, mas nem sempre integram módulos e leitura didática.
+          \item Exigem curva de aprendizado elevada ou apresentam interfaces defasadas.
           \item O estudante vê o resultado, porém nem sempre enxerga o fenômeno por trás dele.
         \end{itemize}
         }
@@ -65,13 +65,25 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Motivação acadêmica e técnica}
-  \begin{itemize}
-    \item Operações unitárias dependem de balanços, termodinâmica, escoamento e cinética.
-    \item No ensino, a automação só é útil se preservar hipótese, unidade, equação e interpretação.
-    \item O DCOU foi pensado como ambiente de estudo, não como uma caixa-preta de resultados.
-    \item O caráter aberto permite auditoria, extensão e reaproveitamento por estudantes e docentes.
-  \end{itemize}
+\begin{frame}[t]{A lacuna aparece nas ferramentas disponíveis}
+  \vspace*{-0.55em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.52\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.28\textheight,keepaspectratio]{assets/problem-context/dwsim-flowsheet.png}
+      \vspace{0.3em}
+
+      \includegraphics[width=\linewidth,height=0.28\textheight,keepaspectratio]{assets/problem-context/chemcad-flowsheet.png}
+    \column{0.44\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.27\textheight,keepaspectratio]{assets/problem-context/aspen-hysys-interface.png}
+      \vspace{0.45em}
+
+      \includegraphics[width=\linewidth,height=0.22\textheight,keepaspectratio]{assets/problem-context/hysys-license-range.png}
+      \vspace{0.4em}
+
+      {\small\color{dcouink}Interfaces densas e barreiras de acesso ajudam a explicar a lacuna didática.}
+  \end{columns}
 \end{frame}
 
 \begin{frame}{Por que o DCOU interessa à Engenharia Química}
@@ -116,43 +128,46 @@
   \end{alertblock}
 \end{frame}
 
-\begin{frame}{Objetivo geral}
-  \begin{block}{Objetivo da monografia}
-    Desenvolver o DCOU, um software web modular para cálculo e apoio didático em operações unitárias, com arquitetura cliente-servidor e API aberta.
-  \end{block}
-  \vspace{0.7em}
-  \begin{itemize}
-    \item Integrar rotinas de tubulações, escoamento, bombas, propriedades, reatores e balanços.
-    \item Expor resultados com validação de entrada, unidades e recursos de interpretação.
-    \item Manter uma base evolutiva para uso acadêmico e futuras contribuições.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Objetivos específicos que guiam a apresentação}
+\begin{frame}{A automação só ajuda quando preserva o raciocínio de engenharia}
   \begin{columns}[T,onlytextwidth]
     \column{0.48\textwidth}
+      \begin{block}{Fenômeno e modelo}
+        Operações unitárias exigem conectar balanços, propriedades, escoamento, cinética e equilíbrio a hipóteses de cálculo explícitas.
+      \end{block}
       \begin{itemize}
-        \item Implementar rotinas clássicas de engenharia.
-        \item Criar interface web interativa e responsiva.
-        \item Integrar propriedades físico-químicas e catálogos locais.
+        \item Unidade, variável e domínio de validade precisam continuar visíveis.
+        \item O resultado numérico depende do fenômeno físico modelado.
       \end{itemize}
     \column{0.48\textwidth}
+      \begin{alertblock}{Pergunta técnica}
+        Como automatizar cálculos sem transformar o processo em uma caixa-preta?
+      \end{alertblock}
       \begin{itemize}
-        \item Adicionar glossário, explicações e visualizações.
-        \item Oferecer exemplos coerentes providos pela API.
-        \item Validar resultados contra literatura e referências.
+        \item A interface deve apoiar a interpretação, não substituí-la.
+        \item O código aberto permite auditoria e extensão acadêmica.
       \end{itemize}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Tese central da defesa}
-  \begin{center}
-    {\Large\color{dcoublue}\textbf{O DCOU entrega uma base didática e computacional integrada para operações unitárias.}\par}
-  \end{center}
-  \vspace{0.7em}
-  \begin{itemize}
-    \item O cálculo fica no backend, onde contratos, unidades e validações são controlados.
-    \item A interface organiza a experiência de estudo e torna os fenômenos visíveis.
-    \item A validação compara as rotinas com equações e referências clássicas da área.
-  \end{itemize}
+\transitionframe{Solução proposta}{Da lacuna didática para uma plataforma modular aberta}
+
+\begin{frame}{Objetivo e tese da defesa}
+  \begin{block}{Objetivo do TCC}
+    Desenvolver uma plataforma web aberta para cálculo e apoio didático em operações unitárias, integrando rotinas de engenharia, visualizações, validação de entrada e API pública.
+  \end{block}
+  \vspace{0.45em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.32\textwidth}
+      \begin{block}{Cálculo}
+        Tubulações, escoamento, bombas, propriedades, reatores e balanços.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{Interpretação}
+        Hipóteses, unidades, exemplos, glossário e visualizações.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{Confiabilidade}
+        Backend validado, contratos de API e execução reprodutível.
+      \end{block}
+  \end{columns}
 \end{frame}
