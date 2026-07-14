@@ -65,6 +65,7 @@
 | PROP-08 | Properties visualization model | `routers/components_router.py:get_vapor_pressure_chart` | Chart wrapper over saturation-envelope data: plots CoolProp-backed `P_sat(T)` points on a log-pressure axis with triple and critical markers | `routers/components_router.py:/components/vapor-pressure/chart` | `final-paper/TEX/chapters/4.5-recursos-didaticos.tex:63-65`; Not applicable: CoolProp-backed vapor-pressure chart wrapper, no local thermodynamic formula | `bell2014`; `poling2001`; `smith2018` | Biblioteca externa documentada, sem formula propria | External CoolProp-backed vapor-pressure data; TCC also discusses vapor-pressure didactic support, while log-axis rendering is visual support. |
 | EQ-01 | Equilibrium | `routers/components_router.py:get_binary_vle` | Fixed-pressure ideal binary VLE; bubble root solves `x1 Psat1(T) + x2 Psat2(T) - P = 0`; vapor fractions use normalized `y_i = x_i Psat_i/P`; dew root solves `y1/Psat1(T) + y2/Psat2(T) - 1/P = 0`; liquid fractions use normalized `x_i = y_i P/Psat_i` | `routers/components_router.py:/components/binary-vle`, `/components/binary-vle/chart` | `final-paper/TEX/chapters/4.5-recursos-didaticos.tex:55-57` | `smith2018` | Coberta, mas explicacao insuficiente | TCC covers didactic T-x-y binary VLE interpretation, but not the exact ideal Raoult-law bubble/dew root equations and normalization steps implemented in code. |
 | EQ-02 | Equilibrium | `routers/components_router.py:get_mccabe_thiele_chart` | Sorted/interpolated equilibrium curve; compositions and stage points are clamped to `[0, 1]`; rectifying line `y = R/(R+1)x + xD/(R+1)`; q-line `q/(q-1)x - zF/(q-1)` or vertical at `zF`; stripping line through bottoms and feed intersection; horizontal-to-equilibrium and vertical-to-operating-line stepping until bottoms/max stages | `routers/components_router.py:/components/mccabe-thiele/chart` | `final-paper/TEX/chapters/4.5-recursos-didaticos.tex:59-61` | `mccabe2005`; `smith2018` | Coberta, mas explicacao insuficiente | TCC covers didactic McCabe-Thiele construction, but not the exact operating-line equations, clamping, interpolation, and stage-stepping implementation. |
+
 ## Existing TCC Equations
 
 | TCC ID | File | Label | Formula Summary | Related Code IDs | Citation Nearby |
@@ -257,9 +258,10 @@
 
 ## Final Completeness Check
 
-- No unresolved open-status cells remain.
+- No blank/TBD coverage-status cells remain; remaining insufficient/absent coverage rows are tracked in Required Future TCC Edits.
 - Every included domain formula has a coverage status across 53 coverage rows.
+- Coverage rows by family: HYD 19, REA 18, MB 6, PROP 8, EQ 2; status split: 23 covered/explained, 21 insufficient explanation, 8 external-library/no-own-formula, 1 implemented-in-code/absent-from-TCC.
 - Every excluded formula is visual-only, a no-formula catalog/list/example endpoint, or library-internal and has a reason across 15 exclusion rows.
 - Every future edit has a target file and verification note across 12 future-edit rows.
 - No TCC source was edited during this audit.
-- The audit also records 41 TCC equation rows and 13 no-edit decision rows, making it ready for a later implementation plan that edits the TCC.
+- The audit also records 74 existing TCC equation rows, 41 no-direct-code validation rows, and 13 no-edit decision rows, making it ready for a later implementation plan that edits the TCC.
