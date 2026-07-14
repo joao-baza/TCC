@@ -556,15 +556,15 @@ class Piping:
     def _get_fitting_description(self, fitting):
         """Fornece uma descrição para o acessório informado."""
         descriptions = {
-            "Retorno 180°": "Acessório em U que inverte o sentido do fluxo em 180 graus.",
-            "Cotovelo 90° raio longo": "Cotovelo de grande raio que desvia o fluxo em 90 graus com menor perda de carga.",
-            "Cotovelo 90° raio curto": "Cotovelo compacto que desvia o fluxo em 90 graus com maior perda de carga.",
-            "Cotovelo 45°": "Cotovelo que desvia o fluxo em 45 graus.",
-            "Tê (passagem reta)": "Acessório em T com continuidade do fluxo pelo ramal principal.",
-            "Tê (saída lateral)": "Acessório em T com desvio do fluxo pela saída lateral.",
+            "Retorno 180°": "Acessório em U que inverte o sentido do escoamento em 180 graus.",
+            "Cotovelo 90° raio longo": "Cotovelo de grande raio que desvia o escoamento em 90 graus com menor perda de carga.",
+            "Cotovelo 90° raio curto": "Cotovelo compacto que desvia o escoamento em 90 graus com maior perda de carga.",
+            "Cotovelo 45°": "Cotovelo que desvia o escoamento em 45 graus.",
+            "Tê (passagem reta)": "Acessório em T com continuidade do escoamento pelo ramal principal.",
+            "Tê (saída lateral)": "Acessório em T com desvio do escoamento pela saída lateral.",
             "Saída de tanque": "Acessório que conecta um tanque ao sistema de tubulação.",
-            "Válvula diafragma": "Válvula que utiliza um diafragma flexível para controlar o fluxo.",
-            "Válvula esfera": "Válvula com esfera pivotante para controle de fluxo, com baixa perda de carga quando totalmente aberta."
+            "Válvula diafragma": "Válvula que utiliza um diafragma flexível para controlar o escoamento.",
+            "Válvula esfera": "Válvula com esfera pivotante para controle do escoamento, com baixa perda de carga quando totalmente aberta."
         }
         
         return descriptions.get(fitting, "Acessório utilizado em sistemas de transporte de fluidos.")
@@ -572,14 +572,14 @@ class Piping:
     def _get_fitting_usage(self, fitting):
         """Fornece informações de uso para o acessório informado."""
         usages = {
-            "Retorno 180°": "Utilizado em espaços reduzidos onde é necessária a inversão completa do fluxo.",
+            "Retorno 180°": "Utilizado em espaços reduzidos onde é necessária a inversão completa do escoamento.",
             "Cotovelo 90° raio longo": "Preferido em altas vazões e para minimizar perda de carga em mudanças de direção.",
             "Cotovelo 90° raio curto": "Utilizado quando o espaço é limitado e as vazões são moderadas.",
             "Cotovelo 45°": "Utilizado para mudanças graduais de direção, reduzindo a perda de carga.",
-            "Tê (passagem reta)": "Utilizado para criar derivações mantendo o fluxo no ramal principal.",
-            "Tê (saída lateral)": "Utilizado para desviar parte do fluxo para um ramal derivado.",
+            "Tê (passagem reta)": "Utilizado para criar derivações mantendo o escoamento no ramal principal.",
+            "Tê (saída lateral)": "Utilizado para desviar parte do escoamento para um ramal derivado.",
             "Saída de tanque": "Utilizado para conectar tanques de armazenamento a sistemas de tubulação.",
-            "Válvula diafragma": "Utilizada para controle preciso de fluxo e isolamento em aplicações sanitárias.",
+            "Válvula diafragma": "Utilizada para controle preciso do escoamento e isolamento em aplicações sanitárias.",
             "Válvula esfera": "Utilizada para fechamento rápido com baixa perda de carga."
         }
         

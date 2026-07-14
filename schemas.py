@@ -291,7 +291,7 @@ class VelocityProfileArrowModel(BaseModel):
 
 class VelocityProfileVisualizationResponse(BaseModel):
     title: str = Field(..., description="Visualization title")
-    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Flow regime")
+    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Regime de escoamento")
     color: str = Field(..., description="Regime color")
     label: str = Field(..., description="Regime label")
     reynolds: float = Field(..., description="Calculated Reynolds number")
@@ -357,7 +357,7 @@ class ReynoldsRegimeTick(BaseModel):
 
 
 class ReynoldsRegimeSegment(BaseModel):
-    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Flow regime key")
+    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Chave do regime de escoamento")
     label: str = Field(..., description="Display label")
     color: str = Field(..., description="Segment color")
     x: float = Field(..., description="Precomputed SVG x coordinate")
@@ -368,7 +368,7 @@ class ReynoldsRegimeMarker(BaseModel):
     x: float = Field(..., description="Precomputed SVG marker x coordinate")
     label: str = Field(..., description="Preformatted Reynolds label")
     status: str = Field(..., description="Marker status text")
-    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Flow regime key")
+    regime: Literal["laminar", "transition", "turbulent"] = Field(..., description="Chave do regime de escoamento")
     regime_label: str = Field(..., description="Display label for the current regime")
     color: str = Field(..., description="Marker regime color")
     text_anchor: Literal["start", "middle", "end"] = Field(..., description="SVG text-anchor")
@@ -386,7 +386,7 @@ class ReynoldsRegimeVisualizationResponse(BaseModel):
 class FlowExampleMetadata(BaseModel):
     fluid: str = Field(..., description="Fluid used in the worked example")
     pressure: float = Field(..., description="Pressure in Pa")
-    regime: Literal["transitional"] = Field(..., description="Flow regime")
+    regime: Literal["transitional"] = Field(..., description="Regime de escoamento")
 
 
 class FlowExampleReynolds(BaseModel):

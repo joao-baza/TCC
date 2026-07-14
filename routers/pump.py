@@ -92,7 +92,7 @@ def _build_headloss_params(payload: HeadLossRequest) -> dict:
 
     if payload.flow_rate is None and payload.velocity is None:
         raise ValueError(
-            "Provide flow rate (m³/s) and/or velocity (m/s); at least one is required."
+            "Informe vazão (m³/s) e/ou velocidade do escoamento (m/s); pelo menos um valor é obrigatório."
         )
 
     if payload.method == "Darcy-Weisbach":
