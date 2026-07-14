@@ -8,9 +8,37 @@ A validação de entradas pelo \textit{Pydantic} mostrou-se fundamental para evi
 
 No \textit{frontend}, o uso de \textit{React}, \textit{TypeScript} e \textit{Vite}, associado a \textit{Tailwind CSS}, primitivas acessíveis de \textit{@base-ui/react}, componentes compostos no padrão \textit{shadcn}, \textit{React Router} e elementos visuais próprios, resultou em uma interface modular, responsiva e adequada ao propósito educacional do sistema. Essa arquitetura favoreceu a separação entre apresentação, estado e integração com a \textit{API}, permitindo encapsular cada categoria de cálculo em componentes e serviços tipados. Bibliotecas como \textit{KaTeX}, \textit{Lucide React} e \textit{Sonner} complementam a interface com renderização matemática, ícones contextuais e notificações discretas. Além disso, a criação de uma camada compartilhada para grades, eixos, marcadores e rótulos numéricos padronizou parte relevante das visualizações em \textit{SVG}, o que melhora a consistência gráfica e simplifica a evolução dos componentes. Na interface consolidada, a navegação evidencia o papel pedagógico de cada área, com uma \textit{home} orientada por trilhas, atalhos diretos para os módulos e indicadores visuais de processo que reforçam a interpretação do regime de escoamento.
 
+\begin{table}[H]
+    \centering
+    \caption{Síntese das evidências de validação dos módulos implementados}
+    \label{tab:sintese-validacao-modulos}
+    \footnotesize
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{0.14\linewidth}|>{\raggedright\arraybackslash}p{0.19\linewidth}|>{\raggedright\arraybackslash}p{0.16\linewidth}|>{\raggedright\arraybackslash}p{0.23\linewidth}|>{\raggedright\arraybackslash}p{0.14\linewidth}|}
+        \hline
+        \textbf{Módulo} & \textbf{Validação aplicada} & \textbf{Referência} & \textbf{Resultado observado} & \textbf{Limitação} \\
+        \hline
+        Componentes e propriedades & Consultas de componentes, propriedades da água, propriedades críticas e mistura binária, com conferência manual. & Valores de referência da literatura e cálculos manuais \cite{smith2018,poling2001}. & Para a água a $300\ \mathrm{K}$, obtiveram-se $\rho=996{,}56\ \mathrm{kg/m^3}$ e $\mu=8{,}54\cdot10^{-4}\ \mathrm{Pa\,s}$; também foram reproduzidos $T_c=647{,}1\ \mathrm{K}$ e $P_c=22{,}06\ \mathrm{MPa}$. & Misturas dependem do modelo termodinâmico e das propriedades disponíveis. \\
+        \hline
+        Tubulações e acessórios & Conferência de acessórios, materiais, \textit{schedules}, diâmetros e especificações, incluindo comprimento equivalente. & Tabelas de referência e cálculos manuais \cite{perry2007}. & Para SCH40, $45{,}0\ \mathrm{mm}$ foi elevado a $50{,}0\ \mathrm{mm}$; dois cotovelos de raio longo produziram $L_{eq}=1{,}6\ \mathrm{m}$ e $h_f=8{,}2882\ \mathrm{m}$. & Ausência de aço inoxidável SCH 10S/40S validado. \\
+        \hline
+        Escoamento e perdas de carga & Verificação de Reynolds, Darcy--Weisbach, Colebrook--White, Swamee--Jain, Haaland e diâmetros hidráulicos por cálculos manuais. & Literatura de mecânica dos fluidos e correlações publicadas \cite{white2018,colebrook1939,swamee1976,haaland1983}. & Os resultados de Reynolds e das perdas de carga foram concordantes, com desvio de $0{,}00\%$; os fatores de atrito e as geometrias hidráulicas também coincidiram com os cálculos de referência. & Casos incompressíveis e geometrias selecionadas; não substitui validação experimental. \\
+        \hline
+        Bombas & Aplicação de Bernoulli para $NPSH_a$ e altura manométrica, conferida por cálculo manual. & Literatura de bombas e mecânica dos fluidos \cite{fox2011,karassik2008}. & O $NPSH_a$ calculado foi $16{,}24\ \mathrm{m}$, com desvio inferior a $0{,}01\%$, e a altura manométrica foi $25{,}48\ \mathrm{m}$, com desvio de $0{,}00\%$. & Validação escalar, sem ensaios experimentais ou curva de fabricante. \\
+        \hline
+        Reatores ideais & Cálculos de projeto e desempenho para CSTR, PFR e PFR com reciclo, comparados com integrações manuais. & Fundamentos de engenharia das reações \cite{fogler2009,levenspiel2000}. & Foram reproduzidos os volumes de $1{,}1333$, $0{,}4605$ e $0{,}8318\ \mathrm{m^3}$; o cálculo inverso do CSTR retornou conversão de $0{,}8500$. & Cinética de primeira ordem, fase líquida isotérmica e casos idealizados. \\
+        \hline
+        Balanço de massa & Balanços global e por componente em misturador, reator de conversão e divisor de corrente, com cálculo manual. & Princípios de conservação e estequiometria \cite{felder2005}. & O misturador retornou $200\ \mathrm{kg/h}$ e frações $0{,}50$; o reator retornou $60$ e $40\ \mathrm{mol/s}$; o divisor retornou $20$ e $80\ \mathrm{kg/h}$, preservando a composição. & Escopo concentrado em operações ideais, reação simples e configurações selecionadas. \\
+        \hline
+    \end{tabular}
+    \fonte{Autoria própria (2026).}
+\end{table}
+
+Os testes por código e os exemplos executáveis funcionam como evidência de regressão, enquanto os cálculos manuais e os valores de referência da literatura delimitam o domínio de validade dos resultados, sem deslocar o detalhamento metodológico apresentado no capítulo de validação.
+
 Para além da automação de cálculos, a incorporação de recursos didáticos consolidou o DCOU como um ambiente de ensino, e não apenas como uma calculadora. As explicações teóricas embutidas em cada módulo, o glossário técnico, os cenários de exemplo providos pela \textit{API} e o conjunto ampliado de visualizações interativas aproximam o resultado numérico do conceito que o fundamenta, ao apresentar o comportamento dos fenômenos físicos de forma contextualizada. O uso de contratos tipados para exemplos e gráficos também mostrou-se eficaz para manter coerência entre cálculo, apresentação e interpretação pedagógica em diferentes módulos.
 
-A comparação dos resultados obtidos com valores de referência da literatura e com \textit{softwares} consolidados evidenciou boa concordância para todos os módulos implementados. Cálculos de \textit{Reynolds}, perdas de carga, seleção de diâmetros e estimativas de \textit{NPSH} apresentaram diferenças mínimas em relação às tabelas clássicas. Para reatores \textit{CSTR} e \textit{PFR}, os valores de conversão e volume mostraram-se consistentes com soluções de Fogler e Levenspiel, reforçando a confiabilidade das integrações numéricas.
+A comparação dos resultados obtidos com valores de referência da literatura e com cálculos manuais evidenciou concordância adequada para os módulos implementados e validados. Cálculos de \textit{Reynolds}, perdas de carga, seleção de diâmetros e estimativas de \textit{NPSH} apresentaram diferenças mínimas em relação às tabelas clássicas. Para reatores \textit{CSTR} e \textit{PFR}, os valores de conversão e volume mostraram-se consistentes com soluções de Fogler e Levenspiel, reforçando a confiabilidade das integrações numéricas.
 
 Embora o \textit{software} esteja plenamente funcional para os módulos desenvolvidos, observou-se que o sistema ainda pode ser expandido significativamente. A ausência de módulos como trocadores de calor, destiladores, absorção, secagem e operações com múltiplas reações limita sua aplicabilidade em projetos de maior complexidade. Do ponto de vista de usabilidade e de maturidade funcional, futuras melhorias incluem exportação de relatórios, ampliação de gráficos especializados e integração com bancos de dados externos de propriedades físicas, de modo a ampliar o alcance técnico da ferramenta.
 
