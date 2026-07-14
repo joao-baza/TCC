@@ -84,6 +84,12 @@
 | `routers/pump.py:_interpolate`, `_efficiency_to_color` | Color interpolation and heatmap color formatting for `/pump/efficiency-map/chart`; relative-efficiency scoring remains tracked in HYD-19. |
 | `routers/pump.py:_npsh_value`, `routers/pump.py:/pump/npsh-gauge/chart` | Gauge value packaging, axis, and marker support are visual-only; available NPSH remains covered by HYD-11 and NPSH status thresholds by HYD-18. |
 | `routers/components_router.py:_format_fraction`, `_interpolate_color`, `_property_surface_color`, `_format_pressure_label` | Formatting, color, and tooltip helpers for component charts; they do not add Engenharia Quimica equations beyond the tracked CoolProp/equilibrium rows. |
+| `routers/piping.py:/piping/compositions`, `/piping/composition/{name}`, `/piping/schedules`, `/piping/schedule/{schedule}/diameters`, `/piping/schedule/{schedule}/diameter/{diameter}`, `/piping/fittings`, `/piping/fitting/{name}` | Public piping catalog/specification lookups for compositions, schedules, diameters and fittings; static tabular data access, not implemented formula logic. |
+| `routers/flow.py:/flow/friction-factor/methods`, `routers/pump.py:/pump/headloss/methods` | Public method-list endpoints; option catalogs only, not domain equations. |
+| `routers/flow.py:/flow/hydraulic-diameter/shapes` | Public shape-list endpoint for supported hydraulic-diameter inputs; option catalog only, while formulas remain covered by HYD-12. |
+| `routers/reactor.py:/reactor/cstr/calculation-types`, `routers/reactor.py:/reactor/pfr/calculation-types` | Public reactor calculation-type lists; option catalogs only, not reactor equations. |
+| `routers/components_router.py:/components/list`, `/components/property-names`, `/components/property-mixture-names` | Public component and property-key lists; catalog/key lookups only, not property or equilibrium equations. |
+| `routers/piping.py:/piping/example`, `routers/flow.py:/flow/example`, `routers/sizing.py:/sizing/example`, `routers/pump.py:/pump/example`, `routers/mass_balance.py:/mass-balance/example`, `routers/components_router.py:/components/example` | Static example payload endpoints in audited routers; they prefill workflows and do not add formula implementations to audit. |
 
 ## Required Future TCC Edits
 
