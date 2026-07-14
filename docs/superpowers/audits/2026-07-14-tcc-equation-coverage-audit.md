@@ -215,10 +215,28 @@
 | Edit ID | Code IDs | Target File | Required Change | Reason | Verification |
 | --- | --- | --- | --- | --- | --- |
 
+### Task 6 Candidate Rows
+
+| Code IDs | Reason |
+| --- | --- |
+| HYD-02, HYD-05, HYD-09, HYD-12 | Hydraulics rows already map to TCC equations or validation evidence, but Task 6 should expand the missing implementation details: strict commercial-diameter lookup, Colebrook constant reconciliation, Hazen-Williams SI coefficient, and extra hydraulic-diameter shapes. |
+| HYD-13, HYD-14, HYD-15, HYD-17, HYD-18, HYD-19 | Hydraulic and pump didactic chart/model rows need Task 6 edit candidates for chart-specific approximations, sampling constants, status thresholds, and the head-loss sign discrepancy noted during reconciliation. |
+| REA-02, REA-06, REA-15, REA-16, REA-17, REA-18 | Reactor rows are partially covered by existing theory or didactic text, but Task 6 should expand implemented feed fractions, branch handling, local profile solves, Arrhenius plotting, Levenspiel sampling, and recycle-sensitivity details. |
+| MB-03, MB-04, MB-05, MB-06 | Mass-balance rows need Task 6 candidate edits for explicit composition normalization, conversion-to-extent, recycle/purge composition constraints, and the yield metric route that is absent from the TCC. |
+| EQ-01, EQ-02 | Equilibrium rows need Task 6 candidate edits for implemented Raoult-law bubble/dew equations, normalization steps, McCabe-Thiele operating-line equations, interpolation, clamping, and stage stepping. |
+
 ## Items Requiring No TCC Edit
 
 | ID | Reason |
 | --- | --- |
+| PROP-01 | External CoolProp-backed pure-fluid property lookup; no local thermodynamic formula needs a TCC edit. |
+| PROP-02 | External CoolProp-backed mixture property lookup; no local thermodynamic formula needs a TCC edit. |
+| PROP-03 | External CoolProp-backed fixed critical/triple property lookup; no local thermodynamic formula needs a TCC edit. |
+| PROP-04 | External CoolProp-backed generic state lookup; no local thermodynamic formula needs a TCC edit. |
+| PROP-05 | External CoolProp-backed property grid; local sampling and min/max values are chart support, not a separate TCC formula edit. |
+| PROP-06 | External CoolProp-backed saturation-envelope sampling; no local thermodynamic formula needs a TCC edit. |
+| PROP-07 | External CoolProp-backed phase-envelope chart wrapper; visual band and markers do not require a local formula edit. |
+| PROP-08 | External CoolProp-backed vapor-pressure chart wrapper; log-axis plotting support does not require a local formula edit. |
 
 ## Final Completeness Check
 
