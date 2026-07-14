@@ -89,7 +89,7 @@ def validate_flow_example_catalogs() -> None:
         raise RuntimeError("Fluid 'Methane' not found")
 
     if "Aço galvanizado" not in piping.compositions():
-        raise RuntimeError("Composition 'Aço galvanizado' not found")
+        raise RuntimeError("Composição da tubulação 'Aço galvanizado' não encontrada")
 
 
 @router.get("/example", response_model=FlowExampleResponse)
