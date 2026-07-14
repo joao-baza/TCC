@@ -92,6 +92,12 @@
 
 - Evidence status: U34-U60 covered by local unit context prose before each validation calculation sequence.
 
+## Duplicate-Unit Pass
+
+- Local tables were treated as the single source of symbol-unit mapping.
+- Repeated nearby prose was shortened where it duplicated a local table.
+- Remaining unit mentions are one-off result statements, validation bases, or dimensionless declarations needed for readability.
+
 ## Final Verification
 
 - Equation count after edits: 60 (`rg -n '\\begin\{equation\}' final-paper/TEX/chapters/4.2-engenharia-part1.tex final-paper/TEX/chapters/4.2-engenharia-part2.tex final-paper/TEX/chapters/4.4-validacao.tex | wc -l`).

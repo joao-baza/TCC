@@ -275,7 +275,7 @@ A relação geral é definida na Equação \ref{eq:diametro_hidraulico}.
 
 A validação do balanço de massa foi realizada considerando um misturador ideal (Mixer) alimentado por duas correntes puras.
 
-Nos exemplos de balanço desta seção, as vazões exibidas em cada soma ou subtração usam a mesma unidade de vazão. No misturador, as vazões mássicas estão em $kg/h$; no reator de conversão, as vazões molares estão em $mol/s$ e a conversão é adimensional; no divisor de corrente, as vazões mássicas estão em $kg/h$.
+Nos exemplos de balanço desta seção, cada soma ou subtração mantém uma única base de vazão: mássica no misturador e no divisor de corrente, molar no reator de conversão.
 
 \textbf{Definição do Caso Teste:}
 \begin{itemize}
@@ -495,7 +495,7 @@ Para todos os casos, adotou-se uma reação irreversível de primeira ordem $A \
 
 A equação de projeto (balanço molar) para um \textit{CSTR} operando em regime estacionário é a Equação \ref{eq:cstr_design}.
 
-Para esta validação, $C_A$ está em $mol/m^3$, $k$ tem unidade $s^{-1}$ por se tratar de reação de primeira ordem, $-r_A$ está em $mol/(m^3\,s)$, $F_{A0}$ está em $mol/s$, $X$ é adimensional e $V$ é retornado em $m^3$.
+Para esta validação, a base dimensional segue os parâmetros globais acima; a cinética de primeira ordem gera $-r_A$ em $\mathrm{mol/(m^3\,s)}$ e as conversões permanecem adimensionais.
 
 Para uma reação de primeira ordem em fase líquida (massa específica constante), a taxa de reação é dada por:
 \begin{equation}
@@ -541,7 +541,7 @@ Também validou-se o cálculo inverso (Desempenho), onde fornece-se $V=1,1333 m^
 
 A equação de projeto para um \textit{PFR} é obtida através do balanço diferencial de massa (Equação \ref{eq:pfr_design}).
 
-Na validação do \textit{PFR}, $X$ é adimensional; $F_{A0}/(-r_A)$ tem unidade de volume ao combinar vazão molar com taxa molar de reação por volume de reator; portanto, a integral retorna $V$ em $m^3$.
+Na validação do \textit{PFR}, $F_{A0}/(-r_A)$ tem unidade de volume ao combinar vazão molar com taxa molar de reação por volume de reator, e a integração ocorre sobre conversão adimensional.
 
 Substituindo a cinética de primeira ordem:
 \begin{equation}
@@ -589,7 +589,7 @@ Sabendo que $\ln(0,10) \approx -2,302585$:
 
 Em reatores com reciclo, parte da corrente de saída retorna à entrada. Para uma razão de reciclo $R$ (vazão reciclada / vazão fresca de alimentação), a conversão na entrada do reator ($X_{in}$) é diferente de zero, pois há mistura de reagentes frescos ($X=0$) com reagentes reciclados ($X=X_{out}$).
 
-Na validação com reciclo, $R$ e $X_{in}$ são adimensionais; a variável de integração $X$ é adimensional; $F_{A0}/(-r_A)$ carrega unidade de volume; os volumes finais do reator são reportados em $m^3$.
+Na validação com reciclo, $R$, $X_{in}$ e a variável de integração $X$ permanecem adimensionais; $F_{A0}/(-r_A)$ define a escala de volume do reator.
 
 A relação de balanço de massa no ponto de mistura fornece:
 \begin{equation}
