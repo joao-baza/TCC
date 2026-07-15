@@ -309,7 +309,7 @@ export function BalancePage() {
     () =>
       Object.entries(getMassBalanceResults(balanceResult)).map(([streamName, result]) => ({
         name: streamName,
-        direction: streamDirectionLookup.get(streamName) ?? "—",
+        direction: streamDirectionLookup.get(streamName) ?? "-",
         flowRate: getMassBalanceStreamFlow(result),
         compositions: getMassBalanceStreamCompositions(result),
       })),
@@ -1134,7 +1134,7 @@ export function BalancePage() {
                                 key={`yield-cell-${targetComponent}-${sourceComponent}`}
                                 className="px-4 py-3 text-slate-700"
                               >
-                                {value === undefined ? "—" : `${value.toFixed(2)}%`}
+                                {value === undefined ? "-" : `${value.toFixed(2)}%`}
                               </td>
                             );
                           })}

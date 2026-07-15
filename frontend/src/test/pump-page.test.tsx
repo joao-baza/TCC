@@ -868,7 +868,7 @@ describe("PumpPage", () => {
       target: { value: "5" },
     });
 
-    expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("—");
+    expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("-");
     expect(getRowContaining(/Altura manométrica/i)).not.toHaveTextContent("18,2");
     expect(screen.queryByText(/Decomposição/i)).not.toBeInTheDocument();
   });

@@ -365,7 +365,7 @@ test("pump module clears headloss results after the base inputs change", async (
 
   await page.getByLabel(/Comprimento da tubulação/i).fill("120");
 
-  await expect(headlossTable).toContainText("—");
+  await expect(headlossTable).toContainText("-");
   await expect(headlossTable).not.toContainText("4,25");
   await expect(page.getByRole("img", { name: /Curva da bomba e do sistema/i })).toHaveCount(0);
 });
@@ -479,7 +479,7 @@ test("pump module surfaces an error when the friction-factor lookup fails during
   await page.getByRole("button", { name: /Calcular perda de carga/i }).click();
   await frictionFactorError;
 
-  await expect(page.getByRole("table").first()).toContainText("—");
+  await expect(page.getByRole("table").first()).toContainText("-");
 });
 
 test("pump module surfaces an error when NPSH calculation fails", async ({ page }) => {

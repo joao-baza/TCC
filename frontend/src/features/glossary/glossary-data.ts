@@ -75,7 +75,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Hazen-Williams",
     category: "Hidráulica",
     definition:
-      "Fórmula empírica para água em regime turbulento desenvolvido (\\(D > 50\\) mm): \\[h_f = \\frac{4{,}73\\,L}{C^{1{,}852}\\,D^{4{,}87}}\\,Q^{1{,}852}\\] C é o coeficiente adimensional tabelado por material (PVC ≈ 150, ferro fundido ≈ 100).",
+      "Fórmula empírica para água em regime turbulento desenvolvido (\\(D > 50\\) mm): \\[h_f = \\frac{10{,}646\\,L}{C^{1{,}852}\\,D^{4{,}87}}\\,Q^{1{,}852}\\] C é o coeficiente adimensional tabelado por material (PVC ≈ 150, ferro fundido ≈ 100).",
   },
   {
     term: "Comprimento equivalente (L_eq)",
@@ -111,7 +111,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "DN / NPS",
     category: "Dimensionamento",
     definition:
-      "Diâmetro Nominal (DN em mm / NPS em polegadas). É um designador comercial — o diâmetro interno real depende do schedule e do material.",
+      "Diâmetro Nominal (DN em mm / NPS em polegadas). É um designador comercial - o diâmetro interno real depende do schedule e do material.",
   },
   {
     term: "NPSH Disponível (NPSHd)",
@@ -231,7 +231,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "Método de Brent",
     category: "Reatores",
     definition:
-      "Algoritmo numérico para encontrar raízes de funções escalares em um intervalo \\([a, b]\\) onde \\(f(a) \\cdot f(b) < 0\\). Combina bissecção (garante convergência), secante e interpolação quadrática inversa (aceleração). Usado no CSTR e PFR quando o volume \\(V\\) ou o tempo de residência \\(\\tau\\) são dados e a conversão \\(X\\) é a incógnita — a equação de design é implícita em \\(X\\).",
+      "Algoritmo numérico para encontrar raízes de funções escalares em um intervalo \\([a, b]\\) onde \\(f(a) \\cdot f(b) < 0\\). Combina bissecção (garante convergência), secante e interpolação quadrática inversa (aceleração). Usado no CSTR e PFR quando o volume \\(V\\) ou o tempo de residência \\(\\tau\\) são dados e a conversão \\(X\\) é a incógnita - a equação de design é implícita em \\(X\\).",
   },
   {
     term: "CoolProp",

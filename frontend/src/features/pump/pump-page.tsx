@@ -146,7 +146,7 @@ function buildResultRows(label: string, result: QuantityResult | null): Property
         }
       : {
           label,
-          value: "—",
+          value: "-",
         },
   ];
 }

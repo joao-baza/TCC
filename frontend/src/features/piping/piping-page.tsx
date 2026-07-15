@@ -96,7 +96,7 @@ function detailValueToRow(label: string, value: DetailValue): PropertyRow {
     return { label, value };
   }
 
-  return { label, value: "—" };
+  return { label, value: "-" };
 }
 
 function getErrorMessage(error: unknown) {
