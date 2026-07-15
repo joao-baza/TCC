@@ -17,7 +17,8 @@ def test_release_pipeline_is_ordered_after_tests():
     assert "  publish-api:\n    runs-on: ubuntu-latest\n    needs: publish-frontend" in ci
     assert "  desktop-smoke:\n    runs-on: ubuntu-latest\n    needs:\n      - frontend-e2e\n      - publish-frontend\n      - publish-api" in ci
     assert "  build-desktop-macos:\n    runs-on: macos-latest\n    needs: desktop-smoke" in ci
-    assert "  build-desktop-ubuntu:\n    runs-on: ubuntu-latest\n    needs: build-desktop-macos" in ci
+    assert "  build-desktop-windows:\n    runs-on: windows-latest\n    needs: build-desktop-macos" in ci
+    assert "  build-desktop-ubuntu:\n    runs-on: ubuntu-latest\n    needs: build-desktop-windows" in ci
 
 
 def test_publish_workflows_are_not_independent_push_pipelines():
