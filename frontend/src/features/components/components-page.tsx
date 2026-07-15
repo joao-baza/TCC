@@ -310,7 +310,7 @@ function formatValue(value: unknown) {
     return String(value);
   }
 
-  return "—";
+  return "-";
 }
 
 function translatePropertyLabel(description: string) {

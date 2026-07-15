@@ -72,7 +72,7 @@ test("piping module loads catalogs and shows composition, diameter, and fitting 
   await page.goto("/piping");
   await expect(page.getByRole("heading", { name: /Tubulações e Acessórios/i })).toBeVisible();
 
-  const compositionInput = page.getByRole("combobox", { name: "Composição" });
+  const compositionInput = page.getByRole("combobox", { name: "Material da tubulação" });
   await compositionInput.fill("Aço comercial");
   await compositionInput.press("Enter");
   const compositionTable = page.locator("table").filter({ hasText: "Roughness" }).first();
@@ -163,7 +163,7 @@ test("piping module surfaces an error when composition details fail to load", as
   await page.goto("/piping");
   await expect(page.getByRole("heading", { name: /Tubulações e Acessórios/i })).toBeVisible();
 
-  const compositionInput = page.getByRole("combobox", { name: "Composição" });
+  const compositionInput = page.getByRole("combobox", { name: "Material da tubulação" });
   await compositionInput.fill("Aço comercial");
   await compositionInput.press("Enter");
   await expect(page.getByText(/Falha no backend da composição/i)).toBeVisible();
@@ -282,7 +282,7 @@ test("piping module ignores delayed composition details after the selection chan
   await page.goto("/piping");
   await expect(page.getByRole("heading", { name: /Tubulações e Acessórios/i })).toBeVisible();
 
-  const compositionInput = page.getByRole("combobox", { name: "Composição" });
+  const compositionInput = page.getByRole("combobox", { name: "Material da tubulação" });
   await compositionInput.fill("Aço comercial");
   await compositionInput.press("Enter");
   await compositionInput.fill("PVC");

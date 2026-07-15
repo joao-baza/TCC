@@ -125,7 +125,7 @@ export function PumpSystemCurve({
           <ul className="list-disc space-y-1 pl-5">
             <li>O ponto de operação em que bomba e sistema se equilibram.</li>
             <li>Se a instalação está mais restritiva ou mais permissiva para a mesma bomba.</li>
-            <li>A tendência de vazão se a resistência da linha aumentar ou diminuir.</li>
+            <li>A tendência de vazão se a resistência da tubulação aumentar ou diminuir.</li>
             <li>Uma leitura rápida da folga entre a condição atual e a região de maior rendimento.</li>
           </ul>
         </div>

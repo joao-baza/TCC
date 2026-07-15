@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RemoveButton } from "@/components/remove-button";
 import { MassBalanceNativeChart } from "@/components/viz/mass-balance-native-chart";
+import { RecyclePurgeMap } from "@/components/viz/recycle-purge-map";
 import { StreamTable } from "@/components/viz/stream-table";
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import { BalanceHowItWorks } from "@/features/balance/didactics";
@@ -309,7 +310,7 @@ export function BalancePage() {
     () =>
       Object.entries(getMassBalanceResults(balanceResult)).map(([streamName, result]) => ({
         name: streamName,
-        direction: streamDirectionLookup.get(streamName) ?? "—",
+        direction: streamDirectionLookup.get(streamName) ?? "-",
         flowRate: getMassBalanceStreamFlow(result),
         compositions: getMassBalanceStreamCompositions(result),
       })),
@@ -327,6 +328,25 @@ export function BalancePage() {
 
     return Array.from(componentSet);
   }, [resolvedStreams]);
+
+  const recyclePurgeSplits = useMemo(
+    () =>
+      splits
+        .map((split) => ({
+          parentStream: split.parent_stream.trim(),
+          recycleStream: split.recycle_stream.trim(),
+          purgeStream: split.purge_stream.trim(),
+          fraction: Number(split.fraction),
+        }))
+        .filter(
+          (split) =>
+            split.parentStream &&
+            split.recycleStream &&
+            split.purgeStream &&
+            Number.isFinite(split.fraction),
+        ),
+    [splits],
+  );
 
   const yieldMatrixComponents = useMemo(() => {
     const matrixComponents = new Set<string>();
@@ -1018,6 +1038,9 @@ export function BalancePage() {
             {resultError ? <p className="text-sm text-red-600">{resultError}</p> : null}
             {chartError ? <p className="text-sm text-red-600">{chartError}</p> : null}
             {yieldError ? <p className="text-sm text-red-600">{yieldError}</p> : null}
+            {balanceResult && recyclePurgeSplits.length > 0 ? (
+              <RecyclePurgeMap splits={recyclePurgeSplits} />
+            ) : null}
             {balanceChart ? (
               <div data-testid="mass-balance-chart">
                 <MassBalanceNativeChart
@@ -1097,7 +1120,7 @@ export function BalancePage() {
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">Rendimentos</h3>
                   <p className="text-sm text-muted-foreground">
-                    Linhas representam o componente produzido e colunas o componente de referência.
+                    O componente produzido aparece no eixo vertical e o componente de referência no eixo horizontal.
                   </p>
                 </div>
                 <div className="max-h-[28rem] overflow-x-auto overflow-y-auto rounded-2xl border border-slate-200 bg-white">
@@ -1134,7 +1157,7 @@ export function BalancePage() {
                                 key={`yield-cell-${targetComponent}-${sourceComponent}`}
                                 className="px-4 py-3 text-slate-700"
                               >
-                                {value === undefined ? "—" : `${value.toFixed(2)}%`}
+                                {value === undefined ? "-" : `${value.toFixed(2)}%`}
                               </td>
                             );
                           })}

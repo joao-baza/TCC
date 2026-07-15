@@ -27,7 +27,7 @@ function formatCompositionSummary(compositions: Record<string, number>) {
     .map(([component, value]) => `${component}: ${formatTableNumberText(value)}`)
     .join(" · ");
 
-  return summary || "—";
+  return summary || "-";
 }
 
 export function StreamTable({ streams, title = "Tabela de correntes" }: StreamTableProps) {

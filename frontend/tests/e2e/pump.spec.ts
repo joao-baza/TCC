@@ -199,7 +199,7 @@ test("pump module loads the example and calculates the main results", async ({
   await expect(page.getByRole("heading", { name: /Perda de Carga e Bombas/i })).toBeVisible();
 
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await expect(page.getByLabel(/Comprimento da linha/i)).toHaveValue("100");
+  await expect(page.getByLabel(/Comprimento da tubulação/i)).toHaveValue("100");
   await expect(page.getByRole("button", { name: /Calcular perda de carga/i })).toBeVisible();
   await page.waitForTimeout(150);
   await page.getByRole("button", { name: /Calcular perda de carga/i }).click();
@@ -353,7 +353,7 @@ test("pump module clears headloss results after the base inputs change", async (
   await page.goto("/pump");
   await page.getByRole("tab", { name: /Perda de Carga/i }).click();
   await page.getByRole("button", { name: /Carregar exemplo/i }).click();
-  await expect(page.getByLabel(/Comprimento da linha/i)).toHaveValue("100");
+  await expect(page.getByLabel(/Comprimento da tubulação/i)).toHaveValue("100");
   await expect(page.getByRole("button", { name: /Calcular perda de carga/i })).toBeVisible();
   await page.waitForTimeout(150);
   await page.getByRole("button", { name: /Calcular perda de carga/i }).click();
@@ -363,9 +363,9 @@ test("pump module clears headloss results after the base inputs change", async (
   await expect(headlossTable).toContainText("4,25");
   await expect(page.getByRole("img", { name: /Curva da bomba e do sistema/i })).toBeVisible();
 
-  await page.getByLabel(/Comprimento da linha/i).fill("120");
+  await page.getByLabel(/Comprimento da tubulação/i).fill("120");
 
-  await expect(headlossTable).toContainText("—");
+  await expect(headlossTable).toContainText("-");
   await expect(headlossTable).not.toContainText("4,25");
   await expect(page.getByRole("img", { name: /Curva da bomba e do sistema/i })).toHaveCount(0);
 });
@@ -408,7 +408,7 @@ test("pump module surfaces an error when head loss calculation fails", async ({ 
   await expect(page.getByRole("heading", { name: /Perda de Carga e Bombas/i })).toBeVisible();
 
   await page.getByRole("tab", { name: /Perda de Carga/i }).click();
-  await page.getByLabel(/Comprimento da linha/i).fill("25");
+  await page.getByLabel(/Comprimento da tubulação/i).fill("25");
   await page.getByLabel(/Diâmetro interno/i).fill("50");
   await page.getByLabel(/Vazão/i).fill("0.005");
   await page.getByLabel(/Fator de atrito/i).fill("0.02");
@@ -479,7 +479,7 @@ test("pump module surfaces an error when the friction-factor lookup fails during
   await page.getByRole("button", { name: /Calcular perda de carga/i }).click();
   await frictionFactorError;
 
-  await expect(page.getByRole("table").first()).toContainText("—");
+  await expect(page.getByRole("table").first()).toContainText("-");
 });
 
 test("pump module surfaces an error when NPSH calculation fails", async ({ page }) => {

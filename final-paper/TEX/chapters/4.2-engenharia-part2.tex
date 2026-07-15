@@ -9,7 +9,23 @@ V = {( R + 1 ) \cdot F}_{A 0} \cdot \int_{\frac{R}{R + 1} X \ }^{X} \frac{d X}{-
 \label{eq:pfr_design}
 \end{equation}
 
-Tendo que $R$ representa a razão de reagentes não limitantes inertes em relação ao limitante (se houver variação de vazão volumétrica) e o termo $( R + 1 )$ acomoda a variação de vazão na integração. No código, essa integral é avaliada numericamente (por exemplo, via \textit{scipy.integrate.quad}). Para o caso inverso, em que $V$ é conhecido e se busca $X$, utiliza-se novamente um procedimento iterativo (método de Brent) aplicando a equação de \textit{design} diferencial até encontrar a conversão cujo volume calculado corresponda ao especificado \cite{fogler2009}.
+A Tabela \ref{tab:unidades-pfr} padroniza a leitura dimensional da Equação \ref{eq:pfr_design}; o texto seguinte interpreta os termos sem repetir a lista de unidades.
+
+\begin{table}[H]
+    \centering
+    \caption{Unidades e natureza dos símbolos no dimensionamento do \textit{PFR}}
+    \label{tab:unidades-pfr}
+    \begin{tabular}{|p{0.30\textwidth}|p{0.60\textwidth}|}
+        \hline
+        \textbf{Símbolo} & \textbf{Unidade ou natureza} \\ \hline
+        $V$ & Volume do reator, por exemplo $\mathrm{m^3}$. \\ \hline
+        $F_{A0}$ & Vazão molar do reagente limitante na alimentação fresca, por exemplo $\mathrm{mol/s}$. \\ \hline
+        $X$, $R$ & Conversão e razão de reciclo adimensionais. \\ \hline
+        $-r_A$ & Taxa molar de reação por volume de reator, por exemplo $\mathrm{mol/(m^3\,s)}$, quando a equação é escrita em base molar. \\ \hline
+    \end{tabular}
+\end{table}
+
+O termo $R$ representa a razão de reciclo ou recirculação, definida como vazão reciclada dividida pela vazão fresca de alimentação. Assim, $( R + 1 )$ acomoda o aumento da vazão que atravessa o reator na integração. No código, essa integral é avaliada numericamente (por exemplo, via \textit{scipy.integrate.quad}). Para o caso inverso, em que $V$ é conhecido e se busca $X$, utiliza-se novamente um procedimento iterativo (método de Brent) aplicando a equação de \textit{design} diferencial até encontrar a conversão cujo volume calculado corresponda ao especificado \cite{fogler2009}.
 
 Considerando a similaridade estrutural e semântica com as rotinas de cálculo do \textit{CSTR}, destaca-se a diferença na função objetivo usada para o cálculo de volume, representada na Figura a seguir.
 
@@ -50,6 +66,22 @@ No cálculo de perdas de carga totais, o comprimento $L$ da tubulação reta é 
 
 O balanço de massa aplica o princípio da conservação da massa a sistemas de processo: em regime estacionário, a massa que entra em um sistema deve ser igual à massa que sai, ajustada pela geração ou consumo devido a reações químicas \cite{felder2005}. Para cada componente, a quantidade produzida ou consumida deve ser contabilizada segundo a estequiometria.
 
+A Tabela \ref{tab:unidades-balanco-massa} resume a base dimensional comum das Equações \ref{eq:mass_balance_word} a \ref{eq:gross_product_flow}. A mesma base deve ser mantida dentro de cada balanço.
+
+\begin{table}[H]
+    \centering
+    \caption{Unidades e natureza dos termos no balanço de massa com reciclo}
+    \label{tab:unidades-balanco-massa}
+    \begin{tabular}{|p{0.30\textwidth}|p{0.60\textwidth}|}
+        \hline
+        \textbf{Símbolo ou termo} & \textbf{Unidade ou natureza} \\ \hline
+        Acúmulo, entradas, saídas, geração e consumo & Mesma base escolhida para o balanço por tempo, como $\mathrm{kg/s}$ ou $\mathrm{mol/s}$. \\ \hline
+        $\dot{m}$ & Vazão mássica, por exemplo $\mathrm{kg/s}$. \\ \hline
+        $F_R$, $F_G$, $F_P$ & Vazões na mesma base selecionada para o balanço: molar, mássica ou volumétrica. \\ \hline
+        $f$ & Fração de reciclo ou purga adimensional. \\ \hline
+    \end{tabular}
+\end{table}
+
 \begin{equation}
 \text{Acúmulo} = \text{Entradas} - \text{Saídas} + \text{Geração} - \text{Consumo}
 \label{eq:mass_balance_word}
@@ -69,11 +101,6 @@ Por componente $i$, incluindo reação química:
 \label{eq:component_mass_balance_rxn}
 \end{equation}
 
-Em que:
-\begin{itemize}
-    \item $\dot{m}$ é a vazão mássica.
-\end{itemize}
-
 Em problemas industriais, frequentemente há reciclo e purgas envolvidos nos balanços. Nesses casos, para divisores de fluxo (\textit{splitters}), define-se por exemplo:
 
 \begin{equation}
@@ -86,14 +113,6 @@ F_{G} = ( 1 - f ) \cdot F_{P}
 \label{eq:gross_product_flow}
 \end{equation}
 
-Em que:
-\begin{itemize}
-    \item $f$ é a fração de reciclo;
-    \item $F_{G}$ é a vazão total do produto bruto;
-    \item $F_{R}$ é a vazão do reciclo;
-    \item $F_{P}$ é a vazão da purga.
-\end{itemize}
-
 Esses parâmetros permitem fechar balanços em sistemas com recirculação e calcular a acumulação de inertes ou subprodutos. Na Figura \ref{fig:mass_balance_results}, é apresentado o resultado gerado pelo \textit{software} para um balanço de massa contendo reciclo e reação.
 
 \begin{figure}[H]
@@ -104,11 +123,11 @@ Esses parâmetros permitem fechar balanços em sistemas com recirculação e cal
     \label{fig:mass_balance_results}
 \end{figure}
 
-O balanço de massa fundamenta o dimensionamento de equipamentos como misturadores, separadores, reatores e redes de processo, além de embasar análises econômicas (minimizando perdas de matérias-primas) e de segurança (evitando acúmulo indesejado de compostos). Vale notar que temperatura e pressão influenciam o balanço apenas através de propriedades físicas (densidade, volumes específicos), ou mudanças de fase que afetem as vazões mássicas e molares de cada corrente \cite{felder2005}.
+O balanço de massa fundamenta o dimensionamento de equipamentos como misturadores, separadores, reatores e redes de processo, além de embasar análises econômicas (minimizando perdas de matérias-primas) e de segurança (evitando acúmulo indesejado de compostos). Vale notar que temperatura e pressão influenciam o balanço apenas através de propriedades físicas (massa específica, volumes específicos), ou mudanças de fase que afetem as vazões mássicas e molares de cada corrente \cite{felder2005}.
 
 \subsection{Escoamento, Perdas de Carga e Diâmetros Hidráulicos}
 
-O comportamento do escoamento em dutos é governado, principalmente, pelo número de Reynolds, que permite classificar o regime como laminar, de transição ou turbulento. Variáveis-chave incluem o diâmetro hidráulico, a velocidade média, a viscosidade e a densidade do fluido, bem como a rugosidade relativa da parede. Perfis de velocidade, mecanismos de mistura e dissipação de energia por atrito dependem desse regime de escoamento. Para quantificar a perda de carga (queda de pressão) devida ao atrito no escoamento, emprega-se a equação universal de Darcy–Weisbach \cite{white2018}.
+O comportamento do escoamento em dutos é governado, principalmente, pelo número de Reynolds, que permite classificar o regime como laminar, de transição ou turbulento. Variáveis-chave incluem o diâmetro hidráulico, a velocidade média, a viscosidade e a massa específica do fluido, bem como a rugosidade relativa da parede. Perfis de velocidade, mecanismos de mistura e dissipação de energia por atrito dependem desse regime de escoamento. Para quantificar a perda de carga (queda de pressão) devida ao atrito no escoamento, emprega-se a equação universal de Darcy–Weisbach \cite{white2018}.
 
 No regime turbulento, o fator de atrito $f$ depende de $Re$ e da rugosidade relativa $\varepsilon/D$, não possuindo solução analítica explícita; por isso, utilizam-se relações empíricas ou aproximadas. Já no regime laminar ($Re < 2300$), o perfil de velocidades é parabólico e $f$ admite a expressão simples dada pela Equação \ref{eq:laminar_friction}:
 \begin{equation}
@@ -116,27 +135,46 @@ f = \frac{64}{Re}
 \label{eq:laminar_friction}
 \end{equation}.
 
-Em serviços de água a escoamento turbulento, a fórmula empírica de Hazen--Williams é comumente empregada como aproximação prática \cite{perry2007}. Temperatura e pressão afetam densidade e viscosidade do fluido, modificando o valor de $Re$ e, consequentemente, as perdas de carga.
+Em serviços de água a escoamento turbulento, a fórmula empírica de Hazen--Williams é comumente empregada como aproximação prática \cite{perry2007}. Temperatura e pressão afetam massa específica e viscosidade do fluido, modificando o valor de $Re$ e, consequentemente, as perdas de carga.
 
-Além disso, o material e condições da tubulação (nova, envelhecida) determinam a rugosidade efetiva. Todos esses efeitos impactam diretamente o balanço de energia em uma linha de fluxo e a potência requerida em bombas ou compressores \cite{perry2007,white2018}.
+Além disso, o material e condições da tubulação (nova, envelhecida) determinam a rugosidade efetiva. Todos esses efeitos impactam diretamente o balanço de energia no escoamento em dutos e a potência requerida em bombas ou compressores \cite{perry2007,white2018}.
+
+\begin{table}[H]
+    \centering
+    \caption{Unidades e natureza dos grupos de Reynolds e fator de atrito}
+    \label{tab:unidades-reynolds-atrito}
+    \begin{tabular}{|p{0.30\textwidth}|p{0.60\textwidth}|}
+        \hline
+        \textbf{Símbolo} & \textbf{Unidade ou natureza} \\ \hline
+        $Re$ & Número de Reynolds adimensional. \\ \hline
+        $f$ & Fator de atrito de Darcy adimensional. \\ \hline
+        $D$ & Diâmetro da tubulação em unidade de comprimento, por exemplo $\mathrm{m}$. \\ \hline
+        $\rho$ & Massa específica, por exemplo $\mathrm{kg/m^3}$. \\ \hline
+        $V$ & Velocidade média, por exemplo $\mathrm{m/s}$. \\ \hline
+        $\mu$ & Viscosidade dinâmica, por exemplo $\mathrm{Pa\,s}$. \\ \hline
+        $\nu$ & Viscosidade cinemática, por exemplo $\mathrm{m^2/s}$. \\ \hline
+        $\varepsilon$ & Rugosidade absoluta na mesma unidade de comprimento usada para $D$. \\ \hline
+        $\varepsilon/D$ & Rugosidade relativa adimensional. \\ \hline
+    \end{tabular}
+\end{table}
 
 \subsubsection{Número de Reynolds}
 
-O número de Reynolds ($Re$) é adimensional e relaciona as forças inerciais com as forças viscosas no escoamento dentro de um duto:
+O número de Reynolds ($Re$) relaciona as forças inerciais com as forças viscosas no escoamento dentro de um duto:
 
-Usando viscosidade dinâmica $\mu$: 
+Usando viscosidade dinâmica $\mu$:
 \begin{equation}
-Re = \frac{D \cdot V \cdot \rho}{\mu} 
+Re = \frac{D \cdot V \cdot \rho}{\mu}
 \label{eq:reynolds_din}
 \end{equation}
 
-Usando viscosidade cinemática $\nu$: 
+Usando viscosidade cinemática $\nu$:
 \begin{equation}
 Re = \frac{D \cdot V}{\nu}
 \label{eq:reynolds_cin}
 \end{equation}
 
-Onde $D$ é o diâmetro hidráulico, $\rho$ é a densidade do fluido, $V$ é a velocidade média e $\mu$ é a viscosidade dinâmica. Tipicamente, $Re < 2300$ indica regime laminar, $2300 < Re < 4000$ indica regime de transição, e $Re > 4000$ indica regime turbulento plenamente desenvolvido \cite{white2018}.
+Com esses símbolos padronizados, tipicamente $Re < 2300$ indica regime laminar, $2300 < Re < 4000$ indica regime de transição, e $Re > 4000$ indica regime turbulento plenamente desenvolvido \cite{white2018}.
 
 \begin{figure}[H]
     \centering
@@ -168,7 +206,7 @@ No regime laminar, o fator de atrito de Darcy pode ser obtido diretamente por $f
 \label{eq:colebrook}
 \end{equation}
 
-Sendo $\varepsilon$ a rugosidade absoluta. Para evitar a resolução iterativa, existem correlações explícitas aproximadas amplamente usadas, por exemplo:
+A rugosidade relativa captura o efeito da parede no regime turbulento. Para evitar a resolução iterativa, existem correlações explícitas aproximadas amplamente usadas, por exemplo:
 
 Swamee--Jain \cite{swamee1976}:
 
@@ -217,16 +255,16 @@ h_{f} = f \cdot \frac{\left( L + \sum_{}^{} L_{e q} \right)}{D} \frac{V^{2}}{2 g
 \label{eq:darcy}
 \end{equation}
 
-Em que $\sum_{}^{} L_{eq}$ é o comprimento equivalente total dos acessórios, em unidades de comprimento, e $g$ é a aceleração da gravidade. Essa fórmula é universal e independe do fluido, desde que $f$ seja adequadamente determinado \cite{perry2007}.
+Na Equação \ref{eq:darcy}, $h_f$, $L$, $\sum L_{eq}$ e $D$ usam unidades de comprimento coerentes; $V$ é velocidade, por exemplo $\mathrm{m/s}$; $g$ é aceleração, por exemplo $\mathrm{m/s^2}$; e $f$ é adimensional. O resultado de $h_f$ é uma altura de perda de carga, usualmente expressa em $\mathrm{m}$. Essa fórmula é universal e independe do fluido, desde que $f$ seja adequadamente determinado \cite{perry2007}.
 
 Para escoamento de água em tubulações de diâmetro moderado (tipicamente $D > 50\ \mathrm{mm}$) e regime turbulento plenamente estabelecido, a fórmula empírica de Hazen--Williams pode ser empregada como simplificação:
 
 \begin{equation}
-h_{f} = \frac{4{,}73 L}{C^{1{,}852}D^{4{,}87}} Q^{1{,}852}
+h_{f} = \frac{10{,}646 L}{C^{1{,}852}D^{4{,}87}} Q^{1{,}852}
 \label{eq:hazen}
 \end{equation}
 
-Em que $Q$ é a vazão volumétrica e $C$ é o coeficiente de Hazen--Williams do material, adimensional e tabelado para tubulações novas de ferro fundido, aço, PVC etc. Apesar de não possuir fundamentação teórica geral, essa equação fornece boa precisão para água a 20\,°C em tubulações de transporte e é consagrada no projeto de redes de água devido à sua simplicidade \cite{perry2007,white2018}.
+Na forma exibida, o coeficiente empírico $10{,}646$ corresponde à convenção no SI usual da correlação; portanto, as unidades devem seguir a convenção associada ao coeficiente, com $h_f$ e $L$ em $\mathrm{m}$, $Q$ em $\mathrm{m^3/s}$ e $D$ em $\mathrm{m}$. $C$ é o coeficiente de Hazen--Williams do material, tratado como adimensional e tabelado para tubulações novas de ferro fundido, aço, PVC etc. Apesar de não possuir fundamentação teórica geral, essa equação fornece boa precisão para água a 20\,°C em tubulações de transporte e é consagrada no projeto de redes de água devido à sua simplicidade \cite{perry2007,white2018}.
 
 \begin{figure}[H]
     \centering
@@ -251,27 +289,27 @@ Em que $Q$ é a vazão volumétrica e $C$ é o coeficiente de Hazen--Williams do
 
 \subsubsection{Altura Manométrica entre Dois Pontos}
 
-A forma estendida da equação de Bernoulli é utilizada para avaliar as variações de carga (energia por unidade de peso do fluido) entre dois pontos de uma linha de escoamento, incluindo perdas:
+A forma estendida da equação de Bernoulli é utilizada para avaliar as variações de carga (energia por unidade de peso do fluido) entre dois pontos de um duto de escoamento, incluindo perdas:
 
 \begin{equation}
-H = \frac{P_{2} - P_{1}}{\rho g} + \frac{V_{2}^{2} - V_{1}^{2}}{2 g} + z_{2} - z_{1}
+H = \frac{P_{2} - P_{1}}{\rho g} + \frac{V_{2}^{2} - V_{1}^{2}}{2 g} + z_{2} - z_{1} + h_f
 \label{eq:bernoulli}
 \end{equation}
 
-Em que $H$ é a altura manométrica adicionada (se positiva) ou removida (se negativa) entre os pontos 1 e 2. Nessa equação, $\frac{P_{2} - P_{1}}{\rho g}$ representa a variação de pressão estática convertida em altura de coluna de fluido, $z_{2} - z_{1}$ é a variação de cota geométrica, o termo de velocidades representa a variação de energia cinética e $h_{f}$ engloba todas as perdas de carga (distribuídas e localizadas) entre os pontos \cite{white2018}.
+Em que $H$ é a altura manométrica adicionada (se positiva) ou removida (se negativa) entre os pontos 1 e 2. Todos os termos da Equação \ref{eq:bernoulli} são expressos como carga hidráulica em metros: as pressões $P_1$ e $P_2$ usam unidades coerentes com $\rho$ e $g$ no termo $\frac{P_{2} - P_{1}}{\rho g}$; as velocidades $V_1$ e $V_2$ entram em $\mathrm{m/s}$; as cotas $z_1$ e $z_2$ são dadas em $\mathrm{m}$; e $h_f$ reúne as perdas distribuídas e localizadas em $\mathrm{m}$. Com essa convenção, perdas positivas aumentam a altura requerida pela bomba \cite{white2018}.
 
 Essa equação é fundamental para avaliar a necessidade de bombeamento: uma bomba deve fornecer uma $H$ suficiente para superar as perdas e elevar o fluido da condição 1 até 2; inversamente, uma turbomáquina geradora extrairá essa energia do fluido.
 
 \begin{figure}[H]
     \centering
-    \caption{Cálculo do \textit{head} – Parte 1/2}
+    \caption{Cálculo da altura manométrica – Parte 1/2}
     \includegraphics[width=\linewidth]{media/cap4_head_parte_um.png}
     \fonte{Elaboração própria (2026).}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \caption{Cálculo do \textit{head} – Parte 2/2}
+    \caption{Cálculo da altura manométrica – Parte 2/2}
     \includegraphics[width=\linewidth]{media/cap4_head_parte_dois.png}
     \fonte{Elaboração própria (2026).}
 \end{figure}
@@ -285,7 +323,7 @@ N P S H_{d i s p} = \frac{P_{s u c} + P_{a t m} - p_{v a p}}{\rho g} + \frac{V_{
 \label{eq:npsh}
 \end{equation}
 
-Sendo $P_{suc}$ a pressão manométrica na linha de sucção da bomba, $P_{atm}$ a pressão atmosférica, $z_{suc}$ a elevação do ponto de sucção em relação à referência, $v_{suc}$ a velocidade do fluido na sucção, $h_{suc}$ as perdas de carga na linha de sucção e $p_{vap}$ a pressão de vapor do líquido na temperatura de bombeamento \cite{perry2007}.
+O resultado da Equação \ref{eq:npsh} é expresso em metros de coluna do líquido bombeado. As pressões $P_{suc}$, $P_{atm}$ e $p_{vap}$ devem ser coerentes entre si e com $\rho g$; $\rho$ é massa específica, por exemplo $\mathrm{kg/m^3}$; $V_{suc}$ é velocidade em $\mathrm{m/s}$; $z_{suc}$ e $z_0$ são cotas em $\mathrm{m}$; e $h_{suc}$ representa as perdas na linha de sucção em $\mathrm{m}$ \cite{perry2007}.
 
 O cálculo de \textit{NPSH} disponível permite verificar se há margem de segurança sobre o \textit{NPSH} requerido da bomba (fornecido pelo fabricante para aquela vazão), garantindo que o líquido não vaporize na entrada da bomba – o que causaria cavitação, danos e redução de desempenho.
 
@@ -329,6 +367,8 @@ D_{h} = D_{o} - D_{i}
 \end{equation}
 (diferença entre diâmetro externo interno e diâmetro externo do interno). Para seções triangulares (por ex., condutos abertos triangulares), calcula-se $A$ e $P$ conforme a geometria e aplica-se $4 A / P$. Para geometrias mais complexas (ex.: calhas semicirculares), também se aplica $4 A / P$ considerando o perímetro molhado adequadamente.
 
+Nas Equações \ref{eq:diametro_hidraulico} a \ref{eq:dh_annular}, $D_h$, $D$, $D_o$, $D_i$, $a$, $b$ e o perímetro molhado $P$ (ou $P_m$) usam a mesma unidade de comprimento; $A$ usa a unidade de área correspondente; e cada fórmula retorna $D_h$ nessa unidade de comprimento.
+
 \begin{figure}[H]
     \centering
     \caption{Tipos de dutos de escoamento}
@@ -347,7 +387,7 @@ O programa permite ao usuário informar $A$ e $P$ para cálculo de $D_{h}$ em si
 
 \subsection{Propriedades Termofísicas}
 
-Propriedades termofísicas – como densidade, viscosidade, calor específico, condutividade térmica, entalpia e entropia – são insumos essenciais em praticamente todos os cálculos de processos. Em misturas, a predição de propriedades requer modelos mais complexos do que simples somas ponderadas, considerando interações moleculares e desvios da idealidade. Tais propriedades alimentam balanços de massa e energia, o dimensionamento térmico de trocadores, o cálculo de Reynolds e de fatores de atrito, o desempenho de separações, entre outros. Temperatura e pressão são variáveis determinantes: utilizam-se correlações empíricas (por exemplo, equação de Antoine para pressão de vapor) ou equações de estado (gás ideal, Peng-Robinson, SRK) conforme o sistema. Erros na estimativa de viscosidade ou densidade afetam o cálculo de Reynolds, fator de atrito e potência de bombeamento; imprecisões em calores específicos ou entalpias propagam-se em balanços de energia e projeto de utilidades.
+Propriedades termofísicas – como massa específica, viscosidade, calor específico, condutividade térmica, entalpia e entropia – são insumos essenciais em praticamente todos os cálculos de processos. Em misturas, a predição de propriedades requer modelos mais complexos do que simples somas ponderadas, considerando interações moleculares e desvios da idealidade. Tais propriedades alimentam balanços de massa e energia, o dimensionamento térmico de trocadores, o cálculo de Reynolds e de fatores de atrito, o desempenho de separações, entre outros. Temperatura e pressão são variáveis determinantes: utilizam-se correlações empíricas (por exemplo, equação de Antoine para pressão de vapor) ou equações de estado (gás ideal, Peng-Robinson, SRK) conforme o sistema. Erros na estimativa de viscosidade ou massa específica afetam o cálculo de Reynolds, fator de atrito e potência de bombeamento; imprecisões em calores específicos ou entalpias propagam-se em balanços de energia e projeto de utilidades.
 
 \begin{figure}[H]
     \centering
@@ -363,7 +403,7 @@ Propriedades termofísicas – como densidade, viscosidade, calor específico, c
     \fonte{Elaboração própria (2026).}
 \end{figure}
 
-No \textit{software} desenvolvido, um módulo de propriedades utiliza a biblioteca \textit{CoolProp} para recuperar propriedades de fluidos puros (e misturas) a partir de dados de entrada de $T$ e $P$. São obtidas propriedades como densidade, viscosidade, calor específico ($c_{p}$ e $c_{v}$), condutividade térmica, entalpia, entropia, massa molar e tensão superficial, além de propriedades críticas e pontos de saturação (bolha/orvalho) quando aplicável. A visualização desse cálculo de propriedades, com foco no resultado para uma mistura, é apresentada na Figura \ref{fig:mixture_properties}.
+No \textit{software} desenvolvido, um módulo de propriedades utiliza a biblioteca \textit{CoolProp} para recuperar propriedades de fluidos puros (e misturas) a partir de dados de entrada de $T$ e $P$. São obtidas propriedades como massa específica ($\rho$), viscosidade, calor específico ($c_{p}$ e $c_{v}$), condutividade térmica, entalpia, entropia, massa molar e tensão superficial, além de propriedades críticas e pontos de saturação (bolha/orvalho) quando aplicável. A visualização desse cálculo de propriedades, com foco no resultado para uma mistura, é apresentada na Figura \ref{fig:mixture_properties}.
 
 \begin{figure}[H]
     \centering

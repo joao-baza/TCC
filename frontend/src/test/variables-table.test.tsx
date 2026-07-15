@@ -8,7 +8,7 @@ describe("VariablesTable", () => {
       <VariablesTable
         rows={[
           { symbol: "\\rho", description: "Massa específica do fluido", unit: "kg/m³" },
-          { symbol: "DN (Diametro Nominal)", description: "Identificador textual", unit: "—" },
+          { symbol: "DN (Diametro Nominal)", description: "Identificador textual", unit: "-" },
         ]}
       />,
     );

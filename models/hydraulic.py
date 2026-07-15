@@ -7,7 +7,7 @@ from .piping import Piping
 from base_validator import BaseValidator
 
 # SI units conversion factor for Hazen-Williams (valid for SI units)
-HAZEN_WILLIAMS_SI_FACTOR = 10.67
+HAZEN_WILLIAMS_SI_FACTOR = 10.646
 STANDARD_GRAVITY = 9.80665
 MOODY_REFERENCE_ROUGHNESS = [
     0.0,
@@ -600,12 +600,12 @@ class Hydraulic(BaseValidator):
             Available NPSH (m).
         """
         req = [
-            "manometric_pressure", 
-            "atmospheric_pressure", 
-            "vapor_pressure", 
-            "manometric_pressure", 
-            "atmospheric_pressure", 
-            "vapor_pressure", 
+            "manometric_pressure",
+            "atmospheric_pressure",
+            "vapor_pressure",
+            "manometric_pressure",
+            "atmospheric_pressure",
+            "vapor_pressure",
             "density",
             "head_loss",
             "pump_inlet_velocity"
@@ -621,32 +621,32 @@ class Hydraulic(BaseValidator):
         head_loss = parameters["head_loss"] * self.ureg.m
         pump_inlet_velocity = parameters["pump_inlet_velocity"] * self.ureg.m / self.ureg.s
         height_term = parameters["gauge_elevation"] * self.ureg.m
-        
+
         # Convert pressures
         # Convert to N/m²
         Ps_Pa = Ps.to(self.ureg.kgf / self.ureg.cm**2).to(self.ureg.Pa)
         Patm_Pa = Patm.to(self.ureg.kgf / self.ureg.cm**2).to(self.ureg.Pa)
         Pv_Pa = Pv.to(self.ureg.kgf / self.ureg.cm**2).to(self.ureg.Pa)
-        
+
         # Equation terms
         pressure_term = (Ps_Pa + Patm_Pa) / (density * self.g)
         vapor_pressure_term = Pv_Pa / (density * self.g)
         velocity_term = (pump_inlet_velocity**2) / (2 * self.g)
-        
-        
+
+
         # New equation: (Pmanometric+Patm)/gamma + V²/(2g) + h - head_loss - Pvap/gamma
         npsh = pressure_term + height_term + velocity_term - head_loss - vapor_pressure_term
-        
+
         # Return in meters
         return npsh.to(self.ureg.m)
-    
+
     # endregion npsh_available
 
     # region head
     def head(self, parameters: Dict[str, object]):
         """
         Calculate the manometric head between two points in a pipe system.
-        
+
         Parameters
         ----------
         parameters : dict
@@ -658,7 +658,7 @@ class Hydraulic(BaseValidator):
                "velocity2": <m/s>,
                "density": <kg/m³>,
                "head_loss": <m>}``
-               
+
         Returns
         -------
         pint.Quantity
@@ -676,7 +676,7 @@ class Hydraulic(BaseValidator):
         ]
         self._require_keys(parameters, req)
         self._validate_numeric(parameters, req)
-        
+
         # Get parameters with proper units
         p1 = parameters["pressure1"] * self.ureg.Pa
         p2 = parameters["pressure2"] * self.ureg.Pa
@@ -686,45 +686,45 @@ class Hydraulic(BaseValidator):
         v2 = parameters["velocity2"] * self.ureg.m / self.ureg.s
         density = parameters["density"] * self.ureg.kg / self.ureg.m**3
         head_loss = parameters["head_loss"] * self.ureg.m
-        
+
         # Equation terms
         pressure_term = (p2 - p1) / (density * self.g)
         elevation_term = (z2 - z1)
         velocity_term = (v2**2 - v1**2) / (2 * self.g)
-        
+
         # Head calculation: (p2-p1)/specific_mass*g + (z2-z1) + (v2-v1)/(2g) + head_loss
         head = pressure_term + elevation_term + velocity_term + head_loss
-        
+
         # Return in meters
         return head.to(self.ureg.m)
-    
+
     # endregion head
 
     # region hydraulic_diameter
     def hydraulic_diameter(self, parameters: Dict[str, object]):
         """
         Calculate the hydraulic diameter for different geometric shapes.
-        
+
         Parameters
         ----------
             parameters : dict
             ``{"shape": <str>,
                ...shape-specific parameters...}``
-               
+
             **Circular**
             ``{"shape": "circular",
                "diameter": <m>}``
-               
+
             **Rectangular**
             ``{"shape": "rectangular",
                "width": <m>,
                "height": <m>}``
-               
+
             **Annular**
             ``{"shape": "annular",
                "outer_diameter": <m>,
                "inner_diameter": <m>}``
-               
+
             **Triangular**
             ``{"shape": "triangular",
                "side_a": <m>,
@@ -735,7 +735,7 @@ class Hydraulic(BaseValidator):
             ``{"shape": "circularCap",
                "diameter": <m>,
                "height": <m>}``
-        
+
         Returns
         -------
         pint.Quantity
@@ -743,82 +743,82 @@ class Hydraulic(BaseValidator):
         """
         if "shape" not in parameters:
             return ["circular", "rectangular", "annular", "triangular", "circularCap"]
-        
+
         shape = parameters["shape"]
-        
+
         # ----------------------- Circular ------------------------ #
         if shape == "circular":
             self._require_keys(parameters, ["diameter"])
             self._validate_numeric(parameters, ["diameter"])
-            
+
             D = parameters["diameter"] * self.ureg.m
             return D
-        
+
         # ----------------------- Rectangular ------------------------ #
         elif shape == "rectangular":
             self._require_keys(parameters, ["width", "height"])
             self._validate_numeric(parameters, ["width", "height"])
-            
+
             width = parameters["width"] * self.ureg.m
             height = parameters["height"] * self.ureg.m
-            
+
             # Hydraulic diameter formula: 4*Area/Perimeter
             area = width * height
             perimeter = 2 * (width + height)
-            
+
             D_h = 4 * area / perimeter
             return D_h
-        
+
         # ----------------------- Annular ------------------------ #
         elif shape == "annular":
             self._require_keys(parameters, ["outer_diameter", "inner_diameter"])
             self._validate_numeric(parameters, ["outer_diameter", "inner_diameter"])
-            
+
             D_o = parameters["outer_diameter"] * self.ureg.m
             D_i = parameters["inner_diameter"] * self.ureg.m
-            
+
             if D_i >= D_o:
                 raise ValueError("Inner diameter must be smaller than outer diameter")
-            
+
             # Hydraulic diameter formula for annular: D_o - D_i
             D_h = D_o - D_i
             return D_h
-        
+
         # ----------------------- Triangular ------------------------ #
         elif shape == "triangular":
             self._require_keys(parameters, ["side_a", "side_b", "side_c"])
             self._validate_numeric(parameters, ["side_a", "side_b", "side_c"])
-            
+
             a = parameters["side_a"] * self.ureg.m
             b = parameters["side_b"] * self.ureg.m
             c = parameters["side_c"] * self.ureg.m
-            
+
             # Check triangle inequality
             if a + b <= c or a + c <= b or b + c <= a:
                 raise ValueError("Invalid triangle: sides do not satisfy triangle inequality")
-            
+
             # Semi-perimeter
             s = (a + b + c) / 2
-            
+
             # Area (Heron's formula)
             area = (s * (s - a) * (s - b) * (s - c)) ** 0.5
-            
+
             # Perimeter
             perimeter = a + b + c
-            
+
             # Hydraulic diameter formula: 4*Area/Perimeter
             D_h = 4 * area / perimeter
             return D_h
-        
+
         # ----------------------- Circular Cap ------------------------ #
         elif shape == "circularCap":
             self._require_keys(parameters, ["diameter", "height"])
             self._validate_numeric(parameters, ["diameter", "height"])
-            
+
             # Check if height is less than diameter
             if parameters["height"] > parameters["diameter"]:
                 raise ValueError("Height cannot be greater than diameter")
-            
+
             if parameters["height"] <= 0:
                 raise ValueError("Height must be greater than 0")
 
@@ -846,5 +846,5 @@ class Hydraulic(BaseValidator):
 
         else:
             raise ValueError("Invalid shape. Use 'circular', 'rectangular', 'annular', 'triangular', or 'circularCap'.")
-    
+
     # endregion hydraulic_diameter

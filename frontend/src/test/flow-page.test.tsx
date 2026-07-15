@@ -400,10 +400,12 @@ describe("FlowPage", () => {
     await openFlowTab(/Fator de Atrito/i);
     await expectTableValueMath(/^Fator de atrito$/i);
     expect(screen.getByLabelText(/Método de cálculo/i)).toHaveValue("SwameeJain");
-    expect(screen.getByLabelText(/Usar composição/i)).toBeChecked();
-    expect(screen.getByLabelText(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
+    expect(screen.getByLabelText(/Usar material da tubulação/i)).toBeChecked();
+    expect(screen.getByRole("combobox", { name: /^Material da tubulação$/i })).toHaveValue(
+      "Aço galvanizado",
+    );
     expect(screen.queryByLabelText(/Rugosidade/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/Diâmetro da linha/i)).toHaveValue(13.843);
+    expect(screen.getByLabelText(/Diâmetro da tubulação/i)).toHaveValue(13.843);
     await waitFor(() => {
       expect(requestBodiesFor("/api/flow/friction-factor")).toContainEqual({
         roughness: 0.15,
@@ -482,7 +484,7 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Rugosidade/i), {
       target: { value: "0.045" },
     });
-    fireEvent.change(screen.getByLabelText(/Diâmetro da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Diâmetro da tubulação/i), {
       target: { value: "50" },
     });
     fireEvent.change(screen.getByLabelText(/Método de cálculo/i), {
@@ -507,8 +509,8 @@ describe("FlowPage", () => {
     const frictionRow = getRowContaining(/^Fator de atrito$/i);
     expect(reynoldsRow).toBeDefined();
     expect(frictionRow).toBeDefined();
-    expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
-    expect(frictionRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
+    expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("-");
+    expect(frictionRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("-");
     expect(screen.queryByText(/Regime do escoamento/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
@@ -549,7 +551,7 @@ describe("FlowPage", () => {
     await waitFor(() => {
       const reynoldsRow = getRowContaining(/^Número de Reynolds$/i);
       expect(reynoldsRow).toBeDefined();
-      expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
+      expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("-");
       expect(screen.queryByText(/Regime do escoamento/i)).not.toBeInTheDocument();
     });
   });
@@ -598,7 +600,7 @@ describe("FlowPage", () => {
 
     const hydraulicRow = getRowContaining(/^Diâmetro hidráulico$/i);
     expect(hydraulicRow).toBeDefined();
-    expect(hydraulicRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
+    expect(hydraulicRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("-");
   });
 
   it("blocks Reynolds submission when diameter or velocity is missing", async () => {
@@ -733,7 +735,7 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Rugosidade/i), {
       target: { value: "0.045" },
     });
-    fireEvent.change(screen.getByLabelText(/Diâmetro da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Diâmetro da tubulação/i), {
       target: { value: "50" },
     });
     fireEvent.change(screen.getByLabelText(/Método de cálculo/i), {
@@ -763,11 +765,11 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Número de Reynolds/i), {
       target: { value: "50000" },
     });
-    fireEvent.click(screen.getByLabelText(/Usar composição/i));
-    fireEvent.change(screen.getByLabelText(/Material da tubulação/i), {
+    fireEvent.click(screen.getByLabelText(/Usar material da tubulação/i));
+    fireEvent.change(screen.getByRole("combobox", { name: /^Material da tubulação$/i }), {
       target: { value: "Aço comercial" },
     });
-    fireEvent.change(screen.getByLabelText(/Diâmetro da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Diâmetro da tubulação/i), {
       target: { value: "50" },
     });
     fireEvent.change(screen.getByLabelText(/Método de cálculo/i), {
@@ -828,7 +830,7 @@ describe("FlowPage", () => {
     fireEvent.change(screen.getByLabelText(/Rugosidade/i), {
       target: { value: "0.045" },
     });
-    fireEvent.change(screen.getByLabelText(/Diâmetro da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Diâmetro da tubulação/i), {
       target: { value: "50" },
     });
     fireEvent.change(screen.getByLabelText(/Método de cálculo/i), {
@@ -855,7 +857,9 @@ describe("FlowPage", () => {
     mockFlowRequests();
     renderFlowPage();
 
-    expect(await screen.findByText(/Escoamento Interno/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /^Escoamento Interno$/i }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Diâmetro característico/i), {
       target: { value: "50" },
@@ -881,17 +885,17 @@ describe("FlowPage", () => {
     });
 
     await openFlowTab(/Fator de Atrito/i);
-    fireEvent.click(screen.getByLabelText(/Usar composição/i));
-    fireEvent.change(screen.getByLabelText(/Material da tubulação/i), {
+    fireEvent.click(screen.getByLabelText(/Usar material da tubulação/i));
+    fireEvent.change(screen.getByRole("combobox", { name: /^Material da tubulação$/i }), {
       target: { value: "Aço comercial" },
     });
     fireEvent.click(screen.getByLabelText(/Usar schedule/i));
     fireEvent.change(screen.getByLabelText(/^Schedule$/i), {
       target: { value: "SCH40" },
     });
-    fireEvent.focus(screen.getByLabelText(/Diâmetro da linha/i));
+    fireEvent.focus(screen.getByLabelText(/Diâmetro da tubulação/i));
     expect(await screen.findByText(/50 mm/i)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText(/Diâmetro da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Diâmetro da tubulação/i), {
       target: { value: "60.3" },
     });
     fireEvent.change(screen.getByLabelText(/Método de cálculo/i), {
