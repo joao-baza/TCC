@@ -49,7 +49,7 @@ def test_sizing_velocity_profile_returns_backend_owned_arrows():
 def test_sizing_example_catalog_validation_raises_when_schedule_is_missing(monkeypatch):
     monkeypatch.setattr(sizing_router.hydraulic.piping, "schedules", lambda: [])
 
-    with pytest.raises(RuntimeError, match="Schedule 'SCH40' not found"):
+    with pytest.raises(RuntimeError, match="Schedule da tubulação 'SCH40' não encontrado"):
         sizing_router.validate_sizing_example_catalogs()
 
 

@@ -10,13 +10,13 @@ piping = Piping()
 
 def validate_piping_example_catalogs() -> None:
     if "Aço galvanizado" not in piping.compositions():
-        raise RuntimeError("Composition 'Aço galvanizado' not found")
+        raise RuntimeError("Composição da tubulação 'Aço galvanizado' não encontrada")
     if not any(schedule["name"] == "SCH40" for schedule in piping.schedules()):
-        raise RuntimeError("Schedule 'SCH40' not found")
+        raise RuntimeError("Schedule da tubulação 'SCH40' não encontrado")
     if 125 not in piping.diameters("SCH40"):
-        raise RuntimeError("Diameter '125' not found for schedule 'SCH40'")
+        raise RuntimeError("Diâmetro da tubulação '125' não encontrado para o schedule 'SCH40'")
     if "Válvula esfera" not in piping.fittings():
-        raise RuntimeError("Fitting 'Válvula esfera' not found")
+        raise RuntimeError("Acessório da tubulação 'Válvula esfera' não encontrado")
 
 
 @router.get("/example", response_model=PipingExampleResponse)
@@ -50,7 +50,7 @@ def get_schedules():
     return [
         option(
             schedule["name"],
-            schedule["name"].replace("SCH", "Schedule "),
+            schedule["name"].replace("SCH", "Schedule da tubulação "),
             diameters=schedule["diameters"],
             description=schedule["description"],
         )
@@ -87,4 +87,3 @@ def get_fitting_specifications(name: str):
         return serialize(piping.fitting_specifications(name))
     except Exception as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-

@@ -74,7 +74,7 @@ A consulta das propriedades críticas para a água retornou uma temperatura crí
 
 \subsubsection{Opções de Propriedades de Misturas}
 
-Para sistemas multicomponentes, a função \textit{get\_property\_mixture\_names()} delimita o subconjunto de propriedades que podem ser calculadas. Diferentemente das substâncias puras, observa-se que certas propriedades de transporte específicas ou tensão superficial podem não estar disponíveis dependendo do modelo de mistura (\textit{HEOS}) empregado. A listagem confirma a disponibilidade das variáveis de estado essenciais (entalpia, entropia, densidade) necessárias para o dimensionamento de reatores e tubulações.
+Para sistemas multicomponentes, a função \textit{get\_property\_mixture\_names()} delimita o subconjunto de propriedades que podem ser calculadas. Diferentemente das substâncias puras, observa-se que certas propriedades de transporte específicas ou tensão superficial podem não estar disponíveis dependendo do modelo de mistura (\textit{HEOS}) empregado. A listagem confirma a disponibilidade das variáveis de estado essenciais (entalpia, entropia, massa específica) necessárias para o dimensionamento de reatores e tubulações.
 
 \begin{figure}[H]
     \centering
@@ -85,7 +85,7 @@ Para sistemas multicomponentes, a função \textit{get\_property\_mixture\_names
 
 \subsubsection{Valor de Propriedades de Misturas}
 
-A simulação de uma mistura binária equimolar de Água $( 5 0 \% )$ e Etanol ($5 0 \% )$a $3 0 0 K$ e $1 a t m$ resultou em uma densidade de mistura de $8 1 4 , 0 4 \  k g / m^{3}$. O código utiliza internamente a regra de mistura baseada na energia livre de Helmholtz (HEOS) do \textit{CoolProp} para ponderar as interações moleculares entre os componentes. Este valor intermediário entre a densidade da água pura ($9 9 7 k g / m^{3}$) e do etanol puro ($7 8 9 k g / m^{3}$) demonstra a eficácia do algoritmo em prever o comportamento não-ideal da solução.
+A simulação de uma mistura binária equimolar de Água $( 5 0 \% )$ e Etanol ($5 0 \% )$a $3 0 0 K$ e $1 a t m$ resultou em uma massa específica de mistura de $8 1 4 , 0 4 \  k g / m^{3}$. O código utiliza internamente a regra de mistura baseada na energia livre de Helmholtz (HEOS) do \textit{CoolProp} para ponderar as interações moleculares entre os componentes. Este valor intermediário entre a massa específica da água pura ($9 9 7 k g / m^{3}$) e do etanol puro ($7 8 9 k g / m^{3}$) demonstra a eficácia do algoritmo em prever o comportamento não-ideal da solução.
 
 \begin{figure}[H]
     \centering
@@ -97,6 +97,8 @@ A simulação de uma mistura binária equimolar de Água $( 5 0 \% )$ e Etanol (
 \subsection{Hidráulicos}
 \subsubsection{Perda de Carga}
 Para a validação do cálculo de perda de carga, utilizou-se o método de Darcy--Weisbach, aplicável a fluxos incompressíveis em qualquer regime de escoamento. A equação base para o cálculo é a Equação \ref{eq:darcy}.
+
+Nesta validação, comprimentos e diâmetros são tratados em metros, a velocidade em $m/s$, $g$ em $m/s^2$ e a perda de carga calculada $h_f$ é reportada em metros.
 
 Onde a perda de carga localizada ($\sum h_{local}$) é calculada através do comprimento equivalente ($L_{eq}$) dos acessórios:
 
@@ -114,7 +116,7 @@ h_f = 0,02 \cdot \frac{100}{0,05} \cdot \frac{2^2}{2 \cdot 9,80665} = 40 \cdot 0
 \label{eq:val_hf_calc_a}
 \end{equation}
     \item \textbf{\textit{Software}:} $8,1577 \ m$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \textbf{Teste B: Com Acessórios (2 Curvas 90º Raio Longo)}
@@ -128,7 +130,7 @@ h_f = 0,02 \cdot \frac{101,6}{0,05} \cdot \frac{2^2}{2 \cdot 9,80665} = 8,2882 \
 \label{eq:val_hf_calc_b}
 \end{equation}
     \item \textbf{\textit{Software}:} $8,2882 \ m$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \subsubsection{Reynolds}
@@ -140,7 +142,7 @@ O Número de Reynolds ($Re$) foi validado utilizando as duas formas de entrada s
     \item \textbf{Dados:} $\rho=998 kg/m^3, V=2,0 m/s, D=0,05 m, \mu=1,002 \cdot 10^{-3} Pa \cdot s$
     \item \textbf{Cálculo Manual:} $Re = \frac{998 \cdot 2 \cdot 0,05}{0,001002} = 99.600,8$
     \item \textbf{\textit{Software}:} $99.600,8$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \textbf{Método 2: Viscosidade Cinemática}
@@ -149,7 +151,7 @@ O Número de Reynolds ($Re$) foi validado utilizando as duas formas de entrada s
     \item \textbf{Dados:} $V=2,0 m/s, D=0,05 m, \nu=1,004 \cdot 10^{-6} m^2/s$
     \item \textbf{Cálculo Manual:} $Re = \frac{2 \cdot 0,05}{1,004 \cdot 10^{-6}} = 99.601,6$
     \item \textbf{\textit{Software}:} $99.601,6$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \subsubsection{Fator de Atrito}
@@ -162,7 +164,7 @@ Verificou-se a convergência da solução numérica da \textit{API} comparando o
     \item \textbf{Dados:} $\varepsilon=0,045mm, D=50mm, Re=100.000$
     \item \textbf{\textit{Software} ($f$):} $0,021614$
     \item \textbf{Check:} \textit{LHS} = 6,802; \textit{RHS} = 6,802
-    \item \textbf{Status:} [CONVERGÊNCIA CONFIRMADA]
+    \item \textbf{Status:} Convergência confirmada.
 \end{itemize}
 
 \textbf{B. Equação de Swamee-Jain (Explícita) \cite{swamee1976}}
@@ -170,7 +172,7 @@ Verificou-se a convergência da solução numérica da \textit{API} comparando o
 \begin{itemize}
     \item \textbf{Cálculo Manual:} $f = 0,02199$
     \item \textbf{\textit{Software}:} $0,02199$
-    \item \textbf{Status:} [MATCH]
+    \item \textbf{Status:} Resultado concordante.
 \end{itemize}
 
 \textbf{C. Equação de Haaland (Explícita) \cite{haaland1983}}
@@ -178,7 +180,7 @@ Verificou-se a convergência da solução numérica da \textit{API} comparando o
 \begin{itemize}
     \item \textbf{Cálculo Manual:} $f = 0,02161$
     \item \textbf{\textit{Software}:} $0,02161$
-    \item \textbf{Status:} [MATCH]
+    \item \textbf{Status:} Resultado concordante.
 \end{itemize}
 
 \subsubsection{Diâmetro Real}
@@ -188,11 +190,11 @@ A função de seleção de diâmetro comercial verifica o próximo diâmetro nom
     \item \textbf{Entrada:} Diâmetro Calculado = 45,0 mm. \textit{Schedule} = SCH40.
     \item \textbf{Lógica Manual:} Consultar tabela SCH40. Diâmetros disponíveis: ..., 32, 40, 50, 65... O próximo maior que 45 é 50.
     \item \textbf{\textit{Software}:} $50,0 \ mm$
-    \item \textbf{Status:} [MATCH]
+    \item \textbf{Status:} Resultado concordante.
 \end{itemize}
 
 \subsubsection{Diâmetro Calculado}
-O dimensionamento preliminar baseia-se na equação da continuidade para tubos circulares.
+O dimensionamento preliminar baseia-se na equação da continuidade para dutos circulares.
 
 (ver Equação \ref{eq:diametro_calc})
 
@@ -200,7 +202,7 @@ O dimensionamento preliminar baseia-se na equação da continuidade para tubos c
     \item \textbf{Dados:} $Q=0,005 m^3/s, V=1,5 m/s$
     \item \textbf{Cálculo Manual:} $D = \sqrt{\frac{4 \cdot 0,005}{\pi \cdot 1,5}} = \sqrt{0,004244} = 0,06515 \ m \ (65,15 mm)$
     \item \textbf{\textit{Software}:} $65,15 \ mm$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \subsubsection{\textit{NPSH} Disponível}
@@ -213,10 +215,10 @@ O cálculo do \textit{Net Positive Suction Head} disponível ($NPSH_a$) utiliza 
     \item \textbf{Termos de Pressão (m.c.a):} $H_{press} = \frac{(0{,}5+1{,}033) \cdot 98.066{,}5}{9.806{,}6} = 15{,}33\,\mathrm{m}$, $H_{vap} = 0{,}2\,\mathrm{m}$
     \item \textbf{Cálculo Manual:} $15,33 + 2,0 + 0,11 - 1,0 - 0,2 = 16,24 \ m$
     \item \textbf{\textit{Software}:} $16,24 \ m$
-    \item \textbf{Status:} [MATCH] (Desvio: < 0,01\%)
+    \item \textbf{Status:} Resultado concordante, com desvio inferior a 0,01\%.
 \end{itemize}
 
-\subsubsection{Head}
+\subsubsection{Altura manométrica}
 A carga manométrica total da bomba ($H_{man}$) é calculada pela diferença de energia entre sucção e descarga:
 
 \begin{center} Utilizando a Equação \ref{eq:bernoulli} \end{center}
@@ -225,7 +227,7 @@ A carga manométrica total da bomba ($H_{man}$) é calculada pela diferença de 
     \item \textbf{Dados:} $\Delta P=101.325 Pa, \Delta Z=10m, V_1=1m/s, V_2=2m/s, h_f=5m$
     \item \textbf{Cálculo Manual:} $\frac{101.325}{9806} + 10 + \frac{4-1}{19,6} + 5 = 10,33 + 10 + 0,15 + 5 = 25,48 \ m$
     \item \textbf{\textit{Software}:} $25,48 \ m$
-    \item \textbf{Status:} [MATCH] (Desvio: 0,00\%)
+    \item \textbf{Status:} Resultado concordante, com desvio de 0,00\%.
 \end{itemize}
 
 \subsubsection{Diâmetro Hidráulico}
@@ -237,41 +239,43 @@ A relação geral é definida na Equação \ref{eq:diametro_hidraulico}.
 \begin{itemize}
     \item \textbf{Dados:} $D=50mm$
     \item \textbf{Manual:} $D_h = D = 50mm$
-    \item \textbf{\textit{Software}:} $50mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $50mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \textbf{2. Retangular}
 \begin{itemize}
     \item \textbf{Dados:} $L=40mm, H=30mm$
     \item \textbf{Manual:} $A=1200, P=140 \rightarrow D_h = \frac{4800}{140} = 34,29 \ mm$
-    \item \textbf{\textit{Software}:} $34,29mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $34,29mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \textbf{3. Anular (Tubo Concêntrico)}
 \begin{itemize}
     \item \textbf{Dados:} $D_{ext}=100mm, D_{int}=50mm$
     \item \textbf{Manual:} $D_h = D_{ext} - D_{int} = 50mm$
-    \item \textbf{\textit{Software}:} $50mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $50mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \textbf{4. Triangular}
 \begin{itemize}
     \item \textbf{Dados:} Lados 3, 4, 5 (Triângulo Retângulo). $A=6, P=12$.
     \item \textbf{Manual:} $D_h = \frac{4 \cdot 6}{12} = 2,0mm$
-    \item \textbf{\textit{Software}:} $2,0mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $2,0mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \textbf{5. Canal Circular (Meia Seção)}
 \begin{itemize}
     \item \textbf{Dados:} $D=100mm$, Nível $H=50mm$ (Metade).
     \item \textbf{Manual:} Para meia seção cheia, $A = \pi R^2 / 2$, $P = \pi R$. Logo $D_h = \frac{4 (\pi R^2/2)}{\pi R} = 2R = D = 100mm$.
-    \item \textbf{\textit{Software}:} $100,0mm$ \textbf{[MATCH]}
+    \item \textbf{Resultado calculado:} $100,0mm$ \textbf{Resultado concordante}
 \end{itemize}
 
 \subsection{Balanços de Massa}
 \subsubsection{Misturador Ideal}
 
 A validação do balanço de massa foi realizada considerando um misturador ideal (Mixer) alimentado por duas correntes puras.
+
+Nos exemplos de balanço desta seção, cada soma ou subtração mantém uma única base de vazão: mássica no misturador e no divisor de corrente, molar no reator de conversão.
 
 \textbf{Definição do Caso Teste:}
 \begin{itemize}
@@ -284,14 +288,17 @@ A validação do balanço de massa foi realizada considerando um misturador idea
 \begin{enumerate}
     \item \textbf{Balanço Global:}
     \begin{equation}
+        \label{eq:val_mixer_total_flow}
         F_{S3} = F_{S1} + F_{S2} = 100 + 100 = 200 \ kg/h
     \end{equation}
     
     \item \textbf{Balanço por Componente (Água):}
     \begin{equation}
+        \label{eq:val_mixer_component_balance}
         F_{S3} \cdot z_{S3,agua} = F_{S1} \cdot z_{S1,agua} + F_{S2} \cdot z_{S2,agua}
     \end{equation}
     \begin{equation}
+        \label{eq:val_mixer_water_fraction}
         200 \cdot z_{S3,agua} = 100 \cdot 1,0 + 100 \cdot 0,0 \implies z_{S3,agua} = 0,5
     \end{equation}
 \end{enumerate}
@@ -335,13 +342,16 @@ Neste caso, avalia-se a geração e consumo de espécies químicas em um sistema
 \textbf{Cálculo Manual:}
 Pela estequiometria, para cada mol de A consumido, gera-se 1 mol de B.
 \begin{equation}
+    \label{eq:val_reaction_flow_a}
     F_{A,out} = F_{A,in}(1 - X_A) = 100(1 - 0,40) = 60 \ mol/s
 \end{equation}
 \begin{equation}
+    \label{eq:val_reaction_flow_b}
     F_{B,out} = F_{A,in} X_A = 100(0,40) = 40 \ mol/s
 \end{equation}
 A vazão molar total permanece constante ($60+40=100$), resultando nas frações molares:
 \begin{equation}
+    \label{eq:val_reaction_mole_fractions}
     y_A = \frac{60}{100} = 0,6; \quad y_B = \frac{40}{100} = 0,4
 \end{equation}
 
@@ -359,111 +369,90 @@ Simula-se uma operação de separação física onde uma corrente é dividida em
 
 \textbf{Cálculo Manual:}
 \begin{equation}
+    \label{eq:val_recycle_flow_mass}
     F_{Reciclo} = 0,2 \cdot 100 = 20 \ kg/h
 \end{equation}
 \begin{equation}
+    \label{eq:val_product_flow_mass}
     F_{Produto} = (1 - 0,2) \cdot 100 = 80 \ kg/h
 \end{equation}
 A composição deve permanecer inalterada: $z_A=0,5; z_B=0,5$ em ambas as saídas.
 
 \textbf{Validação:}
-Conforme apresentado na saída expandida do \textit{software} (Figura \ref{fig:code_mass_balance_exp}), os valores de vazão foram exatos ($20$ e $80 \ kg/h$) e a composição manteve-se constante, validando a lógica do divisor.
+Conforme sintetizado na representação didática (Tabela \ref{fig:code_mass_balance_exp}), os valores de vazão foram exatos ($20$ e $80 \ kg/h$) e a composição manteve-se constante, validando a lógica do divisor.
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \caption{Resultados expandidos da validação de Balanço de Massa (Misturador, Reator e \textit{Splitter})}
-    \includegraphics[width=\linewidth,height=0.85\textheight,keepaspectratio]{media/cap4_codigo_balanco_massa_expandido.png}
+    \caption{Representação didática do balanço de massa validado}
     \label{fig:code_mass_balance_exp}
+    \footnotesize
+    \begin{tabular}{@{}p{0.15\textwidth}p{0.28\textwidth}p{0.31\textwidth}p{0.17\textwidth}@{}}
+        \hline
+        \textbf{Etapa} & \textbf{Entradas} & \textbf{Processamento} & \textbf{Saídas verificadas} \\
+        \hline
+        Misturador & $S1=S2=100\ \mathrm{kg/h}$; água e etanol puros. & Soma da vazão global e balanço por componente, sem reação. & $F_{S3}=200\ \mathrm{kg/h}$; $z_{agua}=z_{etanol}=0,5$. \\
+        Reator & $F_{A,in}=100\ \mathrm{mol/s}$; $X_A=0,40$; $A\to B$. & Aplicação da estequiometria 1:1: $F_{A,out}=F_{A,in}(1-X_A)$ e $F_{B,out}=F_{A,in}X_A$. & $F_{A,out}=60\ \mathrm{mol/s}$; $F_{B,out}=40\ \mathrm{mol/s}$. \\
+        \textit{Splitter} & $F_{in}=100\ \mathrm{kg/h}$; $z_A=z_B=0,5$; fração de reciclo $0,2$. & $F_{Reciclo}=0,2F_{in}$ e $F_{Produto}=(1-0,2)F_{in}$, preservando a composição. & $F_{Reciclo}=20\ \mathrm{kg/h}$; $F_{Produto}=80\ \mathrm{kg/h}$. \\
+        \hline
+    \end{tabular}
     \fonte{Elaboração própria (2026).}
-\end{figure}
+\end{table}
 
 \subsection{Tubulações}
 
-O módulo de tubulações (\textit{Piping}) atua como um banco de dados de engenharia, fornecendo especificações padronizadas para acessórios, materiais e dimensões de tubos. A validação deste módulo consiste na verificação da conformidade dos dados retornados com as tabelas normativas padrão.
+O módulo de tubulações atua como um banco de dados de engenharia, fornecendo especificações padronizadas para acessórios, materiais e dimensões de tubulações. A validação deste módulo consiste na verificação da conformidade dos dados retornados com as tabelas normativas padrão.
 
 \subsubsection{Acessórios}
 
 A função \textit{fittings()} retorna uma lista de todos os acessórios hidráulicos cadastrados no sistema. Esta funcionalidade permite que outros módulos (como o de Perda de Carga) validem a entrada de dados do usuário e utilizem os coeficientes corretos.
-
-\begin{figure}[H]
-    \centering
-    \caption{Lista parcial de acessórios disponíveis (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_lista_acessorios_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
 
 \subsubsection{Especificação de Acessórios}
 
 A função \textit{fitting\_specifications(nome)} retorna os detalhes técnicos de um acessório, incluindo seu comprimento equivalente adimensional ($L_{eq}/D$) ou coeficiente de perda de carga ($K$).
 Para validação, utilizou-se o acessório \textit{90 degrees Elbow long radius} (Cotovelo 90º Raio Longo).
 
-\begin{figure}[H]
-    \centering
-    \caption{Especificações do acessório Cotovelo 90º Raio Longo (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_especificacao_cotovelo_raio_longo_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-
-
 \subsubsection{Composição}
 
 A função \textit{compositions()} lista os materiais de tubulação disponíveis, associando-os às suas respectivas rugosidades absolutas, parâmetro crítico para o cálculo do Fator de Atrito de Darcy.
-
-\begin{figure}[H]
-    \centering
-    \caption{Lista parcial de materiais de tubulação (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_lista_materiais_tubulacao_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
 
 \subsubsection{Especificação da Composição}
 
 A função \textit{composition\_specifications(nome)} retorna as propriedades de um material específico.
 Para validação, verificou-se o material \textit{Commercial steel} (Aço comercial).
 
-\begin{figure}[H]
-    \centering
-    \caption{Especificações do material Aço Comercial (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_especificacao_aco_comercial_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
-
-
 \subsubsection{\textit{Schedules}}
 
 A função \textit{schedules()} fornece as classes de pressão/espessura disponíveis (ex: SCH40, SCH80), permitindo a seleção adequada conforme a norma ANSI/ASME B36.10M.
-
-\begin{figure}[H]
-    \centering
-    \caption{Lista de classes de pressão (\textit{Schedules}) disponíveis (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_lista_schedules_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
 
 \subsubsection{Diâmetros}
 
 A função \textit{diameters(schedule)} lista os diâmetros nominais (DN) disponíveis para uma determinada classe (\textit{schedule}).
 
-\begin{figure}[H]
-    \centering
-    \caption{Lista parcial de diâmetros para SCH40 (JSON)}
-    \includegraphics[width=0.6\linewidth]{media/cap4_lista_diametros_sch40_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
-
 \subsubsection{Especificação de Diâmetros}
 
-A função \textit{diameter\_specifications(schedule, dn)} retorna as dimensões reais do tubo, incluindo diâmetro externo, espessura de parede e diâmetro interno (calculado).
-Para validação, utilizou-se um tubo de \textit{Schedule} 40 com Diâmetro Nominal 50 (aprox. 2 polegadas).
+A função \textit{diameter\_specifications(schedule, dn)} retorna as dimensões reais da tubulação, incluindo diâmetro externo, espessura de parede e diâmetro interno (calculado).
+Para validação, utilizou-se uma tubulação de \textit{Schedule} 40 com Diâmetro Nominal 50 (aprox. 2 polegadas).
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \caption{Especificações do tubo SCH40 DN50 (JSON)}
-    \includegraphics[width=\linewidth]{media/cap4_especificacao_tubo_sch40_dn50_json.png}
-    \fonte{Elaboração própria (2026).}
-\end{figure}
+    \caption{Resumo dos contratos validados no módulo de tubulações}
+    \label{tab:contratos-validacao-tubulacoes}
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.28\textwidth}p{0.31\textwidth}}
+        \hline
+        \textbf{Contrato} & \textbf{Consulta validada} & \textbf{Evidência verificada} \\
+        \hline
+        Acessórios & \textit{fittings()} & Lista reutilizável para validação de entradas e perdas locais. \\
+        Especificação de acessório & \parbox[t]{\linewidth}{\centering\textit{fitting\_specifications(}\newline\textit{nome)}} & \parbox[t]{\linewidth}{\raggedright Comprimento equivalente $L_{eq}/D=16$ do cotovelo de 90 graus de raio longo.} \\
+        Composição & \textit{compositions()} & Materiais disponíveis e suas rugosidades absolutas. \\
+        Especificação de composição & \parbox[t]{\linewidth}{\centering\textit{composition\_}\newline\textit{specifications(}\newline\textit{nome)}} & Aço comercial: rugosidade absoluta $0,06\ \mathrm{mm}$ e coeficiente de rugosidade $C=135$. \\
+        Schedules & \textit{schedules()} & Classes de pressão e espessura, como SCH40 e SCH80. \\
+        Diâmetros & \textit{diameters(schedule)} & Diâmetros nominais disponíveis para o SCH40. \\
+        Especificação de diâmetro & \parbox[t]{\linewidth}{\centering\textit{diameter\_specifications(}\newline\textit{schedule, dn)}} & \parbox[t]{\linewidth}{\raggedright SCH40 DN50: diâmetro externo $60,3\ \mathrm{mm}$, espessura $3,91\ \mathrm{mm}$, massa linear $4,44\ \mathrm{kg/m}$ e pressão máxima $7,93\ \mathrm{MPa}$ (catalogada como $1150\ \mathrm{psi}$).} \\
+        \hline
+    \end{tabular}
+    \fonte{Autoria própria.}
+\end{table}
 
 
 
@@ -483,7 +472,9 @@ Para todos os casos, adotou-se uma reação irreversível de primeira ordem $A \
 
 A equação de projeto (balanço molar) para um \textit{CSTR} operando em regime estacionário é a Equação \ref{eq:cstr_design}.
 
-Para uma reação de primeira ordem em fase líquida (densidade constante), a taxa de reação é dada por:
+Para esta validação, a base dimensional segue os parâmetros globais acima; a cinética de primeira ordem gera $-r_A$ em $\mathrm{mol/(m^3\,s)}$ e as conversões permanecem adimensionais.
+
+Para uma reação de primeira ordem em fase líquida (massa específica constante), a taxa de reação é dada por:
 \begin{equation}
     -r_A = k C_A = k C_{A0} (1-X)
     \label{eq:val_rate_law}
@@ -526,6 +517,8 @@ Também validou-se o cálculo inverso (Desempenho), onde fornece-se $V=1,1333 m^
 \subsubsection{\textit{PFR}: Reator Tubular}
 
 A equação de projeto para um \textit{PFR} é obtida através do balanço diferencial de massa (Equação \ref{eq:pfr_design}).
+
+Na validação do \textit{PFR}, $F_{A0}/(-r_A)$ tem unidade de volume ao combinar vazão molar com taxa molar de reação por volume de reator, e a integração ocorre sobre conversão adimensional.
 
 Substituindo a cinética de primeira ordem:
 \begin{equation}
@@ -571,7 +564,9 @@ Sabendo que $\ln(0,10) \approx -2,302585$:
 
 \subsubsection{\textit{PFR} com Reciclo}
 
-Em reatores com reciclo, parte da corrente de saída retorna à entrada. Para uma razão de reciclo $R$ (vazão de reciclo / vazão de saída do sistema), a conversão na entrada do reator ($X_{in}$) é diferente de zero, pois há mistura de reagentes frescos ($X=0$) com reagentes reciclados ($X=X_{out}$).
+Em reatores com reciclo, parte da corrente de saída retorna à entrada. Para uma razão de reciclo $R$ (vazão reciclada / vazão fresca de alimentação), a conversão na entrada do reator ($X_{in}$) é diferente de zero, pois há mistura de reagentes frescos ($X=0$) com reagentes reciclados ($X=X_{out}$).
+
+Na validação com reciclo, $R$, $X_{in}$ e a variável de integração $X$ permanecem adimensionais; $F_{A0}/(-r_A)$ define a escala de volume do reator.
 
 A relação de balanço de massa no ponto de mistura fornece:
 \begin{equation}

@@ -59,7 +59,7 @@ else
 fi
 
 if [[ "${SKIP_BUILD:-0}" == "1" ]]; then
-  echo "==> SKIP_BUILD=1 — usando imagens já presentes no host."
+  echo "==> SKIP_BUILD=1 - usando imagens já presentes no host."
   missing=0
   for img in "$IMAGE_NAME" "$FRONTEND_IMAGE_NAME"; do
     if docker image inspect "$img" >/dev/null 2>&1; then
@@ -136,7 +136,7 @@ if [[ "${STACK_WAS_REMOVED:-0}" -eq 0 ]] && [[ "${FORCE_ROLLING_UPDATE:-1}" != "
     fi
   done
 elif [[ "${STACK_WAS_REMOVED:-0}" -eq 1 ]]; then
-  echo "==> Stack recriada — imagens novas já em uso (rolling update omitido)."
+  echo "==> Stack recriada - imagens novas já em uso (rolling update omitido)."
 fi
 
 WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-600}"
@@ -164,7 +164,7 @@ while (( elapsed < WAIT_TIMEOUT_SECONDS )); do
 
   if [[ "$service_count" -gt 0 && "$not_ready" -eq 0 ]]; then
     echo ""
-    echo "==> Deploy concluído — todas as réplicas OK."
+    echo "==> Deploy concluído - todas as réplicas OK."
     echo "    API:      https://tcc.api.joao.baza.dev.br"
     echo "    Frontend: https://tcc.joao.baza.dev.br"
     echo "    Dica: se o navegador ainda mostrar versão antiga, use Ctrl+Shift+R (cache de JS/CSS: 7 dias)."

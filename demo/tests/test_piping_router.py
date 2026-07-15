@@ -27,7 +27,7 @@ def test_piping_example_returns_input_presets_only():
 def test_piping_example_catalog_validation_raises_when_schedule_is_missing(monkeypatch):
     monkeypatch.setattr(piping_router.piping, "schedules", lambda: [])
 
-    with pytest.raises(RuntimeError, match="Schedule 'SCH40' not found"):
+    with pytest.raises(RuntimeError, match="Schedule da tubulação 'SCH40' não encontrado"):
         piping_router.validate_piping_example_catalogs()
 
 

@@ -26,7 +26,7 @@ REGIME_LABELS = {
 
 def validate_sizing_example_catalogs() -> None:
     if not any(schedule["name"] == "SCH40" for schedule in hydraulic.piping.schedules()):
-        raise RuntimeError("Schedule 'SCH40' not found")
+        raise RuntimeError("Schedule da tubulação 'SCH40' não encontrado")
 
 
 @router.get("/example", response_model=SizingExampleResponse)

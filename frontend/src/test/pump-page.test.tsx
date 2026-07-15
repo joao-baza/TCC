@@ -448,10 +448,10 @@ describe("PumpPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Comprimento da linha/i)).toHaveValue(100);
+      expect(screen.getByLabelText(/Comprimento da tubulação/i)).toHaveValue(100);
       expect(screen.getByLabelText(/Diâmetro interno/i)).toHaveValue(125);
       expect(document.getElementById("headloss-flow-rate")).toHaveValue(0.04);
-      expect(screen.getByLabelText(/Velocidade na linha/i)).toHaveValue(3.259493234522017);
+      expect(screen.getByLabelText(/Velocidade do escoamento/i)).toHaveValue(3.259493234522017);
       expect(screen.getByLabelText(/Número de Reynolds/i)).toHaveValue(3186.1046722863807);
       expect(screen.getByLabelText(/Material da tubulação/i)).toHaveValue("Aço galvanizado");
       expect(getVisibleTextInputs(/Conexão/i)).toHaveLength(3);
@@ -567,7 +567,7 @@ describe("PumpPage", () => {
     fireEvent.change(screen.getByLabelText(/Método de perda de carga/i), {
       target: { value: "Darcy-Weisbach" },
     });
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "25" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -611,7 +611,7 @@ describe("PumpPage", () => {
     fireEvent.change(screen.getByLabelText(/Método de perda de carga/i), {
       target: { value: "Darcy-Weisbach" },
     });
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "25" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -766,7 +766,7 @@ describe("PumpPage", () => {
       await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "25" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -868,7 +868,7 @@ describe("PumpPage", () => {
       target: { value: "5" },
     });
 
-    expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("—");
+    expect(getRowContaining(/Altura manométrica/i)).toHaveTextContent("-");
     expect(getRowContaining(/Altura manométrica/i)).not.toHaveTextContent("18,2");
     expect(screen.queryByText(/Decomposição/i)).not.toBeInTheDocument();
   });
@@ -925,7 +925,7 @@ describe("PumpPage", () => {
       await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "25" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -960,7 +960,7 @@ describe("PumpPage", () => {
       await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "25" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -997,7 +997,7 @@ describe("PumpPage", () => {
       await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "100" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -1006,7 +1006,7 @@ describe("PumpPage", () => {
     fireEvent.change(screen.getByLabelText(/Vazão/i), {
       target: { value: "0.01" },
     });
-    fireEvent.change(screen.getByLabelText(/Velocidade na linha/i), {
+    fireEvent.change(screen.getByLabelText(/Velocidade do escoamento/i), {
       target: { value: "1.27" },
     });
     fireEvent.click(screen.getByLabelText(/Usar material/i));
@@ -1064,7 +1064,7 @@ describe("PumpPage", () => {
       await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "100" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -1117,7 +1117,7 @@ describe("PumpPage", () => {
     fireEvent.change(screen.getByLabelText(/Método de perda de carga/i), {
       target: { value: "Darcy-Weisbach" },
     });
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "12" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -1156,7 +1156,7 @@ describe("PumpPage", () => {
     fireEvent.change(screen.getByLabelText(/Método de perda de carga/i), {
       target: { value: "Hazen-Williams" },
     });
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "100" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -1220,7 +1220,7 @@ describe("PumpPage", () => {
     fireEvent.change(screen.getByLabelText(/Método de perda de carga/i), {
       target: { value: "Hazen-Williams" },
     });
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "100" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {
@@ -1251,7 +1251,7 @@ describe("PumpPage", () => {
       await screen.findByRole("heading", { name: /Perda de Carga e Bombas/i }),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Comprimento da linha/i), {
+    fireEvent.change(screen.getByLabelText(/Comprimento da tubulação/i), {
       target: { value: "25" },
     });
     fireEvent.change(screen.getByLabelText(/Diâmetro interno/i), {

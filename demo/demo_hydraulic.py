@@ -118,10 +118,10 @@ def run_demo():
     try:
         hl = hyd_engine.head_loss(params_hl)
         print(f"   -> Method: Darcy-Weisbach")
-        print(f"   -> Length: 100m + Fittings")
+        print(f"   -> Comprimento: 100m + acessórios")
         print(f"   -> Head Loss: {hl:.4f}")
     except Exception as e:
-        print(f"!! FAILED Head Loss (Likely missing fitting data or invalid key): {e}")
+        print(f"!! FALHA na perda de carga (possível acessório ausente ou chave inválida): {e}")
 
     # =========================================================================
     # PART 4: NPSH AVAILABLE

@@ -14,8 +14,8 @@ export function BalanceHowItWorks() {
         headers={["Conceito", "Descricao", "Unidade"]}
         rows={[
           { symbol: "\\dot m", description: "Vazao de massa ou molar da corrente", unit: "u. cons./tempo" },
-          { symbol: "direction = 1", description: "Corrente entrando no sistema", unit: "—" },
-          { symbol: "direction = -1", description: "Corrente saindo do sistema", unit: "—" },
+          { symbol: "direction = 1", description: "Corrente entrando no sistema", unit: "-" },
+          { symbol: "direction = -1", description: "Corrente saindo do sistema", unit: "-" },
           { symbol: "X", description: "Conversao do componente-chave", unit: "0-1" },
         ]}
       />

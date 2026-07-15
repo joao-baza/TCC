@@ -3,29 +3,29 @@
 \makeatother
 
 \documentclass[
-	12pt,				% tamanho da fonte
-	openright,			% capítulos começam em pág ímpar (insere página vazia se preciso)
-	twoside,			% para impressão em recto e verso. Oposto a oneside
-	a4paper,			% tamanho do papel. 
-	english,			% idioma adicional para hifenização
-	brazil				% o último idioma é o principal do documento
-	]{abntex2}
+  12pt,        % tamanho da fonte
+  openright,      % capítulos começam em pág ímpar (insere página vazia se preciso)
+  twoside,      % para impressão em recto e verso. Oposto a oneside
+  a4paper,      % tamanho do papel.
+  english,      % idioma adicional para hifenização
+  brazil        % o último idioma é o principal do documento
+  ]{abntex2}
 
 % ---
 % PACOTES
 % ---
-\usepackage{lmodern}			% Usa a fonte Latin Modern			
-\usepackage[T1]{fontenc}		% Selecao de codigos de fonte.
-\usepackage[utf8]{inputenc}		% Codificacao do documento (conversão automática dos acentos)
-\usepackage{indentfirst}		% Indenta o primeiro parágrafo de cada seção.
-\usepackage{color}				% Controle das cores
-\usepackage{graphicx}			% Inclusão de gráficos
-\usepackage{microtype} 			% para melhorias de justificação
+\usepackage{lmodern}      % Usa a fonte Latin Modern
+\usepackage[T1]{fontenc}    % Selecao de codigos de fonte.
+\usepackage[utf8]{inputenc}    % Codificacao do documento (conversão automática dos acentos)
+\usepackage{indentfirst}    % Indenta o primeiro parágrafo de cada seção.
+\usepackage{color}        % Controle das cores
+\usepackage{graphicx}      % Inclusão de gráficos
+\usepackage{microtype}       % para melhorias de justificação
 \usepackage{amsmath,amssymb}    % Pacotes matemáticos
 \usepackage{pdfpages}           % Incluir PDFs externos se necessário
 \usepackage{float}              % Para posicionamento exato de figuras [H]
 \usepackage{longtable}          % Para tabelas que quebram páginas
-\usepackage[alf]{abntex2cite}	% Citações padrão ABNT (alfabético) -> Mudei para ALF pois é o padrão ouro.
+\usepackage[alf]{abntex2cite}  % Citações padrão ABNT (alfabético) -> Mudei para ALF pois é o padrão ouro.
 % Se o usuário realmente quiser numérico, basta mudar para [num]
 
 % ---
@@ -62,18 +62,18 @@
 % Configurações de aparência do PDF final
 \definecolor{blue}{RGB}{41,5,195}
 \makeatletter
-	\hypersetup{
-		pdftitle={\@title}, 
-		pdfauthor={\@author},
-    	pdfsubject={Trabalho de Conclusão de Curso},
-	    pdfcreator={LaTeX with abnTeX2},
-		colorlinks=true,       		% false: box links; true: colored links
-    	linkcolor=blue,          	% color of internal links
-    	citecolor=blue,        		% color of links to bibliography
-    	filecolor=magenta,      		% color of file links
-		urlcolor=blue,
-		bookmarksdepth=4
-	}
+  \hypersetup{
+    pdftitle={\@title},
+    pdfauthor={\@author},
+      pdfsubject={Trabalho de Conclusão de Curso},
+      pdfcreator={LaTeX with abnTeX2},
+    colorlinks=true,           % false: box links; true: colored links
+      linkcolor=blue,            % color of internal links
+      citecolor=blue,            % color of links to bibliography
+      filecolor=magenta,          % color of file links
+    urlcolor=blue,
+    bookmarksdepth=4
+  }
 \makeatother
 % ---
 
@@ -86,7 +86,10 @@
 }
 \makeatother
 
-% --- Esse trecho é responsável por alinhar o texto ao topo. Se preferível que haja espaçamento entre os parágrafos para ocupar todo o espaço disponível, descomente a linha abaixo.
+% Lista de símbolos do TCC: id interno, símbolo, descrição, unidade e localização.
+\newcommand{\simbolotcc}[5]{#2 & #3 & #4 & #5\\}
+
+% --- Esse trecho é responsável por alinhar o texto ao topo. Se preferível que haja espaçamento entre os parágrafos para ocupar todo o espaço disponível, descomente o comando abaixo.
 \raggedbottom
 
 % ---
@@ -107,7 +110,7 @@
 \hypersetup{pageanchor=false}
 
 % Retira espaço extra obsoleto entre as frases.
-\frenchspacing 
+\frenchspacing
 
 % ----------------------------------------------------------
 % ELEMENTOS PRÉ-TEXTUAIS
@@ -135,21 +138,21 @@
       \ABNTEXchapterfont\bfseries\Large\imprimirtitulo
     \end{center}
     \vspace*{\fill}
-    
+
     \hspace{.45\textwidth}
     \begin{minipage}{.5\textwidth}
         \imprimirpreambulo
     \end{minipage}%
     \vspace*{\fill}
-   
+
    \end{center}
-        
+
    Trabalho aprovado. \imprimirlocal, 13 de julho de 2026:
 
-   \assinatura{\textbf{\imprimirorientador} \\ Docente Orientador} 
+   \assinatura{\textbf{\imprimirorientador} \\ Docente Orientador}
    \assinatura{\textbf{Danieli Cristine Anversa} \\ Docente Doutora}
    \assinatura{\textbf{Vinícius Basso de Godoy} \\ Mestre}
-      
+
    \begin{center}
     \vspace*{0.5cm}
     {\large\imprimirlocal}
@@ -157,7 +160,7 @@
     {\large\imprimirdata}
     \vspace*{1cm}
   \end{center}
-  
+
 \end{folhadeaprovacao}
 % ---
 
@@ -183,12 +186,12 @@ Aos meus pais, Cassiano e Jacquecislene, por me darem não apenas a vida, mas ta
 % ---
 \begin{epigrafe}
     \vspace*{\fill}
-	\begin{flushright}
-		\textit{``Não deseje que seja mais fácil, deseje ser melhor.\\
-		Não deseje menos problemas, deseje mais habilidades.\\
-		Não deseje menos desafios, deseje mais sabedoria.''\\
-		(Jim Rohn)}
-	\end{flushright}
+  \begin{flushright}
+    \textit{``Não deseje que seja mais fácil, deseje ser melhor.\\
+    Não deseje menos problemas, deseje mais habilidades.\\
+    Não deseje menos desafios, deseje mais sabedoria.''\\
+    (Jim Rohn)}
+  \end{flushright}
 \end{epigrafe}
 % ---
 
@@ -205,14 +208,15 @@ Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Compu
 \end{resumo}
 
 % resumo em inglês
-%\begin{resumo}[Abstract]
-% \begin{otherlanguage*}{english}
-%   This is the english abstract.
-%   \vspace{\onelineskip}
-%   \noindent 
-%   \textbf{Keywords}: latex. abntex. text editoration.
-% \end{otherlanguage*}
-%\end{resumo}
+\begin{resumo}[Abstract]
+ \begin{otherlanguage*}{english}
+This work presents the development of DCOU (\textit{Computational Sizing of Unit Operations}), an open-source web-based software application designed as a didactic tool for Chemical Engineering education. The system automates calculations for unit operations based on consolidated equations, covering modules for piping, fluid flow, pumps, thermodynamic properties, ideal reactors, and mass balances. In addition to numerical results, the application integrates learning-oriented resources, such as a technical glossary with rendered equations, theoretical explanations embedded in each calculator, example scenarios provided by the \textit{backend}, and interactive visualizations of physical phenomena. The client-server architecture exposes calculations and visualization models through an open \textit{API} (\textit{Application Programming Interface}), while the modern \textit{React} frontend organizes these resources into a navigable and responsive experience, with consistent adaptation to different screen sizes, including mobile devices, desktops, and ultrawide monitors. The code remains publicly available, promoting flexibility, collaboration, and continuous improvement by the academic community.
+
+   \vspace{\onelineskip}
+   \noindent
+   \textbf{Keywords}: Didactic tool. Unit operations. Educational software. Open source. Chemical Engineering.
+ \end{otherlanguage*}
+\end{resumo}
 
 % ---
 % Listas de ilustrações e tabelas
@@ -230,7 +234,7 @@ Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Compu
   \item[\textit{API}] \textit{Application Programming Interface}
   \item[\textit{ASGI}] \textit{Asynchronous Server Gateway Interface}
   \item[\textit{BEP}] \textit{Best Efficiency Point}
-  \item[\textit{CD}] \textit{Continuous Delivery} / \textit{Continuous Deployment}
+  \item[\textit{CD}] \textit{Continuous Deployment}
   \item[\textit{CI}] \textit{Continuous Integration}
   \item[\textit{CSS}] \textit{Cascading Style Sheets}
   \item[\textit{CSTR}] \textit{Continuous Stirred Tank Reactor}
@@ -244,31 +248,96 @@ Este trabalho apresenta o desenvolvimento do DCOU (\textit{Dimensionamento Compu
   \item[\textit{NPSHr}] \textit{Net Positive Suction Head} requerido
   \item[\textit{REST}] \textit{Representational State Transfer}
   \item[\textit{RHS}] \textit{Right-Hand Side}
+  \item[\textit{SI}] \textit{Sistema Internacional de Unidades}
   \item[\textit{SVG}] \textit{Scalable Vector Graphics}
   \item[\textit{UI}] \textit{User Interface}
   \item[\textit{UX}] \textit{User Experience}
-  \item[$Q$] Vazão volumétrica
-  \item[$D$] Diâmetro
-  \item[$D_h$] Diâmetro hidráulico
-  \item[$H$] Altura manométrica
-  \item[$Re$] Número de Reynolds
-  \item[$T$] Temperatura
-  \item[$P$] Pressão
-  \item[$P_c$] Pressão crítica
-  \item[$T_c$] Temperatura crítica
-  \item[$X$] Conversão
-  \item[$Z$] Fator de compressibilidade
-  \item[$h_f$] Perda de carga
-  \item[$k$] Constante cinética
-  \item[$\rho$] Massa específica do fluido
-  \item[$\gamma$] Peso específico do fluido
-  \item[$\mu$] Viscosidade dinâmica
-  \item[$\nu$] Viscosidade cinemática
-  \item[$\tau$] Tempo de residência
-  \item[$\varepsilon$] Coeficiente de expansão volumétrico
-  \item[$\psi$] Fator de diluição
-  \item[$g$] Aceleração da gravidade
 \end{siglas}
+\cleardoublepage
+
+\pdfbookmark[0]{Lista de símbolos}{los}
+\chapter*{Lista de símbolos}
+\begin{longtable}{p{0.14\textwidth}p{0.33\textwidth}p{0.18\textwidth}p{0.25\textwidth}}
+\textbf{Símbolo} & \textbf{Descrição} & \textbf{Unidade} & \textbf{Localização}\\
+\hline
+\simbolotcc{A}{$A$}{Área da seção transversal ou área molhada}{$m^2$}{Eq. \ref{eq:diametro_hidraulico}}
+\simbolotcc{a}{$a$}{Lado da seção retangular}{$m$}{Eq. \ref{eq:dh_rect}}
+\simbolotcc{b}{$b$}{Outro lado da seção retangular}{$m$}{Eq. \ref{eq:dh_rect}}
+\simbolotcc{C_Hazen}{$C$}{Coeficiente empírico de Hazen-Williams}{adimensional na forma empírica adotada}{Eq. \ref{eq:hazen}}
+\simbolotcc{C_i}{$C_i$}{Concentração do componente $i$}{$mol/m^3$}{Eq. \ref{eq:rate_law}; Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:initial_conc}}
+\simbolotcc{C_A}{$C_A$}{Concentração do componente A}{$mol/m^3$}{Eq. \ref{eq:val_rate_law}; Eq. \ref{eq:val_cstr_vol_deriv}; Eq. \ref{eq:val_pfr_deriv_1}}
+\simbolotcc{D}{$D$}{Diâmetro interno ou diâmetro característico}{$m$}{Eq. \ref{eq:diametro_calc}; Eq. \ref{eq:reynolds_din}; Eq. \ref{eq:reynolds_cin}; Eq. \ref{eq:swamee}; Eq. \ref{eq:haaland}; Eq. \ref{eq:darcy}; Eq. \ref{eq:hazen}; Eq. \ref{eq:dh_circular}}
+\simbolotcc{D_h}{$D_h$}{Diâmetro hidráulico}{$m$}{Eq. \ref{eq:colebrook}; Eq. \ref{eq:diametro_hidraulico}; Eq. \ref{eq:dh_circular}; Eq. \ref{eq:dh_rect}; Eq. \ref{eq:dh_annular}}
+\simbolotcc{D_i}{$D_i$}{Diâmetro interno do ânulo}{$m$}{Eq. \ref{eq:dh_annular}}
+\simbolotcc{D_o}{$D_o$}{Diâmetro externo do ânulo}{$m$}{Eq. \ref{eq:dh_annular}}
+\simbolotcc{dX}{$dX$}{Diferencial da conversão}{adimensional}{Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_recycle_vol_eq}}
+\simbolotcc{epsilon_vol}{$\varepsilon$}{Fator de variação volumétrica da reação}{adimensional}{Eq. \ref{eq:epsilon_def}; Eq. \ref{eq:dilution_factor}}
+\simbolotcc{epsilon_rough}{$\varepsilon$}{Rugosidade absoluta da tubulação}{$m$}{Eq. \ref{eq:colebrook}; Eq. \ref{eq:swamee}; Eq. \ref{eq:haaland}}
+\simbolotcc{F_A0}{$F_{A0}$}{Vazão molar inicial do componente A}{$mol/s$}{Eq. \ref{eq:cstr_design}; Eq. \ref{eq:cstr_obj_function}; Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_recycle_vol_eq}}
+\simbolotcc{F_A_in}{$F_{A,in}$}{Vazão molar de entrada do componente A}{$mol/s$}{Eq. \ref{eq:val_reaction_flow_a}; Eq. \ref{eq:val_reaction_flow_b}}
+\simbolotcc{F_A_out}{$F_{A,out}$}{Vazão molar de saída do componente A}{$mol/s$}{Eq. \ref{eq:val_reaction_flow_a}}
+\simbolotcc{F_B_out}{$F_{B,out}$}{Vazão molar de saída do componente B}{$mol/s$}{Eq. \ref{eq:val_reaction_flow_b}}
+\simbolotcc{F_G}{$F_G$}{Vazão bruta antes da retirada do reciclo}{mesma unidade de $F_P$}{Eq. \ref{eq:gross_product_flow}}
+\simbolotcc{F_P}{$F_P$}{Vazão de produto na base de cálculo adotada}{unidade de vazão da base adotada}{Eq. \ref{eq:recycle_flow}; Eq. \ref{eq:gross_product_flow}}
+\simbolotcc{F_R}{$F_R$}{Vazão de reciclo na base de cálculo adotada}{unidade de vazão da base adotada}{Eq. \ref{eq:recycle_flow}}
+\simbolotcc{F_Produto}{$F_{Produto}$}{Vazão mássica de produto no exemplo de validação}{$kg/h$}{Eq. \ref{eq:val_product_flow_mass}}
+\simbolotcc{F_Reciclo}{$F_{Reciclo}$}{Vazão mássica de reciclo no exemplo de validação}{$kg/h$}{Eq. \ref{eq:val_recycle_flow_mass}}
+\simbolotcc{F_S}{$F_S$}{Vazão mássica de uma corrente material do exemplo de mistura}{$kg/h$}{Eq. \ref{eq:val_mixer_total_flow}; Eq. \ref{eq:val_mixer_component_balance}}
+\simbolotcc{f_atrito}{$f$}{Fator de atrito de Darcy}{adimensional}{Eq. \ref{eq:laminar_friction}; Eq. \ref{eq:colebrook}; Eq. \ref{eq:swamee}; Eq. \ref{eq:haaland}; Eq. \ref{eq:darcy}}
+\simbolotcc{f_reciclo}{$f$}{Fração de reciclo em relação ao produto}{adimensional}{Eq. \ref{eq:recycle_flow}; Eq. \ref{eq:gross_product_flow}}
+\simbolotcc{g}{$g$}{Aceleração da gravidade}{$m/s^2$}{Eq. \ref{eq:darcy}; Eq. \ref{eq:bernoulli}; Eq. \ref{eq:npsh}}
+\simbolotcc{H}{$H$}{Altura manométrica}{$m$}{Eq. \ref{eq:bernoulli}}
+\simbolotcc{h_f}{$h_f$}{Perda de carga}{$m$}{Eq. \ref{eq:darcy}; Eq. \ref{eq:hazen}; Eq. \ref{eq:bernoulli}; Eq. \ref{eq:val_hf_calc_a}; Eq. \ref{eq:val_hf_calc_b}}
+\simbolotcc{h_suc}{$h_{suc}$}{Perda de carga na sucção}{$m$}{Eq. \ref{eq:npsh}}
+\simbolotcc{k}{$k$}{Constante cinética da lei de velocidade}{depende da ordem global da reação}{Eq. \ref{eq:rate_law}; Eq. \ref{eq:val_rate_law}; Eq. \ref{eq:val_cstr_vol_deriv}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_pfr_deriv_2}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{L}{$L$}{Comprimento real da tubulação}{$m$}{Eq. \ref{eq:darcy}; Eq. \ref{eq:hazen}; Eq. \ref{eq:val_len_total}}
+\simbolotcc{L_eq}{$L_{eq}$}{Comprimento equivalente de acessórios}{múltiplo de diâmetro ou $m$, conforme definição do trecho}{Eq. \ref{eq:darcy}; Eq. \ref{eq:val_len_total}}
+\simbolotcc{L_total}{$L_{total}$}{Comprimento total equivalente}{$m$}{Eq. \ref{eq:val_len_total}}
+\simbolotcc{m_dot}{$\dot{m}$}{Vazão mássica}{$kg/s$ ou $kg/h$, conforme base do exemplo}{Eq. \ref{eq:steady_state_mass_balance}; Eq. \ref{eq:component_mass_balance_rxn}}
+\simbolotcc{mu}{$\mu$}{Viscosidade dinâmica}{$Pa\cdot s$}{Eq. \ref{eq:reynolds_din}}
+\simbolotcc{N_i0}{$N_{i0}$}{Vazão molar inicial do componente $i$}{$mol/s$}{Eq. \ref{eq:razao_reagente}; Eq. \ref{eq:molar_flow_in}; Eq. \ref{eq:initial_conc}}
+\simbolotcc{n_i}{$n_i$}{Ordem parcial da reação em relação ao componente $i$}{adimensional}{Eq. \ref{eq:rate_law}}
+\simbolotcc{NPSH_disp}{$NPSH_{disp}$}{NPSH disponível}{$m$}{Eq. \ref{eq:npsh}}
+\simbolotcc{nu_cin}{$\nu$}{Viscosidade cinemática}{$m^2/s$}{Eq. \ref{eq:reynolds_cin}}
+\simbolotcc{nu_i}{$\nu_i$}{Coeficiente estequiométrico do componente $i$}{adimensional}{Eq. \ref{eq:razao_reagente}; Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:epsilon_def}}
+\simbolotcc{nu_A}{$\nu_A$}{Coeficiente estequiométrico do componente A}{adimensional}{Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:epsilon_def}}
+\simbolotcc{P_pressao}{$P$}{Pressão absoluta do sistema}{$Pa$}{Eq. \ref{eq:dilution_factor}}
+\simbolotcc{P_perimetro}{$P$}{Perímetro molhado}{$m$}{Eq. \ref{eq:diametro_hidraulico}}
+\simbolotcc{P0}{$P_0$}{Pressão inicial ou de referência}{$Pa$}{Eq. \ref{eq:dilution_factor}}
+\simbolotcc{P1}{$P_1$}{Pressão no ponto 1}{$Pa$}{Eq. \ref{eq:bernoulli}}
+\simbolotcc{P2}{$P_2$}{Pressão no ponto 2}{$Pa$}{Eq. \ref{eq:bernoulli}}
+\simbolotcc{P_atm}{$P_{atm}$}{Pressão atmosférica}{$Pa$}{Eq. \ref{eq:npsh}}
+\simbolotcc{P_suc}{$P_{suc}$}{Pressão na sucção}{$Pa$}{Eq. \ref{eq:npsh}}
+\simbolotcc{p_vap}{$p_{vap}$}{Pressão de vapor do fluido}{$Pa$}{Eq. \ref{eq:npsh}}
+\simbolotcc{psi}{$\psi$}{Fator de diluição}{adimensional}{Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:dilution_factor}}
+\simbolotcc{Q}{$Q$}{Vazão volumétrica}{$m^3/s$}{Eq. \ref{eq:diametro_calc}; Eq. \ref{eq:hazen}}
+\simbolotcc{Q_i}{$Q_i$}{Vazão volumétrica da corrente ou componente $i$}{$m^3/s$}{Eq. \ref{eq:molar_flow_in}; Eq. \ref{eq:total_flow}}
+\simbolotcc{Q_T}{$Q_T$}{Vazão volumétrica total}{$m^3/s$}{Eq. \ref{eq:total_flow}; Eq. \ref{eq:initial_conc}; Eq. \ref{eq:residence_time}; Eq. \ref{eq:volume_calc}}
+\simbolotcc{R}{$R$}{Razão de reciclo}{adimensional}{Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_recycle_xin}; Eq. \ref{eq:val_recycle_vol_eq}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{razao_i}{$\mathrm{razao}_i$}{Razão para escolha do reagente limitante}{$mol/s$}{Eq. \ref{eq:razao_reagente}}
+\simbolotcc{Re}{$Re$}{Número de Reynolds}{adimensional}{Eq. \ref{eq:laminar_friction}; Eq. \ref{eq:reynolds_din}; Eq. \ref{eq:reynolds_cin}; Eq. \ref{eq:colebrook}; Eq. \ref{eq:swamee}; Eq. \ref{eq:haaland}}
+\simbolotcc{rho}{$\rho$}{Massa específica do fluido}{$kg/m^3$}{Eq. \ref{eq:reynolds_din}; Eq. \ref{eq:bernoulli}; Eq. \ref{eq:npsh}}
+\simbolotcc{r}{$r$}{Taxa de reação genérica}{$mol/(m^3\cdot s)$}{Eq. \ref{eq:rate_law}}
+\simbolotcc{r_A}{$r_A$}{Taxa de reação do componente A}{$mol/(m^3\cdot s)$}{Eq. \ref{eq:cstr_design}; Eq. \ref{eq:cstr_obj_function}; Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_rate_law}; Eq. \ref{eq:val_recycle_vol_eq}}
+\simbolotcc{T}{$T$}{Temperatura absoluta do sistema}{$K$}{Eq. \ref{eq:dilution_factor}}
+\simbolotcc{T0}{$T_0$}{Temperatura inicial ou de referência}{$K$}{Eq. \ref{eq:dilution_factor}}
+\simbolotcc{tau}{$\tau$}{Tempo de residência}{$s$}{Eq. \ref{eq:residence_time}; Eq. \ref{eq:volume_calc}}
+\simbolotcc{V_volume}{$V$}{Volume do reator ou volume calculado}{$m^3$}{Eq. \ref{eq:cstr_design}; Eq. \ref{eq:residence_time}; Eq. \ref{eq:cstr_obj_function}; Eq. \ref{eq:volume_calc}; Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_pfr_deriv_2}; Eq. \ref{eq:val_recycle_vol_eq}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{V_vel}{$V$}{Velocidade média de escoamento}{$m/s$}{Eq. \ref{eq:diametro_calc}; Eq. \ref{eq:reynolds_din}; Eq. \ref{eq:reynolds_cin}; Eq. \ref{eq:darcy}; Eq. \ref{eq:bernoulli}}
+\simbolotcc{V_CSTR}{$V_{CSTR}$}{Volume calculado para o CSTR}{$m^3$}{Eq. \ref{eq:val_cstr_vol_deriv}}
+\simbolotcc{V_manual}{$V_{manual}$}{Volume calculado manualmente na validação}{$m^3$}{Eq. \ref{eq:val_cstr_vol_calc_1}; Eq. \ref{eq:val_cstr_vol_calc_2}; Eq. \ref{eq:val_pfr_calc_1}; Eq. \ref{eq:val_pfr_calc_2}; Eq. \ref{eq:val_pfr_calc_3}; Eq. \ref{eq:val_recycle_vol_calc_1}; Eq. \ref{eq:val_recycle_vol_calc_2}; Eq. \ref{eq:val_recycle_vol_calc_3}}
+\simbolotcc{V_suc}{$V_{suc}$}{Velocidade na sucção}{$m/s$}{Eq. \ref{eq:npsh}}
+\simbolotcc{v0}{$v_0$}{Vazão volumétrica inicial}{$m^3/s$}{Eq. \ref{eq:val_cstr_vol_deriv}; Eq. \ref{eq:val_pfr_deriv_2}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{v_A}{$v_A$}{Coeficiente estequiométrico de A na função objetivo}{adimensional}{Eq. \ref{eq:cstr_obj_function}}
+\simbolotcc{X}{$X$}{Conversão}{adimensional}{Eq. \ref{eq:conc_stoich}; Eq. \ref{eq:dilution_factor}; Eq. \ref{eq:cstr_design}; Eq. \ref{eq:cstr_obj_function}; Eq. \ref{eq:pfr_design}; Eq. \ref{eq:val_rate_law}; Eq. \ref{eq:val_cstr_vol_deriv}; Eq. \ref{eq:val_pfr_deriv_1}; Eq. \ref{eq:val_pfr_deriv_2}}
+\simbolotcc{X_A}{$X_A$}{Conversão do componente A}{adimensional}{Eq. \ref{eq:val_reaction_flow_a}; Eq. \ref{eq:val_reaction_flow_b}}
+\simbolotcc{X_in}{$X_{in}$}{Conversão na entrada do reator com reciclo}{adimensional}{Eq. \ref{eq:val_recycle_xin}; Eq. \ref{eq:val_recycle_vol_eq}; Eq. \ref{eq:val_recycle_vol_int}; Eq. \ref{eq:val_recycle_xin_calc}}
+\simbolotcc{X_out}{$X_{out}$}{Conversão na saída do reator com reciclo}{adimensional}{Eq. \ref{eq:val_recycle_xin}; Eq. \ref{eq:val_recycle_vol_eq}; Eq. \ref{eq:val_recycle_vol_int}}
+\simbolotcc{y_A}{$y_A$}{Fração molar do componente A}{adimensional}{Eq. \ref{eq:epsilon_def}; Eq. \ref{eq:val_reaction_mole_fractions}}
+\simbolotcc{y_B}{$y_B$}{Fração molar do componente B}{adimensional}{Eq. \ref{eq:val_reaction_mole_fractions}}
+\simbolotcc{z}{$z$}{Cota geométrica}{$m$}{Eq. \ref{eq:bernoulli}; Eq. \ref{eq:npsh}}
+\simbolotcc{z_S_agua}{$z_{S,agua}$}{Fração mássica de água em uma corrente do exemplo de mistura}{adimensional}{Eq. \ref{eq:val_mixer_component_balance}; Eq. \ref{eq:val_mixer_water_fraction}}
+\end{longtable}
 \cleardoublepage
 
 % ---

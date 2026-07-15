@@ -79,7 +79,6 @@ type ReactorComparableBasis = {
   conversion: string;
   volume: string;
   residenceTime: string;
-  recyclingRatio: string;
   components: Array<{
     state: ReactorComponentState["state"];
     componentName: string;
@@ -220,7 +219,7 @@ function formatResultRow(
     return { value };
   }
 
-  return { value: "—" };
+  return { value: "-" };
 }
 
 function buildConcentrationRows(label: string, value: unknown): PropertyRow[] {
@@ -332,7 +331,6 @@ function buildComparableBasis(form: ReactorFormState): ReactorComparableBasis | 
     conversion: normalizeScalar(form.conversion),
     volume: normalizeScalar(form.volume),
     residenceTime: normalizeScalar(form.residenceTime),
-    recyclingRatio: normalizeScalar(form.recyclingRatio),
     components: indexes.map((index) => ({
       state: form.components[index].state,
       componentName: normalizeScalar(form.components[index].component_name),

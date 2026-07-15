@@ -6,7 +6,7 @@ export function HeadlossHowItWorks() {
   return (
     <HowItWorks title="Como funciona - Perda de Carga">
       <p>
-        A perda de carga total combina o atrito ao longo da linha reta com as
+        A perda de carga total combina o atrito ao longo da tubulação reta com as
         perdas localizadas em conexões, válvulas e acessórios.
       </p>
       <MathBlock expression={"h_f = f \\dfrac{L}{D} \\dfrac{V^2}{2g} + \\sum K \\dfrac{V^2}{2g}"} />
@@ -14,14 +14,14 @@ export function HeadlossHowItWorks() {
         rows={[
           { symbol: "h_f", description: "Perda de carga total", unit: "m" },
           { symbol: "f", description: "Fator de atrito de Darcy", unit: "adimensional" },
-          { symbol: "L", description: "Comprimento da linha", unit: "m" },
+          { symbol: "L", description: "Comprimento da tubulação", unit: "m" },
           { symbol: "D", description: "Diametro interno", unit: "m" },
           { symbol: "V", description: "Velocidade media", unit: "m/s" },
         ]}
       />
       <p>
         Para Hazen-Williams, o coeficiente de rugosidade resume o efeito do
-        material sobre a perda de carga em linhas de agua.
+        material sobre a perda de carga em tubulações de água.
       </p>
       <TheoryRef>Ref.: White, Mecanica dos Fluidos, 8a ed., McGraw-Hill, 2018.</TheoryRef>
     </HowItWorks>

@@ -294,29 +294,29 @@ class MassBalance:
         for stream_name, stream_data in results.items():
             flow_rate = stream_data.get("flow_rate", stream_data.get("vazao"))
             if flow_rate is None:
-                return False, f"Missing flow rate for stream '{stream_name}'"
+                return False, f"Vazão ausente na corrente '{stream_name}'"
             if flow_rate < 0:
-                return False, f"Negative flow rate detected in stream '{stream_name}': {flow_rate}"
+                return False, f"Vazão negativa detectada na corrente '{stream_name}': {flow_rate}"
         
         # Check for negative component fractions and sum close to 1
         for stream_name, stream_data in results.items():
             compositions = stream_data.get("compositions", stream_data.get("composicoes"))
             if compositions is None:
-                return False, f"Missing compositions for stream '{stream_name}'"
+                return False, f"Composições ausentes na corrente '{stream_name}'"
             
             # Check for negative component fractions
             for component, fraction in compositions.items():
                 if fraction < 0:
                     return False, (
-                        f"Negative composition detected for component '{component}' "
-                        f"in stream '{stream_name}': {fraction}"
+                        f"Composição negativa detectada para o componente '{component}' "
+                        f"na corrente '{stream_name}': {fraction}"
                     )
             
             # Check if component fractions sum close to 1
             sum_fractions = sum(compositions.values())
             if not (0.99 <= sum_fractions <= 1.01):
                 return False, (
-                    f"The component fractions in stream '{stream_name}' do not sum to approximately 1: "
+                    f"As frações dos componentes na corrente '{stream_name}' não somam aproximadamente 1: "
                     f"{sum_fractions}"
                 )
         
@@ -343,8 +343,8 @@ class MassBalance:
             sum_fractions = sum(non_null_values)
             if sum_fractions > 1.01 or sum_fractions < 0.99:  # Allow a small tolerance for floating point errors
                 return False, (
-                    f"The component fractions in stream '{stream.name}' sum to {sum_fractions}, "
-                    "which differs from 1"
+                    f"As frações dos componentes na corrente '{stream.name}' somam {sum_fractions}, "
+                    "valor diferente de 1"
                 )
         
         return True, "" 

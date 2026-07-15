@@ -25,11 +25,11 @@ hydraulic = Hydraulic()
 
 def validate_pump_example_catalogs() -> None:
     if "Aço galvanizado" not in hydraulic.piping.compositions():
-        raise RuntimeError("Composition 'Aço galvanizado' not found")
+        raise RuntimeError("Composição da tubulação 'Aço galvanizado' não encontrada")
     available_fittings = set(hydraulic.piping.fittings())
     for fitting in ("Cotovelo 45°", "Saída de tanque", "Válvula esfera"):
         if fitting not in available_fittings:
-            raise RuntimeError(f"Fitting '{fitting}' not found")
+            raise RuntimeError(f"Acessório da tubulação '{fitting}' não encontrado")
     available_methods = hydraulic.friction_factor({})
     if "SwameeJain" not in available_methods:
         raise RuntimeError("Friction method 'SwameeJain' not found")
@@ -92,7 +92,7 @@ def _build_headloss_params(payload: HeadLossRequest) -> dict:
 
     if payload.flow_rate is None and payload.velocity is None:
         raise ValueError(
-            "Provide flow rate (m³/s) and/or velocity (m/s); at least one is required."
+            "Informe vazão (m³/s) e/ou velocidade do escoamento (m/s); pelo menos um valor é obrigatório."
         )
 
     if payload.method == "Darcy-Weisbach":
@@ -155,7 +155,7 @@ def _build_npsh_status(available: float, required: float | None) -> NpshGaugeSta
 
     return NpshGaugeStatusModel(
         tone="risk",
-        label="Risco de cavitação — NPSHd insuficiente ✗",
+        label="Risco de cavitação - NPSHd insuficiente ✗",
         message="NPSHd abaixo da margem segura; há risco de cavitação.",
     )
 

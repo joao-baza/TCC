@@ -146,7 +146,7 @@ function buildResultRows(label: string, result: QuantityResult | null): Property
         }
       : {
           label,
-          value: "—",
+          value: "-",
         },
   ];
 }
@@ -788,7 +788,7 @@ export function PumpPage() {
 
               <NumberField
                 id="pipe-length"
-                label="Comprimento da linha"
+                label="Comprimento da tubulação"
                 unit="m"
                 value={headlossForm.pipeLength}
                 onChange={(value) => setHeadlossField("pipeLength", value)}
@@ -809,7 +809,7 @@ export function PumpPage() {
               />
               <NumberField
                 id="headloss-velocity"
-                label="Velocidade na linha"
+                label="Velocidade do escoamento"
                 unit="m/s"
                 value={headlossForm.velocity}
                 onChange={(value) => setHeadlossField("velocity", value)}
