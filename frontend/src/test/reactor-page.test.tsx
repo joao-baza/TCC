@@ -74,12 +74,12 @@ function mockReactorRequests(options?: {
         reaction_rate: { value: 200, units: "mole / meter ** 3 / second" },
         taxa_de_reacao: { value: 200, units: "mole / meter ** 3 / second" },
         outlet_concentrations: {
-          Water: { value: 3.9, units: "mole / meter ** 3" },
-          Ethanol: { value: 0.7, units: "mole / meter ** 3" },
+          Water: { value: 2222.22, units: "mole / meter ** 3" },
+          Ethanol: { value: 1111.11, units: "mole / meter ** 3" },
         },
         concentracoes_de_saida: {
-          Water: { value: 3.9, units: "mole / meter ** 3" },
-          Ethanol: { value: 0.7, units: "mole / meter ** 3" },
+          Water: { value: 2222.22, units: "mole / meter ** 3" },
+          Ethanol: { value: 1111.11, units: "mole / meter ** 3" },
         },
         dilution_factor: { value: 0, units: "dimensionless" },
         fator_de_diluicao: { value: 0, units: "dimensionless" },
@@ -89,8 +89,8 @@ function mockReactorRequests(options?: {
         vazao_de_saida: { value: 1.2, units: "meter ** 3 / second" },
         residence_time: { value: 8, units: "second" },
         tempo_de_residencia: { value: 8, units: "second" },
-        conversion: 0.24,
-        conversao: 0.24,
+        conversion: 0.333333,
+        conversao: 0.333333,
       });
     }
 
@@ -113,12 +113,12 @@ function mockReactorRequests(options?: {
         reaction_rate: { value: 200, units: "mole / meter ** 3 / second" },
         taxa_de_reacao: { value: 200, units: "mole / meter ** 3 / second" },
         outlet_concentrations: {
-          Water: { value: 3.2, units: "mole / meter ** 3" },
-          Ethanol: { value: 0.91, units: "mole / meter ** 3" },
+          Water: { value: 2021.77, units: "mole / meter ** 3" },
+          Ethanol: { value: 1311.56, units: "mole / meter ** 3" },
         },
         concentracoes_de_saida: {
-          Water: { value: 3.2, units: "mole / meter ** 3" },
-          Ethanol: { value: 0.91, units: "mole / meter ** 3" },
+          Water: { value: 2021.77, units: "mole / meter ** 3" },
+          Ethanol: { value: 1311.56, units: "mole / meter ** 3" },
         },
         dilution_factor: { value: 0, units: "dimensionless" },
         fator_de_diluicao: { value: 0, units: "dimensionless" },
@@ -128,8 +128,8 @@ function mockReactorRequests(options?: {
         vazao_de_saida: { value: 1.2, units: "meter ** 3 / second" },
         residence_time: { value: 8, units: "second" },
         tempo_de_residencia: { value: 8, units: "second" },
-        conversion: 0.182478,
-        conversao: 0.182478,
+        conversion: 0.393469,
+        conversao: 0.393469,
       });
     }
 
@@ -163,9 +163,9 @@ function mockReactorRequests(options?: {
             scale: "linear",
             label: "Conversão",
             units: "adimensional",
-            domain: { min: 0, max: 0.9 },
-            ticks: [0, 0.3, 0.6, 0.9],
-            major_ticks: [0, 0.3, 0.6, 0.9],
+            domain: { min: 0, max: 1 },
+            ticks: [0, 0.25, 0.5, 0.75, 1],
+            major_ticks: [0, 0.25, 0.5, 0.75, 1],
           },
           y: {
             scale: "linear",
@@ -574,7 +574,7 @@ describe("ReactorPage", () => {
       expect(within(cstrCard).getByLabelText(/Volume do reator/i)).toHaveValue(3);
     });
 
-    expect(within(cstrCard).getByLabelText(/Constante de velocidade/i)).toHaveValue(0.01);
+    expect(within(cstrCard).getByLabelText(/Constante de velocidade/i)).toHaveValue(0.3);
     expect(
       within(cstrCard).getAllByLabelText(/^Componente$/i, { selector: "input" })[0],
     ).toHaveValue("Água");
@@ -614,7 +614,7 @@ describe("ReactorPage", () => {
     expect(
       within(pfrCard).getAllByLabelText(/^Componente$/i, { selector: "input" })[1],
     ).toHaveValue("Etanol");
-    expect(within(pfrCard).getByLabelText(/Constante de velocidade/i)).toHaveValue(0.01);
+    expect(within(pfrCard).getByLabelText(/Constante de velocidade/i)).toHaveValue(0.3);
     expect(within(pfrCard).getAllByLabelText(/Concentração molar/i)[0]).toHaveValue(5000);
     expect(within(pfrCard).getAllByText(/Vazão de entrada/i)[0].textContent).toContain("m³/s");
     expect(within(pfrCard).getAllByText(/Concentração molar/i)[0].textContent).toContain(
@@ -656,7 +656,7 @@ describe("ReactorPage", () => {
         },
       ],
       stoichiometric_coefficients: [-1, 1],
-      reaction_rate_params: { k: 0.01, reaction_orders: [1, 0.5] },
+      reaction_rate_params: { k: 0.3, reaction_orders: [1, 0] },
       operation_conditions: {
         initial_temperature: 300,
         initial_pressure: 101325,
@@ -682,7 +682,7 @@ describe("ReactorPage", () => {
         },
       ],
       stoichiometric_coefficients: [-1, 1],
-      reaction_rate_params: { k: 0.01, reaction_orders: [1, 0.5] },
+      reaction_rate_params: { k: 0.3, reaction_orders: [1, 0] },
       operation_conditions: {
         initial_temperature: 300,
         initial_pressure: 101325,
@@ -707,7 +707,7 @@ describe("ReactorPage", () => {
         },
       ],
       stoichiometric_coefficients: [-1, 1],
-      reaction_rate_params: { k: 0.01, reaction_orders: [1, 0.5] },
+      reaction_rate_params: { k: 0.3, reaction_orders: [1, 0] },
       operation_conditions: {
         initial_temperature: 300,
         initial_pressure: 101325,
@@ -733,7 +733,7 @@ describe("ReactorPage", () => {
         },
       ],
       stoichiometric_coefficients: [-1, 1],
-      reaction_rate_params: { k: 0.01, reaction_orders: [1, 0.5] },
+      reaction_rate_params: { k: 0.3, reaction_orders: [1, 0] },
       operation_conditions: {
         initial_temperature: 300,
         initial_pressure: 101325,
@@ -760,7 +760,7 @@ describe("ReactorPage", () => {
         },
       ],
       stoichiometric_coefficients: [-1, 1],
-      reaction_rate_params: { k: 0.01, reaction_orders: [1, 0.5] },
+      reaction_rate_params: { k: 0.3, reaction_orders: [1, 0] },
       operation_conditions: {
         initial_temperature: 300,
         initial_pressure: 101325,
@@ -776,8 +776,17 @@ describe("ReactorPage", () => {
     const levenspielChart = await screen.findByTestId("levenspiel-chart");
     expect(levenspielChart).toBeInTheDocument();
     expect(within(levenspielChart).getByText(/Comparação Levenspiel CSTR vs PFR/i)).toBeInTheDocument();
-    expect(within(levenspielChart).getByText(/CSTR operacional/i)).toBeInTheDocument();
-    expect(within(levenspielChart).getByText(/PFR operacional/i)).toBeInTheDocument();
+    expect(
+      Array.from(levenspielChart.querySelectorAll('text[data-axis-tick="x"]')).map(
+        (tick) => tick.textContent,
+      ),
+    ).toContain("1");
+    expect(within(levenspielChart).getByTestId("chart-series-legend")).toHaveTextContent(/CSTR/i);
+    expect(within(levenspielChart).getByTestId("chart-series-legend")).toHaveTextContent(/PFR/i);
+    expect(within(levenspielChart).getByText(/volume operacional calculado/i)).toBeInTheDocument();
+    expect(within(levenspielChart).getAllByText(/CSTR operacional/i).length).toBeGreaterThan(0);
+    expect(within(levenspielChart).getAllByText(/PFR operacional/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /Como funciona - Levenspiel/i })).toBeInTheDocument();
 
     selectReactorTab("Arrhenius");
     expect(await screen.findByRole("button", { name: /Como funciona - Arrhenius/i })).toBeInTheDocument();
@@ -833,9 +842,9 @@ describe("ReactorPage", () => {
             scale: "linear",
             label: "Conversão",
             units: "adimensional",
-            domain: { min: 0, max: 0.9 },
-            ticks: [0, 0.3, 0.6, 0.9],
-            major_ticks: [0, 0.3, 0.6, 0.9],
+            domain: { min: 0, max: 1 },
+            ticks: [0, 0.25, 0.5, 0.75, 1],
+            major_ticks: [0, 0.25, 0.5, 0.75, 1],
           },
           y: {
             scale: "linear",
@@ -883,6 +892,47 @@ describe("ReactorPage", () => {
     expect(levenspielChart).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   }, 10000);
+
+  it("does not calculate Levenspiel when project parameters differ between CSTR and PFR", async () => {
+    mockReactorRequests();
+    renderReactorPage();
+
+    expect(await screen.findByText(/Cálculos de Reator/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText(/Carregar exemplo/i));
+
+    const cstrCard = screen.getByTestId("reactor-cstr-card");
+    await expectCardValueMath(cstrCard, /^Volume$/i);
+
+    await waitFor(() => {
+      expect(requestBodiesFor("/api/reactor/levenspiel/chart").length).toBeGreaterThan(0);
+    });
+    fetchMock.mockClear();
+
+    selectReactorTab("PFR");
+    const pfrCard = await screen.findByTestId("reactor-pfr-card");
+    fireEvent.change(within(pfrCard).getByLabelText(/Volume do reator/i), {
+      target: { value: "4" },
+    });
+
+    selectReactorTab("CSTR");
+    const updatedCstrCard = await screen.findByTestId("reactor-cstr-card");
+    fireEvent.click(within(updatedCstrCard).getByText(/Calcular CSTR/i));
+    await expectCardValueMath(updatedCstrCard, /^Volume$/i);
+
+    selectReactorTab("PFR");
+    const updatedPfrCard = await screen.findByTestId("reactor-pfr-card");
+    fireEvent.click(within(updatedPfrCard).getByText(/Calcular PFR/i));
+    await expectCardValueMath(updatedPfrCard, /^Volume$/i);
+
+    selectReactorTab("Levenspiel");
+
+    expect(
+      await screen.findByText(/Alinhe todos os parâmetros de projeto entre CSTR e PFR/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("levenspiel-chart")).not.toBeInTheDocument();
+    expect(requestBodiesFor("/api/reactor/levenspiel/chart")).toHaveLength(0);
+  });
 
   it("shows a loading state while the PFR profile is being fetched", async () => {
     const requests = mockReactorRequests({ delayPfr: true });
@@ -1172,7 +1222,7 @@ describe("ReactorPage", () => {
         },
       ],
       stoichiometric_coefficients: [-1, 1],
-      reaction_rate_params: { k: 0.01, reaction_orders: [1, 0.5] },
+      reaction_rate_params: { k: 0.3, reaction_orders: [1, 0] },
       operation_conditions: {
         initial_temperature: 300,
         initial_pressure: 101325,

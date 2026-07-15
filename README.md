@@ -63,7 +63,7 @@ Contributions and feedback are welcome!
 - `routers/`, `models/`, `schemas/`: API and calculation logic
 - `frontend/`: React SPA
 - `deploy/`: Dockerfiles, compose files, and deployment scripts
-- `monograph/`: thesis written in LaTeX
+- `final-paper/`: thesis written in LaTeX
 - `demo/tests/`: Python integration and demonstration tests
 
 ### Local Development
@@ -169,11 +169,11 @@ npm test
 ## Thesis
 
 ```bash
-cd monograph
+cd final-paper
 ./compile.sh
 ```
 
-Generated PDF: `monograph/TEX/main.pdf`.
+Generated PDF: `final-paper/TEX/main.pdf`.
 
 ## Deployment
 
