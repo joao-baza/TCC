@@ -165,7 +165,7 @@ export const glossaryEntries: GlossaryEntry[] = [
     term: "PFR",
     category: "Reatores",
     definition:
-      "<em>Plug Flow Reactor</em>. Escoamento pistonado → concentrações variam ao longo do comprimento; sem mistura axial. Equação de projeto: \\[V = F_{A0}\\int_0^X \\frac{dX}{-r_A}\\] Cada elemento de fluido comporta-se como um reator batelada em movimento.",
+      "<em>Plug Flow Reactor</em>. Escoamento pistonado → concentrações variam ao longo do comprimento; sem mistura axial. Equação de projeto: \\[V = F_{A0}\\int_0^X \\frac{dX}{-r_A}\\] Cada elemento de fluido percorre o reator evoluindo em conversão conforme o comprimento.",
   },
   {
     term: "Conversão (X)",
