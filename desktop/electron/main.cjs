@@ -1,8 +1,10 @@
 const path = require("node:path");
+const { writeFileSync } = require("node:fs");
 const { spawn } = require("node:child_process");
 const { app, BrowserWindow } = require("electron");
 const { startDesktopHost } = require("./host.cjs");
 const { findAvailablePort } = require("./port.cjs");
+const { runDesktopSmokeCheck } = require("./smoke.cjs");
 
 async function waitForUrl(url, timeoutMs = 30000) {
   const startedAt = Date.now();
@@ -52,6 +54,30 @@ function spawnBackendProcess({ host, port }) {
 }
 
 async function createDesktopApp() {
+  const runtime = await startDesktopRuntime();
+
+  try {
+    const mainWindow = new BrowserWindow({
+      width: 1400,
+      height: 980,
+      backgroundColor: "#ffffff",
+    });
+
+    await mainWindow.loadURL(runtime.url);
+
+    app.on("before-quit", () => {
+      runtime.close().catch(() => undefined);
+    });
+    runtime.backendProcess.on("exit", () => {
+      app.quit();
+    });
+  } catch (error) {
+    await runtime.close().catch(() => undefined);
+    throw error;
+  }
+}
+
+async function startDesktopRuntime() {
   const frontendDir = app.isPackaged
     ? path.join(process.resourcesPath, "frontend")
     : path.join(__dirname, "..", "..", "frontend", "dist");
@@ -60,6 +86,7 @@ async function createDesktopApp() {
   const backendPort = await findAvailablePort({ host: backendHost, startPort: 5000 });
   const backendProcess = spawnBackendProcess({ host: backendHost, port: backendPort });
   let hostServer;
+  let closed = false;
 
   try {
     await waitForUrl(`http://${backendHost}:${backendPort}/health`);
@@ -69,30 +96,27 @@ async function createDesktopApp() {
       backendUrl: `http://${backendHost}:${backendPort}`,
     });
 
-    const mainWindow = new BrowserWindow({
-      width: 1400,
-      height: 980,
-      backgroundColor: "#ffffff",
-    });
+    return {
+      url: hostServer.url,
+      backendProcess,
+      async close() {
+        if (closed) {
+          return;
+        }
 
-    await mainWindow.loadURL(hostServer.url);
+        closed = true;
 
-    const shutdown = async () => {
-      try {
-        await hostServer?.close();
-      } catch {
-        // ignore shutdown noise
-      }
+        try {
+          await hostServer?.close();
+        } catch {
+          // ignore shutdown noise
+        }
 
-      if (!backendProcess.killed) {
-        backendProcess.kill();
-      }
+        if (!backendProcess.killed) {
+          backendProcess.kill();
+        }
+      },
     };
-
-    app.on("before-quit", shutdown);
-    backendProcess.on("exit", () => {
-      app.quit();
-    });
   } catch (error) {
     if (hostServer) {
       await hostServer.close().catch(() => undefined);
@@ -106,13 +130,43 @@ async function createDesktopApp() {
   }
 }
 
+async function runPackagedSmoke() {
+  const report = await runDesktopSmokeCheck({
+    startRuntime: startDesktopRuntime,
+    writeReport(payload) {
+      const reportPath = process.env.DCOU_DESKTOP_SMOKE_REPORT;
+      if (reportPath) {
+        writeFileSync(reportPath, `${JSON.stringify(payload, null, 2)}\n`);
+      }
+    },
+  });
+
+  console.log(JSON.stringify(report));
+}
+
 if (require.main === module) {
-  app.whenReady().then(createDesktopApp);
+  app
+    .whenReady()
+    .then(async () => {
+      if (process.env.DCOU_DESKTOP_SMOKE === "1") {
+        await runPackagedSmoke();
+        app.quit();
+        return;
+      }
+
+      await createDesktopApp();
+    })
+    .catch((error) => {
+      console.error(error);
+      app.exit(1);
+    });
 }
 
 module.exports = {
   createDesktopApp,
+  runPackagedSmoke,
   resolveBackendBinaryPath,
   spawnBackendProcess,
+  startDesktopRuntime,
   waitForUrl,
 };
