@@ -380,6 +380,11 @@ This work presents the development of DCOU (\textit{Computational Sizing of Unit
 % ----------------------------------------------------------
 % Referências bibliográficas
 % ----------------------------------------------------------
+% Permite que as referências comecem na página seguinte às conclusões,
+% sem inserir a folha em branco exigida por openright nesta transição.
+\let\origclearforchapter\clearforchapter
+\let\clearforchapter\clearpage
 \bibliography{bibliografia}
+\let\clearforchapter\origclearforchapter
 
 \end{document}
