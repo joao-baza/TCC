@@ -1,107 +1,38 @@
 \transitionframe{Base computacional}{Da experiência observada para a estrutura que sustenta o DCOU}
 
-\begin{frame}{Complexidade química: modelos diferentes}
-  \small
+\begin{frame}{Arquitetura em três camadas}
   \begin{columns}[T,onlytextwidth]
-    \column{0.48\textwidth}
-      \begin{block}{Transporte e bombas}
-        Regime de escoamento, rugosidade, diâmetro, fator de atrito, perda de carga, NPSH e altura manométrica dependem de relações acopladas.
-      \end{block}
-      \begin{block}{Propriedades}
-        Temperatura, pressão, componente, mistura e mudança de fase alteram o caminho de cálculo e a interpretação.
-      \end{block}
-    \column{0.48\textwidth}
-      \begin{block}{Reatores}
-        Cinética, estequiometria, conversão, volume e perfis espaciais mudam conforme CSTR, PFR ou reciclo.
-      \end{block}
-      \begin{block}{Balanços}
-        Correntes, reações, divisões e reciclos precisam preservar coerência material em todo o sistema.
-      \end{block}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Complexidade integrada: engenharia em software}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.50\textwidth}
-      \begin{itemize}
-        \item O backend concentra modelos, unidades, validações e métodos numéricos.
-        \item A API transforma cada cálculo em contrato reutilizável.
-        \item A interface consome respostas estruturadas, não fórmulas duplicadas.
-      \end{itemize}
-    \column{0.44\textwidth}
-      \begin{block}{Ponto crítico}
-        A mesma resposta precisa servir ao cálculo, à validação, à tabela, ao gráfico e à explicação didática.
-      \end{block}
-      \begin{alertblock}{Resultado}
-        O rigor químico precisa sobreviver à camada de software.
-      \end{alertblock}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Complexidade didática: rigor sem caixa-preta}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.48\textwidth}
-      \begin{block}{Simplificar o uso}
-        Exemplos coerentes, formulários guiados e mensagens de validação reduzem a barreira de entrada.
-      \end{block}
-      \begin{block}{Manter rastreabilidade}
-        Unidades, hipóteses, variáveis e resultados continuam visíveis para discussão técnica.
-      \end{block}
-    \column{0.48\textwidth}
-      \begin{block}{Explicar o fenômeno}
-        Gráficos, glossário e blocos conceituais conectam o número à interpretação de engenharia.
-      \end{block}
-      \begin{alertblock}{Equilíbrio buscado}
-        A interface ajuda o estudante sem esconder o raciocínio que sustenta o cálculo.
-      \end{alertblock}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{A arquitetura precisa preservar a cadeia técnica}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.32\textwidth}
-      \begin{block}{Hipótese}
-        O domínio de validade vem antes do cálculo: fase, regime, unidade, catálogo e condição operacional.
-      \end{block}
-    \column{0.32\textwidth}
-      \begin{block}{Modelo}
-        O backend aplica equações, propriedades e métodos numéricos sem duplicar matemática no frontend.
-      \end{block}
-    \column{0.32\textwidth}
-      \begin{block}{Interpretação}
-        A mesma resposta alimenta tabela, gráfico, validação e explicação didática.
-      \end{block}
-  \end{columns}
-  \vspace{0.55em}
-  \begin{alertblock}{Critério de projeto}
-    Equação, unidade, gráfico e explicação não podem divergir entre camadas.
-  \end{alertblock}
-\end{frame}
-
-\begin{frame}{A arquitetura separa interface, modelo e distribuição}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.32\textwidth}
+    \column{0.30\textwidth}
       \begin{block}{Frontend}
-        Organiza formulário, resultado, gráfico, glossário e exemplos sem recalcular a matemática central.
+        React, TypeScript, Vite, React Router, Tailwind, shadcn, KaTeX e componentes SVG.
       \end{block}
-    \column{0.32\textwidth}
+    \column{0.30\textwidth}
       \begin{block}{Backend}
-        FastAPI, Pydantic, Pint, CoolProp, NumPy e SciPy concentram modelos, unidades e validações.
+        FastAPI, Pydantic, CoolProp, Pint, NumPy e SciPy para cálculos e validações.
       \end{block}
-    \column{0.32\textwidth}
+    \column{0.30\textwidth}
       \begin{block}{Entrega}
-        Web publicada, execução local, Docker, CI/CD e desktop reaproveitam a mesma base validada.
+        Web publicada, execução local, imagens Docker, CI/CD e empacotamento desktop.
       \end{block}
   \end{columns}
+\end{frame}
+
+\begin{frame}{O backend é a fonte dos cálculos}
+  \begin{itemize}
+    \item Rotas FastAPI expõem contratos para tubulações, dimensionamento, escoamento, bombas, componentes, reatores e balanço.
+    \item Pydantic bloqueia entradas ausentes, tipos inválidos e combinações incoerentes antes do cálculo.
+    \item Pint e CoolProp preservam consistência dimensional e propriedades termodinâmicas.
+    \item NumPy e SciPy sustentam amostragem, integrações e métodos numéricos como Brent.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{A API também monta visualizações}
   \begin{columns}[T,onlytextwidth]
     \column{0.54\textwidth}
       \begin{itemize}
-        \item Endpoints retornam eixos, séries, marcadores e metadados junto ao resultado calculado.
-        \item O frontend renderiza o contrato sem reconstruir curvas com lógica paralela.
-        \item Isso mantém coerência entre valor numérico, curva e explicação didática.
+        \item Vários endpoints retornam modelos com eixos, séries, marcadores e metadados.
+        \item O frontend renderiza o contrato em componentes SVG reutilizáveis.
+        \item Isso evita que o gráfico tenha uma matemática paralela à do cálculo.
       \end{itemize}
     \column{0.40\textwidth}
       \begin{block}{Exemplos validados no código}
@@ -154,8 +85,8 @@
           V = F_{A0}\int_0^X \frac{dX}{-r_A}
         \]
       \end{block}
-      \begin{block}{Visualizações e hipótese}
-        Levenspiel, Arrhenius e perfis espaciais ajudam a interpretar volume e conversão; no escopo atual, os reatores são isotérmicos e monofásicos.
+      \begin{block}{Visualizações}
+        Levenspiel, Arrhenius e perfis espaciais ajudam a interpretar volume, conversão e temperatura.
       \end{block}
   \end{columns}
 \end{frame}
@@ -166,5 +97,23 @@
     \item Diagramas T-x-y e McCabe-Thiele tornam visível a construção de estágios teóricos.
     \item Envelope de fase e pressão de vapor apoiam discussões de mudança de fase e cavitação.
     \item A superfície T-P mostra sensibilidade de propriedades a temperatura e pressão.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{O frontend organiza a experiência de estudo}
+  \begin{itemize}
+    \item A navegação por rotas separa módulos, mas preserva um shell comum.
+    \item Cada módulo combina formulário, execução, resultado, visualização e explicação.
+    \item O glossário reúne termos como Reynolds, NPSH, CSTR, PFR, McCabe-Thiele e reciclo.
+    \item Os exemplos da API reduzem a barreira de entrada sem congelar resultados no frontend.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Deploy e distribuição não são acessórios}
+  \begin{itemize}
+    \item A aplicação publicada permite uso imediato por banca, estudantes e docentes.
+    \item A execução local preserva reprodutibilidade e auditoria do código aberto.
+    \item O empacotamento desktop reaproveita a mesma base web e backend local.
+    \item CI/CD reduz regressões entre backend científico, frontend e artefatos distribuíveis.
   \end{itemize}
 \end{frame}
