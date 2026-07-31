@@ -1,3 +1,5 @@
+\transitionframe{Solução proposta}{Da lacuna didática para uma plataforma modular aberta}
+
 \begin{frame}{O que é o DCOU}
   \begin{columns}[T,onlytextwidth]
     \column{0.46\textwidth}
@@ -7,7 +9,8 @@
       \begin{itemize}
         \item Interface navegável por módulos.
         \item API pública documentada pelo FastAPI.
-        \item Execução online e local; empacotamento desktop em estágio inicial.
+        \item Execução local, online e
+        iniciado empacotamento desktop.
       \end{itemize}
     \column{0.50\textwidth}
       \begin{block}{Modos de execução}
@@ -26,14 +29,14 @@
 \end{frame}
 
 \begin{frame}{Cobertura implementada}
-  \footnotesize
+  \small
   \begin{columns}[T,onlytextwidth]
     \column{0.48\textwidth}
       \begin{block}{Hidráulica e bombas}
         Tubulações, schedules, acessórios, diâmetro calculado/comercial, Reynolds, atrito, perda de carga, NPSH e altura manométrica.
       \end{block}
-      \begin{block}{Propriedades e equilíbrios}
-        Componentes, fluido puro, misturas, equilíbrio binário, envelope de fase, pressão de vapor e superfície T-P.
+      \begin{block}{Propriedades}
+        Componentes, fluido puro, misturas, equilíbrio binário, McCabe-Thiele, envelope de fase, pressão de vapor e superfície T-P.
       \end{block}
     \column{0.48\textwidth}
       \begin{block}{Reatores}
@@ -41,9 +44,6 @@
       \end{block}
       \begin{block}{Balanço e apoio}
         Balanço com correntes, reações, splits, reciclo, gráficos, tabela, glossário e trilhas.
-      \end{block}
-      \begin{block}{Métodos e visualizações}
-        Diagramas T-x-y, McCabe-Thiele, Moody, Levenspiel e curvas de sistema apoiam a interpretação dos cálculos.
       \end{block}
   \end{columns}
 \end{frame}
@@ -65,31 +65,14 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{As trilhas organizam uma sequência de raciocínio}
+\begin{frame}{Trilhas de aprendizagem organizam o uso}
   \begin{itemize}
-    \item \textbf{Transporte de fluidos:} geometria e catálogo $\rightarrow$ regime de escoamento $\rightarrow$ perda de carga $\rightarrow$ bomba.
-    \item \textbf{Reatores ideais:} componentes e estequiometria $\rightarrow$ cinética $\rightarrow$ conversão $\rightarrow$ volume ou desempenho.
-    \item \textbf{Balanço de massa:} componentes $\rightarrow$ correntes $\rightarrow$ reações e reciclo $\rightarrow$ conservação e composição.
+    \item \textbf{Transporte de Fluidos:} Tubulações $\rightarrow$ Dimensionamento $\rightarrow$ Escoamento $\rightarrow$ Bombas.
+    \item \textbf{Reatores Ideais:} Componentes $\rightarrow$ CSTR/PFR $\rightarrow$ Levenspiel e Arrhenius.
+    \item \textbf{Balanço de Massa:} Componentes $\rightarrow$ Correntes $\rightarrow$ Reações $\rightarrow$ Reciclo $\rightarrow$ Resultados.
   \end{itemize}
-  \vspace{0.55em}
-  \begin{alertblock}{Uso didático}
-    O estudante carrega um exemplo, confere hipóteses, executa o cálculo e altera uma variável por vez para observar a resposta do fenômeno.
+  \vspace{0.7em}
+  \begin{alertblock}{Uso em aula}
+    O estudante pode carregar um exemplo, conferir hipóteses, executar o cálculo e alterar uma variável por vez.
   \end{alertblock}
-\end{frame}
-
-\begin{frame}{O que a demonstração precisa provar}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.32\textwidth}
-      \begin{block}{Funciona}
-        A aplicação executa online e localmente, com a mesma base de cálculo.
-      \end{block}
-    \column{0.32\textwidth}
-      \begin{block}{Ensina}
-        Cada módulo mostra entrada, equação, resultado e leitura do fenômeno.
-      \end{block}
-    \column{0.32\textwidth}
-      \begin{block}{É auditável}
-        O cálculo fica no backend e pode ser confrontado com equações e literatura.
-      \end{block}
-  \end{columns}
 \end{frame}

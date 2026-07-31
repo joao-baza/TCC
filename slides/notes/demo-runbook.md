@@ -11,10 +11,10 @@
 6. Mostre o app Linux só como bônus se sobrar tempo.
 
 ## Visuais de contingência já disponíveis no repositório
-- `../assets/tcc/cap7_02_tubulacoes_composicoes_exemplo.png`
-- `../assets/tcc/cap7_07_escoamento_reynolds_exemplo.png`
-- `../assets/tcc/cap7_10_bombas_perda_carga_exemplo.png`
-- `../assets/tcc/cap7_16_componentes_equilibrio_binario_exemplo.png`
-- `../assets/tcc/cap7_19_reatores_cstr_exemplo.png`
-- `../assets/tcc/cap7_23_balanco_componentes_exemplo.png`
-- `../assets/tcc/cap7_28_glossario_termos_reynolds.png`
+- `../assets/monograph/cap7_02_tubulacoes_composicoes_exemplo.png`
+- `../assets/monograph/cap7_07_escoamento_reynolds_exemplo.png`
+- `../assets/monograph/cap7_10_bombas_perda_carga_exemplo.png`
+- `../assets/monograph/cap7_16_componentes_equilibrio_binario_exemplo.png`
+- `../assets/monograph/cap7_19_reatores_cstr_exemplo.png`
+- `../assets/monograph/cap7_23_balanco_componentes_exemplo.png`
+- `../assets/monograph/cap7_28_glossario_termos_reynolds.png`
