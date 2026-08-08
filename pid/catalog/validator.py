@@ -52,12 +52,22 @@ def validate_manifest(path: Path) -> ValidatedManifest:
         )
         raise CatalogValidationError(f"invalid catalog manifest: {details}")
 
-    canonical = json.dumps(
-        data,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
+    try:
+        canonical = json.dumps(
+            data,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    except UnicodeError:
+        raise CatalogValidationError(
+            "manifest contains invalid Unicode and cannot be encoded as UTF-8"
+        ) from None
+    except ValueError:
+        raise CatalogValidationError(
+            "manifest contains a non-finite JSON number"
+        ) from None
     return ValidatedManifest(
         data=data,
         manifest_hash=hashlib.sha256(canonical).hexdigest(),
@@ -73,16 +83,42 @@ def _read_manifest(path: Path) -> dict[str, Any]:
         ) from None
 
     try:
-        data = json.loads(contents)
+        data = json.loads(contents, parse_constant=_reject_non_finite_number)
     except json.JSONDecodeError as error:
         raise CatalogValidationError(
             f"invalid JSON in manifest {path} at line {error.lineno}, "
             f"column {error.colno}: {error.msg}"
         ) from None
+    except ValueError as error:
+        raise CatalogValidationError(
+            f"invalid JSON in manifest {path}: {error}"
+        ) from None
 
     if not isinstance(data, dict):
         raise CatalogValidationError("manifest root must be a JSON object")
+    if _contains_isolated_surrogate(data):
+        raise CatalogValidationError(
+            "manifest contains invalid Unicode: isolated surrogate code point"
+        )
     return data
+
+
+def _reject_non_finite_number(token: str) -> None:
+    raise ValueError(f"non-finite JSON number {token!r} is not allowed")
+
+
+def _contains_isolated_surrogate(value: Any) -> bool:
+    if isinstance(value, str):
+        return any(0xD800 <= ord(character) <= 0xDFFF for character in value)
+    if isinstance(value, list):
+        return any(_contains_isolated_surrogate(item) for item in value)
+    if isinstance(value, dict):
+        return any(
+            _contains_isolated_surrogate(key)
+            or _contains_isolated_surrogate(item)
+            for key, item in value.items()
+        )
+    return False
 
 
 def _read_schema() -> dict[str, Any]:
@@ -156,6 +192,18 @@ def _semantic_issues(data: dict[str, Any]) -> list[_ValidationIssue]:
                     "must be a relative path without '..' segments",
                 )
             )
+
+        for field in ("sourcePageUrl", "sourceDownloadUrl", "licenseUrl"):
+            url = symbol.get(field)
+            if isinstance(url, str) and any(
+                character.isspace() for character in url
+            ):
+                issues.append(
+                    _ValidationIssue(
+                        ("symbols", index, field),
+                        "must not contain whitespace",
+                    )
+                )
 
     return issues
 

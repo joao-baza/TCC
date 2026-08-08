@@ -246,6 +246,53 @@ def test_missing_manifest_has_clear_public_error(tmp_path: Path) -> None:
         validate_manifest(tmp_path / "missing.json")
 
 
+@pytest.mark.parametrize("token", ("NaN", "Infinity", "-Infinity"))
+def test_manifest_rejects_non_finite_json_numbers(
+    tmp_path: Path,
+    token: str,
+) -> None:
+    contents = json.dumps(valid_manifest()).replace(
+        '"width": 124',
+        f'"width": {token}',
+    )
+    path = tmp_path / "manifest.json"
+    path.write_text(contents, encoding="utf-8")
+
+    with pytest.raises(CatalogValidationError, match="non-finite JSON number"):
+        validate_manifest(path)
+
+
+def test_manifest_rejects_isolated_unicode_surrogate(tmp_path: Path) -> None:
+    manifest = valid_manifest()
+    manifest["symbols"][0]["name"] = "\ud800"
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(CatalogValidationError, match="invalid Unicode"):
+        validate_manifest(path)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("sourcePageUrl", "https://example.com/source\n"),
+        ("sourceDownloadUrl", "https://example.com/source file.svg"),
+        ("licenseUrl", "https://example.com/license\t"),
+    ),
+)
+def test_manifest_rejects_whitespace_in_https_urls(
+    tmp_path: Path,
+    field: str,
+    value: str,
+) -> None:
+    symbol = valid_symbol()
+    symbol[field] = value
+    path = write_manifest(tmp_path / "manifest.json", valid_manifest(symbol))
+
+    with pytest.raises(CatalogValidationError, match=field):
+        validate_manifest(path)
+
+
 def test_cli_prints_valid_manifest_and_hash(tmp_path: Path) -> None:
     path = write_manifest(tmp_path / "manifest.json", valid_manifest())
 
@@ -287,6 +334,39 @@ def test_cli_stops_at_first_invalid_manifest_without_traceback(
     assert result.stdout == ""
     assert str(invalid) in result.stderr
     assert "invalid JSON" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("invalid_value", "expected_error"),
+    (
+        ("NaN", "non-finite JSON number"),
+        ('"\\ud800"', "invalid Unicode"),
+    ),
+)
+def test_cli_reports_unsafe_json_without_traceback(
+    tmp_path: Path,
+    invalid_value: str,
+    expected_error: str,
+) -> None:
+    contents = json.dumps(valid_manifest()).replace(
+        '"width": 124',
+        f'"width": {invalid_value}',
+    )
+    path = tmp_path / "invalid.json"
+    path.write_text(contents, encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, "-m", "pid.catalog.validator", str(path)],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert result.stdout == ""
+    assert expected_error in result.stderr
     assert "Traceback" not in result.stderr
 
 
