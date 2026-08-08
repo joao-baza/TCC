@@ -4,6 +4,7 @@
 # Ciclo completo: derruba a stack, remove imagens, rebuild e sobe novamente.
 #
 # Variáveis opcionais:
+#   ENV_FILE               arquivo de ambiente relativo à raiz do projeto (padrão: .env)
 #   STACK_NAME              nome da stack (padrão: tcc)
 #   IMAGE_NAME              imagem da API (padrão: tcc-api:latest)
 #   FRONTEND_IMAGE_NAME     imagem do frontend (padrão: tcc-frontend:latest)
@@ -15,15 +16,62 @@
 #   SKIP_BUILD              1 para pular build/remoção de imagens (usa imagens já carregadas no host)
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
+
+ENV_FILE="${ENV_FILE:-.env}"
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "Arquivo de ambiente ${ENV_FILE} não encontrado." >&2
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
+
+required_environment=(
+  POSTGRES_DB
+  POSTGRES_USER
+  POSTGRES_PASSWORD
+  DATABASE_URL
+  REDIS_PASSWORD
+  REDIS_URL
+  PID_TOKEN_PEPPER
+  PID_ALLOWED_ORIGINS
+  PID_WS_PUBLIC_URL
+)
+
+missing_environment=()
+for name in "${required_environment[@]}"; do
+  value="${!name:-}"
+  if [[ -z "${value//[[:space:]]/}" ]]; then
+    missing_environment+=("$name")
+  fi
+done
+
+if (( ${#missing_environment[@]} > 0 )); then
+  echo "Variáveis obrigatórias ausentes ou vazias: ${missing_environment[*]}" >&2
+  exit 1
+fi
+
+if [[ -n "${PID_ENABLED:-}" ]]; then
+  case "${PID_ENABLED,,}" in
+    1|true|yes|on|0|false|no|off)
+      ;;
+    *)
+      echo "PID_ENABLED deve ser um valor booleano reconhecido." >&2
+      exit 1
+      ;;
+  esac
+fi
+
 STACK_NAME="${STACK_NAME:-tcc}"
 IMAGE_NAME="${IMAGE_NAME:-tcc-api:latest}"
 FRONTEND_IMAGE_NAME="${FRONTEND_IMAGE_NAME:-tcc-frontend:latest}"
 COMPOSE_FILE="${COMPOSE_FILE:-deploy/docker-compose.yaml}"
 NETWORK_NAME="${NETWORK_NAME:-SJNet}"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-cd "${PROJECT_ROOT}"
 
 if [[ ! -f "$COMPOSE_FILE" ]]; then
   echo "Arquivo ${COMPOSE_FILE} não encontrado." >&2

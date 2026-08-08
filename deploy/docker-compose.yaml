@@ -1,6 +1,50 @@
-version: "3.9"
-
 services:
+  tcc-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - tcc_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - SJNet
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  tcc-redis:
+    image: redis:7.4-alpine
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-128mb}
+      - --maxmemory-policy
+      - volatile-ttl
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$${REDIS_PASSWORD}\" ping >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - SJNet
+    deploy:
+      restart_policy:
+        condition: on-failure
+
   tcc-api:
     image: tcc-api:latest
     build:
@@ -8,9 +52,27 @@ services:
       dockerfile: deploy/Dockerfile.api
     environment:
       DCOU_ROOT_PATH: /api
+      PID_ENABLED: ${PID_ENABLED:-true}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PID_TOKEN_PEPPER: ${PID_TOKEN_PEPPER}
+      PID_ALLOWED_ORIGINS: ${PID_ALLOWED_ORIGINS}
+      PID_WS_PUBLIC_URL: ${PID_WS_PUBLIC_URL}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/ready', timeout=3).read()
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - SJNet
     deploy:
+      restart_policy:
+        condition: on-failure
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=SJNet"
@@ -42,6 +104,10 @@ services:
         - "traefik.http.routers.tcc-frontend.tls=true"
         - "traefik.http.routers.tcc-frontend.tls.certresolver=letsencryptresolver"
         - "traefik.http.services.tcc-frontend.loadbalancer.server.port=80"
+
+volumes:
+  tcc_postgres_data:
+
 networks:
   SJNet:
     external: true
