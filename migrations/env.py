@@ -1,13 +1,21 @@
 import asyncio
 from logging.config import fileConfig
+from pathlib import Path
+import sys
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from pid.database import resolve_database_url
-from pid.models import Base
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+project_root = str(PROJECT_ROOT)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from pid.database import resolve_database_url  # noqa: E402
+from pid.models import Base  # noqa: E402
 
 
 config = context.config
