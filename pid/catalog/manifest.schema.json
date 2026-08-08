@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dcou.local/schemas/pid/catalog-manifest.json",
+  "title": "P&ID symbol catalog manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["standard", "version", "status", "symbols"],
+  "properties": {
+    "standard": {
+      "enum": ["isa", "iso"]
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "symbols": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/symbol"}
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "httpsUrl": {
+      "type": "string",
+      "pattern": "^https://[^\\s]+$"
+    },
+    "symbol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "standard",
+        "catalogVersion",
+        "name",
+        "aliases",
+        "category",
+        "svgPath",
+        "viewBox",
+        "defaultSize",
+        "rotationPolicy",
+        "portTemplates",
+        "propertySchema",
+        "allowedConnections",
+        "sourceKind",
+        "sourcePageUrl",
+        "sourceDownloadUrl",
+        "sourceRevision",
+        "sourceAuthor",
+        "sourceReference",
+        "licenseName",
+        "licenseUrl",
+        "licenseReference",
+        "attributionText",
+        "originalFormat",
+        "originalChecksum",
+        "derivationRecord"
+      ],
+      "properties": {
+        "key": {"$ref": "#/$defs/nonEmptyString"},
+        "standard": {"enum": ["isa", "iso"]},
+        "catalogVersion": {"$ref": "#/$defs/nonEmptyString"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "aliases": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "category": {"$ref": "#/$defs/nonEmptyString"},
+        "svgPath": {"$ref": "#/$defs/nonEmptyString"},
+        "viewBox": {"$ref": "#/$defs/nonEmptyString"},
+        "defaultSize": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": {"type": "number", "exclusiveMinimum": 0},
+            "height": {"type": "number", "exclusiveMinimum": 0}
+          }
+        },
+        "rotationPolicy": {"$ref": "#/$defs/nonEmptyString"},
+        "portTemplates": {
+          "type": "array",
+          "items": {"type": "object"}
+        },
+        "propertySchema": {"type": "object"},
+        "allowedConnections": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "sourceKind": {
+          "enum": ["normative", "drawio", "wikimedia", "project"]
+        },
+        "sourcePageUrl": {"$ref": "#/$defs/httpsUrl"},
+        "sourceDownloadUrl": {"$ref": "#/$defs/httpsUrl"},
+        "sourceRevision": {"$ref": "#/$defs/nonEmptyString"},
+        "sourceAuthor": {"$ref": "#/$defs/nonEmptyString"},
+        "sourceReference": {"$ref": "#/$defs/nonEmptyString"},
+        "licenseName": {"$ref": "#/$defs/nonEmptyString"},
+        "licenseUrl": {"$ref": "#/$defs/httpsUrl"},
+        "licenseReference": {"$ref": "#/$defs/nonEmptyString"},
+        "attributionText": {"type": "string"},
+        "originalFormat": {"enum": ["svg", "png"]},
+        "originalChecksum": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "derivationRecord": {"type": "array"}
+      }
+    }
+  }
+}
