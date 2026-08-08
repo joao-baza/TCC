@@ -25,6 +25,8 @@ Para uma pessoa experiente, a estimativa é:
 
 Essas faixas incluem implementação, testes, documentação e implantação. Elas não incluem integração com cálculos.
 
+O draw.io e o Wikimedia Commons tendem a reduzir o risco de redesenho manual e aproximar o projeto da faixa de 20 a 28 semanas. Essa redução só poderá ser confirmada depois de reconciliar os ativos encontrados com o inventário normativo e validar licença, qualidade vetorial e cobertura de portas de cada símbolo.
+
 ## 3. Contexto atual
 
 O frontend usa React 19, TypeScript, Vite e React Router. O projeto já contém componentes SVG de visualização, mas nenhum motor de edição gráfica. O backend usa FastAPI e não mantém estado persistente. A implantação atual separa frontend e API no Docker Swarm.
@@ -86,7 +88,7 @@ O MVP não incluirá:
 | Identidade | Nome informado ao entrar; sem conta |
 | Compartilhamento | Links separados de leitura e edição |
 | Padrões | ISA ou ISO por fluxograma |
-| Catálogo | Inventário licenciado completo, versionado e pesquisável |
+| Catálogo | Inventário normativo completo, com ativos versionados e proveniência por arquivo |
 | Exportação | PNG e SVG |
 | Distribuição | Somente web |
 | Implantação | PostgreSQL e Redis auto-hospedados no Swarm |
@@ -326,13 +328,37 @@ O sistema manterá o snapshot atual e o snapshot válido anterior. Essa retenç�
 
 Os SVGs e manifestos ficarão nos artefatos da aplicação. A tabela registrará quais versões podem abrir documentos.
 
-## 11. Catálogos ISA e ISO
+## 11. Catálogos ISA e ISO e origem dos ativos
 
 ### 11.1 Pré-requisito legal
 
-O projeto possui autorização explícita para reproduzir e distribuir os símbolos ISA e ISO. A importação exigirá que o repositório registre a origem licenciada, o escopo da autorização e a versão normativa. O sistema não inferirá símbolos a partir de materiais não autorizados.
+O projeto possui autorização explícita para reproduzir e distribuir os símbolos ISA e ISO e autorização expressa para baixar, converter, modificar e redistribuir os stencils P&ID do draw.io. A importação exigirá que o repositório registre a origem, o escopo da autorização e a versão normativa. A evidência da autorização será referenciada no inventário sem publicar material privado ou desnecessário.
 
-### 11.2 Manifesto
+Ativos do Wikimedia Commons somente entrarão no catálogo depois da verificação da página individual do arquivo. Pertencer a uma categoria do Commons não determina, por si só, a licença do arquivo. A licença, autoria, atribuição e permissão de obras derivadas serão avaliadas asset por asset.
+
+### 11.2 Hierarquia de fontes
+
+As fontes terão responsabilidades diferentes:
+
+1. o inventário autorizado ISA/ISO será a referência normativa para significado, categoria, portas e conexões;
+2. os stencils P&ID do draw.io serão a principal base vetorial para acelerar a produção do catálogo;
+3. o Wikimedia Commons será uma fonte complementar para lacunas, alternativas gráficas e símbolos de engenharia química.
+
+Quando a aparência ou os metadados de uma fonte gráfica divergirem da referência normativa, prevalecerá a referência ISA/ISO autorizada. Nenhum SVG ou PNG externo será tratado como autoridade semântica apenas por citar um padrão no nome ou na descrição.
+
+### 11.3 Pesquisa inicial de fontes
+
+A pesquisa interativa realizada em 8 de agosto de 2026 identificou:
+
+- no draw.io, os stencils `separators.xml`, `shaping_machines.xml`, `valves.xml` e `vessels.xml` em `src/main/webapp/stencils/pid`, além das formas programáticas `mxPidInstruments.js`, `mxPidMisc.js` e `mxPidValves.js` em `src/main/webapp/shapes/pid2`;
+- na categoria [P&ID symbols](https://commons.wikimedia.org/wiki/Category:P%26ID_symbols), revisão `1007862109`, 26 subcategorias e 82 arquivos diretamente na raiz;
+- na categoria [Chemical engineering symbols](https://commons.wikimedia.org/wiki/Category:Chemical_engineering_symbols), revisão `1254967890`, 12 arquivos: oito SVGs e quatro PNGs.
+
+Os 12 arquivos de engenharia química observados foram `Batch reactor STR.svg`, `Chem-eng icon.svg`, `Chemostat shematic.svg`, `Continuous bach reactor CSTR.svg`, `Fed batch reactor FSTR.svg`, `ReactorBatch.PNG`, `ReactorBatch.svg`, `ReactorCSTR.PNG`, `ReactorCSTR.svg`, `ReactorFedBatch.PNG`, `ReactorPlugFlow.PNG` e `ReactorPlugFlow.svg`.
+
+A amostragem confirmou licenças distintas que precisam permanecer registradas: `Batch reactor STR.svg`, `Autoclave.svg` e `Cone type (ISO 10628-2).svg` estavam declarados como domínio público; `ReactorBatch.svg`, derivado de `ReactorBatch.PNG`, estava sob CC0 1.0. Esses resultados orientam a triagem, mas não autorizam automaticamente os demais arquivos das categorias.
+
+### 11.4 Manifesto
 
 Cada símbolo terá:
 
@@ -350,19 +376,47 @@ rotationPolicy
 portTemplates
 propertySchema
 allowedConnections
+sourceKind
+sourcePageUrl
+sourceDownloadUrl
+sourceRevision
+sourceAuthor
 sourceReference
+licenseName
+licenseUrl
 licenseReference
+attributionText
+originalFormat
+originalChecksum
+derivationRecord
 ```
 
-O build sanitizará SVGs, removerá scripts e referências externas, normalizará `viewBox` e verificará chaves duplicadas.
+`sourceKind` distinguirá `normative`, `drawio`, `wikimedia` e `project`. `derivationRecord` registrará conversões, redesenhos, ajustes e a ferramenta usada. Um arquivo `THIRD_PARTY_NOTICES.md` agregará as atribuições exigidas sem substituir o registro por asset.
 
-### 11.3 Cobertura
+O build sanitizará SVGs, removerá scripts, eventos e referências externas, normalizará `viewBox` e verificará chaves duplicadas. PNGs serão decodificados e regravados, terão metadados desnecessários removidos e dimensões limitadas. O checksum sempre representará o arquivo original baixado.
 
-O inventário licenciado será a lista de referência. Cada item deverá aparecer no manifesto ou em um registro de exceções com justificativa concreta. O gate de catálogo falhará quando um item não estiver mapeado. Esse critério torna “praticamente exaustivo” mensurável sem fixar uma contagem antes de inspecionar os arquivos licenciados.
+### 11.5 Pipeline de ingestão
 
-### 11.4 Versionamento
+O pipeline de catálogo executará as seguintes etapas reproduzíveis:
 
-Fluxogramas permanecerão fixados à versão usada na criação. Atualizar o catálogo não alterará documentos existentes. Uma migration explícita poderá remapear chaves em versão posterior.
+1. fixar o commit do draw.io e a revisão das páginas do Commons usadas pelo inventário;
+2. baixar o arquivo original, nunca uma miniatura ou captura de tela;
+3. registrar URL da página, URL de download, autoria, licença, atribuição, revisão e checksum;
+4. reconciliar o item com o inventário normativo ISA/ISO;
+5. converter stencil draw.io em SVG canônico ou importar o SVG original do Commons;
+6. preferir SVG e aceitar PNG apenas quando não existir equivalente vetorial adequado e o raster for necessário;
+7. sanitizar, normalizar geometria e produzir o ativo final do catálogo;
+8. executar gates de licença, segurança, duplicidade, cobertura e regressão visual.
+
+A ingestão de stencils no build não implica suporte a arquivos draw.io no produto. A importação de diagramas `.drawio` pelo usuário continuará fora do escopo do MVP.
+
+### 11.6 Cobertura
+
+O inventário normativo autorizado será a lista de referência. Cada item deverá aparecer no manifesto ou em um registro de exceções com justificativa concreta. O gate de catálogo falhará quando um item não estiver mapeado. Os inventários do draw.io e do Wikimedia serão reconciliados contra essa lista; quantidade de arquivos externos não será usada como medida de conformidade. Esse critério torna “praticamente exaustivo” mensurável sem fixar uma contagem antes de inspecionar os arquivos autorizados.
+
+### 11.7 Versionamento
+
+Fluxogramas permanecerão fixados à versão usada na criação. Atualizar o catálogo não alterará documentos existentes. Uma migration explícita poderá remapear chaves em versão posterior. A versão do catálogo também fixará o commit do draw.io, as revisões do Commons e os checksums de todos os originais.
 
 ## 12. Validação
 
@@ -610,7 +664,7 @@ Testes cobrirão origem inválida, ticket expirado, reutilização de ticket, pa
 O MVP estará concluído quando:
 
 1. um visitante criar um P&ID ISA ou ISO;
-2. o catálogo aprovado estiver completo segundo o inventário licenciado;
+2. o catálogo aprovado estiver completo segundo o inventário normativo autorizado e cada ativo tiver proveniência e licença verificáveis;
 3. duas sessões de edição alterarem o mesmo documento e convergirem;
 4. uma sessão de leitura acompanhar mudanças sem conseguir escrever;
 5. links puderem ser revogados e regenerados;
@@ -632,6 +686,7 @@ Este design será executado em cinco entregas, cada uma com especificação e pl
 - tabelas e repositórios;
 - UUIDs, tokens, tickets e soft delete;
 - estrutura e versionamento do catálogo;
+- inventário de fontes, pipeline de proveniência e gates de licença;
 - serviços do Swarm e `.env.example`.
 
 ### Entrega 2 — Editor
@@ -652,7 +707,7 @@ Este design será executado em cinco entregas, cada uma com especificação e pl
 
 ### Entrega 4 — P&ID completo
 
-- ingestão integral dos catálogos ISA/ISO;
+- ingestão integral dos catálogos ISA/ISO a partir das fontes aprovadas;
 - aliases, propriedades e conexões;
 - validações bloqueantes e alertas;
 - fixtures de conformidade.
@@ -693,5 +748,9 @@ Essa evolução não faz parte do MVP. O modelo definido aqui evita que ela exij
 - [OWASP — WebSocket Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html)
 - [MDN — URI fragment](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment)
 - [draw.io — process engineering shapes](https://www.drawio.com/blog/process-engineering-shapes)
+- [draw.io — stencils P&ID](https://github.com/jgraph/drawio/tree/dev/src/main/webapp/stencils/pid)
+- [draw.io — formas P&ID programáticas](https://github.com/jgraph/drawio/tree/dev/src/main/webapp/shapes/pid2)
+- [Wikimedia Commons — P&ID symbols](https://commons.wikimedia.org/wiki/Category:P%26ID_symbols)
+- [Wikimedia Commons — Chemical engineering symbols](https://commons.wikimedia.org/wiki/Category:Chemical_engineering_symbols)
 - [ISO copyright](https://www.iso.org/copyright.html)
 - [ISA copyright policy](https://www.isa.org/getmedia/2fca54ba-d049-4b94-8b9e-f31f0de2a27e/Copyright-of-ISA-Standards.pdf)
