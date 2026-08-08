@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
@@ -44,6 +44,7 @@ class DiagramRepository:
         if diagram is None:
             return False
         diagram.deleted_at = when
+        diagram.updated_at = when
         return True
 
     async def restore(self, diagram_id: UUID, cutoff: datetime) -> bool:
@@ -55,4 +56,5 @@ class DiagramRepository:
         ):
             return False
         diagram.deleted_at = None
+        diagram.updated_at = datetime.now(timezone.utc)
         return True

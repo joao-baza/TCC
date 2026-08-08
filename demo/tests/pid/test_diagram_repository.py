@@ -1,14 +1,26 @@
 from datetime import datetime, timedelta, timezone
-from typing import cast
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import delete, func, select, update
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from pid.models import AccessScope, PidAccessToken, PidDiagram, PidStandard
+from pid.repositories.diagrams import DiagramRepository
 from pid.repositories.tokens import TokenRepository
 from pid.security import hash_secret
+from pid.services import diagram_service as diagram_service_module
 from pid.services.diagram_service import DiagramNotFoundError, DiagramService
+
+
+class _StatementRecorder:
+    statement: Any = None
+
+    async def scalar(self, statement: Any) -> None:
+        self.statement = statement
 
 
 async def test_create_diagram_returns_uuid_and_two_plain_tokens(
@@ -66,6 +78,53 @@ async def test_create_persists_only_sha256_hmac_hashes(session_factory) -> None:
     )
 
 
+async def test_create_rolls_back_parent_when_token_insert_fails(
+    session_factory,
+    monkeypatch,
+) -> None:
+    service = DiagramService(session_factory, token_pepper="p" * 32)
+    existing = await service.create(
+        title="Existing",
+        standard=PidStandard.ISA,
+        catalog_version="0.1.0-foundation",
+    )
+    async with session_factory() as session:
+        before_diagrams = await session.scalar(
+            select(func.count()).select_from(PidDiagram)
+        )
+        before_tokens = await session.scalar(
+            select(func.count()).select_from(PidAccessToken)
+        )
+
+    generated_tokens = iter([existing.view_token, "unique-edit-token"])
+    monkeypatch.setattr(
+        diagram_service_module,
+        "generate_secret",
+        lambda: next(generated_tokens),
+    )
+
+    with pytest.raises(IntegrityError):
+        await service.create(
+            title="Must roll back",
+            standard=PidStandard.ISO,
+            catalog_version="0.1.0-foundation",
+        )
+
+    async with session_factory() as session:
+        after_diagrams = await session.scalar(
+            select(func.count()).select_from(PidDiagram)
+        )
+        after_tokens = await session.scalar(
+            select(func.count()).select_from(PidAccessToken)
+        )
+        rolled_back_diagram = await session.scalar(
+            select(PidDiagram).where(PidDiagram.title == "Must roll back")
+        )
+    assert after_diagrams == before_diagrams
+    assert after_tokens == before_tokens
+    assert rolled_back_diagram is None
+
+
 async def test_create_rejects_blank_title_before_opening_session(
     session_factory,
 ) -> None:
@@ -107,6 +166,10 @@ async def test_regenerate_view_token_revokes_previous_token(
     assert (
         await service.authorize(created.diagram_id, replacement)
         is AccessScope.VIEW
+    )
+    assert (
+        await service.authorize(created.diagram_id, created.edit_token)
+        is AccessScope.EDIT
     )
 
 
@@ -235,6 +298,34 @@ async def test_restore_refuses_diagram_deleted_more_than_thirty_days_ago(
     assert persisted_deleted_at == deleted_at
 
 
+async def test_restore_accepts_exact_thirty_day_cutoff(session_factory) -> None:
+    service = DiagramService(session_factory, token_pepper="p" * 32)
+    created = await service.create(
+        title="Boundary",
+        standard=PidStandard.ISO,
+        catalog_version="0.1.0-foundation",
+    )
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    async with session_factory() as session, session.begin():
+        await session.execute(
+            update(PidDiagram)
+            .where(PidDiagram.id == created.diagram_id)
+            .values(deleted_at=cutoff, updated_at=cutoff - timedelta(days=1))
+        )
+    async with session_factory() as session, session.begin():
+        restored = await DiagramRepository(session).restore(
+            created.diagram_id,
+            cutoff,
+        )
+
+    async with session_factory() as session:
+        diagram = await session.get(PidDiagram, created.diagram_id)
+    assert restored is True
+    assert diagram is not None
+    assert diagram.deleted_at is None
+    assert diagram.updated_at > cutoff
+
+
 async def test_revoked_edit_token_cannot_delete_diagram(session_factory) -> None:
     pepper = "p" * 32
     service = DiagramService(session_factory, token_pepper=pepper)
@@ -262,3 +353,19 @@ async def test_soft_delete_and_restore_return_false_for_missing_diagram(
 
     assert await service.soft_delete(diagram_id, "invalid") is False
     assert await service.restore(diagram_id, "invalid") is False
+
+
+async def test_resolve_for_update_locks_only_access_token_table() -> None:
+    recorder = _StatementRecorder()
+    repository = TokenRepository(cast(AsyncSession, recorder))
+
+    await repository.resolve(
+        uuid4(),
+        "a" * 64,
+        for_update=True,
+    )
+
+    compiled = str(
+        recorder.statement.compile(dialect=postgresql.dialect())
+    )
+    assert "FOR UPDATE OF pid_access_tokens" in compiled

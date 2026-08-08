@@ -44,7 +44,7 @@ class TokenRepository:
                 PidDiagram.id == PidAccessToken.diagram_id,
             ).where(PidDiagram.deleted_at.is_(None))
         if for_update:
-            statement = statement.with_for_update()
+            statement = statement.with_for_update(of=PidAccessToken)
         return await self._session.scalar(statement)
 
     async def revoke_scope(

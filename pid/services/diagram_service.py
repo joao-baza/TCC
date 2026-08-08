@@ -61,6 +61,7 @@ class DiagramService:
                         schema_version=1,
                     )
                 )
+                await session.flush()
                 tokens.add(
                     PidAccessToken(
                         diagram_id=diagram_id,
@@ -126,15 +127,17 @@ class DiagramService:
         token_hash = hash_secret(plain_token, self._token_pepper)
         async with self._session_factory() as session:
             async with session.begin():
+                diagrams = DiagramRepository(session)
                 tokens = TokenRepository(session)
+                if await diagrams.get_active(diagram_id, for_update=True) is None:
+                    return False
                 token = await tokens.resolve(
                     diagram_id,
                     token_hash,
-                    for_update=True,
                 )
                 if token is None or token.scope is not AccessScope.EDIT:
                     return False
-                return await DiagramRepository(session).mark_deleted(
+                return await diagrams.mark_deleted(
                     diagram_id,
                     datetime.now(timezone.utc),
                 )
@@ -143,17 +146,19 @@ class DiagramService:
         token_hash = hash_secret(plain_token, self._token_pepper)
         async with self._session_factory() as session:
             async with session.begin():
+                diagrams = DiagramRepository(session)
                 tokens = TokenRepository(session)
+                if await diagrams.get_any(diagram_id, for_update=True) is None:
+                    return False
                 token = await tokens.resolve(
                     diagram_id,
                     token_hash,
                     include_deleted=True,
-                    for_update=True,
                 )
                 if token is None or token.scope is not AccessScope.EDIT:
                     return False
                 now = datetime.now(timezone.utc)
-                return await DiagramRepository(session).restore(
+                return await diagrams.restore(
                     diagram_id,
                     now - timedelta(days=30),
                 )
