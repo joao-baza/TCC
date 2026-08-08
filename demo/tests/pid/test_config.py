@@ -1,6 +1,8 @@
 from pathlib import Path
 
+import dotenv
 import pytest
+import pid.config
 from pid.config import PidSettings
 
 
@@ -86,6 +88,13 @@ def test_load_dotenv_preserves_existing_process_values(
     )
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PID_ENABLED", "true")
+    real_load_dotenv = dotenv.load_dotenv
+
+    def load_test_dotenv(*, override: bool) -> bool:
+        assert override is False
+        return real_load_dotenv(dotenv_path=tmp_path / ".env", override=override)
+
+    monkeypatch.setattr(pid.config, "load_dotenv", load_test_dotenv)
 
     settings = PidSettings.from_env()
     assert settings.enabled is True

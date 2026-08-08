@@ -27,7 +27,7 @@ class PidSettings:
     @classmethod
     def from_env(cls, load_file: bool = True) -> "PidSettings":
         if load_file:
-            load_dotenv(".env", override=False)
+            load_dotenv(override=False)
 
         enabled_value = _optional("PID_ENABLED")
         allowed_origins_value = _optional("PID_ALLOWED_ORIGINS")
