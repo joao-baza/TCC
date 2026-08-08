@@ -27,7 +27,7 @@ class PidSettings:
     @classmethod
     def from_env(cls, load_file: bool = True) -> "PidSettings":
         if load_file:
-            load_dotenv(override=False)
+            load_dotenv(".env", override=False)
 
         enabled_value = _optional("PID_ENABLED")
         allowed_origins_value = _optional("PID_ALLOWED_ORIGINS")
@@ -63,5 +63,5 @@ class PidSettings:
             missing.append("PID_WS_PUBLIC_URL")
         if missing:
             raise ValueError("Missing PID settings: " + ", ".join(missing))
-        if len(self.token_pepper) < 32:
+        if len(self.token_pepper or "") < 32:
             raise ValueError("PID_TOKEN_PEPPER must be at least 32 characters")
