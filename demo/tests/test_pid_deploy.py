@@ -162,7 +162,10 @@ def _write_executable(path: Path, body: str) -> None:
     path.chmod(0o755)
 
 
-@pytest.mark.parametrize("enabled", ["1", "true", "TRUE", "Yes", "ON"])
+@pytest.mark.parametrize(
+    "enabled",
+    ["1", "true", "TRUE", "Yes", "ON", " 1 ", " TRUE ", "\tYes\t", " ON  "],
+)
 def test_start_script_migrates_before_uvicorn_when_pid_is_enabled(tmp_path, enabled):
     binary_dir = tmp_path / "bin"
     binary_dir.mkdir()
@@ -198,7 +201,7 @@ def test_start_script_migrates_before_uvicorn_when_pid_is_enabled(tmp_path, enab
     ]
 
 
-@pytest.mark.parametrize("enabled", ["", "0", "false", "no", "off"])
+@pytest.mark.parametrize("enabled", ["", "0", "false", "no", "off", "tr ue"])
 def test_start_script_skips_migration_when_pid_is_disabled(tmp_path, enabled):
     binary_dir = tmp_path / "bin"
     binary_dir.mkdir()
