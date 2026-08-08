@@ -8,6 +8,8 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from pid.database import create_pid_engine, create_session_factory
+from pid.models import PidStandard
+from pid.services.diagram_service import DiagramService
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -54,3 +56,14 @@ async def session_factory(engine):
             )
         )
     return create_session_factory(engine)
+
+
+@pytest_asyncio.fixture
+async def persisted_diagram_id(session_factory):
+    service = DiagramService(session_factory, token_pepper="p" * 32)
+    created = await service.create(
+        title="Snapshot fixture",
+        standard=PidStandard.ISO,
+        catalog_version="0.1.0-foundation",
+    )
+    return created.diagram_id
