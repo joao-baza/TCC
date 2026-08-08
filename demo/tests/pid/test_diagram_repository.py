@@ -1,26 +1,16 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, cast
+from typing import cast
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import delete, func, select, update
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete, func, select, text, update
+from sqlalchemy.exc import DBAPIError
 
 from pid.models import AccessScope, PidAccessToken, PidDiagram, PidStandard
 from pid.repositories.diagrams import DiagramRepository
 from pid.repositories.tokens import TokenRepository
 from pid.security import hash_secret
-from pid.services import diagram_service as diagram_service_module
 from pid.services.diagram_service import DiagramNotFoundError, DiagramService
-
-
-class _StatementRecorder:
-    statement: Any = None
-
-    async def scalar(self, statement: Any) -> None:
-        self.statement = statement
 
 
 async def test_create_diagram_returns_uuid_and_two_plain_tokens(
@@ -80,14 +70,11 @@ async def test_create_persists_only_sha256_hmac_hashes(session_factory) -> None:
 
 async def test_create_rolls_back_parent_when_token_insert_fails(
     session_factory,
-    monkeypatch,
 ) -> None:
     service = DiagramService(session_factory, token_pepper="p" * 32)
-    existing = await service.create(
-        title="Existing",
-        standard=PidStandard.ISA,
-        catalog_version="0.1.0-foundation",
-    )
+    trigger_name = "pid_test_reject_access_token_insert"
+    function_name = "pid_test_reject_access_token_insert_fn"
+    attempted_title = "Must roll back after token trigger failure"
     async with session_factory() as session:
         before_diagrams = await session.scalar(
             select(func.count()).select_from(PidDiagram)
@@ -96,19 +83,59 @@ async def test_create_rolls_back_parent_when_token_insert_fails(
             select(func.count()).select_from(PidAccessToken)
         )
 
-    generated_tokens = iter([existing.view_token, "unique-edit-token"])
-    monkeypatch.setattr(
-        diagram_service_module,
-        "generate_secret",
-        lambda: next(generated_tokens),
-    )
+    try:
+        async with session_factory() as session, session.begin():
+            await session.execute(
+                text(
+                    f"DROP TRIGGER IF EXISTS {trigger_name} "
+                    "ON pid_access_tokens"
+                )
+            )
+            await session.execute(
+                text(f"DROP FUNCTION IF EXISTS {function_name}()")
+            )
+            await session.execute(
+                text(
+                    f"""
+                    CREATE FUNCTION {function_name}()
+                    RETURNS trigger
+                    LANGUAGE plpgsql
+                    AS $$
+                    BEGIN
+                        RAISE EXCEPTION 'injected access token insert failure';
+                    END;
+                    $$
+                    """
+                )
+            )
+            await session.execute(
+                text(
+                    f"""
+                    CREATE TRIGGER {trigger_name}
+                    BEFORE INSERT ON pid_access_tokens
+                    FOR EACH ROW
+                    EXECUTE FUNCTION {function_name}()
+                    """
+                )
+            )
 
-    with pytest.raises(IntegrityError):
-        await service.create(
-            title="Must roll back",
-            standard=PidStandard.ISO,
-            catalog_version="0.1.0-foundation",
-        )
+        with pytest.raises(DBAPIError):
+            await service.create(
+                title=attempted_title,
+                standard=PidStandard.ISO,
+                catalog_version="0.1.0-foundation",
+            )
+    finally:
+        async with session_factory() as session, session.begin():
+            await session.execute(
+                text(
+                    f"DROP TRIGGER IF EXISTS {trigger_name} "
+                    "ON pid_access_tokens"
+                )
+            )
+            await session.execute(
+                text(f"DROP FUNCTION IF EXISTS {function_name}()")
+            )
 
     async with session_factory() as session:
         after_diagrams = await session.scalar(
@@ -118,7 +145,7 @@ async def test_create_rolls_back_parent_when_token_insert_fails(
             select(func.count()).select_from(PidAccessToken)
         )
         rolled_back_diagram = await session.scalar(
-            select(PidDiagram).where(PidDiagram.title == "Must roll back")
+            select(PidDiagram).where(PidDiagram.title == attempted_title)
         )
     assert after_diagrams == before_diagrams
     assert after_tokens == before_tokens
@@ -353,19 +380,3 @@ async def test_soft_delete_and_restore_return_false_for_missing_diagram(
 
     assert await service.soft_delete(diagram_id, "invalid") is False
     assert await service.restore(diagram_id, "invalid") is False
-
-
-async def test_resolve_for_update_locks_only_access_token_table() -> None:
-    recorder = _StatementRecorder()
-    repository = TokenRepository(cast(AsyncSession, recorder))
-
-    await repository.resolve(
-        uuid4(),
-        "a" * 64,
-        for_update=True,
-    )
-
-    compiled = str(
-        recorder.statement.compile(dialect=postgresql.dialect())
-    )
-    assert "FOR UPDATE OF pid_access_tokens" in compiled

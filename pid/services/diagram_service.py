@@ -134,6 +134,7 @@ class DiagramService:
                 token = await tokens.resolve(
                     diagram_id,
                     token_hash,
+                    for_update=True,
                 )
                 if token is None or token.scope is not AccessScope.EDIT:
                     return False
@@ -154,6 +155,7 @@ class DiagramService:
                     diagram_id,
                     token_hash,
                     include_deleted=True,
+                    for_update=True,
                 )
                 if token is None or token.scope is not AccessScope.EDIT:
                     return False
