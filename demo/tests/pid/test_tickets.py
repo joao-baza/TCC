@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from uuid import uuid4
@@ -5,7 +6,6 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from redis.asyncio import Redis
-from redis.exceptions import RedisError
 
 from pid.models import AccessScope
 from pid.tickets import TicketPayload, TicketStore
@@ -18,18 +18,15 @@ async def redis_client() -> Redis:
         pytest.skip("PID_TEST_REDIS_URL is required for Redis integration tests")
 
     client = Redis.from_url(redis_url, decode_responses=True)
-    redis_is_available = False
+    database_was_prepared = False
     try:
-        try:
-            await client.ping()
-        except RedisError as exc:
-            pytest.skip(f"Redis integration service is unavailable: {exc}")
-        redis_is_available = True
+        await client.ping()
         await client.flushdb()
+        database_was_prepared = True
         yield client
     finally:
         try:
-            if redis_is_available:
+            if database_was_prepared:
                 await client.flushdb()
         finally:
             await client.aclose()
@@ -89,14 +86,83 @@ async def test_ticket_collision_keeps_the_original_payload(
     assert await store.consume(ticket) == original
 
 
-async def test_malformed_payload_is_deleted_and_reported(
+async def test_concurrent_consumers_receive_a_ticket_exactly_once(
     redis_client: Redis,
 ) -> None:
+    redis_url = os.environ["PID_TEST_REDIS_URL"]
+    clients = [
+        Redis.from_url(redis_url, decode_responses=True)
+        for _ in range(4)
+    ]
     store = TicketStore(redis_client)
-    ticket = "malformed-ticket"
-    await redis_client.set(store._key(ticket), "not-json", ex=60)
+    payload = TicketPayload(uuid4(), uuid4(), AccessScope.EDIT)
+    ticket = await store.issue(payload)
+    ready = asyncio.Event()
+    ready_count = 0
+    ready_lock = asyncio.Lock()
 
-    with pytest.raises(json.JSONDecodeError):
+    async def consume_when_ready(client: Redis) -> TicketPayload | None:
+        nonlocal ready_count
+        async with ready_lock:
+            ready_count += 1
+            if ready_count == len(clients):
+                ready.set()
+        await ready.wait()
+        return await TicketStore(client).consume(ticket)
+
+    try:
+        results = await asyncio.gather(
+            *(consume_when_ready(client) for client in clients)
+        )
+    finally:
+        await asyncio.gather(*(client.aclose() for client in clients))
+
+    assert results.count(payload) == 1
+    assert results.count(None) == len(clients) - 1
+    assert await redis_client.keys("pid:ticket:*") == []
+
+
+@pytest.mark.parametrize(
+    ("raw_payload", "expected_error", "error_match"),
+    [
+        ("not-json", json.JSONDecodeError, "Expecting value"),
+        ("{}", KeyError, "diagram_id"),
+        (
+            json.dumps(
+                {
+                    "diagram_id": "not-a-uuid",
+                    "token_id": "00000000-0000-0000-0000-000000000002",
+                    "scope": "view",
+                }
+            ),
+            ValueError,
+            "badly formed hexadecimal UUID string",
+        ),
+        (
+            json.dumps(
+                {
+                    "diagram_id": "00000000-0000-0000-0000-000000000001",
+                    "token_id": "00000000-0000-0000-0000-000000000002",
+                    "scope": "owner",
+                }
+            ),
+            ValueError,
+            "'owner' is not a valid AccessScope",
+        ),
+    ],
+    ids=("invalid-json", "missing-field", "invalid-uuid", "invalid-scope"),
+)
+async def test_corrupt_payload_is_deleted_and_reported(
+    redis_client: Redis,
+    raw_payload: str,
+    expected_error: type[BaseException],
+    error_match: str,
+) -> None:
+    store = TicketStore(redis_client)
+    ticket = f"corrupt-{uuid4()}"
+    await redis_client.set(store._key(ticket), raw_payload, ex=60)
+
+    with pytest.raises(expected_error, match=error_match):
         await store.consume(ticket)
 
     assert await redis_client.exists(store._key(ticket)) == 0
