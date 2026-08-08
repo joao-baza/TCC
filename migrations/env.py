@@ -18,10 +18,16 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def database_url() -> str:
+    return resolve_database_url(
+        config.get_main_option("sqlalchemy.url"),
+        explicit_override=config.attributes.get("database_url_override"),
+    )
+
+
 def run_migrations_offline() -> None:
-    url = resolve_database_url(config.get_main_option("sqlalchemy.url"))
     context.configure(
-        url=url,
+        url=database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -40,9 +46,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = resolve_database_url(
-        config.get_main_option("sqlalchemy.url")
-    )
+    configuration["sqlalchemy.url"] = database_url()
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",

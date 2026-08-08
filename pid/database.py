@@ -8,8 +8,11 @@ from sqlalchemy.ext.asyncio import (
 )
 
 
-def resolve_database_url(configured_url: str) -> str:
-    return os.getenv("DATABASE_URL") or configured_url
+def resolve_database_url(
+    configured_url: str,
+    explicit_override: str | None = None,
+) -> str:
+    return explicit_override or os.getenv("DATABASE_URL") or configured_url
 
 
 def create_pid_engine(database_url: str) -> AsyncEngine:
