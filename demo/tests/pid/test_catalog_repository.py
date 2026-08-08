@@ -1,6 +1,9 @@
-import pytest
+import asyncio
 
-from pid.models import PidStandard
+import pytest
+from sqlalchemy import select
+
+from pid.models import PidCatalogVersion, PidStandard
 from pid.repositories.catalogs import CatalogHashConflict, CatalogRepository
 
 
@@ -13,6 +16,75 @@ async def test_activate_catalog_version_is_idempotent(session_factory) -> None:
 
     assert active is not None
     assert active.manifest_hash == "a" * 64
+
+
+async def test_concurrent_activation_with_same_hash_is_idempotent(
+    session_factory,
+) -> None:
+    repository = CatalogRepository(session_factory)
+    start = asyncio.Event()
+    ready = 0
+
+    async def activate() -> None:
+        nonlocal ready
+        ready += 1
+        if ready == 2:
+            start.set()
+        await start.wait()
+        await repository.activate(PidStandard.ISO, "0.1.0", "a" * 64)
+
+    await asyncio.gather(activate(), activate())
+
+    async with session_factory() as session:
+        active_versions = list(
+            await session.scalars(
+                select(PidCatalogVersion).where(
+                    PidCatalogVersion.standard == PidStandard.ISO,
+                    PidCatalogVersion.version == "0.1.0",
+                )
+            )
+        )
+    assert len(active_versions) == 1
+    assert active_versions[0].manifest_hash == "a" * 64
+
+
+async def test_concurrent_activation_with_different_hashes_keeps_winner(
+    session_factory,
+) -> None:
+    repository = CatalogRepository(session_factory)
+    start = asyncio.Event()
+    ready = 0
+
+    async def activate(manifest_hash: str) -> str:
+        nonlocal ready
+        ready += 1
+        if ready == 2:
+            start.set()
+        await start.wait()
+        await repository.activate(
+            PidStandard.ISO,
+            "0.1.0",
+            manifest_hash,
+        )
+        return manifest_hash
+
+    results = await asyncio.gather(
+        activate("a" * 64),
+        activate("b" * 64),
+        return_exceptions=True,
+    )
+
+    winners = [result for result in results if isinstance(result, str)]
+    conflicts = [
+        result for result in results if isinstance(result, CatalogHashConflict)
+    ]
+    assert len(winners) == 1
+    assert len(conflicts) == 1
+    assert isinstance(conflicts[0], CatalogHashConflict)
+
+    active = await repository.get(PidStandard.ISO, "0.1.0")
+    assert active is not None
+    assert active.manifest_hash == winners[0]
 
 
 async def test_activate_conflicting_hash_preserves_original(session_factory) -> None:

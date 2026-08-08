@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
@@ -24,7 +25,7 @@ class SnapshotRepository:
         diagram_id: UUID,
         *,
         yjs_state: bytes,
-        document_projection: dict,
+        document_projection: dict[str, Any],
         schema_version: int,
         is_valid: bool,
     ) -> int:

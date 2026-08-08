@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
+from sqlalchemy.exc import DBAPIError
 
 from pid.models import PidDiagram, PidDocumentSnapshot
 from pid.repositories.snapshots import (
@@ -109,6 +110,128 @@ async def test_concurrent_appends_receive_distinct_ordered_revisions(
 
     assert sorted(revisions) == [1, 2]
     assert await repository.list_revisions(persisted_diagram_id) == [1, 2]
+
+
+async def test_append_rolls_back_flush_and_retention_when_delete_fails(
+    persisted_diagram_id,
+    session_factory,
+) -> None:
+    repository = SnapshotRepository(session_factory)
+    await repository.append(
+        persisted_diagram_id,
+        yjs_state=b"valid",
+        document_projection={"nodes": []},
+        schema_version=1,
+        is_valid=True,
+    )
+    await repository.append(
+        persisted_diagram_id,
+        yjs_state=b"invalid",
+        document_projection={"nodes": [{"id": "broken"}]},
+        schema_version=1,
+        is_valid=False,
+    )
+    trigger_name = "pid_test_reject_snapshot_delete"
+    function_name = "pid_test_reject_snapshot_delete_fn"
+
+    try:
+        async with session_factory() as session, session.begin():
+            await session.execute(
+                text(
+                    f"DROP TRIGGER IF EXISTS {trigger_name} "
+                    "ON pid_document_snapshots"
+                )
+            )
+            await session.execute(
+                text(f"DROP FUNCTION IF EXISTS {function_name}()")
+            )
+            await session.execute(
+                text(
+                    f"""
+                    CREATE FUNCTION {function_name}()
+                    RETURNS trigger
+                    LANGUAGE plpgsql
+                    AS $$
+                    BEGIN
+                        RAISE EXCEPTION 'injected snapshot delete failure';
+                    END;
+                    $$
+                    """
+                )
+            )
+            await session.execute(
+                text(
+                    f"""
+                    CREATE TRIGGER {trigger_name}
+                    BEFORE DELETE ON pid_document_snapshots
+                    FOR EACH ROW
+                    EXECUTE FUNCTION {function_name}()
+                    """
+                )
+            )
+
+        with pytest.raises(DBAPIError):
+            await repository.append(
+                persisted_diagram_id,
+                yjs_state=b"rolled-back",
+                document_projection={"nodes": []},
+                schema_version=1,
+                is_valid=True,
+            )
+    finally:
+        async with session_factory() as session, session.begin():
+            await session.execute(
+                text(
+                    f"DROP TRIGGER IF EXISTS {trigger_name} "
+                    "ON pid_document_snapshots"
+                )
+            )
+            await session.execute(
+                text(f"DROP FUNCTION IF EXISTS {function_name}()")
+            )
+
+    async with session_factory() as session:
+        snapshots = list(
+            await session.scalars(
+                select(PidDocumentSnapshot)
+                .where(PidDocumentSnapshot.diagram_id == persisted_diagram_id)
+                .order_by(PidDocumentSnapshot.revision.asc())
+            )
+        )
+    assert [(snapshot.revision, snapshot.yjs_state) for snapshot in snapshots] == [
+        (1, b"valid"),
+        (2, b"invalid"),
+    ]
+
+
+async def test_append_uses_maximum_sparse_revision(
+    persisted_diagram_id,
+    session_factory,
+) -> None:
+    async with session_factory() as session, session.begin():
+        session.add(
+            PidDocumentSnapshot(
+                diagram_id=persisted_diagram_id,
+                revision=10,
+                yjs_state=b"ten",
+                document_projection={"nodes": []},
+                schema_version=1,
+                is_valid=True,
+            )
+        )
+
+    revision = await SnapshotRepository(session_factory).append(
+        persisted_diagram_id,
+        yjs_state=b"eleven",
+        document_projection={"nodes": []},
+        schema_version=1,
+        is_valid=True,
+    )
+
+    assert revision == 11
+    assert await SnapshotRepository(session_factory).list_revisions(
+        persisted_diagram_id
+    ) == [10, 11]
 
 
 async def test_append_rejects_nonexistent_diagram(session_factory) -> None:
