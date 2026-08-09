@@ -1,24 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
-import type { OpenedPidDiagram } from "../api/contracts";
-import { PidLocalAdapterError } from "../api/local-pid-api";
-import { PidServicesBoundary, usePidServices } from "../api/pid-services";
+import { isPidDocumentError, type OpenedPidDiagram } from "../api/contracts";
+import { usePidServices } from "../api/pid-services";
 
 export function PidEditorPage() {
-  return (
-    <PidServicesBoundary>
-      <PidEditorPageContent />
-    </PidServicesBoundary>
-  );
-}
-
-function PidEditorPageContent() {
   const { document: documentPort } = usePidServices();
   const { diagramId = "" } = useParams();
   const { hash } = useLocation();
   const [opened, setOpened] = useState<OpenedPidDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The approved local flow retains the capability in fragment + memory so it
+  // never reaches the server; browser history/extensions remain a tradeoff.
   const token = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash).get("access") ?? "";
 
   useEffect(() => {
@@ -31,7 +24,7 @@ function PidEditorPageContent() {
       },
       (reason: unknown) => {
         if (!active) return;
-        setError(reason instanceof PidLocalAdapterError
+        setError(isPidDocumentError(reason)
           ? reason.message
           : "Não foi possível abrir o diagrama.");
       },

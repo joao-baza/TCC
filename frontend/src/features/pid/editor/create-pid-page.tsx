@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 
-import type { CreatedPidDiagram } from "../api/contracts";
-import { PidServicesBoundary, usePidServices } from "../api/pid-services";
+import { isPidDocumentError, type CreatedPidDiagram } from "../api/contracts";
+import { usePidServices } from "../api/pid-services";
 
 const createPidFormSchema = z.object({
   title: z.string().trim().min(1, "Informe o título do diagrama."),
@@ -15,23 +15,33 @@ type FormField = "title" | "standard" | "participantName";
 type FormErrors = Partial<Record<FormField, string>>;
 
 export function CreatePidPage() {
-  return (
-    <PidServicesBoundary>
-      <CreatePidPageContent />
-    </PidServicesBoundary>
-  );
-}
-
-function CreatePidPageContent() {
   const { document: documentPort } = usePidServices();
   const [errors, setErrors] = useState<FormErrors>({});
   const [created, setCreated] = useState<CreatedPidDiagram | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [statusIsError, setStatusIsError] = useState(false);
+  const submitting = useRef(false);
+
+  useEffect(() => {
+    if (!created || confirmed) return;
+    const protectCapability = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", protectCapability);
+    return () => window.removeEventListener("beforeunload", protectCapability);
+  }, [confirmed, created]);
+
+  const reportStatus = (message: string, isError = false) => {
+    setStatus(message);
+    setStatusIsError(isError);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting.current) return;
     const data = new FormData(event.currentTarget);
     const parsed = createPidFormSchema.safeParse({
       title: data.get("title"),
@@ -48,19 +58,32 @@ function CreatePidPageContent() {
       setStatus(null);
       return;
     }
+    if (created && !confirmed) {
+      reportStatus("Confirme que copiou o link de edição antes de criar outro diagrama.", true);
+      return;
+    }
+    if (created && !window.confirm("Criar outro diagrama substituirá os links exibidos. Deseja continuar?")) {
+      return;
+    }
 
+    submitting.current = true;
     setErrors({});
-    setCreated(null);
-    setConfirmed(false);
     setPending(true);
-    setStatus("Criando diagrama…");
+    reportStatus("Criando diagrama…");
     try {
       const result = await documentPort.create(parsed.data);
       setCreated(result);
-      setStatus("Diagrama criado. Guarde os links de acesso antes de abrir o editor.");
-    } catch {
-      setStatus("Não foi possível criar o diagrama. Tente novamente.");
+      setConfirmed(false);
+      reportStatus("Diagrama criado. Guarde os links de acesso antes de abrir ou sair desta página.");
+    } catch (error) {
+      reportStatus(
+        isPidDocumentError(error)
+          ? error.message
+          : "Não foi possível criar o diagrama. Tente novamente.",
+        true,
+      );
     } finally {
+      submitting.current = false;
       setPending(false);
     }
   };
@@ -68,11 +91,13 @@ function CreatePidPageContent() {
   const copyLink = async (label: string, url: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      setStatus(`${label} copiado.`);
+      reportStatus(`${label} copiado.`);
     } catch {
-      setStatus("Não foi possível copiar automaticamente. Selecione o link e copie manualmente.");
+      reportStatus("Não foi possível copiar automaticamente. Selecione o link e copie manualmente.", true);
     }
   };
+
+  const navigationLocked = Boolean(created && !confirmed);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-6 md:p-8">
@@ -82,7 +107,7 @@ function CreatePidPageContent() {
           Crie um diagrama local e guarde separadamente os links de visualização e edição.
         </p>
       </header>
-      <form className="grid max-w-xl gap-4" noValidate onSubmit={handleSubmit}>
+      <form aria-busy={pending} className="grid max-w-xl gap-4" noValidate onSubmit={handleSubmit}>
         <div className="grid gap-1">
           <label htmlFor="pid-title">Título do diagrama</label>
           <input
@@ -123,7 +148,7 @@ function CreatePidPageContent() {
       </form>
 
       {status && (
-        <p role={status.startsWith("Não foi") ? "alert" : "status"} aria-live="polite">
+        <p role={statusIsError ? "alert" : "status"} aria-live="polite">
           {status}
         </p>
       )}
@@ -131,32 +156,60 @@ function CreatePidPageContent() {
       {created && (
         <section aria-labelledby="pid-access-title" className="grid max-w-2xl gap-4 rounded-lg border p-4">
           <h2 id="pid-access-title" className="text-xl font-semibold">Links de acesso</h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <a className="break-all underline" href={created.viewUrl}>Link de visualização</a>
-            <button type="button" className="rounded-md border px-3 py-1" onClick={() => void copyLink("Link de visualização", created.viewUrl)}>
-              Copiar visualização
-            </button>
+          <div className="grid gap-1">
+            <label htmlFor="pid-view-url">Link de visualização</label>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                className="min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
+                id="pid-view-url"
+                onFocus={(event) => event.currentTarget.select()}
+                readOnly
+                value={created.viewUrl}
+              />
+              <button type="button" className="rounded-md border px-3 py-2" onClick={() => void copyLink("Link de visualização", created.viewUrl)}>
+                Copiar visualização
+              </button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <a className="break-all underline" href={created.editUrl}>Link de edição</a>
-            <button type="button" className="rounded-md border px-3 py-1" onClick={() => void copyLink("Link de edição", created.editUrl)}>
-              Copiar edição
-            </button>
+          <div className="grid gap-1">
+            <label htmlFor="pid-edit-url">Link de edição</label>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                className="min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
+                id="pid-edit-url"
+                onFocus={(event) => event.currentTarget.select()}
+                readOnly
+                value={created.editUrl}
+              />
+              <button type="button" className="rounded-md border px-3 py-2" onClick={() => void copyLink("Link de edição", created.editUrl)}>
+                Copiar edição
+              </button>
+            </div>
           </div>
           <label className="flex items-center gap-2">
             <input checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} type="checkbox" />
             Copiei o link de edição
           </label>
-          {confirmed ? (
-            <a className="w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground" href={created.editUrl}>Abrir editor</a>
-          ) : (
-            <button className="w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground opacity-50" disabled type="button">Abrir editor</button>
-          )}
+          <div className="flex flex-wrap gap-3">
+            {confirmed ? (
+              <>
+                <a className="w-fit rounded-md border px-4 py-2" href={created.viewUrl}>Abrir visualização</a>
+                <a className="w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground" href={created.editUrl}>Abrir editor</a>
+              </>
+            ) : (
+              <>
+                <button className="w-fit rounded-md border px-4 py-2 opacity-50" disabled type="button">Abrir visualização</button>
+                <button className="w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground opacity-50" disabled type="button">Abrir editor</button>
+              </>
+            )}
+          </div>
         </section>
       )}
-      <Link className="w-fit text-sm font-medium underline" to="/">
-        Voltar ao DCOU
-      </Link>
+      {navigationLocked ? (
+        <button className="w-fit text-sm font-medium underline opacity-50" disabled type="button">Voltar ao DCOU</button>
+      ) : (
+        <Link className="w-fit text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
+      )}
     </main>
   );
 }

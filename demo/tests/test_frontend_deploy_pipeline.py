@@ -34,6 +34,9 @@ def test_compose_routes_frontend_to_nginx_and_main_host_api_to_backend():
 def test_canonical_deploy_script_builds_and_uses_the_vite_frontend_image():
     script = read("deploy/deploy.sh")
 
-    assert 'docker build --no-cache -t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .' in script
+    assert (
+        'docker build --no-cache --build-arg VITE_PID_ADAPTER=local '
+        '-t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .'
+    ) in script
     assert 'docker stack deploy -c "$COMPOSE_FILE" "$STACK_NAME"' in script
     assert 'docker service update --force "$svc"' in script

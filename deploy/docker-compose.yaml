@@ -96,6 +96,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.frontend
+      args:
+        VITE_PID_ADAPTER: local
     networks:
       - SJNet
     deploy:

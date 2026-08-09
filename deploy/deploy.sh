@@ -160,7 +160,7 @@ else
   echo "==> Buildando imagem ${FRONTEND_IMAGE_NAME}..."
   # Sem --no-cache o Docker pode reutilizar camadas antigas mesmo após
   # sincronização/deploy com a mesma tag :latest.
-  docker build --no-cache -t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .
+  docker build --no-cache --build-arg VITE_PID_ADAPTER=local -t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .
 fi
 
 echo "==> Subindo stack ${STACK_NAME}..."

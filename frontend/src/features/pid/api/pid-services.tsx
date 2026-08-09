@@ -5,7 +5,11 @@ import type {
   PidCollaborationPort,
   PidServices,
 } from "./contracts";
-import { LocalPidApi, type LocalPidRuntime } from "./local-pid-api";
+import {
+  LocalPidApi,
+  type LocalPidExclusiveLock,
+  type LocalPidRuntime,
+} from "./local-pid-api";
 
 const adapterConfigurationError = "Adaptador P&ID não configurado";
 const PidServicesContext = createContext<PidServices | null>(null);
@@ -14,6 +18,7 @@ export interface CreatePidServicesOptions {
   adapter?: string;
   storage?: Storage;
   runtime?: LocalPidRuntime;
+  lock?: LocalPidExclusiveLock;
   catalog?: PidCatalogPort;
   collaboration?: PidCollaborationPort;
 }
@@ -50,8 +55,9 @@ export function createPidServices(options: CreatePidServicesOptions | string | u
 
   const storage = normalized.storage ?? browserStorage();
   const runtime = normalized.runtime ?? createBrowserLocalPidRuntime();
+  const lock = normalized.lock ?? createBrowserExclusiveLock();
   return {
-    document: new LocalPidApi(storage, runtime),
+    document: new LocalPidApi(storage, runtime, lock),
     catalog: normalized.catalog ?? unavailableCatalog,
     collaboration: normalized.collaboration ?? unavailableCollaboration,
   };
@@ -64,18 +70,27 @@ export function createBrowserLocalPidRuntime(): LocalPidRuntime {
   }
   return {
     generateUuid: () => runtimeCrypto.randomUUID(),
-    generateToken: () => {
-      const bytes = runtimeCrypto.getRandomValues(new Uint8Array(32));
-      let binary = "";
-      for (const byte of bytes) binary += String.fromCharCode(byte);
-      return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-    },
+    randomBytes: (length) => runtimeCrypto.getRandomValues(new Uint8Array(length)),
     digest: async (value) => {
       const bytes = await runtimeCrypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
       return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
     },
     now: () => new Date(),
     baseUrl: globalThis.location?.origin ?? "http://localhost",
+  };
+}
+
+export function createBrowserExclusiveLock(): LocalPidExclusiveLock {
+  const locks = globalThis.navigator?.locks;
+  if (!locks?.request) {
+    throw new Error("Web Locks indisponível para o adaptador P&ID local.");
+  }
+  return {
+    runExclusive: async (key, operation) => await locks.request(
+      key,
+      { mode: "exclusive" },
+      async () => await operation(),
+    ) as Awaited<ReturnType<typeof operation>>,
   };
 }
 

@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
-import { createBrowserRouter } from "react-router-dom";
-import { Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 
 import { App } from "@/app/app";
 import { AppShell } from "@/components/app-shell";
@@ -8,6 +7,7 @@ import { ComponentsPage } from "@/features/components/components-page";
 import { FlowPage } from "@/features/flow/flow-page";
 import { GlossaryPage } from "@/features/glossary/glossary-page";
 import { HomePage } from "@/features/home/home-page";
+import { PidServicesBoundary } from "@/features/pid/api/pid-services";
 import {
   PipingConnectionsTab,
   PipingPage,
@@ -38,6 +38,16 @@ function PidRouteFallback() {
   return <div role="status">Carregando editor P&ID…</div>;
 }
 
+function PidServicesLayout() {
+  return (
+    <PidServicesBoundary>
+      <Suspense fallback={<PidRouteFallback />}>
+        <Outlet />
+      </Suspense>
+    </PidServicesBoundary>
+  );
+}
+
 function EmptyRoute() {
   return null;
 }
@@ -49,19 +59,11 @@ export const routes = [
     children: [
       {
         path: "pid",
-        element: (
-          <Suspense fallback={<PidRouteFallback />}>
-            <CreatePidPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: "pid/:diagramId",
-        element: (
-          <Suspense fallback={<PidRouteFallback />}>
-            <PidEditorPage />
-          </Suspense>
-        ),
+        element: <PidServicesLayout />,
+        children: [
+          { index: true, element: <CreatePidPage /> },
+          { path: ":diagramId", element: <PidEditorPage /> },
+        ],
       },
       {
         element: <AppShell />,

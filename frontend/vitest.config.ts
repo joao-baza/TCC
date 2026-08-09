@@ -1,16 +1,21 @@
-import { defineConfig, mergeConfig } from "vitest/config";
+import { defineConfig, mergeConfig, type UserConfig } from "vitest/config";
 
 import viteConfig from "./vite.config";
 
-export default mergeConfig(
-  viteConfig,
-  defineConfig({
-    test: {
-      environment: "jsdom",
-      globals: true,
-      setupFiles: "./src/test/setup.ts",
-      include: ["src/test/**/*.test.{ts,tsx}"],
-      exclude: ["tests/e2e/**"],
+export default defineConfig((environment) => {
+  const resolvedViteConfig = typeof viteConfig === "function"
+    ? viteConfig(environment)
+    : viteConfig;
+  return mergeConfig(
+    resolvedViteConfig as UserConfig,
+    {
+      test: {
+        environment: "jsdom",
+        globals: true,
+        setupFiles: "./src/test/setup.ts",
+        include: ["src/test/**/*.test.{ts,tsx}"],
+        exclude: ["tests/e2e/**"],
+      },
     },
-  }),
-);
+  );
+});
