@@ -7,6 +7,7 @@ import { isCatalogSymbolCompatible } from "./catalog-compatibility";
 import {
   boundsForNodes,
   buildGraphIndex,
+  getPortConnectionRejection,
   hasSelectableElement,
   omitKeys,
   uniqueIds,
@@ -256,37 +257,9 @@ function connectDocumentPorts(
   allocateId: () => string,
 ): PidDocument {
   const source = document.ports[sourcePortId];
-  const target = document.ports[targetPortId];
-  if (!source || !target) {
-    throw commandError("command.connect.missing-port", "As duas portas da conexão devem existir.", ["ports"]);
-  }
-  if (source.id === target.id) {
-    throw commandError("connection.same-port", "Uma porta não pode ser conectada a ela mesma.", ["ports", source.id]);
-  }
-  if (source.nodeId === target.nodeId) {
-    throw commandError("connection.same-node", "Não é permitido conectar portas do mesmo nó.", ["ports"]);
-  }
-  if (source.direction === "input" || target.direction === "output") {
-    throw commandError("connection.direction", "A direção das portas é incompatível com a conexão.", ["ports"]);
-  }
-  if (source.connectionClass !== target.connectionClass) {
-    throw commandError("connection.class", "A classe das portas deve ser compatível.", ["ports"]);
-  }
-  const index = buildGraphIndex(document);
-  for (const port of [source, target]) {
-    if ((index.connectionCountByPort.get(port.id) ?? 0) >= port.capacity) {
-      throw commandError(
-        "connection.capacity",
-        `A capacidade da porta ${port.id} foi excedida.`,
-        ["ports", port.id, "capacity"],
-      );
-    }
-  }
-  if (Object.values(document.edges).some(
-    (edge) => edge.sourcePortId === source.id && edge.targetPortId === target.id,
-  )) {
-    throw commandError("connection.duplicate", "A mesma conexão não pode ser criada mais de uma vez.", ["edges"]);
-  }
+  const rejection = getPortConnectionRejection(document, sourcePortId, targetPortId);
+  if (rejection) throw commandError(rejection.code, rejection.message, rejection.path);
+  if (!source) throw new Error("A validação de conexão aceitou uma porta ausente.");
   const id = allocateId();
   const edge: PidEdge = {
     id,

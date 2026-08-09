@@ -6,6 +6,12 @@ export interface PidGraphIndex {
   readonly groupsByNode: ReadonlyMap<string, readonly string[]>;
 }
 
+export interface PortConnectionRejection {
+  readonly code: string;
+  readonly message: string;
+  readonly path: readonly (string | number)[];
+}
+
 export function buildGraphIndex(document: PidDocument): PidGraphIndex {
   const portsByNode = new Map<string, PidPort[]>();
   const connectionCountByPort = new Map<string, number>();
@@ -35,6 +41,55 @@ export function buildGraphIndex(document: PidDocument): PidGraphIndex {
   }
 
   return { portsByNode, connectionCountByPort, groupsByNode };
+}
+
+/** Shared candidate policy used by command reducers and UI adapters. */
+export function getPortConnectionRejection(
+  document: PidDocument,
+  sourcePortId: string,
+  targetPortId: string,
+): PortConnectionRejection | null {
+  const source = document.ports[sourcePortId];
+  const target = document.ports[targetPortId];
+  if (!source || !target) {
+    return rejection("command.connect.missing-port", "As duas portas da conexão devem existir.", ["ports"]);
+  }
+  if (source.id === target.id) {
+    return rejection("connection.same-port", "Uma porta não pode ser conectada a ela mesma.", ["ports", source.id]);
+  }
+  if (source.nodeId === target.nodeId) {
+    return rejection("connection.same-node", "Não é permitido conectar portas do mesmo nó.", ["ports"]);
+  }
+  if (source.direction === "input" || target.direction === "output") {
+    return rejection("connection.direction", "A direção das portas é incompatível com a conexão.", ["ports"]);
+  }
+  if (source.connectionClass !== target.connectionClass) {
+    return rejection("connection.class", "A classe das portas deve ser compatível.", ["ports"]);
+  }
+  const index = buildGraphIndex(document);
+  for (const port of [source, target]) {
+    if ((index.connectionCountByPort.get(port.id) ?? 0) >= port.capacity) {
+      return rejection(
+        "connection.capacity",
+        `A capacidade da porta ${port.id} foi excedida.`,
+        ["ports", port.id, "capacity"],
+      );
+    }
+  }
+  if (Object.values(document.edges).some(
+    (edge) => edge.sourcePortId === source.id && edge.targetPortId === target.id,
+  )) {
+    return rejection("connection.duplicate", "A mesma conexão não pode ser criada mais de uma vez.", ["edges"]);
+  }
+  return null;
+}
+
+function rejection(
+  code: string,
+  message: string,
+  path: readonly (string | number)[],
+): PortConnectionRejection {
+  return { code, message, path };
 }
 
 export function boundsForNodes(nodes: readonly PidNode[]): Pick<PidGroup, "x" | "y" | "width" | "height"> {

@@ -1,0 +1,299 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import {
+  createPidMoveCommand,
+  isPidConnectionValid,
+  normalizePidConnection,
+  PidCanvas,
+  pidConnectionCommand,
+} from "@/features/pid/canvas/pid-canvas";
+import { createCatalogIndex } from "@/features/pid/catalog/catalog-index";
+import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
+import type { PidDocument } from "@/features/pid/domain/model";
+import { orthogonalPath } from "@/features/pid/canvas/process-edge";
+
+const ids = {
+  document: "10000000-0000-4000-8000-000000000001",
+  pump: "20000000-0000-4000-8000-000000000002",
+  suction: "30000000-0000-4000-8000-000000000003",
+  discharge: "30000000-0000-4000-8000-000000000004",
+  tank: "20000000-0000-4000-8000-000000000005",
+  tankInlet: "30000000-0000-4000-8000-000000000006",
+  tankOutlet: "30000000-0000-4000-8000-000000000007",
+  utility: "30000000-0000-4000-8000-000000000008",
+  instrument: "20000000-0000-4000-8000-000000000009",
+  bidirectional: "30000000-0000-4000-8000-000000000010",
+  edge: "40000000-0000-4000-8000-000000000011",
+} as const;
+
+function pumpDocument(): PidDocument {
+  return {
+    schemaVersion: 1,
+    id: ids.document,
+    metadata: {
+      title: "Unidade 100",
+      standard: "free",
+      catalogVersion: "local-v1",
+      createdAt: "2026-08-09T12:00:00.000Z",
+      updatedAt: "2026-08-09T12:00:00.000Z",
+    },
+    nodes: {
+      [ids.pump]: {
+        id: ids.pump,
+        symbolKey: "project.pump.centrifugal",
+        catalogVersion: "local-v1",
+        x: 100,
+        y: 80,
+        width: 96,
+        height: 64,
+        rotation: 0,
+        tag: "P-101",
+        label: "Bomba",
+        properties: {},
+      },
+    },
+    ports: {
+      [ids.suction]: {
+        id: ids.suction,
+        nodeId: ids.pump,
+        templateKey: "suction",
+        direction: "input",
+        connectionClass: "process",
+        capacity: 1,
+      },
+      [ids.discharge]: {
+        id: ids.discharge,
+        nodeId: ids.pump,
+        templateKey: "discharge",
+        direction: "output",
+        connectionClass: "process",
+        capacity: 1,
+      },
+    },
+    edges: {},
+    annotations: {},
+    groups: {},
+  };
+}
+
+function connectionDocument(): PidDocument {
+  const document = pumpDocument();
+  document.ports[ids.discharge].capacity = 2;
+  document.nodes[ids.tank] = {
+    ...document.nodes[ids.pump],
+    id: ids.tank,
+    symbolKey: "project.tank.storage",
+    x: 360,
+    label: "Tanque",
+    tag: "T-101",
+  };
+  document.nodes[ids.instrument] = {
+    ...document.nodes[ids.pump],
+    id: ids.instrument,
+    symbolKey: "project.instrument.flow-indicator",
+    x: 620,
+    label: "Indicador",
+    tag: "FI-101",
+  };
+  document.ports[ids.tankInlet] = {
+    id: ids.tankInlet,
+    nodeId: ids.tank,
+    templateKey: "inlet",
+    direction: "input",
+    connectionClass: "process",
+    capacity: 2,
+  };
+  document.ports[ids.tankOutlet] = {
+    id: ids.tankOutlet,
+    nodeId: ids.tank,
+    templateKey: "outlet",
+    direction: "output",
+    connectionClass: "process",
+    capacity: 1,
+  };
+  document.ports[ids.utility] = {
+    id: ids.utility,
+    nodeId: ids.tank,
+    templateKey: "utility",
+    direction: "input",
+    connectionClass: "utility",
+    capacity: 1,
+  };
+  document.ports[ids.bidirectional] = {
+    id: ids.bidirectional,
+    nodeId: ids.instrument,
+    templateKey: "process",
+    direction: "bidirectional",
+    connectionClass: "process",
+    capacity: 2,
+  };
+  return document;
+}
+
+describe("PidCanvas", () => {
+  it("projeta equipamento e portas editáveis com semântica acessível", () => {
+    const onCommand = vi.fn();
+
+    render(
+      <PidCanvas
+        document={pumpDocument()}
+        catalog={localCatalog}
+        editable
+        onCommand={onCommand}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Bomba P-101/i }));
+    expect(screen.getByLabelText(/Porta de saída/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bomba P-101/i }).querySelector("img")).toHaveAttribute("draggable", "false");
+    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "true");
+    expect(screen.getByRole("button", { name: /Bomba P-101/i })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("mantém indicadores de porta no modo leitura sem ação para criar conexão", () => {
+    render(
+      <PidCanvas
+        document={pumpDocument()}
+        catalog={localCatalog}
+        editable={false}
+        onCommand={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText(/Porta de (entrada|saída)/i)).toHaveLength(2);
+    expect(screen.queryByLabelText(/Criar conexão/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "false");
+  });
+
+  it("aceita um CatalogIndex e degrada de forma tipada quando o símbolo não existe", () => {
+    const document = pumpDocument();
+    document.nodes[ids.pump].symbolKey = "project.missing.symbol";
+
+    render(
+      <PidCanvas
+        document={document}
+        catalog={createCatalogIndex(localCatalog)}
+        editable={false}
+        onCommand={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Símbolo indisponível")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bomba P-101/i })).toBeInTheDocument();
+  });
+
+  it("normaliza a ordem das alças e produz exclusivamente o comando canônico ports.connect", () => {
+    const document = connectionDocument();
+    const reversed = normalizePidConnection(document, {
+      sourceHandle: ids.tankInlet,
+      targetHandle: ids.discharge,
+    });
+
+    expect(reversed).toEqual({ sourcePortId: ids.discharge, targetPortId: ids.tankInlet });
+    expect(pidConnectionCommand(document, {
+      sourceHandle: ids.tankInlet,
+      targetHandle: ids.discharge,
+    })).toEqual({ type: "ports.connect", sourcePortId: ids.discharge, targetPortId: ids.tankInlet });
+    expect(pidConnectionCommand(document, { sourceHandle: null, targetHandle: ids.tankInlet })).toBeNull();
+  });
+
+  it("valida ausência, identidade, nó, direção, classe, capacidade, duplicidade e bidirecionalidade", () => {
+    const document = connectionDocument();
+
+    expect(isPidConnectionValid(document, "missing", ids.tankInlet)).toBe(false);
+    expect(isPidConnectionValid(document, ids.discharge, ids.discharge)).toBe(false);
+    expect(isPidConnectionValid(document, ids.discharge, ids.suction)).toBe(false);
+    expect(isPidConnectionValid(document, ids.discharge, ids.tankOutlet)).toBe(false);
+    expect(isPidConnectionValid(document, ids.suction, ids.tankInlet)).toBe(false);
+    expect(isPidConnectionValid(document, ids.discharge, ids.utility)).toBe(false);
+    expect(isPidConnectionValid(document, ids.discharge, ids.tankInlet)).toBe(true);
+    expect(isPidConnectionValid(document, ids.discharge, ids.bidirectional)).toBe(true);
+    expect(isPidConnectionValid(document, ids.bidirectional, ids.tankInlet)).toBe(true);
+
+    document.edges[ids.edge] = {
+      id: ids.edge,
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+      connectionClass: "process",
+      route: [],
+      tag: "",
+      label: "",
+      properties: {},
+    };
+    expect(isPidConnectionValid(document, ids.discharge, ids.tankInlet)).toBe(false);
+    document.ports[ids.discharge].capacity = 1;
+    expect(isPidConnectionValid(document, ids.discharge, ids.bidirectional)).toBe(false);
+  });
+
+  it("emite um único delta canônico para todos os nós selecionados no fim do drag", () => {
+    const document = connectionDocument();
+
+    expect(createPidMoveCommand(document, ids.pump, { x: 132, y: 112 }, [ids.pump, ids.tank])).toEqual({
+      type: "selection.move",
+      ids: [ids.pump, ids.tank],
+      delta: { x: 32, y: 32 },
+    });
+    expect(createPidMoveCommand(document, ids.pump, { x: 100, y: 80 }, [ids.pump])).toBeNull();
+  });
+
+  it("preserva o documento, informa seleção apenas pelo callback e não emite comando ao selecionar", () => {
+    const document = pumpDocument();
+    const snapshot = structuredClone(document);
+    const onCommand = vi.fn();
+    const onSelectionChange = vi.fn();
+    render(
+      <PidCanvas
+        document={document}
+        catalog={localCatalog}
+        editable
+        onCommand={onCommand}
+        onSelectionChange={onSelectionChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Bomba P-101/i }));
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [ids.pump], edgeIds: [] });
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(document).toEqual(snapshot);
+  });
+
+  it("desenha a rota canônica ortogonal e expõe tag e label da linha", async () => {
+    const document = connectionDocument();
+    document.edges[ids.edge] = {
+      id: ids.edge,
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+      connectionClass: "process",
+      route: [{ x: 240, y: 112 }, { x: 240, y: 180 }],
+      tag: "L-101",
+      label: "Produto",
+      properties: {},
+    };
+
+    render(<PidCanvas document={document} catalog={localCatalog} editable onCommand={vi.fn()} />);
+
+    expect(await screen.findByText("L-101 Produto")).toBeInTheDocument();
+    expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute(
+      "d",
+      expect.stringContaining("L 240 112 L 240 180"),
+    );
+    expect(orthogonalPath(
+      { x: 196, y: 112 },
+      document.edges[ids.edge].route,
+      { x: 360, y: 112 },
+    )).toBe("M 196 112 L 240 112 L 240 180 L 360 112");
+  });
+
+  it("mantém os módulos de domínio livres de React e @xyflow/react", () => {
+    const domainRoot = resolve(process.cwd(), "src/features/pid/domain");
+    for (const file of ["model.ts", "projection.ts", "graph-operations.ts", "commands.ts", "command-reducers.ts"]) {
+      const source = readFileSync(resolve(domainRoot, file), "utf8");
+      expect(source).not.toMatch(/@xyflow\/react|from ["']react["']/);
+    }
+  });
+});
