@@ -1,12 +1,52 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { CatalogValidationError, createCatalogIndex } from "@/features/pid/catalog/catalog-index";
+import { parseCatalogSymbol } from "@/features/pid/catalog/catalog-symbol";
 import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
 import { applyCommand, insertSymbol } from "@/features/pid/domain/commands";
 import { LOCAL_PID_CATALOG_VERSION } from "@/features/pid/domain/catalog-version";
 import { createEmptyDocument } from "@/features/pid/domain/schema";
 
 describe("createCatalogIndex", () => {
+  it.each([
+    ["accessor", () => {
+      const value = { ...localCatalog[0] } as Record<string, unknown>;
+      Object.defineProperty(value, "name", { enumerable: true, get: () => "Bomba" });
+      return value;
+    }],
+    ["prototype não simples", () => Object.assign(Object.create({ inherited: true }), localCatalog[0])],
+    ["símbolo próprio", () => {
+      const value = { ...localCatalog[0] } as Record<PropertyKey, unknown>;
+      value[Symbol("catalog")] = true;
+      return value;
+    }],
+    ["proxy", () => new Proxy({ ...localCatalog[0] }, {})],
+    ["array esparso", () => ({ ...localCatalog[0], aliases: new Array(1) })],
+    ["ciclo", () => {
+      const properties: Record<string, unknown> = {};
+      properties.self = properties;
+      return { ...localCatalog[0], properties };
+    }],
+  ])("rejeita decoder adversarial: %s", (_label, makeValue) => {
+    expect(() => parseCatalogSymbol(makeValue())).toThrow(CatalogValidationError);
+  });
+
+  it("não aceita chaves não canônicas nem caminhos de ativo ambíguos", () => {
+    expect(() => parseCatalogSymbol({ ...localCatalog[0], key: "Project.Pump" })).toThrow("key");
+    expect(() => parseCatalogSymbol({ ...localCatalog[0], portTemplates: [{ ...localCatalog[0].portTemplates[0], key: "Signal" }] }))
+      .toThrow("key");
+    expect(() => parseCatalogSymbol({ ...localCatalog[0], assetUrl: "/pid/symbols/%2e%2e/pump.svg" })).toThrow("asset");
+    expect(() => parseCatalogSymbol({ ...localCatalog[0], assetUrl: "/pid/symbols/pump.svg?x=1" })).toThrow("asset");
+  });
+
+  it("rejeita accessors sem executá-los", () => {
+    let reads = 0;
+    const value = { ...localCatalog[0] } as Record<string, unknown>;
+    Object.defineProperty(value, "name", { enumerable: true, get: () => { reads += 1; return "Bomba"; } });
+    expect(() => parseCatalogSymbol(value)).toThrow(CatalogValidationError);
+    expect(reads).toBe(0);
+  });
+
   it("encontra bomba por alias em português sem acento", () => {
     const index = createCatalogIndex(localCatalog);
 
@@ -21,6 +61,15 @@ describe("createCatalogIndex", () => {
       .toBe(true);
     expect(index.search("", { standard: "iso" }).every((item) => item.standards.includes("iso")))
       .toBe(true);
+  });
+
+  it("libera ativos aprovados apenas ISO em documentos Free, mas não os mistura em ISA", () => {
+    const isoOnly = { ...localCatalog[1], key: "project.iso-only.tank", standards: ["iso"] as const };
+    const index = createCatalogIndex([isoOnly]);
+    expect(index.search("", { standard: "free" }).map((symbol) => symbol.key)).toEqual([isoOnly.key]);
+    expect(index.search("", { standard: "isa" })).toEqual([]);
+    const document = createEmptyDocument({ title: "Livre", standard: "free" });
+    expect(() => applyCommand(document, insertSymbol(index.search("", { standard: "free" })[0], { x: 0, y: 0 }))).not.toThrow();
   });
 
   it.each(localCatalog.flatMap((symbol) => symbol.standards.map((standard) => [symbol, standard] as const)))(
@@ -132,7 +181,7 @@ describe("createCatalogIndex", () => {
   it("não ordena nem classifica novamente uma busca vazia em catálogo grande", () => {
     const catalog = Array.from({ length: 400 }, (_, index) => ({
       ...localCatalog[0],
-      key: `project.synthetic.${String(400 - index).padStart(3, "0")}`,
+      key: `project.synthetic.item${String(400 - index).padStart(3, "0")}`,
       name: `Bomba ${index}`,
       aliases: [`pump ${index}`],
     }));

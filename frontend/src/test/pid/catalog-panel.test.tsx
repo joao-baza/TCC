@@ -23,34 +23,54 @@ describe("CatalogPanel", () => {
     fireEvent.change(screen.getByRole("searchbox", { name: "Pesquisar símbolos" }), {
       target: { value: "centrifuga" },
     });
-    expect(screen.getByRole("button", { name: "Inserir Bomba centrífuga" })).toBeVisible();
+    expect(screen.getByRole("treeitem", { name: /^Inserir Bomba centrífuga/ })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Fonte: Projeto" }));
-    expect(screen.getByRole("button", { name: "Inserir Bomba centrífuga" })).toBeVisible();
+    expect(screen.getByRole("treeitem", { name: /^Inserir Bomba centrífuga/ })).toBeVisible();
   });
 
   it("permite recolher categorias sem ocultar o botão semântico", () => {
     renderPanel();
 
-    const category = screen.getByRole("button", { name: "Equipamentos" });
+    const category = screen.getByRole("treeitem", { name: "Equipamentos" });
     fireEvent.click(category);
     expect(category).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("button", { name: "Inserir Bomba centrífuga" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: /^Inserir Bomba centrífuga/ })).not.toBeInTheDocument();
 
     fireEvent.click(category);
     expect(category).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "Inserir Bomba centrífuga" })).toBeVisible();
+    expect(screen.getByRole("treeitem", { name: /^Inserir Bomba centrífuga/ })).toBeVisible();
   });
 
-  it("insere uma vez pelo botão e pela tecla Enter na linha", () => {
+  it("insere uma vez pela tecla Enter ou clique na mesma linha-botão", () => {
     const onInsert = renderPanel();
-    const row = screen.getByRole("option", { name: /Bomba centrífuga/ });
+    const row = screen.getByRole("treeitem", { name: /^Inserir Bomba centrífuga/ });
 
     fireEvent.keyDown(row, { key: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: "Inserir Bomba centrífuga" }));
+    fireEvent.click(row);
 
     expect(onInsert).toHaveBeenCalledTimes(2);
     expect(onInsert).toHaveBeenNthCalledWith(1, expect.objectContaining({ key: "project.pump.centrifugal" }));
+  });
+
+  it("move o foco na árvore e insere com Enter sem criar botão aninhado", () => {
+    const onInsert = renderPanel();
+    const category = screen.getByRole("treeitem", { name: "Equipamentos" });
+    category.focus();
+    fireEvent.keyDown(category, { key: "ArrowDown" });
+    const pump = screen.getByRole("treeitem", { name: /^Inserir Bomba centrífuga/ });
+    expect(pump).toHaveFocus();
+    fireEvent.keyDown(pump, { key: "Enter" });
+    expect(onInsert).toHaveBeenCalledTimes(1);
+    expect(pump.querySelector("button")).toBeNull();
+  });
+
+  it("respeita atualização de source controlada", () => {
+    const index = createCatalogIndex(localCatalog);
+    const { rerender } = render(<CatalogPanel index={index} standard="free" source="project" onInsert={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Fonte: Projeto" })).toHaveAttribute("aria-pressed", "true");
+    rerender(<CatalogPanel index={index} standard="free" onInsert={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Fonte: Projeto" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("mostra estado vazio e permite limpar a busca", () => {
@@ -66,7 +86,7 @@ describe("CatalogPanel", () => {
   it("mantém uma janela virtual pequena para um catálogo sintético grande", () => {
     const catalog = Array.from({ length: 120 }, (_, index) => ({
       ...localCatalog[0],
-      key: `project.synthetic.${index}`,
+      key: `project.synthetic.item${index}`,
       name: `Bomba sintética ${index}`,
       aliases: [`bomba sintetica ${index}`],
     }));
@@ -77,8 +97,8 @@ describe("CatalogPanel", () => {
 
     render(<CatalogPanel symbols={catalog} standard="free" onInsert={vi.fn()} />);
 
-    expect(screen.getAllByRole("button", { name: /Inserir Bomba sintética/ })).toHaveLength(11);
-    expect(screen.queryByRole("button", { name: "Inserir Bomba sintética 119" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("treeitem", { name: /Inserir Bomba sintética/ })).toHaveLength(11);
+    expect(screen.queryByRole("treeitem", { name: /Inserir Bomba sintética 119/ })).not.toBeInTheDocument();
     rect.mockRestore();
   });
 });

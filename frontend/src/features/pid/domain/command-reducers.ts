@@ -3,6 +3,7 @@ import {
   type CatalogSymbol,
   type PidCommand,
 } from "./command-contract";
+import { isCatalogSymbolCompatible } from "./catalog-compatibility";
 import {
   boundsForNodes,
   buildGraphIndex,
@@ -77,7 +78,7 @@ function insertCatalogSymbol(
   position: Point,
   allocateId: () => string,
 ): PidDocument {
-  if (document.metadata.standard !== "free" && !symbol.standards.includes(document.metadata.standard)) {
+  if (!isCatalogSymbolCompatible(document.metadata.standard, symbol.standards)) {
     throw commandError(
       "command.symbol.incompatible-standard",
       "O símbolo não é compatível com o standard do documento.",

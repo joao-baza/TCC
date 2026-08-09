@@ -1,31 +1,6 @@
-import type { CatalogSymbol as InsertionCatalogSymbol } from "../../domain/command-contract";
 import { LOCAL_PID_CATALOG_VERSION } from "../../domain/catalog-version";
-import type { PidStandard } from "../../domain/model";
-
-export type CatalogSourceKind = "project";
-
-export interface CatalogProvenance {
-  sourceKind: CatalogSourceKind;
-  sourceName: string;
-  license: {
-    name: string;
-    reference: string;
-  };
-  attribution: string;
-}
-
-/**
- * Enriches the domain insertion contract with presentation and provenance data.
- * The domain never imports this type, keeping catalog ownership at the boundary.
- */
-export interface CatalogSymbol extends InsertionCatalogSymbol {
-  aliases: readonly string[];
-  category: string;
-  assetUrl: string;
-  viewBox: string;
-  source: CatalogProvenance;
-  standards: PidStandard[];
-}
+import type { CatalogSymbol } from "../catalog-symbol";
+export type { CatalogProvenance, CatalogSourceKind, CatalogSymbol } from "../catalog-symbol";
 
 const projectSource = {
   sourceKind: "project",

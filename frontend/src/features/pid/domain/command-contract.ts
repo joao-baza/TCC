@@ -7,19 +7,19 @@ import type {
 } from "./model";
 
 export interface CatalogPortTemplate {
-  key: string;
-  direction: PortDirection;
-  connectionClass: ConnectionClass;
-  capacity: number;
+  readonly key: string;
+  readonly direction: PortDirection;
+  readonly connectionClass: ConnectionClass;
+  readonly capacity: number;
 }
 
 export interface CatalogSymbol {
   key: string;
-  standards: PidStandard[];
+  standards: readonly PidStandard[];
   catalogVersion: string;
   name: string;
-  defaultSize: { width: number; height: number };
-  portTemplates: CatalogPortTemplate[];
+  defaultSize: Readonly<{ width: number; height: number }>;
+  portTemplates: readonly CatalogPortTemplate[];
   tag?: string;
   label?: string;
   properties?: PidProperties;
