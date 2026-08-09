@@ -31,27 +31,35 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
       data-selected={selected ? "true" : "false"}
       aria-selected={selected}
     >
-      <div
-        className="flex h-full min-h-0 flex-col items-center justify-center gap-1"
-        style={{ transform: `rotate(${equipment.rotation}deg)` }}
-      >
-        {symbol ? (
-          <img
-            src={symbol.assetUrl}
-            alt=""
-            draggable={false}
-            className="min-h-0 max-h-full max-w-full flex-1 object-contain"
-          />
-        ) : (
-          <div className="flex min-h-10 w-full items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-center text-[10px] text-slate-500">
-            Símbolo indisponível
-          </div>
-        )}
-        <span className="max-w-full truncate text-[10px] font-semibold text-slate-800">{title}</span>
+      <div className="flex h-full min-h-0 flex-col items-center justify-center gap-1">
+        <div
+          data-testid={`equipment-artwork-${equipment.id}`}
+          className="flex min-h-0 max-h-full max-w-full flex-1 items-center justify-center"
+          style={{ transform: `rotate(${equipment.rotation}deg)` }}
+        >
+          {symbol ? (
+            <img
+              src={symbol.assetUrl}
+              alt=""
+              draggable={false}
+              className="min-h-0 max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <div className="flex min-h-10 w-full items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-center text-[10px] text-slate-500">
+              Símbolo indisponível
+            </div>
+          )}
+        </div>
+        <span
+          data-testid={`equipment-caption-${equipment.id}`}
+          className="max-w-full truncate text-[10px] font-semibold text-slate-800"
+        >
+          {title}
+        </span>
       </div>
 
       {ports.map((port, index) => {
-        const geometry = getPortHandleGeometry(port, index, ports);
+        const geometry = getPortHandleGeometry(port, index, ports, equipment.rotation);
         const portText = `Porta de ${directionLabel[port.direction]} ${port.templateKey}`;
         const style = normalizedPortStyle(geometry);
         if (!editable) {
@@ -88,14 +96,19 @@ export function getPortHandleGeometry(
   port: PidPort,
   index: number,
   ports: readonly PidPort[],
+  rotation = 0,
 ): { position: Position; x: number; y: number } {
   const side = sideForDirection(port.direction);
   const sameSide = ports.filter((candidate) => sideForDirection(candidate.direction) === side);
   const sideIndex = sameSide.findIndex((candidate) => candidate === ports[index]);
   const offset = (sideIndex + 1) / (sameSide.length + 1);
-  if (port.direction === "input") return { position: Position.Left, x: 0, y: offset };
-  if (port.direction === "output") return { position: Position.Right, x: 1, y: offset };
-  return { position: Position.Bottom, x: offset, y: 1 };
+  const base = port.direction === "input"
+    ? { x: 0, y: offset }
+    : port.direction === "output"
+      ? { x: 1, y: offset }
+      : { x: offset, y: 1 };
+  const point = rotateNormalizedPoint(base, rotation);
+  return { ...point, position: positionForPoint(point) };
 }
 
 function normalizedPortStyle(
@@ -103,7 +116,28 @@ function normalizedPortStyle(
 ): { left?: string; right?: string; top?: string; bottom?: string } {
   if (geometry.position === Position.Left) return { left: "0%", top: `${geometry.y * 100}%` };
   if (geometry.position === Position.Right) return { right: "0%", top: `${geometry.y * 100}%` };
+  if (geometry.position === Position.Top) return { left: `${geometry.x * 100}%`, top: "0%" };
   return { left: `${geometry.x * 100}%`, bottom: "0%" };
+}
+
+function rotateNormalizedPoint(point: { x: number; y: number }, rotation: number): { x: number; y: number } {
+  switch (((rotation % 360) + 360) % 360) {
+    case 90:
+      return { x: 1 - point.y, y: point.x };
+    case 180:
+      return { x: 1 - point.x, y: 1 - point.y };
+    case 270:
+      return { x: point.y, y: 1 - point.x };
+    default:
+      return point;
+  }
+}
+
+function positionForPoint(point: { x: number; y: number }): Position {
+  if (point.x === 0) return Position.Left;
+  if (point.x === 1) return Position.Right;
+  if (point.y === 0) return Position.Top;
+  return Position.Bottom;
 }
 
 function sideForDirection(direction: PortDirection): Position {

@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -28,7 +29,14 @@ const ids = {
   instrument: "20000000-0000-4000-8000-000000000009",
   bidirectional: "30000000-0000-4000-8000-000000000010",
   edge: "40000000-0000-4000-8000-000000000011",
+  auxiliary: "30000000-0000-4000-8000-000000000012",
 } as const;
+
+function dispatchFlowMouseEvent(target: Element | Window, type: string, init: MouseEventInit) {
+  const event = new MouseEvent(type, { bubbles: true, cancelable: true, ...init });
+  Object.defineProperty(event, "view", { value: document.defaultView });
+  fireEvent(target, event);
+}
 
 function pumpDocument(): PidDocument {
   return {
@@ -134,6 +142,24 @@ function connectionDocument(): PidDocument {
   return document;
 }
 
+function emptyGraph(document: PidDocument): PidDocument {
+  return { ...document, nodes: {}, ports: {}, edges: {} };
+}
+
+function pathPoints(path: string): Array<{ x: number; y: number }> {
+  return [...path.matchAll(/[ML]\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g)]
+    .map((match) => ({ x: Number(match[1]), y: Number(match[2]) }));
+}
+
+function expectAxisAligned(points: readonly { x: number; y: number }[]) {
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    expect(current.x === previous.x || current.y === previous.y).toBe(true);
+    expect(current).not.toEqual(previous);
+  }
+}
+
 describe("PidCanvas", () => {
   it("projeta equipamento e portas editáveis com semântica acessível", () => {
     const onCommand = vi.fn();
@@ -201,6 +227,29 @@ describe("PidCanvas", () => {
     expect(pidConnectionCommand(document, { sourceHandle: null, targetHandle: ids.tankInlet })).toBeNull();
   });
 
+  it("emite ports.connect pelo caminho real de clique entre Handles do React Flow", async () => {
+    const onCommand = vi.fn();
+    render(<PidCanvas document={connectionDocument()} catalog={localCatalog} editable onCommand={onCommand} />);
+    const target = screen.getByLabelText(/Criar conexão pela porta de entrada inlet/i);
+    const originalElementFromPoint = Object.getOwnPropertyDescriptor(document, "elementFromPoint");
+    Object.defineProperty(document, "elementFromPoint", { configurable: true, value: () => target });
+
+    try {
+      fireEvent.click(screen.getByLabelText(/Criar conexão pela porta de saída discharge/i));
+      fireEvent.click(target);
+    } finally {
+      if (originalElementFromPoint) Object.defineProperty(document, "elementFromPoint", originalElementFromPoint);
+      else Reflect.deleteProperty(document, "elementFromPoint");
+    }
+
+    await waitFor(() => expect(onCommand).toHaveBeenCalledTimes(1));
+    expect(onCommand).toHaveBeenCalledWith({
+      type: "ports.connect",
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+    });
+  });
+
   it("valida ausência, identidade, nó, direção, classe, capacidade, duplicidade e bidirecionalidade", () => {
     const document = connectionDocument();
 
@@ -240,6 +289,66 @@ describe("PidCanvas", () => {
     expect(createPidMoveCommand(document, ids.pump, { x: 100, y: 80 }, [ids.pump])).toBeNull();
   });
 
+  it("emite um único selection.move pelo drag real do React Flow", async () => {
+    const onCommand = vi.fn();
+    render(<PidCanvas document={pumpDocument()} catalog={localCatalog} editable onCommand={onCommand} />);
+    const pump = screen.getByRole("button", { name: /Bomba P-101/i });
+
+    dispatchFlowMouseEvent(pump, "mousedown", { button: 0, buttons: 1, clientX: 100, clientY: 80 });
+    dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 96, clientY: 80 });
+    dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 128, clientY: 112 });
+    dispatchFlowMouseEvent(window, "mouseup", { button: 0, clientX: 128, clientY: 112 });
+
+    await waitFor(() => expect(onCommand).toHaveBeenCalledTimes(1));
+    expect(onCommand).toHaveBeenCalledWith({
+      type: "selection.move",
+      ids: [ids.pump],
+      delta: { x: 28, y: 32 },
+    });
+  });
+
+  it("arrasta a multiseleção real sem duplicar selection.move", async () => {
+    const onCommand = vi.fn();
+    render(<PidCanvas document={connectionDocument()} catalog={localCatalog} editable onCommand={onCommand} />);
+    const pump = screen.getByRole("button", { name: /Bomba P-101/i });
+    const tank = screen.getByRole("button", { name: /Tanque T-101/i });
+    fireEvent.click(pump);
+    fireEvent.keyDown(window, { key: "Control", code: "ControlLeft" });
+    fireEvent.click(tank, { ctrlKey: true });
+    fireEvent.keyUp(window, { key: "Control", code: "ControlLeft" });
+
+    dispatchFlowMouseEvent(pump, "mousedown", { button: 0, buttons: 1, clientX: 100, clientY: 80 });
+    dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 96, clientY: 80 });
+    dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 128, clientY: 112 });
+    dispatchFlowMouseEvent(window, "mouseup", { button: 0, clientX: 128, clientY: 112 });
+
+    await waitFor(() => expect(onCommand).toHaveBeenCalledTimes(1));
+    expect(onCommand).toHaveBeenCalledWith({
+      type: "selection.move",
+      ids: [ids.pump, ids.tank],
+      delta: { x: 28, y: 32 },
+    });
+  });
+
+  it("emite exclusão real apenas no modo editável", async () => {
+    const editableCommand = vi.fn();
+    const { unmount } = render(
+      <PidCanvas document={pumpDocument()} catalog={localCatalog} editable onCommand={editableCommand} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Bomba P-101/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Bomba P-101/i })).toHaveAttribute("aria-pressed", "true"));
+    fireEvent.keyDown(document, { key: "Delete", code: "Delete" });
+    await waitFor(() => expect(editableCommand).toHaveBeenCalledTimes(1));
+    expect(editableCommand).toHaveBeenCalledWith({ type: "selection.delete", ids: [ids.pump] });
+    unmount();
+
+    const readOnlyCommand = vi.fn();
+    render(<PidCanvas document={pumpDocument()} catalog={localCatalog} editable={false} onCommand={readOnlyCommand} />);
+    fireEvent.click(screen.getByRole("button", { name: /Bomba P-101/i }));
+    fireEvent.keyDown(document, { key: "Delete", code: "Delete" });
+    expect(readOnlyCommand).not.toHaveBeenCalled();
+  });
+
   it("preserva o documento, informa seleção apenas pelo callback e não emite comando ao selecionar", () => {
     const document = pumpDocument();
     const snapshot = structuredClone(document);
@@ -262,14 +371,65 @@ describe("PidCanvas", () => {
     expect(document).toEqual(snapshot);
   });
 
-  it("desenha a rota canônica ortogonal e expõe tag e label da linha", async () => {
+  it("notifica seleção uma vez no StrictMode e poda IDs ausentes em uma substituição", async () => {
     const document = connectionDocument();
     document.edges[ids.edge] = {
       id: ids.edge,
       sourcePortId: ids.discharge,
       targetPortId: ids.tankInlet,
       connectionClass: "process",
-      route: [{ x: 240, y: 112 }, { x: 240, y: 180 }],
+      route: [],
+      tag: "L-101",
+      label: "Produto",
+      properties: {},
+    };
+    const onSelectionChange = vi.fn();
+    const { rerender } = render(
+      <StrictMode>
+        <PidCanvas
+          document={document}
+          catalog={localCatalog}
+          editable
+          onCommand={vi.fn()}
+          onSelectionChange={onSelectionChange}
+        />
+      </StrictMode>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Bomba P-101/i }));
+    fireEvent.keyDown(window, { key: "Control", code: "ControlLeft" });
+    fireEvent.click(await screen.findByRole("group", { name: /L-101 Produto/i }), { ctrlKey: true });
+    fireEvent.keyUp(window, { key: "Control", code: "ControlLeft" });
+    await waitFor(() => expect(onSelectionChange).toHaveBeenLastCalledWith({
+      nodeIds: [ids.pump],
+      edgeIds: [ids.edge],
+    }));
+    expect(onSelectionChange).toHaveBeenCalledTimes(2);
+    onSelectionChange.mockClear();
+
+    rerender(
+      <StrictMode>
+        <PidCanvas
+          document={emptyGraph(document)}
+          catalog={localCatalog}
+          editable
+          onCommand={vi.fn()}
+          onSelectionChange={onSelectionChange}
+        />
+      </StrictMode>,
+    );
+
+    await waitFor(() => expect(onSelectionChange).toHaveBeenCalledWith({ nodeIds: [], edgeIds: [] }));
+    expect(onSelectionChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("desenha rota Manhattan por waypoints arbitrários sem segmentos diagonais ou nulos", async () => {
+    const document = connectionDocument();
+    document.edges[ids.edge] = {
+      id: ids.edge,
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+      connectionClass: "process",
+      route: [{ x: 240, y: 180 }, { x: 240, y: 180 }, { x: 300, y: 140 }],
       tag: "L-101",
       label: "Produto",
       properties: {},
@@ -278,15 +438,58 @@ describe("PidCanvas", () => {
     render(<PidCanvas document={document} catalog={localCatalog} editable onCommand={vi.fn()} />);
 
     expect(await screen.findByText("L-101 Produto")).toBeInTheDocument();
-    expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute(
-      "d",
-      expect.stringContaining("L 240 112 L 240 180"),
-    );
-    expect(orthogonalPath(
+    const rendered = screen.getByTestId(`process-edge-${ids.edge}`).getAttribute("d") ?? "";
+    expectAxisAligned(pathPoints(rendered));
+    const path = orthogonalPath(
       { x: 196, y: 112 },
       document.edges[ids.edge].route,
       { x: 360, y: 112 },
-    )).toBe("M 196 112 L 240 112 L 240 180 L 360 112");
+    );
+    const points = pathPoints(path);
+    expectAxisAligned(points);
+    expect(points).toEqual(expect.arrayContaining([
+      { x: 240, y: 180 },
+      { x: 300, y: 140 },
+      { x: 360, y: 112 },
+    ]));
+    expect(pathPoints(orthogonalPath(
+      { x: 5, y: 5 },
+      [{ x: 5, y: 5 }, { x: 5, y: 5 }],
+      { x: 5, y: 5 },
+    ))).toEqual([{ x: 5, y: 5 }]);
+  });
+
+  it.each([
+    [0, "left", 100 / 3, "rotate(0deg)"],
+    [90, "top", 200 / 3, "rotate(90deg)"],
+    [180, "right", 200 / 3, "rotate(180deg)"],
+    [270, "bottom", 100 / 3, "rotate(270deg)"],
+  ] as const)("rotaciona somente a arte e move a porta assimétrica em %i°", async (
+    rotation,
+    position,
+    offset,
+    artworkTransform,
+  ) => {
+    const document = pumpDocument();
+    document.nodes[ids.pump].rotation = rotation;
+    document.ports[ids.auxiliary] = {
+      ...document.ports[ids.suction],
+      id: ids.auxiliary,
+      templateKey: "auxiliary",
+    };
+    render(<PidCanvas document={document} catalog={localCatalog} editable onCommand={vi.fn()} />);
+
+    const handle = screen.getByLabelText(/Criar conexão pela porta de entrada suction/i);
+    expect(handle).toHaveAttribute("data-handlepos", position);
+    expect(handle.style[position]).toBe("0%");
+    if (position === "left" || position === "right") {
+      expect(Number.parseFloat(handle.style.top)).toBeCloseTo(offset);
+    } else {
+      expect(Number.parseFloat(handle.style.left)).toBeCloseTo(offset);
+    }
+    expect(screen.getByTestId(`equipment-artwork-${ids.pump}`)).toHaveStyle({ transform: artworkTransform });
+    expect(screen.getByTestId(`equipment-caption-${ids.pump}`)).not.toHaveAttribute("style");
+    expect(screen.getByText("Bomba P-101")).toBeInTheDocument();
   });
 
   it("mantém os módulos de domínio livres de React e @xyflow/react", () => {

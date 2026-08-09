@@ -21,11 +21,14 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
   if (!props.data) return null;
   const { processEdge, route } = props.data;
   const [fallbackPath, fallbackLabelX, fallbackLabelY] = getSmoothStepPath(props);
-  const path = route.length > 0
-    ? orthogonalPath({ x: props.sourceX, y: props.sourceY }, route, { x: props.targetX, y: props.targetY })
+  const routePoints = route.length > 0
+    ? orthogonalPoints({ x: props.sourceX, y: props.sourceY }, route, { x: props.targetX, y: props.targetY })
+    : [];
+  const path = routePoints.length > 0
+    ? pointsPath(routePoints)
     : fallbackPath;
   const midpoint = route.length > 0
-    ? pathMidpoint([{ x: props.sourceX, y: props.sourceY }, ...route, { x: props.targetX, y: props.targetY }])
+    ? pathMidpoint(routePoints)
     : { x: fallbackLabelX, y: fallbackLabelY };
   const label = [processEdge.tag, processEdge.label].filter(Boolean).join(" ");
 
@@ -54,7 +57,25 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
 }
 
 export function orthogonalPath(source: Point, route: readonly Point[], target: Point): string {
-  return [source, ...route, target].map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+  return pointsPath(orthogonalPoints(source, route, target));
+}
+
+export function orthogonalPoints(source: Point, route: readonly Point[], target: Point): Point[] {
+  const points: Point[] = [{ ...source }];
+  for (const waypoint of [...route, target]) {
+    const current = points.at(-1)!;
+    if (current.x === waypoint.x && current.y === waypoint.y) continue;
+    if (current.x !== waypoint.x && current.y !== waypoint.y) {
+      points.push({ x: waypoint.x, y: current.y });
+    }
+    const previous = points.at(-1)!;
+    if (previous.x !== waypoint.x || previous.y !== waypoint.y) points.push({ ...waypoint });
+  }
+  return points;
+}
+
+function pointsPath(points: readonly Point[]): string {
+  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
 function pathMidpoint(points: readonly Point[]): Point {

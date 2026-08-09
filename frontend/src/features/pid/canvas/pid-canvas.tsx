@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   ConnectionMode,
@@ -52,6 +52,8 @@ export function PidCanvas(props: PidCanvasProps) {
 
 function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionChange, className }: PidCanvasProps) {
   const [selection, setSelection] = useState<PidCanvasSelection>({ nodeIds: [], edgeIds: [] });
+  const selectionRef = useRef(selection);
+  const notifiedSelectionRef = useRef(selection);
   const projection = useMemo(() => projectPidDocument(document), [document]);
   const symbols = useMemo(() => resolveCatalog(catalog, document), [catalog, document.metadata.standard]);
   const portsByNode = useMemo(() => {
@@ -75,7 +77,7 @@ function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionCha
       initialWidth: node.width,
       initialHeight: node.height,
       handles: ports.map((port, index) => {
-        const geometry = getPortHandleGeometry(port, index, ports);
+        const geometry = getPortHandleGeometry(port, index, ports, node.rotation);
         return {
           id: port.id,
           type: port.direction === "input" ? "target" as const : "source" as const,
@@ -124,37 +126,46 @@ function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionCha
     }];
   }), [document.ports, editable, projection.edges, selection.edgeIds]);
 
-  const publishSelection = useCallback((update: (current: PidCanvasSelection) => PidCanvasSelection) => {
-    setSelection((current) => {
-      const next = update(current);
-      onSelectionChange?.(next);
-      return next;
-    });
-  }, [onSelectionChange]);
+  const commitSelection = useCallback((update: (current: PidCanvasSelection) => PidCanvasSelection) => {
+    const current = selectionRef.current;
+    const next = update(current);
+    if (sameSelection(current, next)) return;
+    selectionRef.current = next;
+    setSelection(next);
+  }, []);
+  useEffect(() => {
+    if (sameSelection(notifiedSelectionRef.current, selection)) return;
+    notifiedSelectionRef.current = selection;
+    onSelectionChange?.(selection);
+  }, [onSelectionChange, selection]);
+  useEffect(() => {
+    commitSelection((current) => ({
+      nodeIds: current.nodeIds.filter((id) => Boolean(document.nodes[id])),
+      edgeIds: current.edgeIds.filter((id) => Boolean(document.edges[id])),
+    }));
+  }, [commitSelection, document.edges, document.nodes]);
   const handleNodesChange = useCallback((changes: NodeChange<EquipmentFlowNode>[]) => {
-    const selectionChanges = changes.filter((change): change is Extract<typeof change, { type: "select" }> => change.type === "select");
-    if (selectionChanges.length === 0) return;
-    publishSelection((current) => {
+    if (!changes.some((change) => change.type === "select" || change.type === "remove")) return;
+    commitSelection((current) => {
       const selected = new Set(current.nodeIds);
-      for (const change of selectionChanges) {
-        if (change.selected) selected.add(change.id);
-        else selected.delete(change.id);
+      for (const change of changes) {
+        if (change.type === "select" && change.selected) selected.add(change.id);
+        else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
       }
       return { nodeIds: [...selected], edgeIds: current.edgeIds };
     });
-  }, [publishSelection]);
+  }, [commitSelection]);
   const handleEdgesChange = useCallback((changes: EdgeChange<ProcessFlowEdge>[]) => {
-    const selectionChanges = changes.filter((change): change is Extract<typeof change, { type: "select" }> => change.type === "select");
-    if (selectionChanges.length === 0) return;
-    publishSelection((current) => {
+    if (!changes.some((change) => change.type === "select" || change.type === "remove")) return;
+    commitSelection((current) => {
       const selected = new Set(current.edgeIds);
-      for (const change of selectionChanges) {
-        if (change.selected) selected.add(change.id);
-        else selected.delete(change.id);
+      for (const change of changes) {
+        if (change.type === "select" && change.selected) selected.add(change.id);
+        else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
       }
       return { nodeIds: current.nodeIds, edgeIds: [...selected] };
     });
-  }, [publishSelection]);
+  }, [commitSelection]);
 
   const normalizeConnection = useCallback(
     (connection: ProcessFlowEdge | Connection) => normalizePidConnection(document, connection),
@@ -275,4 +286,11 @@ export function createPidMoveCommand(
   const selected = uniqueIds(selectedNodeIds.filter((id) => document.nodes[id]));
   const ids = selected.includes(draggedNodeId) ? selected : [draggedNodeId];
   return { type: "selection.move", ids, delta };
+}
+
+function sameSelection(left: PidCanvasSelection, right: PidCanvasSelection): boolean {
+  return left.nodeIds.length === right.nodeIds.length
+    && left.edgeIds.length === right.edgeIds.length
+    && left.nodeIds.every((id, index) => id === right.nodeIds[index])
+    && left.edgeIds.every((id, index) => id === right.edgeIds[index]);
 }
