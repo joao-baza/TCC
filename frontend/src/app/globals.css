@@ -349,6 +349,10 @@ body {
 }
 
 .pid-studio-canvas-surface { height: 100% !important; min-height: 100%; border: 0; border-radius: 0; }
+.react-flow__node:focus .pid-equipment-node__body,
+.react-flow__node:focus-within .pid-equipment-node__body { outline-color: #2563eb; }
+.react-flow__node:focus .pid-equipment-node__caption,
+.react-flow__node:focus-within .pid-equipment-node__caption { opacity: 1; }
 .pid-canvas-annotations { position: absolute; z-index: 8; inset: 0; overflow: hidden; pointer-events: none; }
 .pid-canvas-annotations > div { position: absolute; inset: 0; transform-origin: 0 0; }
 .pid-canvas-annotation {

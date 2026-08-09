@@ -45,16 +45,14 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
 
   return (
     <div
-      className={`relative h-full w-full rounded-lg outline-none transition ${
-        selected ? "ring-2 ring-blue-200" : ""
-      }`}
+      className="relative h-full w-full outline-none"
       data-selected={selected ? "true" : "false"}
       aria-selected={selected}
     >
       <div
         data-testid={`equipment-body-${equipment.id}`}
-        className={`absolute flex min-h-0 flex-col items-center justify-center gap-1 rounded-lg border bg-white p-2 shadow-sm ${
-          selected ? "border-blue-600" : "border-slate-300"
+        className={`pid-equipment-node__body absolute flex min-h-0 items-center justify-center outline-offset-2 transition-[outline-color] ${
+          selected ? "outline outline-2 outline-blue-600" : "outline outline-2 outline-transparent"
         }`}
         style={{
           left: interactionGeometry.canonicalRect.x,
@@ -65,7 +63,7 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
       >
         <div
           data-testid={`equipment-artwork-${equipment.id}`}
-          className="flex min-h-0 max-h-full max-w-full flex-1 items-center justify-center"
+          className="flex h-full min-h-0 w-full items-center justify-center"
           style={{ transform: `rotate(${equipment.rotation}deg)` }}
         >
           {symbol && sanitizedAssetUrl && !imageFailed ? (
@@ -73,7 +71,7 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
               src={sanitizedAssetUrl}
               alt=""
               draggable={false}
-              className="min-h-0 max-h-full max-w-full object-contain"
+              className="h-full w-full object-contain"
               onError={() => setImageFailed(true)}
             />
           ) : (
@@ -84,7 +82,9 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
         </div>
         <span
           data-testid={`equipment-caption-${equipment.id}`}
-          className="max-w-full truncate text-[10px] font-semibold text-slate-800"
+          className={`pid-equipment-node__caption pointer-events-none absolute left-1/2 top-full z-10 mt-1 max-w-[12rem] -translate-x-1/2 truncate rounded bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-slate-800 shadow-sm transition-opacity ${
+            selected ? "opacity-100" : "opacity-0"
+          }`}
         >
           {title}
         </span>
@@ -136,7 +136,8 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
 
 function normalizedPortStyle(
   geometry: PidPortHitTargetGeometry,
-): { left?: number; right?: number; top?: number; bottom?: number } {
+): { left?: number | string; right?: number | string; top?: number | string; bottom?: number | string } {
+  if (geometry.exactAnchor) return { left: geometry.x, top: geometry.y, right: "auto", bottom: "auto" };
   if (geometry.position === Position.Left) return { left: 0, top: geometry.y };
   if (geometry.position === Position.Right) return { right: 0, top: geometry.y };
   if (geometry.position === Position.Top) return { left: geometry.x, top: 0 };

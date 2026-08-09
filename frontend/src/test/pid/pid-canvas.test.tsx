@@ -181,12 +181,23 @@ describe("PidCanvas", () => {
         />,
       );
 
-      fireEvent.click(screen.getByRole("button", { name: /Bomba P-101/i }));
+      const node = screen.getByRole("button", { name: /Bomba P-101/i });
+      const body = screen.getByTestId(`equipment-body-${ids.pump}`);
+      const caption = screen.getByTestId(`equipment-caption-${ids.pump}`);
+
+      await waitFor(() => expect(node.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/));
+      expect(node.querySelector("img")).toHaveAttribute("draggable", "false");
+      expect(body).not.toHaveClass("border", "bg-white", "shadow-sm", "rounded-lg", "p-2");
+      expect(body).not.toHaveClass("outline-blue-600");
+      expect(caption).toHaveClass("opacity-0");
       expect(screen.getByLabelText(/Porta de saída/i)).toBeInTheDocument();
-      await waitFor(() => expect(screen.getByRole("button", { name: /Bomba P-101/i }).querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/));
-      expect(screen.getByRole("button", { name: /Bomba P-101/i }).querySelector("img")).toHaveAttribute("draggable", "false");
+
+      fireEvent.click(node);
+
+      expect(caption).toHaveClass("opacity-100");
+      expect(body).toHaveClass("outline", "outline-2", "outline-blue-600");
       expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "true");
-      expect(screen.getByRole("button", { name: /Bomba P-101/i })).toHaveAttribute("aria-pressed", "true");
+      expect(node).toHaveAttribute("aria-pressed", "true");
     } finally {
       fetchMock.mockRestore();
     }
