@@ -11,6 +11,7 @@ export interface EditorAutosaveController {
   readonly conflict: boolean;
   markLocalChange(): void;
   retry(): void;
+  flush(): Promise<number>;
   suspend(): Promise<number>;
   resumeLocal(revision: number): void;
   resumeRemote(revision: number): void;
@@ -32,6 +33,7 @@ export function useEditorAutosave(input: {
   const activeRef = useRef(true);
   const inFlightRef = useRef(false);
   const inFlightPromiseRef = useRef<Promise<void> | null>(null);
+  const flushOnUnmountRef = useRef<() => void>(() => {});
   const suspendedRef = useRef(false);
   const versionRef = useRef(0);
   const savedVersionRef = useRef(0);
@@ -46,12 +48,23 @@ export function useEditorAutosave(input: {
     return () => {
       activeRef.current = false;
       if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = null;
+      flushOnUnmountRef.current();
     };
   }, []);
 
-  const save = useCallback((): Promise<void> => {
-    if (inFlightRef.current || suspendedRef.current || blockedRef.current || !latest.current.editable
+  const save = useCallback((options: {
+    readonly allowSuspended?: boolean;
+    readonly throwOnError?: boolean;
+    readonly scheduleFollowup?: boolean;
+  } = {}): Promise<void> => {
+    if (inFlightRef.current) return inFlightPromiseRef.current ?? Promise.resolve();
+    if ((!options.allowSuspended && suspendedRef.current) || !latest.current.editable
       || savedVersionRef.current === versionRef.current) return Promise.resolve();
+    if (blockedRef.current) {
+      const reason = new Error("O autosave está bloqueado por um conflito de revisão.");
+      return options.throwOnError ? Promise.reject(reason) : Promise.resolve();
+    }
     inFlightRef.current = true;
     if (activeRef.current) { setState("Salvando"); setError(null); }
     const savingVersion = versionRef.current;
@@ -72,17 +85,19 @@ export function useEditorAutosave(input: {
           setState("Sincronizado");
         } else {
           setState("Não salvo");
-          timerRef.current = setTimeout(() => { void save(); }, 0);
+          if (options.scheduleFollowup !== false) timerRef.current = setTimeout(() => { void save(); }, 0);
         }
       } catch (reason) {
-        if (!activeRef.current || suspendedRef.current) return;
         const isConflict = isPidDocumentError(reason) && reason.code === "CONFLICT";
         blockedRef.current = isConflict;
-        setConflict(isConflict);
-        setState("Não salvo");
-        setError(isConflict
-          ? "O diagrama foi alterado em outra janela. Recarregue para revisar a versão atual; nenhuma sobrescrita foi feita."
-          : isPidDocumentError(reason) ? reason.message : "Não foi possível salvar o diagrama.");
+        if (activeRef.current) {
+          setConflict(isConflict);
+          setState("Não salvo");
+          setError(isConflict
+            ? "O diagrama foi alterado em outra janela. Recarregue para revisar a versão atual; nenhuma sobrescrita foi feita."
+            : isPidDocumentError(reason) ? reason.message : "Não foi possível salvar o diagrama.");
+        }
+        if (options.throwOnError) throw reason;
       } finally {
         inFlightRef.current = false;
         inFlightPromiseRef.current = null;
@@ -107,22 +122,39 @@ export function useEditorAutosave(input: {
     void save();
   }, [save]);
 
-  const suspend = useCallback(async () => {
-    suspendedRef.current = true;
+  const flushLatest = useCallback(async (allowSuspended: boolean) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
-    await inFlightPromiseRef.current;
-    if (activeRef.current) { setError(null); setConflict(false); setState("Sincronizado"); }
+    while (savedVersionRef.current !== versionRef.current) {
+      if (blockedRef.current) throw new Error("O autosave está bloqueado por um conflito de revisão.");
+      if (inFlightPromiseRef.current) await inFlightPromiseRef.current;
+      if (savedVersionRef.current === versionRef.current) break;
+      await save({ allowSuspended, throwOnError: true, scheduleFollowup: false });
+    }
     return revisionRef.current;
-  }, []);
+  }, [save]);
+
+  const flush = useCallback(() => flushLatest(false), [flushLatest]);
+
+  const suspend = useCallback(async () => {
+    suspendedRef.current = true;
+    const flushedRevision = await flushLatest(true);
+    if (activeRef.current) { setError(null); setConflict(false); setState("Sincronizado"); }
+    return flushedRevision;
+  }, [flushLatest]);
+
+  flushOnUnmountRef.current = () => {
+    if (!latest.current.editable || suspendedRef.current || blockedRef.current
+      || savedVersionRef.current === versionRef.current) return;
+    void flushLatest(false).catch(() => {});
+  };
 
   const resumeLocal = useCallback((revision: number) => {
     revisionRef.current = revision;
     suspendedRef.current = false;
-    blockedRef.current = false;
-    setConflict(false); setError(null);
+    if (!blockedRef.current) { setConflict(false); setError(null); }
     if (savedVersionRef.current === versionRef.current) setState("Sincronizado");
-    else {
+    else if (!blockedRef.current) {
       setState("Não salvo");
       timerRef.current = setTimeout(() => { void save(); }, 400);
     }
@@ -140,5 +172,5 @@ export function useEditorAutosave(input: {
     setState("Sincronizado");
   }, []);
 
-  return { state, error, conflict, markLocalChange, retry, suspend, resumeLocal, resumeRemote };
+  return { state, error, conflict, markLocalChange, retry, flush, suspend, resumeLocal, resumeRemote };
 }

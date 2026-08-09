@@ -25,7 +25,7 @@ export function useEditorShortcuts({ editable, actions }: UseEditorShortcutsOpti
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.repeat || isTextEntry(event.target)) return;
+      if (event.defaultPrevented || event.repeat || isTextEntry(event.target) || isInsideModal(event.target)) return;
       const { editable: canEdit, actions: callbacks } = current.current;
       const modifier = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
@@ -55,4 +55,8 @@ export function useEditorShortcuts({ editable, actions }: UseEditorShortcutsOpti
 function isTextEntry(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])"));
+}
+
+function isInsideModal(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest("[role='dialog'], [role='alertdialog']"));
 }

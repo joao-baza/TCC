@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { Dialog } from "@base-ui/react/dialog";
 
 import { isPidDocumentError, type AccessScope, type PidDocumentPort } from "../api/contracts";
 
@@ -18,11 +19,6 @@ export function ShareDialog({ documentPort, diagramId, editToken, revision, onRe
   const [links, setLinks] = useState<Partial<Record<AccessScope, string>>>({});
   const closeRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => { if (open) closeRef.current?.focus(); }, [open]);
-  const close = () => {
-    setOpen(false);
-    queueMicrotask(() => triggerRef.current?.focus());
-  };
 
   const regenerate = async (scope: AccessScope) => {
     setBusy(scope); setError(null); setRetryScope(null);
@@ -50,12 +46,13 @@ export function ShareDialog({ documentPort, diagramId, editToken, revision, onRe
     catch { setError("Não foi possível copiar automaticamente. Selecione o link e copie manualmente."); }
   };
 
-  return <>
-    <button ref={triggerRef} type="button" onClick={() => setOpen(true)}>Compartilhar</button>
-    {open && <div className="pid-modal-backdrop" onKeyDown={(event) => { if (event.key === "Escape") close(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="pid-share-title" className="pid-modal-card">
-        <header><h2 id="pid-share-title">Compartilhar diagrama</h2><button ref={closeRef} type="button" aria-label="Fechar compartilhamento" onClick={close}>×</button></header>
-        <p>Gerar um novo link invalida imediatamente o link anterior do mesmo tipo.</p>
+  return <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Trigger ref={triggerRef}>Compartilhar</Dialog.Trigger>
+    <Dialog.Portal>
+      <Dialog.Backdrop className="pid-modal-backdrop" />
+      <Dialog.Popup className="pid-modal-card pid-modal-popup" initialFocus={closeRef} finalFocus={triggerRef}>
+        <header><Dialog.Title>Compartilhar diagrama</Dialog.Title><Dialog.Close ref={closeRef} aria-label="Fechar compartilhamento">×</Dialog.Close></header>
+        <Dialog.Description>Gerar um novo link invalida imediatamente o link anterior do mesmo tipo.</Dialog.Description>
         <button type="button" disabled={busy !== null} onClick={() => void regenerate("view")}>Gerar novo link de visualização</button>
         <button type="button" disabled={busy !== null} onClick={() => void regenerate("edit")}>Gerar novo link de edição</button>
         {(["view", "edit"] as const).map((scope) => links[scope] && <label key={scope}>Novo link de {scope === "view" ? "visualização" : "edição"}
@@ -64,7 +61,7 @@ export function ShareDialog({ documentPort, diagramId, editToken, revision, onRe
         </label>)}
         {error && <p role="alert">{error}</p>}
         {retryScope && <button type="button" onClick={() => void regenerate(retryScope)}>Tentar gerar novamente</button>}
-      </section>
-    </div>}
-  </>;
+      </Dialog.Popup>
+    </Dialog.Portal>
+  </Dialog.Root>;
 }

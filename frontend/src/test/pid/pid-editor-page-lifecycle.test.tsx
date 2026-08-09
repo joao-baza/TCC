@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PidServices } from "@/features/pid/api/contracts";
@@ -9,11 +9,12 @@ import { PidServicesProvider } from "@/features/pid/api/pid-services";
 import { createEmptyDocument } from "@/features/pid/domain/schema";
 
 vi.mock("@/features/pid/canvas/pid-canvas", () => ({
-  PidCanvas: ({ editable, onCommand, onSelectionChange }: {
+  PidCanvas: ({ document: pidDocument, editable, onCommand, onSelectionChange }: {
+    document: { annotations: Record<string, unknown> };
     editable: boolean;
     onCommand: (command: { type: "annotation.insert"; text: string; position: { x: number; y: number } }) => void;
     onSelectionChange: (selection: { nodeIds: string[]; edgeIds: string[] }) => void;
-  }) => <div data-testid="pid-canvas" data-editable={String(editable)}>
+  }) => <div data-testid="pid-canvas" data-editable={String(editable)} data-annotation-count={Object.keys(pidDocument.annotations).length}>
     <button type="button" onClick={() => onCommand({ type: "annotation.insert", text: "Nota", position: { x: 10, y: 10 } })}>Simular alteração</button>
     <button type="button" onClick={() => onSelectionChange({ nodeIds: [], edgeIds: [] })}>Simular seleção</button>
   </div>,
@@ -50,6 +51,20 @@ function mount(pidServices: PidServices, strict = false) {
     </MemoryRouter>
   </PidServicesProvider>;
   return render(strict ? <StrictMode>{page}</StrictMode> : page);
+}
+
+function NavigationControl({ targetId }: { targetId: string }) {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => void navigate(`/pid/${targetId}#access=next-token`)}>Navegar para outro diagrama</button>;
+}
+
+function mountWithNavigation(pidServices: PidServices, targetId: string) {
+  return render(<PidServicesProvider services={pidServices}>
+    <MemoryRouter initialEntries={[`/pid/${diagramId}#access=edit-token`]}>
+      <NavigationControl targetId={targetId} />
+      <Routes><Route path="/pid/:diagramId" element={<PidEditorPage />} /></Routes>
+    </MemoryRouter>
+  </PidServicesProvider>);
 }
 
 function deferred<T>() {
@@ -145,6 +160,55 @@ describe("studio focado P&ID", () => {
     expect(save).toHaveBeenCalledTimes(2);
   });
 
+  it("faz flush da versão pendente ao desmontar sem atualizar estado depois do unmount", async () => {
+    vi.useFakeTimers();
+    const save = vi.fn().mockResolvedValue(2);
+    const mounted = mount(services({ save }));
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+
+    mounted.unmount();
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    expect(save).toHaveBeenCalledOnce();
+    expect(Object.keys(save.mock.calls[0][2].annotations)).toHaveLength(1);
+    const afterUnmount = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(afterUnmount);
+    expect(afterUnmount.defaultPrevented).toBe(false);
+  });
+
+  it("aguarda o flush antes de abrir outra rota e permite retry quando o save falha", async () => {
+    const targetId = "00000002-0000-4000-8000-000000000000";
+    const nextDocument = createEmptyDocument(
+      { title: "Próximo diagrama", standard: "iso" },
+      { generateId: () => targetId, now: () => new Date("2026-08-09T12:00:00Z") },
+    );
+    const firstSave = deferred<number>();
+    const save = vi.fn().mockReturnValueOnce(firstSave.promise).mockResolvedValueOnce(2);
+    const open = vi.fn()
+      .mockResolvedValueOnce({ scope: "edit", document, revision: 1 })
+      .mockResolvedValueOnce({ scope: "edit", document: nextDocument, revision: 2 });
+    mountWithNavigation(services({ open, save }), targetId);
+    await screen.findByRole("heading", { name: "Utilidades" });
+    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
+    fireEvent.click(screen.getByRole("button", { name: "Navegar para outro diagrama" }));
+    expect(open).toHaveBeenCalledOnce();
+    expect(screen.getByRole("heading", { name: "Utilidades" })).toBeInTheDocument();
+
+    await act(async () => { firstSave.reject(new Error("offline")); await Promise.resolve(); });
+    expect(await screen.findByText(/Não foi possível salvar o diagrama antes de navegar/)).toBeInTheDocument();
+    expect(open).toHaveBeenCalledOnce();
+    expect(screen.getByRole("heading", { name: "Utilidades" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Tentar navegar novamente" }));
+    expect(await screen.findByRole("heading", { name: "Próximo diagrama" })).toBeInTheDocument();
+    expect(open).toHaveBeenCalledTimes(2);
+    expect(Object.keys(save.mock.calls[1][2].annotations)).toHaveLength(1);
+  });
+
   it("mantém o studio de visualização somente leitura e sem controles de mutação", async () => {
     mount(services({}, "view"));
     await screen.findByRole("heading", { name: "Utilidades" });
@@ -174,7 +238,8 @@ describe("studio focado P&ID", () => {
     const pidServices = services();
     mount(pidServices);
     await screen.findByRole("heading", { name: "Utilidades" });
-    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
+    const actionsTrigger = screen.getByRole("button", { name: "Ações do documento" });
+    fireEvent.click(actionsTrigger);
     fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
     const confirmation = screen.getByLabelText("Digite Utilidades para confirmar");
     fireEvent.change(confirmation, { target: { value: "utilidades" } });
@@ -188,12 +253,17 @@ describe("studio focado P&ID", () => {
     expect(screen.getByTestId("pid-canvas")).toBeInTheDocument();
   });
 
-  it("cancela autosave pendente ao excluir e só reabilita editor, share e catálogo após restaurar", async () => {
+  it("salva a versão pendente antes de excluir e restaura o conteúdo mais recente", async () => {
     vi.useFakeTimers();
+    let persisted = document;
+    const save = vi.fn().mockImplementation(async (_diagramId, _token, nextDocument) => {
+      persisted = nextDocument;
+      return 2;
+    });
     const open = vi.fn()
       .mockResolvedValueOnce({ scope: "edit", document, revision: 1 })
-      .mockResolvedValueOnce({ scope: "edit", document, revision: 4 });
-    const pidServices = services({ open });
+      .mockImplementationOnce(async () => ({ scope: "edit", document: persisted, revision: 4 }));
+    const pidServices = services({ open, save });
     mount(pidServices);
     await act(async () => { await Promise.resolve(); });
     fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
@@ -204,7 +274,9 @@ describe("studio focado P&ID", () => {
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
 
-    expect(pidServices.document.save).not.toHaveBeenCalled();
+    expect(save).toHaveBeenCalledOnce();
+    expect(Object.keys(save.mock.calls[0][2].annotations)).toHaveLength(1);
+    expect(pidServices.document.softDelete).toHaveBeenCalledWith(diagramId, "edit-token", 2);
     expect(screen.queryByRole("button", { name: "Compartilhar" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Pesquisar símbolos")).not.toBeInTheDocument();
     expect(screen.queryByTestId("pid-canvas")).not.toBeInTheDocument();
@@ -213,9 +285,74 @@ describe("studio focado P&ID", () => {
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     expect(screen.getByRole("button", { name: "Compartilhar" })).toBeInTheDocument();
     expect(screen.getByLabelText("Pesquisar símbolos")).toBeInTheDocument();
+    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-annotation-count", "1");
     fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    expect(pidServices.document.save).toHaveBeenCalledWith(diagramId, "edit-token", expect.any(Object), 4);
+    expect(save).toHaveBeenLastCalledWith(diagramId, "edit-token", expect.any(Object), 4);
+  });
+
+  it("aborta a exclusão e mantém a edição recuperável quando o flush falha", async () => {
+    const save = vi.fn().mockRejectedValue(new Error("offline"));
+    const softDelete = vi.fn();
+    const pidServices = services({ save, softDelete });
+    mount(pidServices);
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
+    const actionsTrigger = screen.getByRole("button", { name: "Ações do documento" });
+    fireEvent.click(actionsTrigger);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    fireEvent.change(screen.getByLabelText("Digite Utilidades para confirmar"), { target: { value: "Utilidades" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    expect(save).toHaveBeenCalledOnce();
+    expect(softDelete).not.toHaveBeenCalled();
+    expect(screen.getByTestId("pid-canvas")).toBeInTheDocument();
+    expect(screen.getByRole("alertdialog", { name: "Excluir diagrama" })).toHaveTextContent("Não foi possível excluir");
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog", { name: "Excluir diagrama" })).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();
+    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Não salvo");
+  });
+
+  it("contém foco e bloqueia atalhos do editor nos diálogos de share e exclusão", async () => {
+    const pidServices = services();
+    mount(pidServices);
+    await act(async () => { await Promise.resolve(); });
+    const shareTrigger = screen.getByRole("button", { name: "Compartilhar" });
+    fireEvent.click(shareTrigger);
+    const shareDialog = screen.getByRole("dialog", { name: "Compartilhar diagrama" });
+    const closeShare = screen.getByRole("button", { name: "Fechar compartilhamento" });
+    await waitFor(() => expect(closeShare).toHaveFocus());
+    expect(shareTrigger.closest("[data-base-ui-inert]")).not.toBeNull();
+    fireEvent.keyDown(closeShare, { key: "Tab", shiftKey: true });
+    expect(shareDialog).toContainElement(globalThis.document.activeElement as HTMLElement);
+    fireEvent.keyDown(closeShare, { key: "a", ctrlKey: true, shiftKey: true });
+    expect(pidServices.document.save).not.toHaveBeenCalled();
+    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-annotation-count", "0");
+    expect(shareDialog).toBeInTheDocument();
+    fireEvent.keyDown(closeShare, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Compartilhar diagrama" })).not.toBeInTheDocument());
+    expect(shareTrigger).toHaveFocus();
+
+    const actionsTrigger = screen.getByRole("button", { name: "Ações do documento" });
+    fireEvent.click(actionsTrigger);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    const deleteDialog = screen.getByRole("alertdialog", { name: "Excluir diagrama" });
+    const confirmation = screen.getByLabelText("Digite Utilidades para confirmar");
+    await waitFor(() => expect(confirmation).toHaveFocus());
+    expect(actionsTrigger.closest("[data-base-ui-inert]")).not.toBeNull();
+    const cancel = screen.getByRole("button", { name: "Cancelar" });
+    fireEvent.keyDown(confirmation, { key: "Tab", shiftKey: true });
+    expect(deleteDialog).toContainElement(globalThis.document.activeElement as HTMLElement);
+    cancel.focus();
+    fireEvent.keyDown(cancel, { key: "a", ctrlKey: true, shiftKey: true });
+    expect(pidServices.document.save).not.toHaveBeenCalled();
+    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-annotation-count", "0");
+    expect(deleteDialog).toBeInTheDocument();
+    fireEvent.keyDown(cancel, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("alertdialog", { name: "Excluir diagrama" })).not.toBeInTheDocument());
+    expect(actionsTrigger).toHaveFocus();
   });
 
   it("espera o save em voo antes do soft delete e não agenda save subsequente", async () => {

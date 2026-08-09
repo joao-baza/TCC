@@ -26,6 +26,7 @@ import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-sho
 const catalogIndex = createCatalogIndex(localCatalog);
 
 interface EditorSession {
+  readonly diagramId: string;
   readonly opened: OpenedPidDiagram;
   readonly routeToken: string;
   readonly store: EditorStore;
@@ -48,35 +49,55 @@ export function PidEditorPage() {
   const { hash } = useLocation();
   const [session, setSession] = useState<EditorSession | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [navigationRetry, setNavigationRetry] = useState(0);
+  const navigationGuardRef = useRef<(() => Promise<number>) | null>(null);
   const token = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash).get("access") ?? "";
+  const registerNavigationGuard = useCallback((guard: () => Promise<number>) => {
+    navigationGuardRef.current = guard;
+    return () => { if (navigationGuardRef.current === guard) navigationGuardRef.current = null; };
+  }, []);
 
   useEffect(() => {
     let active = true;
-    setSession(null); setError(null);
-    if (!diagramId || !token) {
-      setError("O link do diagrama não contém uma credencial de acesso válida.");
-      return () => { active = false; };
-    }
-    void documentPort.open(diagramId, token).then(
-      (opened) => {
+    setError(null);
+    void (async () => {
+      try {
+        await navigationGuardRef.current?.();
+      } catch {
+        if (active) setError("Não foi possível salvar o diagrama antes de navegar. Verifique a conexão e tente novamente.");
+        return;
+      }
+      if (!active) return;
+      if (!diagramId || !token) {
+        setError("O link do diagrama não contém uma credencial de acesso válida.");
+        return;
+      }
+      setSession(null);
+      try {
+        const opened = await documentPort.open(diagramId, token);
         if (!active) return;
-        setSession({ opened, routeToken: token, store: createEditorStore(opened.document) });
-      },
-      (reason: unknown) => {
+        setSession({ diagramId, opened, routeToken: token, store: createEditorStore(opened.document) });
+      } catch (reason) {
         if (!active) return;
         setError(isPidDocumentError(reason) ? reason.message : "Não foi possível abrir o diagrama.");
-      },
-    );
+      }
+    })();
     return () => { active = false; };
-  }, [diagramId, documentPort, token]);
+  }, [diagramId, documentPort, navigationRetry, token]);
 
   if (!session) return <main className="pid-editor-loading"><h1>Editor P&amp;ID</h1>{error
     ? <p role="alert">{error}</p>
     : <p role="status">Carregando diagrama…</p>}<Link to="/">Voltar ao DCOU</Link></main>;
-  return <EditorStudio key={`${diagramId}:${session.routeToken}`} diagramId={diagramId} session={session} />;
+  return <>{error && <div className="pid-navigation-error" role="alert"><p>{error}</p><button type="button" onClick={() => setNavigationRetry((value) => value + 1)}>Tentar navegar novamente</button></div>}
+    <EditorStudio key={`${session.diagramId}:${session.routeToken}`} diagramId={session.diagramId} session={session} registerNavigationGuard={registerNavigationGuard} />
+  </>;
 }
 
-function EditorStudio({ diagramId, session }: { diagramId: string; session: EditorSession }) {
+function EditorStudio({ diagramId, session, registerNavigationGuard }: {
+  diagramId: string;
+  session: EditorSession;
+  registerNavigationGuard: (guard: () => Promise<number>) => () => void;
+}) {
   const { document: documentPort } = usePidServices();
   const { store, opened } = session;
   const subscribe = useCallback((notify: () => void) => store.subscribe(() => notify()), [store]);
@@ -95,6 +116,16 @@ function EditorStudio({ diagramId, session }: { diagramId: string; session: Edit
   const clipboardRef = useRef<EditorClipboardFragment | null>(null);
   const pasteCountRef = useRef(0);
   const autosave = useEditorAutosave({ diagramId, editToken, revision, store, documentPort, editable, onRevision: setRevision });
+  useEffect(() => registerNavigationGuard(autosave.flush), [autosave.flush, registerNavigationGuard]);
+  useEffect(() => {
+    if (!editable || autosave.state === "Sincronizado") return;
+    const protectPendingSave = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", protectPendingSave);
+    return () => window.removeEventListener("beforeunload", protectPendingSave);
+  }, [autosave.state, editable]);
   const editorEnabled = editable && lifecycle === "active";
   const selectedNodeIds = editor.selection.filter((id) => Boolean(editor.document.nodes[id]));
   const positionedSelectionIds = getEditorPositionedSelectionIds(editor.document, editor.selection);

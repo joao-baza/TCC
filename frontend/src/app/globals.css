@@ -315,6 +315,14 @@ body {
   box-shadow: 0 24px 70px rgb(0 0 0 / 35%);
 }
 
+.pid-modal-popup {
+  position: fixed;
+  z-index: 81;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
 .pid-modal-card header { display: flex; align-items: center; justify-content: space-between; }
 .pid-modal-card h2 { font-size: 1.2rem; font-weight: 650; }
 .pid-modal-card label { display: grid; gap: .35rem; }

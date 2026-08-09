@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { isPidDocumentError, type PidDocumentPort } from "../api/contracts";
 
 export function DocumentActionsMenu({ documentPort, diagramId, editToken, revision, title, deleted, onBeforeDelete, onDeleted, onDeleteFailed, onBeforeRestore, onRestoreConfirmed, onRestored, onRestoreFailed, onAnnouncement }: {
@@ -27,7 +38,6 @@ export function DocumentActionsMenu({ documentPort, diagramId, editToken, revisi
   const inputRef = useRef<HTMLInputElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const activeRef = useRef(true);
-  useEffect(() => { if (confirming) inputRef.current?.focus(); }, [confirming]);
   useEffect(() => {
     activeRef.current = true;
     return () => { activeRef.current = false; };
@@ -77,13 +87,23 @@ export function DocumentActionsMenu({ documentPort, diagramId, editToken, revisi
   return <div className="pid-document-actions">
     <button ref={menuTriggerRef} type="button" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>Ações do documento</button>
     {menuOpen && <div role="menu"><button role="menuitem" type="button" onClick={() => setConfirming(true)}>Excluir diagrama</button></div>}
-    {confirming && <div className="pid-modal-backdrop" onKeyDown={(event) => { if (event.key === "Escape") { setConfirming(false); setConfirmation(""); queueMicrotask(() => menuTriggerRef.current?.focus()); } }}><section role="alertdialog" aria-modal="true" aria-labelledby="pid-delete-title" className="pid-modal-card">
-      <h2 id="pid-delete-title">Excluir diagrama</h2>
-      <p>Digite o título exato para confirmar. Esta exclusão é reversível durante o prazo de retenção.</p>
-      <label>Digite {title} para confirmar<input ref={inputRef} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>
-      {error && <p role="alert">{error}</p>}
-      <button type="button" onClick={() => { setConfirming(false); setConfirmation(""); queueMicrotask(() => menuTriggerRef.current?.focus()); }}>Cancelar</button>
-      <button type="button" disabled={busy || confirmation !== title} onClick={() => void remove()}>Confirmar exclusão</button>
-    </section></div>}
+    <AlertDialog open={confirming} onOpenChange={(nextOpen) => {
+      if (busy) return;
+      setConfirming(nextOpen);
+      if (!nextOpen) setConfirmation("");
+    }}>
+      <AlertDialogContent className="pid-modal-card" initialFocus={inputRef} finalFocus={menuTriggerRef}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir diagrama</AlertDialogTitle>
+          <AlertDialogDescription>Digite o título exato para confirmar. Esta exclusão é reversível durante o prazo de retenção.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <label>Digite {title} para confirmar<input ref={inputRef} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>
+        {error && <p role="alert">{error}</p>}
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setConfirmation("")}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction disabled={busy || confirmation !== title} onClick={() => void remove()}>Confirmar exclusão</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>;
 }
