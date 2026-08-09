@@ -24,12 +24,15 @@ export function PropertiesInspector({
 }: PropertiesInspectorProps) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [announcement, setAnnouncement] = useState("");
+  const [canonicalRevision, setCanonicalRevision] = useState(0);
   const selectedId = selection.length === 1 ? selection[0] : undefined;
   const selected = selectedId ? resolveSelectedElement(document, selectedId) : undefined;
+  const selectedValue = selected?.value;
   useEffect(() => {
     setFieldErrors({});
     setAnnouncement("");
-  }, [selectedId]);
+    setCanonicalRevision((revision) => revision + 1);
+  }, [selectedId, selectedValue]);
 
   const commit = (field: string, value: FieldValue, previous: FieldValue) => {
     if (!selectedId || !editable) return;
@@ -57,7 +60,7 @@ export function PropertiesInspector({
     setFieldErrors((current) => ({ ...current, [field]: message }));
     setAnnouncement(message);
   };
-  const common = { editable, errors: fieldErrors, commit, reject };
+  const common = { editable, errors: fieldErrors, canonicalRevision, commit, reject };
 
   return <div className="pid-properties-inspector">
     <div className="pid-inspector-heading-row">
@@ -119,11 +122,12 @@ export function PropertiesInspector({
 interface SharedFieldProps {
   readonly editable: boolean;
   readonly errors: Record<string, string>;
+  readonly canonicalRevision: number;
   readonly commit: (field: string, value: FieldValue, previous: FieldValue) => void;
   readonly reject: (field: string, message: string) => void;
 }
 
-function TextField({ label, field, value, multiline = false, editable, errors, commit }: SharedFieldProps & {
+function TextField({ label, field, value, multiline = false, editable, errors, canonicalRevision, commit }: SharedFieldProps & {
   label: string; field: string; value: string; multiline?: boolean;
 }) {
   const id = useId();
@@ -139,13 +143,13 @@ function TextField({ label, field, value, multiline = false, editable, errors, c
   return <label className="pid-inspector-field" htmlFor={id}>
     <span>{label}</span>
     {multiline
-      ? <textarea key={`${field}:${value}`} {...props} rows={3} />
-      : <input key={`${field}:${value}`} {...props} type="text" />}
+      ? <textarea key={`${canonicalRevision}:${field}:${value}`} {...props} rows={3} />
+      : <input key={`${canonicalRevision}:${field}:${value}`} {...props} type="text" />}
     <FieldError id={`${id}-error`} message={error} />
   </label>;
 }
 
-function NumberField({ label, field, value, positive = false, integer = false, rotation = false, editable, errors, commit, reject }: SharedFieldProps & {
+function NumberField({ label, field, value, positive = false, integer = false, rotation = false, editable, errors, canonicalRevision, commit, reject }: SharedFieldProps & {
   label: string; field: string; value: number; positive?: boolean; integer?: boolean; rotation?: boolean;
 }) {
   const id = useId();
@@ -154,7 +158,7 @@ function NumberField({ label, field, value, positive = false, integer = false, r
     <span>{label}</span>
     <input
       id={id}
-      key={`${field}:${value}`}
+      key={`${canonicalRevision}:${field}:${value}`}
       type="number"
       defaultValue={value}
       disabled={!editable}
@@ -162,8 +166,11 @@ function NumberField({ label, field, value, positive = false, integer = false, r
       aria-invalid={Boolean(error)}
       aria-describedby={error ? `${id}-error` : undefined}
       onBlur={(event) => {
-        const parsed = Number(event.currentTarget.value);
-        const message = !Number.isFinite(parsed)
+        const rawValue = event.currentTarget.value.trim();
+        const parsed = rawValue === "" ? Number.NaN : Number(rawValue);
+        const message = rawValue === ""
+          ? "Informe um número."
+          : !Number.isFinite(parsed)
           ? "Informe um número finito."
           : positive && parsed <= 0
             ? integer ? "Informe um inteiro positivo." : "Informe um número positivo."
@@ -179,7 +186,7 @@ function NumberField({ label, field, value, positive = false, integer = false, r
   </label>;
 }
 
-function SelectField({ label, field, value, options, editable, errors, commit }: SharedFieldProps & {
+function SelectField({ label, field, value, options, editable, errors, canonicalRevision, commit }: SharedFieldProps & {
   label: string; field: string; value: string; options: readonly (readonly [string, string])[];
 }) {
   const id = useId();
@@ -188,7 +195,7 @@ function SelectField({ label, field, value, options, editable, errors, commit }:
     <span>{label}</span>
     <select
       id={id}
-      key={`${field}:${value}`}
+      key={`${canonicalRevision}:${field}:${value}`}
       defaultValue={value}
       disabled={!editable}
       aria-invalid={Boolean(error)}
@@ -201,7 +208,7 @@ function SelectField({ label, field, value, options, editable, errors, commit }:
   </label>;
 }
 
-function PropertiesField({ value, editable, errors, commit, reject }: SharedFieldProps & { value: PidProperties }) {
+function PropertiesField({ value, editable, errors, canonicalRevision, commit, reject }: SharedFieldProps & { value: PidProperties }) {
   const id = useId();
   const field = "properties";
   const error = errors[field];
@@ -209,7 +216,7 @@ function PropertiesField({ value, editable, errors, commit, reject }: SharedFiel
     <span>Propriedades (JSON)</span>
     <textarea
       id={id}
-      key={JSON.stringify(value)}
+      key={`${canonicalRevision}:${JSON.stringify(value)}`}
       defaultValue={JSON.stringify(value, null, 2)}
       disabled={!editable}
       rows={5}

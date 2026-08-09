@@ -59,8 +59,9 @@ describe("inspetor contextual P&ID", () => {
     expect(screen.getAllByText(/inteiro positivo/i).length).toBeGreaterThanOrEqual(1);
 
     rerender(<PropertiesInspector document={documentFixture()} selection={[ids.port]} editable onCommand={() => ({ ok: false, field: "capacity", message: "A capacidade foi excedida." })} />);
-    fireEvent.change(capacity, { target: { value: "2" } });
-    fireEvent.blur(capacity);
+    const updatedCapacity = screen.getByLabelText("Capacidade");
+    fireEvent.change(updatedCapacity, { target: { value: "2" } });
+    fireEvent.blur(updatedCapacity);
     expect(screen.getAllByText("A capacidade foi excedida.").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
   });
@@ -111,6 +112,43 @@ describe("inspetor contextual P&ID", () => {
     expect(capacity).toHaveAttribute("aria-invalid", "false");
     expect(screen.queryByText(/inteiro positivo/i)).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it.each([
+    ["Posição X", ids.node],
+    ["Rotação", ids.node],
+    ["Capacidade", ids.port],
+  ])("rejeita %s vazio sem substituir o valor canônico por zero", (label, selectedId) => {
+    const onCommand = vi.fn();
+    render(<PropertiesInspector document={documentFixture()} selection={[selectedId]} editable onCommand={onCommand} />);
+
+    const input = screen.getByLabelText(label);
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getAllByText(/informe um número/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("status")).toHaveTextContent(/informe um número/i);
+  });
+
+  it("sincroniza o rascunho e limpa erros quando o mesmo elemento recebe uma versão canônica remota", async () => {
+    const initial = documentFixture();
+    const { rerender } = render(
+      <PropertiesInspector document={initial} selection={[ids.port]} editable onCommand={vi.fn()} />,
+    );
+    const capacity = screen.getByLabelText("Capacidade");
+    fireEvent.change(capacity, { target: { value: "" } });
+    fireEvent.blur(capacity);
+    expect(capacity).toHaveAttribute("aria-invalid", "true");
+
+    const remote = structuredClone(initial);
+    remote.ports[ids.port] = { ...remote.ports[ids.port] };
+    rerender(<PropertiesInspector document={remote} selection={[ids.port]} editable onCommand={vi.fn()} />);
+
+    await waitFor(() => expect(screen.getByLabelText("Capacidade")).toHaveValue(1));
+    expect(screen.getByLabelText("Capacidade")).toHaveAttribute("aria-invalid", "false");
+    expect(screen.queryByText(/informe um número/i)).not.toBeInTheDocument();
   });
 });
 

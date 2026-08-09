@@ -6,16 +6,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PidServices } from "@/features/pid/api/contracts";
 import { PidDocumentError } from "@/features/pid/api/contracts";
 import { PidServicesProvider } from "@/features/pid/api/pid-services";
+import type { PidCommand } from "@/features/pid/domain/commands";
+import type { PidDocument } from "@/features/pid/domain/model";
 import { createEmptyDocument } from "@/features/pid/domain/schema";
 
 vi.mock("@/features/pid/canvas/pid-canvas", () => ({
   PidCanvas: ({ document: pidDocument, editable, onCommand, onSelectionChange }: {
-    document: { annotations: Record<string, unknown> };
+    document: PidDocument;
     editable: boolean;
-    onCommand: (command: { type: "annotation.insert"; text: string; position: { x: number; y: number } }) => void;
+    onCommand: (command: PidCommand) => void;
     onSelectionChange: (selection: { nodeIds: string[]; edgeIds: string[] }) => void;
   }) => <div data-testid="pid-canvas" data-editable={String(editable)} data-annotation-count={Object.keys(pidDocument.annotations).length}>
     <button type="button" onClick={() => onCommand({ type: "annotation.insert", text: "Nota", position: { x: 10, y: 10 } })}>Simular alteração</button>
+    {Object.values(pidDocument.ports)
+      .filter((port) => port.templateKey === "discharge" && port.capacity === 1)
+      .map((port) => <button key={port.id} type="button" onClick={() => onCommand({ type: "element.patch", id: port.id, patch: { capacity: 2 } })}>Reparar {port.id}</button>)}
     <button type="button" onClick={() => onSelectionChange({ nodeIds: [], edgeIds: [] })}>Simular seleção</button>
   </div>,
 }));
@@ -81,6 +86,83 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+const overloadedIds = {
+  firstPump: "10000001-0000-4000-8000-000000000001",
+  secondPump: "10000001-0000-4000-8000-000000000002",
+  firstTank: "10000001-0000-4000-8000-000000000003",
+  secondTank: "10000001-0000-4000-8000-000000000004",
+  firstDischarge: "20000001-0000-4000-8000-000000000001",
+  secondDischarge: "20000001-0000-4000-8000-000000000002",
+  firstInlet: "20000001-0000-4000-8000-000000000003",
+  secondInlet: "20000001-0000-4000-8000-000000000004",
+} as const;
+
+function doubleOverloadedDocument(): PidDocument {
+  const draft = structuredClone(document);
+  draft.metadata.standard = "free";
+  const node = (id: string, symbolKey: string, x: number, tag: string): PidDocument["nodes"][string] => ({
+    id,
+    symbolKey,
+    catalogVersion: draft.metadata.catalogVersion,
+    x,
+    y: 40,
+    width: 96,
+    height: 64,
+    rotation: 0,
+    tag,
+    label: tag,
+    properties: {},
+  });
+  draft.nodes = {
+    [overloadedIds.firstPump]: node(overloadedIds.firstPump, "project.pump.centrifugal", 20, "P-1"),
+    [overloadedIds.secondPump]: node(overloadedIds.secondPump, "project.pump.centrifugal", 20, "P-2"),
+    [overloadedIds.firstTank]: node(overloadedIds.firstTank, "project.tank.storage", 300, "T-1"),
+    [overloadedIds.secondTank]: node(overloadedIds.secondTank, "project.tank.storage", 520, "T-2"),
+  };
+  draft.ports = {
+    [overloadedIds.firstDischarge]: { id: overloadedIds.firstDischarge, nodeId: overloadedIds.firstPump, templateKey: "discharge", direction: "output", connectionClass: "process", capacity: 1 },
+    [overloadedIds.secondDischarge]: { id: overloadedIds.secondDischarge, nodeId: overloadedIds.secondPump, templateKey: "discharge", direction: "output", connectionClass: "process", capacity: 1 },
+    [overloadedIds.firstInlet]: { id: overloadedIds.firstInlet, nodeId: overloadedIds.firstTank, templateKey: "inlet", direction: "input", connectionClass: "process", capacity: 2 },
+    [overloadedIds.secondInlet]: { id: overloadedIds.secondInlet, nodeId: overloadedIds.secondTank, templateKey: "inlet", direction: "input", connectionClass: "process", capacity: 2 },
+  };
+  const edge = (id: string, sourcePortId: string, targetPortId: string, tag: string): PidDocument["edges"][string] => ({
+    id,
+    sourcePortId,
+    targetPortId,
+    connectionClass: "process",
+    route: [],
+    tag,
+    label: tag,
+    properties: {},
+  });
+  draft.edges = {
+    "30000001-0000-4000-8000-000000000001": edge("30000001-0000-4000-8000-000000000001", overloadedIds.firstDischarge, overloadedIds.firstInlet, "L-1"),
+    "30000001-0000-4000-8000-000000000002": edge("30000001-0000-4000-8000-000000000002", overloadedIds.firstDischarge, overloadedIds.secondInlet, "L-2"),
+    "30000001-0000-4000-8000-000000000003": edge("30000001-0000-4000-8000-000000000003", overloadedIds.secondDischarge, overloadedIds.firstInlet, "L-3"),
+    "30000001-0000-4000-8000-000000000004": edge("30000001-0000-4000-8000-000000000004", overloadedIds.secondDischarge, overloadedIds.secondInlet, "L-4"),
+  };
+  return draft;
+}
+
+function documentWithWarnings(): PidDocument {
+  const draft = structuredClone(document);
+  draft.metadata.standard = "free";
+  draft.nodes[overloadedIds.firstPump] = {
+    id: overloadedIds.firstPump,
+    symbolKey: "project.pump.centrifugal",
+    catalogVersion: draft.metadata.catalogVersion,
+    x: 20,
+    y: 40,
+    width: 96,
+    height: 64,
+    rotation: 0,
+    tag: "P-1",
+    label: "P-1",
+    properties: {},
+  };
+  return draft;
+}
+
 describe("studio focado P&ID", () => {
   afterEach(() => vi.useRealTimers());
   beforeEach(() => window.history.replaceState(null, "", "/"));
@@ -111,6 +193,54 @@ describe("studio focado P&ID", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(pidServices.document.save).toHaveBeenCalledOnce();
     expect(pidServices.document.save).toHaveBeenCalledWith(diagramId, "edit-token", expect.any(Object), 1);
+    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
+  });
+
+  it("mantém reparos parciais localmente e só salva quando todos os erros bloqueantes forem corrigidos", async () => {
+    vi.useFakeTimers();
+    const invalidDocument = doubleOverloadedDocument();
+    const save = vi.fn().mockResolvedValue(2);
+    const pidServices = services({
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: invalidDocument, revision: 1 }),
+      save,
+    });
+    mount(pidServices);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    const repairs = screen.getAllByRole("button", { name: /^Reparar / });
+    expect(repairs).toHaveLength(2);
+    fireEvent.click(repairs[0]);
+
+    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Não salvo");
+    expect(screen.getByRole("alert")).toHaveTextContent(/erros bloqueantes/i);
+    expect(screen.queryByRole("button", { name: "Tentar salvar novamente" })).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    expect(save).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Reparar / })[0]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+
+    expect(save).toHaveBeenCalledOnce();
+    expect(save.mock.calls[0][2].ports[overloadedIds.firstDischarge].capacity).toBe(2);
+    expect(save.mock.calls[0][2].ports[overloadedIds.secondDischarge].capacity).toBe(2);
+    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
+  });
+
+  it("continua salvando documentos que possuem apenas avisos", async () => {
+    vi.useFakeTimers();
+    const warningDocument = documentWithWarnings();
+    const save = vi.fn().mockResolvedValue(2);
+    const pidServices = services({
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: warningDocument, revision: 1 }),
+      save,
+    });
+    mount(pidServices);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+
+    expect(save).toHaveBeenCalledOnce();
     expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
   });
 

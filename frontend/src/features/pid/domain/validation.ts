@@ -56,6 +56,12 @@ function validateCatalogRules(
   const issues: ValidationIssue[] = [];
   const symbols = new Map(catalog.map((symbol) => [symbol.key, symbol]));
   const connectedPortIds = new Set<string>();
+  const portsByNode = new Map<string, PidDocument["ports"][string][]>();
+  for (const port of Object.values(document.ports)) {
+    const nodePorts = portsByNode.get(port.nodeId);
+    if (nodePorts) nodePorts.push(port);
+    else portsByNode.set(port.nodeId, [port]);
+  }
   for (const edge of Object.values(document.edges)) {
     connectedPortIds.add(edge.sourcePortId);
     connectedPortIds.add(edge.targetPortId);
@@ -73,6 +79,16 @@ function validateCatalogRules(
       });
       continue;
     }
+    if (symbol.catalogVersion !== document.metadata.catalogVersion) {
+      issues.push({
+        code: "catalog.symbol-version-mismatch",
+        severity: "error",
+        elementId: node.id,
+        field: "catalogVersion",
+        message: `O símbolo ${symbol.name} pertence ao catálogo ${symbol.catalogVersion}, mas o documento usa ${document.metadata.catalogVersion}.`,
+      });
+      continue;
+    }
     if (!isCatalogSymbolCompatible(document.metadata.standard, symbol.standards)) {
       issues.push({
         code: "standard.mixed",
@@ -84,9 +100,7 @@ function validateCatalogRules(
     }
 
     const portsByTemplate = new Map(
-      Object.values(document.ports)
-        .filter((port) => port.nodeId === node.id)
-        .map((port) => [port.templateKey, port]),
+      (portsByNode.get(node.id) ?? []).map((port) => [port.templateKey, port]),
     );
     for (const template of symbol.portTemplates) {
       const port = portsByTemplate.get(template.key);

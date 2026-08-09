@@ -98,6 +98,27 @@ describe("validação estruturada P&ID", () => {
       expect.objectContaining({ code: "catalog.symbol-missing", elementId: ids.pump, severity: "error" }),
     ]));
   });
+
+  it("bloqueia um símbolo de mesma chave resolvido em outra versão de catálogo", () => {
+    const wrongVersionCatalog = catalog.map((symbol) => ({ ...symbol, catalogVersion: "local-v2" }));
+    const document = mutate((draft) => {
+      draft.edges = {};
+      draft.nodes[ids.pump].properties = {};
+    });
+
+    const issues = validateDocument(document, { catalog: wrongVersionCatalog });
+
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "catalog.symbol-version-mismatch",
+        elementId: ids.pump,
+        field: "catalogVersion",
+        severity: "error",
+      }),
+    ]));
+    expect(issues.some((issue) => issue.code === "port.required-disconnected" || issue.code === "property.required-missing")).toBe(false);
+    expect(issues).toEqual(validateDocument(structuredClone(document), { catalog: wrongVersionCatalog }));
+  });
 });
 
 function baseDocument(): PidDocument {

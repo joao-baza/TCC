@@ -27,6 +27,13 @@ import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-sho
 import { ValidationPanel } from "./validation-panel";
 
 const catalogIndex = createCatalogIndex(localCatalog);
+const persistenceBlockFor = (document: Parameters<typeof validateDocument>[0]): string | null => {
+  const blockingCount = validateDocument(document, { catalog: localCatalog })
+    .filter((issue) => issue.severity === "error").length;
+  return blockingCount > 0
+    ? `Corrija os erros bloqueantes antes de salvar ou exportar (${blockingCount} restante${blockingCount === 1 ? "" : "s"}).`
+    : null;
+};
 
 interface EditorSession {
   readonly diagramId: string;
@@ -126,7 +133,16 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const [operationError, setOperationError] = useState<string | null>(null);
   const clipboardRef = useRef<EditorClipboardFragment | null>(null);
   const pasteCountRef = useRef(0);
-  const autosave = useEditorAutosave({ diagramId, editToken, revision, store, documentPort, editable, onRevision: setRevision });
+  const autosave = useEditorAutosave({
+    diagramId,
+    editToken,
+    revision,
+    store,
+    documentPort,
+    editable,
+    getPersistenceBlock: persistenceBlockFor,
+    onRevision: setRevision,
+  });
   useEffect(() => registerNavigationGuard(autosave.flush), [autosave.flush, registerNavigationGuard]);
   useEffect(() => {
     if (!editable || autosave.state === "Sincronizado") return;
@@ -308,7 +324,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         </div>}
       </aside>
     </div>
-    <StatusBar state={editor} saveState={autosave.state} onRetry={!autosave.conflict && autosave.state === "Não salvo" ? autosave.retry : undefined} />
+    <StatusBar state={editor} saveState={autosave.state} onRetry={!autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
     <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
   </main>;
 }

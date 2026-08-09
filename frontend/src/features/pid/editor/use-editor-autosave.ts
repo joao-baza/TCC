@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { isPidDocumentError, type PidDocumentPort } from "../api/contracts";
+import type { PidDocument } from "../domain/model";
 import type { EditorStore } from "./editor-store";
 
 export type EditorSaveState = "Sincronizado" | "Salvando" | "Não salvo";
@@ -9,6 +10,7 @@ export interface EditorAutosaveController {
   readonly state: EditorSaveState;
   readonly error: string | null;
   readonly conflict: boolean;
+  readonly validationBlocked: boolean;
   markLocalChange(): void;
   retry(): void;
   flush(): Promise<number>;
@@ -24,6 +26,7 @@ export function useEditorAutosave(input: {
   readonly store: EditorStore;
   readonly documentPort: PidDocumentPort;
   readonly editable: boolean;
+  readonly getPersistenceBlock: (document: PidDocument) => string | null;
   readonly onRevision: (revision: number) => void;
 }): EditorAutosaveController {
   const latest = useRef(input);
@@ -38,9 +41,11 @@ export function useEditorAutosave(input: {
   const versionRef = useRef(0);
   const savedVersionRef = useRef(0);
   const blockedRef = useRef(false);
+  const validationBlockedRef = useRef(false);
   const [state, setState] = useState<EditorSaveState>("Sincronizado");
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [validationBlocked, setValidationBlocked] = useState(false);
 
   useEffect(() => { revisionRef.current = Math.max(revisionRef.current, input.revision); }, [input.revision]);
   useEffect(() => {
@@ -65,16 +70,29 @@ export function useEditorAutosave(input: {
       const reason = new Error("O autosave está bloqueado por um conflito de revisão.");
       return options.throwOnError ? Promise.reject(reason) : Promise.resolve();
     }
-    inFlightRef.current = true;
-    if (activeRef.current) { setState("Salvando"); setError(null); }
-    const savingVersion = versionRef.current;
     const current = latest.current;
+    const document = current.store.getState().document;
+    const persistenceBlock = readPersistenceBlock(current.getPersistenceBlock, document);
+    if (persistenceBlock) {
+      validationBlockedRef.current = true;
+      if (activeRef.current) {
+        setValidationBlocked(true);
+        setState("Não salvo");
+        setError(persistenceBlock);
+      }
+      const reason = new Error(persistenceBlock);
+      return options.throwOnError ? Promise.reject(reason) : Promise.resolve();
+    }
+    validationBlockedRef.current = false;
+    inFlightRef.current = true;
+    if (activeRef.current) { setValidationBlocked(false); setState("Salvando"); setError(null); }
+    const savingVersion = versionRef.current;
     const execution = (async () => {
       try {
         const nextRevision = await current.documentPort.save(
           current.diagramId,
           current.editToken,
-          current.store.getState().document,
+          document,
           revisionRef.current,
         );
         revisionRef.current = nextRevision;
@@ -85,7 +103,7 @@ export function useEditorAutosave(input: {
           setState("Sincronizado");
         } else {
           setState("Não salvo");
-          if (options.scheduleFollowup !== false) timerRef.current = setTimeout(() => { void save(); }, 0);
+          if (options.scheduleFollowup !== false && !validationBlockedRef.current) timerRef.current = setTimeout(() => { void save(); }, 0);
         }
       } catch (reason) {
         const isConflict = isPidDocumentError(reason) && reason.code === "CONFLICT";
@@ -111,6 +129,28 @@ export function useEditorAutosave(input: {
     if (!latest.current.editable || suspendedRef.current) return;
     versionRef.current += 1;
     if (activeRef.current) setState("Não salvo");
+    const persistenceBlock = readPersistenceBlock(
+      latest.current.getPersistenceBlock,
+      latest.current.store.getState().document,
+    );
+    if (persistenceBlock) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = null;
+      validationBlockedRef.current = true;
+      if (activeRef.current) {
+        setValidationBlocked(true);
+        if (!blockedRef.current) {
+          setConflict(false);
+          setError(persistenceBlock);
+        }
+      }
+      return;
+    }
+    validationBlockedRef.current = false;
+    if (activeRef.current) {
+      setValidationBlocked(false);
+      if (!blockedRef.current) { setConflict(false); setError(null); }
+    }
     if (blockedRef.current || inFlightRef.current) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => { void save(); }, 400);
@@ -144,7 +184,7 @@ export function useEditorAutosave(input: {
   }, [flushLatest]);
 
   flushOnUnmountRef.current = () => {
-    if (!latest.current.editable || suspendedRef.current || blockedRef.current
+    if (!latest.current.editable || suspendedRef.current || blockedRef.current || validationBlockedRef.current
       || savedVersionRef.current === versionRef.current) return;
     void flushLatest(false).catch(() => {});
   };
@@ -152,12 +192,18 @@ export function useEditorAutosave(input: {
   const resumeLocal = useCallback((revision: number) => {
     revisionRef.current = Math.max(revisionRef.current, revision);
     suspendedRef.current = false;
-    if (!blockedRef.current) { setConflict(false); setError(null); }
+    const persistenceBlock = readPersistenceBlock(
+      latest.current.getPersistenceBlock,
+      latest.current.store.getState().document,
+    );
+    validationBlockedRef.current = Boolean(persistenceBlock);
+    setValidationBlocked(Boolean(persistenceBlock));
+    if (!blockedRef.current) { setConflict(false); setError(persistenceBlock); }
     if (savedVersionRef.current === versionRef.current) setState("Sincronizado");
-    else if (!blockedRef.current) {
+    else if (!blockedRef.current && !persistenceBlock) {
       setState("Não salvo");
       timerRef.current = setTimeout(() => { void save(); }, 400);
-    }
+    } else if (persistenceBlock) setState("Não salvo");
     return revisionRef.current;
   }, [save]);
 
@@ -168,10 +214,23 @@ export function useEditorAutosave(input: {
     savedVersionRef.current = 0;
     suspendedRef.current = false;
     blockedRef.current = false;
+    validationBlockedRef.current = false;
     setConflict(false);
+    setValidationBlocked(false);
     setError(null);
     setState("Sincronizado");
   }, []);
 
-  return { state, error, conflict, markLocalChange, retry, flush, suspend, resumeLocal, resumeRemote };
+  return { state, error, conflict, validationBlocked, markLocalChange, retry, flush, suspend, resumeLocal, resumeRemote };
+}
+
+function readPersistenceBlock(
+  getPersistenceBlock: (document: PidDocument) => string | null,
+  document: PidDocument,
+): string | null {
+  try {
+    return getPersistenceBlock(document);
+  } catch {
+    return "Não foi possível validar o diagrama. A persistência foi bloqueada por segurança.";
+  }
 }
