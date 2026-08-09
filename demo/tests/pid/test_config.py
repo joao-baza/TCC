@@ -25,6 +25,54 @@ def test_pid_is_disabled_without_environment(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.redis_url is None
 
 
+@pytest.mark.parametrize(
+    "enabled",
+    ["1", "true", "TRUE", " yes ", "\tOn\t"],
+)
+def test_pid_enabled_accepts_only_explicit_truthy_values(
+    monkeypatch: pytest.MonkeyPatch,
+    enabled: str,
+) -> None:
+    clear_pid_env(monkeypatch)
+    monkeypatch.setenv("PID_ENABLED", enabled)
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://dcou:secret@localhost/dcou")
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("PID_TOKEN_PEPPER", "p" * 32)
+    monkeypatch.setenv("PID_ALLOWED_ORIGINS", "https://editor.example.test")
+    monkeypatch.setenv("PID_WS_PUBLIC_URL", "wss://editor.example.test/pid/ws")
+
+    assert PidSettings.from_env(load_file=False).enabled is True
+
+
+@pytest.mark.parametrize(
+    "enabled",
+    ["", " ", "0", "false", "FALSE", " no ", "\tOff\t"],
+)
+def test_pid_enabled_accepts_empty_and_explicit_falsy_values(
+    monkeypatch: pytest.MonkeyPatch,
+    enabled: str,
+) -> None:
+    clear_pid_env(monkeypatch)
+    monkeypatch.setenv("PID_ENABLED", enabled)
+
+    assert PidSettings.from_env(load_file=False).enabled is False
+
+
+@pytest.mark.parametrize("enabled", ["treu", "tr ue", "enabled", "2"])
+def test_pid_enabled_rejects_unknown_values_without_echoing_them(
+    monkeypatch: pytest.MonkeyPatch,
+    enabled: str,
+) -> None:
+    clear_pid_env(monkeypatch)
+    monkeypatch.setenv("PID_ENABLED", enabled)
+
+    with pytest.raises(ValueError) as exc_info:
+        PidSettings.from_env(load_file=False)
+
+    assert "PID_ENABLED" in str(exc_info.value)
+    assert enabled not in str(exc_info.value)
+
+
 def test_enabled_pid_requires_all_runtime_values(monkeypatch: pytest.MonkeyPatch) -> None:
     clear_pid_env(monkeypatch)
     monkeypatch.setenv("PID_ENABLED", "true")

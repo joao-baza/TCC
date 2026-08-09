@@ -35,6 +35,7 @@ required_environment=(
   POSTGRES_DB
   POSTGRES_USER
   POSTGRES_PASSWORD
+  POSTGRES_NODE_HOSTNAME
   DATABASE_URL
   REDIS_PASSWORD
   REDIS_URL
@@ -56,16 +57,19 @@ if (( ${#missing_environment[@]} > 0 )); then
   exit 1
 fi
 
-if [[ -n "${PID_ENABLED:-}" ]]; then
-  case "${PID_ENABLED,,}" in
-    1|true|yes|on|0|false|no|off)
-      ;;
-    *)
-      echo "PID_ENABLED deve ser um valor booleano reconhecido." >&2
-      exit 1
-      ;;
-  esac
-fi
+pid_enabled="$(
+  printf '%s' "${PID_ENABLED:-}" \
+    | LC_ALL=C sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+    | LC_ALL=C tr '[:upper:]' '[:lower:]'
+)"
+case "$pid_enabled" in
+  ""|1|true|yes|on|0|false|no|off)
+    ;;
+  *)
+    echo "PID_ENABLED deve ser um valor booleano reconhecido." >&2
+    exit 1
+    ;;
+esac
 
 STACK_NAME="${STACK_NAME:-tcc}"
 IMAGE_NAME="${IMAGE_NAME:-tcc-api:latest}"
@@ -82,6 +86,18 @@ command -v docker >/dev/null 2>&1 || { echo "Docker não encontrado." >&2; exit 
 
 if ! docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -q "active"; then
   echo "Docker Swarm não está ativo. Execute 'docker swarm init' primeiro." >&2
+  exit 1
+fi
+
+postgres_node_found=0
+while IFS= read -r swarm_node_hostname; do
+  if [[ "$swarm_node_hostname" == "$POSTGRES_NODE_HOSTNAME" ]]; then
+    postgres_node_found=1
+    break
+  fi
+done < <(docker node ls --format '{{.Hostname}}')
+if [[ "$postgres_node_found" -ne 1 ]]; then
+  echo "POSTGRES_NODE_HOSTNAME não corresponde a um nó do Swarm." >&2
   exit 1
 fi
 

@@ -126,6 +126,12 @@ Create the local configuration file:
 cp .env.example .env
 ```
 
+Set `POSTGRES_NODE_HOSTNAME` to the Swarm node that owns the local PostgreSQL
+volume. List the available hostnames with `docker node ls`. The deployment
+validates this value before changing the stack and pins PostgreSQL to that node,
+so an unavailable data node leaves the service pending instead of starting with
+an empty volume elsewhere.
+
 Generate a pepper, then replace the `PID_TOKEN_PEPPER` placeholder in `.env`
 with the generated value. Do not commit the resulting file or print a real
 pepper in logs or documentation.
@@ -171,9 +177,11 @@ python -m pid.catalog.validator \
 - The `GET` `/ready` endpoint is the P&ID readiness check. When P&ID is enabled,
   it reports an unavailable state until PostgreSQL and Redis respond.
 - Production PostgreSQL data is durable in the named
-  `tcc_postgres_data` volume. Redis is intentionally ephemeral, with AOF and
-  RDB persistence disabled. This open-source MVP foundation does not configure
-  external backups.
+  `tcc_postgres_data` volume on the node selected by
+  `POSTGRES_NODE_HOSTNAME`. This is node-local durability, not high
+  availability. Redis is intentionally ephemeral, with AOF and RDB persistence
+  disabled. This open-source MVP foundation does not configure external
+  backups.
 - `deploy/deploy.sh` sources `.env` with Bash. Wrap values containing shell
   special characters in single quotes. Passwords embedded in `DATABASE_URL`
   and `REDIS_URL` must be percent-encoded, and the encoded URL credentials must

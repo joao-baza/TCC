@@ -5,6 +5,18 @@ from dotenv import load_dotenv
 
 
 TRUE_VALUES = {"1", "true", "yes", "on"}
+FALSE_VALUES = {"0", "false", "no", "off"}
+
+
+def _enabled_from_env(value: str | None) -> bool:
+    if value is None:
+        return False
+    normalized = value.lower()
+    if normalized in TRUE_VALUES:
+        return True
+    if normalized in FALSE_VALUES:
+        return False
+    raise ValueError("PID_ENABLED must be a recognized boolean value")
 
 
 def _optional(name: str) -> str | None:
@@ -32,7 +44,7 @@ class PidSettings:
         enabled_value = _optional("PID_ENABLED")
         allowed_origins_value = _optional("PID_ALLOWED_ORIGINS")
         settings = cls(
-            enabled=(enabled_value or "").lower() in TRUE_VALUES,
+            enabled=_enabled_from_env(enabled_value),
             database_url=_optional("DATABASE_URL"),
             redis_url=_optional("REDIS_URL"),
             token_pepper=_optional("PID_TOKEN_PEPPER"),

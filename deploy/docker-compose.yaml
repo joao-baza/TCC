@@ -17,6 +17,9 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+      placement:
+        constraints:
+          - node.hostname == ${POSTGRES_NODE_HOSTNAME}
 
   tcc-redis:
     image: redis:7.4-alpine

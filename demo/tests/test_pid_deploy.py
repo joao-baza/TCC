@@ -29,6 +29,7 @@ REQUIRED_DEPLOY_ENVIRONMENT = (
     "POSTGRES_DB",
     "POSTGRES_USER",
     "POSTGRES_PASSWORD",
+    "POSTGRES_NODE_HOSTNAME",
     "DATABASE_URL",
     "REDIS_PASSWORD",
     "REDIS_URL",
@@ -107,6 +108,9 @@ def test_compose_defines_private_postgres_with_persistent_storage(compose_config
     assert postgres["healthcheck"]["test"][0] == "CMD-SHELL"
     assert "pg_isready" in postgres["healthcheck"]["test"][1]
     assert postgres["deploy"]["restart_policy"]["condition"] == "on-failure"
+    assert postgres["deploy"]["placement"]["constraints"] == [
+        "node.hostname == replace-with-postgres-node-hostname"
+    ]
     assert "SJNet" in postgres["networks"]
     assert "tcc_postgres_data" in compose_config["volumes"]
 
@@ -154,7 +158,9 @@ def test_compose_passes_pid_configuration_and_checks_api_readiness(compose_confi
 
 def test_start_script_exists_and_dockerfile_uses_it():
     assert START_SCRIPT.is_file()
-    assert 'CMD ["sh", "deploy/start-api.sh"]' in read("deploy/Dockerfile.api")
+    dockerfile = read("deploy/Dockerfile.api")
+    assert dockerfile.startswith("FROM python:3.12-slim\n")
+    assert 'CMD ["sh", "deploy/start-api.sh"]' in dockerfile
 
 
 def _write_executable(path: Path, body: str) -> None:
@@ -201,7 +207,10 @@ def test_start_script_migrates_before_uvicorn_when_pid_is_enabled(tmp_path, enab
     ]
 
 
-@pytest.mark.parametrize("enabled", ["", "0", "false", "no", "off", "tr ue"])
+@pytest.mark.parametrize(
+    "enabled",
+    ["", " ", "0", "false", "FALSE", " no ", "\tOff\t"],
+)
 def test_start_script_skips_migration_when_pid_is_disabled(tmp_path, enabled):
     binary_dir = tmp_path / "bin"
     binary_dir.mkdir()
@@ -236,6 +245,40 @@ def test_start_script_skips_migration_when_pid_is_disabled(tmp_path, enabled):
     ]
 
 
+@pytest.mark.parametrize("enabled", ["treu", "tr ue", "enabled", "2"])
+def test_start_script_rejects_unknown_pid_enabled_without_starting(
+    tmp_path, enabled
+):
+    binary_dir = tmp_path / "bin"
+    binary_dir.mkdir()
+    call_log = tmp_path / "calls.log"
+    for executable in ("alembic", "uvicorn"):
+        _write_executable(
+            binary_dir / executable,
+            f'#!/bin/sh\nprintf \'{executable}:%s\\n\' "$*" >> "$CALL_LOG"\n',
+        )
+    environment = os.environ.copy()
+    environment.update(
+        PID_ENABLED=enabled,
+        CALL_LOG=str(call_log),
+        PATH=f"{binary_dir}:{environment['PATH']}",
+    )
+
+    result = subprocess.run(
+        ["sh", str(START_SCRIPT)],
+        cwd=tmp_path,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "PID_ENABLED" in result.stderr
+    assert enabled not in result.stderr
+    assert not call_log.exists()
+
+
 def _copy_deploy_script(tmp_path: Path) -> tuple[Path, Path]:
     project = tmp_path / "project"
     deploy_dir = project / "deploy"
@@ -251,6 +294,7 @@ def _complete_deploy_environment() -> dict[str, str]:
         "POSTGRES_DB": "dcou",
         "POSTGRES_USER": "dcou",
         "POSTGRES_PASSWORD": "postgres-secret",
+        "POSTGRES_NODE_HOSTNAME": "postgres-node-01",
         "DATABASE_URL": "postgresql+psycopg://dcou:postgres-secret@tcc-postgres:5432/dcou",
         "REDIS_PASSWORD": "redis-secret",
         "REDIS_URL": "redis://:redis-secret@tcc-redis:6379/0",
@@ -340,6 +384,101 @@ def test_deploy_rejects_unknown_pid_enabled_before_docker(tmp_path):
     assert not docker_marker.exists()
 
 
+@pytest.mark.parametrize("enabled", [" TRUE ", "\tyes\t", " ON ", " 1 "])
+def test_deploy_accepts_whitespace_truthy_pid_enabled_before_docker(
+    tmp_path, enabled
+):
+    project, script = _copy_deploy_script(tmp_path)
+    values = _complete_deploy_environment()
+    values["PID_ENABLED"] = enabled
+    (project / ".env").write_text(
+        "".join(
+            f"{name}='{value}'\n" if name == "PID_ENABLED" else f"{name}={value}\n"
+            for name, value in values.items()
+        ),
+        encoding="utf-8",
+    )
+    (project / "deploy" / "docker-compose.yaml").write_text(
+        "services: {}\n", encoding="utf-8"
+    )
+    binary_dir = tmp_path / "bin"
+    binary_dir.mkdir()
+    docker_marker = tmp_path / "docker-called"
+    _write_executable(
+        binary_dir / "docker",
+        '#!/bin/sh\n: > "$DOCKER_MARKER"\nexit 99\n',
+    )
+    environment = os.environ.copy()
+    environment.update(
+        DOCKER_MARKER=str(docker_marker),
+        PATH=f"{binary_dir}:{environment['PATH']}",
+    )
+
+    result = subprocess.run(
+        ["bash", str(script)],
+        cwd=tmp_path,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert docker_marker.exists()
+    assert "PID_ENABLED" not in result.stderr
+
+
+def test_deploy_rejects_missing_postgres_node_before_network_or_stack_mutation(
+    tmp_path,
+):
+    project, script = _copy_deploy_script(tmp_path)
+    values = _complete_deploy_environment()
+    values["POSTGRES_NODE_HOSTNAME"] = "missing-node[1]"
+    (project / ".env").write_text(
+        "".join(f"{name}={value}\n" for name, value in values.items()),
+        encoding="utf-8",
+    )
+    (project / "deploy" / "docker-compose.yaml").write_text(
+        "services: {}\n", encoding="utf-8"
+    )
+    binary_dir = tmp_path / "bin"
+    binary_dir.mkdir()
+    docker_log = tmp_path / "docker.log"
+    _write_executable(
+        binary_dir / "docker",
+        """#!/bin/sh
+printf '%s\n' "$*" >> "$DOCKER_LOG"
+if [ "$1 $2" = "info --format" ]; then
+  printf 'active\n'
+elif [ "$1 $2" = "node ls" ]; then
+  printf 'postgres-node-01\nworker-node-02\n'
+fi
+""",
+    )
+    environment = os.environ.copy()
+    environment.update(
+        DOCKER_LOG=str(docker_log),
+        PATH=f"{binary_dir}:{environment['PATH']}",
+    )
+
+    result = subprocess.run(
+        ["bash", str(script)],
+        cwd=tmp_path,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "POSTGRES_NODE_HOSTNAME" in result.stderr
+    assert "missing-node[1]" not in result.stderr
+    assert docker_log.read_text(encoding="utf-8").splitlines() == [
+        "info --format {{.Swarm.LocalNodeState}}",
+        "node ls --format {{.Hostname}}",
+    ]
+
+
 def test_deploy_sources_single_quoted_secrets_and_percent_encoded_urls(tmp_path):
     project, script = _copy_deploy_script(tmp_path)
     (project / "deploy" / "docker-compose.yaml").write_text(
@@ -358,6 +497,7 @@ def test_deploy_sources_single_quoted_secrets_and_percent_encoded_urls(tmp_path)
                 "POSTGRES_DB=dcou",
                 "POSTGRES_USER=dcou",
                 f"POSTGRES_PASSWORD='{postgres_password}'",
+                "POSTGRES_NODE_HOSTNAME='postgres-node-01'",
                 f"DATABASE_URL='{database_url}'",
                 f"REDIS_PASSWORD='{redis_password}'",
                 f"REDIS_URL='{redis_url}'",
