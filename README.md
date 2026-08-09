@@ -114,13 +114,14 @@ The macOS `.dmg` is built on macOS runners via `npm run dist`.
 Desktop packaging reuses the compiled frontend and the Python backend frozen as a local executable.
 Build scripts automatically resolve Python, preferring the project `.venv` and falling back to `python3` or `python` when needed.
 
-#### P&ID Foundation
+#### P&ID Editor and Foundation
 
-The first P&ID delivery provides the persistent backend foundation for diagrams,
-capability tokens, snapshots, one-time tickets, and versioned symbol catalogs. It
-does not include the visual editor, external assets, or a link to engineering
-calculations yet. Stable IDs and contracts are in place for that future
-integration.
+The current P&ID delivery includes a visual editor for equipment, ports,
+connections, annotations, grouping, local collaboration state, and SVG/PNG
+export. The backend foundation also defines persistent diagrams, capability
+tokens, snapshots, one-time tickets, and versioned symbol catalogs. The editor
+does not yet exchange data with engineering calculations; stable UUIDs and API
+contracts keep that later integration possible.
 
 ##### Run the foundation locally
 
@@ -191,8 +192,13 @@ python -m pid.catalog.validator \
   and `REDIS_URL` must be percent-encoded, and the encoded URL credentials must
   remain consistent with the corresponding plain password variables. Never
   place a real secret in committed examples.
-- No SVG or PNG files are redistributed in this delivery. Catalog manifests
-  remain draft provenance records until separately reviewed assets are added.
+- Four sanitized SVG symbols created for this project are redistributed from
+  `frontend/public/pid/symbols/`. Their active catalog metadata, provenance, and
+  license attribution are defined in
+  `frontend/src/features/pid/catalog/fixtures/catalog.ts`. The external Draw.io
+  and Wikimedia references in `pid/catalog/sources.json` record research inputs
+  only; the empty ISA/ISO manifests under `pid/catalog/manifests/` remain drafts
+  and do not claim that external assets are shipped.
 
 This foundation has no link to calculations now; the persisted UUIDs and API
 contracts are deliberately prepared for a future calculation integration.
@@ -207,6 +213,19 @@ Run the unit test suite:
 cd frontend
 npm test
 ```
+
+Run the isolated P&ID performance budget after the deterministic unit suite:
+
+```bash
+cd frontend
+npm run benchmark:pid
+```
+
+The benchmark performs warmup runs and measures in one worker. Wall-clock
+budgets live there so parallel unit-test load cannot make the default suite
+flaky; unit tests still verify the 500-node/1,000-connection workload,
+correctness, output cardinality, linear structural growth, and the result of a
+100-command workload without depending on elapsed time.
 
 Build the frontend for the current local P&ID stage:
 
@@ -230,22 +249,26 @@ Run the local preview used by Playwright:
 
 ```bash
 cd frontend
-npm run preview -- --host 127.0.0.1
+VITE_PID_ADAPTER=local npm run preview -- --host 127.0.0.1
 ```
 
 Run the end-to-end tests:
 
 ```bash
 cd frontend
-npm run test:e2e
+VITE_PID_ADAPTER=local npm run test:e2e
 ```
 
 Run only the Chromium project configured in Playwright:
 
 ```bash
 cd frontend
-npm run test:e2e -- --project=chromium
+VITE_PID_ADAPTER=local npm run test:e2e -- --project=chromium
 ```
+
+Preview and E2E commands pass the adapter explicitly for the same fail-closed
+reason as builds: an absent or unsupported `VITE_PID_ADAPTER` stops Vite instead
+of silently selecting browser storage.
 
 ### Backend
 
