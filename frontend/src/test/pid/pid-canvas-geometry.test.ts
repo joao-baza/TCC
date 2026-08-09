@@ -6,7 +6,11 @@ import {
   getPidNodeGeometry,
   getPidPortAnchorGeometry,
 } from "@/features/pid/domain/geometry";
-import { getPidPortHitTargetGeometry } from "@/features/pid/canvas/port-hit-target";
+import {
+  getPidCanvasInteractionGeometry,
+  getPidPortHitTargetGeometry,
+} from "@/features/pid/canvas/port-hit-target";
+import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
 import {
   boundsForNodes,
   buildGraphIndex,
@@ -64,8 +68,10 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
     const legacy = { ...node, width: 40, height: 40 };
     const legacyPorts = ports(3);
     const geometry = getPidNodeGeometry(legacy);
+    const interaction = getPidCanvasInteractionGeometry(geometry, legacyPorts);
     const anchors = legacyPorts.map((port, index) => getPidPortAnchorGeometry(geometry, port, index, legacyPorts));
     const handles = anchors.map((anchor, index) => getPidPortHitTargetGeometry(
+      interaction,
       geometry,
       anchor,
       legacyPorts[index],
@@ -94,9 +100,11 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
     const sourceNode = document.nodes.sourceNode;
     const sourcePorts = Object.values(document.ports).filter(({ nodeId }) => nodeId === sourceNode.id);
     const geometry = getPidNodeGeometry(sourceNode);
+    const interaction = getPidCanvasInteractionGeometry(geometry, sourcePorts);
     const anchor = getPidPortAnchorGeometry(geometry, sourcePorts[0], 0, sourcePorts);
-    const smallTarget = getPidPortHitTargetGeometry(geometry, anchor, sourcePorts[0], 0, sourcePorts, 20);
-    const largeTarget = getPidPortHitTargetGeometry(geometry, anchor, sourcePorts[0], 0, sourcePorts, 96);
+    const smallTarget = getPidPortHitTargetGeometry(interaction, geometry, anchor, sourcePorts[0], 0, sourcePorts, 20);
+    const largeInteraction = getPidCanvasInteractionGeometry(geometry, sourcePorts, 96);
+    const largeTarget = getPidPortHitTargetGeometry(largeInteraction, geometry, anchor, sourcePorts[0], 0, sourcePorts, 96);
 
     expect(smallTarget.targetRect).not.toEqual(largeTarget.targetRect);
     expect(boundsForNodes(Object.values(document.nodes))).toEqual({
@@ -106,6 +114,52 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
       height: grouped.groups.group.height,
     });
     expect(assertDocumentInvariants(grouped).filter(({ code }) => code === "group.bounds")).toEqual([]);
+  });
+
+  it("mantém todos os alvos de perímetro sem interseção em símbolos reais e legados", () => {
+    const fixtures = [
+      ...localCatalog.map((symbol, fixtureIndex) => ({
+        node: { ...node, id: `node-${fixtureIndex}`, symbolKey: symbol.key, width: symbol.defaultSize.width, height: symbol.defaultSize.height },
+        ports: symbol.portTemplates.map((template, portIndex) => ({
+          ...template,
+          id: `port-${fixtureIndex}-${portIndex}`,
+          nodeId: `node-${fixtureIndex}`,
+          templateKey: template.key,
+        })),
+      })),
+      {
+        node: { ...node, id: "legacy", width: 24, height: 32 },
+        ports: [
+          ...ports(3).map((port) => ({ ...port, nodeId: "legacy" })),
+          { id: "legacy-output", nodeId: "legacy", templateKey: "output", direction: "output" as const, connectionClass: "process" as const, capacity: 1 },
+          { id: "legacy-bottom", nodeId: "legacy", templateKey: "bottom", direction: "bidirectional" as const, connectionClass: "signal" as const, capacity: 1 },
+        ],
+      },
+    ];
+    for (const fixture of fixtures) {
+      for (const rotation of [0, 90, 180, 270] as const) {
+        const rotated = { ...fixture.node, rotation };
+        const canonical = getPidNodeGeometry(rotated);
+        const interaction = getPidCanvasInteractionGeometry(canonical, fixture.ports);
+        const targets = fixture.ports.map((port, index) => getPidPortHitTargetGeometry(
+          interaction,
+          canonical,
+          getPidPortAnchorGeometry(canonical, port, index, fixture.ports),
+          port,
+          index,
+          fixture.ports,
+        ));
+        expect(interaction.canonicalRect.width).toBe(canonical.bounds.width);
+        expect(interaction.canonicalRect.height).toBe(canonical.bounds.height);
+        for (let left = 0; left < targets.length; left += 1) {
+          for (let right = left + 1; right < targets.length; right += 1) {
+            expect(rectanglesIntersect(targets[left].targetRect, targets[right].targetRect),
+              `${fixture.node.symbolKey} ${rotation}°: ${fixture.ports[left].templateKey}/${fixture.ports[right].templateKey}`)
+              .toBe(false);
+          }
+        }
+      }
+    }
   });
 
   it.each([
@@ -175,4 +229,11 @@ function validationDocument(): PidDocument {
     annotations: {},
     groups: {},
   };
+}
+
+function rectanglesIntersect(left: { x: number; y: number; width: number; height: number }, right: { x: number; y: number; width: number; height: number }): boolean {
+  return left.x < right.x + right.width
+    && left.x + left.width > right.x
+    && left.y < right.y + right.height
+    && left.y + left.height > right.y;
 }

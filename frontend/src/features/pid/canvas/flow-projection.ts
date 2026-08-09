@@ -9,7 +9,7 @@ import {
 import type { PidDocument, PidEdge, PidNode, PidPort } from "../domain/model";
 import type { EquipmentFlowNode } from "./equipment-node";
 import type { ProcessFlowEdge } from "./process-edge";
-import { getPidPortHitTargetGeometry } from "./port-hit-target";
+import { getPidCanvasInteractionGeometry, getPidPortHitTargetGeometry } from "./port-hit-target";
 
 export interface PidFlowProjection {
   readonly nodes: EquipmentFlowNode[];
@@ -69,9 +69,11 @@ export function projectPidCanvasDocument(
       return cached.node;
     }
     const geometry = getPidNodeGeometry(node);
+    const interactionGeometry = getPidCanvasInteractionGeometry(geometry, ports);
     const portGeometries = new Map(ports.map((port, index) => [
       port.id,
       getPidPortHitTargetGeometry(
+        interactionGeometry,
         geometry,
         getPidPortAnchorGeometry(geometry, port, index, ports),
         port,
@@ -82,11 +84,11 @@ export function projectPidCanvasDocument(
     const flowNode: EquipmentFlowNode = {
       id: node.id,
       type: "equipment",
-      position: { x: geometry.bounds.x, y: geometry.bounds.y },
-      width: geometry.bounds.width,
-      height: geometry.bounds.height,
-      initialWidth: geometry.bounds.width,
-      initialHeight: geometry.bounds.height,
+      position: { x: interactionGeometry.bounds.x, y: interactionGeometry.bounds.y },
+      width: interactionGeometry.bounds.width,
+      height: interactionGeometry.bounds.height,
+      initialWidth: interactionGeometry.bounds.width,
+      initialHeight: interactionGeometry.bounds.height,
       handles: ports.map((port) => {
         const portGeometry = portGeometries.get(port.id)!;
         return {
@@ -107,7 +109,7 @@ export function projectPidCanvasDocument(
       domAttributes: { "aria-pressed": false },
       ariaRole: "button",
       ariaLabel: [node.label || symbol?.name || "Equipamento", node.tag].filter(Boolean).join(" "),
-      data: { equipment: node, ports, symbol, editable, geometry, portGeometries, onPortKey },
+      data: { equipment: node, ports, symbol, editable, geometry, interactionGeometry, portGeometries, onPortKey },
     };
     nodeAdapters.set(node, { ports, symbol, editable, onPortKey, node: flowNode, geometry });
     geometries.set(node.id, geometry);

@@ -21,11 +21,11 @@ import "@xyflow/react/dist/style.css";
 import type { CatalogIndex } from "../catalog/catalog-index";
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
 import { deleteSelection, type PidCommand } from "../domain/commands";
-import { canonicalPositionFromFlow, type PidNodeGeometry } from "../domain/geometry";
 import type { PidDocument } from "../domain/model";
 import { createPortConnectionValidation, getPortConnectionRejection, type PidGraphIndex, uniqueIds } from "../domain/graph-operations";
 import { EquipmentNode, type EquipmentFlowNode } from "./equipment-node";
 import { applyPidCanvasSelection, projectPidCanvasDocument, type PidFlowProjection } from "./flow-projection";
+import type { PidCanvasInteractionGeometry } from "./port-hit-target";
 import { ProcessEdge, type ProcessFlowEdge } from "./process-edge";
 
 const nodeTypes = { equipment: EquipmentNode } satisfies NodeTypes;
@@ -251,7 +251,7 @@ function PidCanvasInner({
       positionChange.id,
       positionChange.position,
       selectionRef.current.nodeIds,
-      flowNode?.data.geometry,
+      flowNode?.data.interactionGeometry,
     );
     if (!command) {
       setNodes((current) => applyNodeChanges(selectionNormalizedChanges, current));
@@ -313,7 +313,7 @@ function PidCanvasInner({
     draggingNodeIdsRef.current = new Set();
     if (!editable) return;
     const selectedIds = movedNodes.map(({ id }) => id).filter((id) => document.nodes[id]);
-    const command = createPidMoveCommand(document, node.id, node.position, selectedIds, node.data.geometry);
+    const command = createPidMoveCommand(document, node.id, node.position, selectedIds, node.data.interactionGeometry);
     if (command) onCommand(command);
   }, [document.nodes, editable, onCommand]);
   const handleDelete = useCallback(({ nodes: deletedNodes, edges: deletedEdges }: {
@@ -420,11 +420,14 @@ export function createPidMoveCommand(
   draggedNodeId: string,
   position: { readonly x: number; readonly y: number },
   selectedNodeIds: readonly string[],
-  geometry?: PidNodeGeometry,
+  interactionGeometry?: PidCanvasInteractionGeometry,
 ): Extract<PidCommand, { type: "selection.move" }> | null {
   const canonical = document.nodes[draggedNodeId];
   if (!canonical) return null;
-  const canonicalPosition = geometry ? canonicalPositionFromFlow(canonical, geometry, position) : position;
+  const canonicalPosition = interactionGeometry ? {
+    x: position.x - (interactionGeometry.bounds.x - canonical.x),
+    y: position.y - (interactionGeometry.bounds.y - canonical.y),
+  } : position;
   const delta = { x: canonicalPosition.x - canonical.x, y: canonicalPosition.y - canonical.y };
   if (delta.x === 0 && delta.y === 0) return null;
   const selected = uniqueIds(selectedNodeIds.filter((id) => document.nodes[id]));

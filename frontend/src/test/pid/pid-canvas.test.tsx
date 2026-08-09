@@ -302,7 +302,7 @@ describe("PidCanvas", () => {
     dispatchFlowMouseEvent(pump, "mousedown", { button: 0, buttons: 1, clientX: 100, clientY: 80 });
     dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 96, clientY: 80 });
     dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 128, clientY: 112 });
-    await waitFor(() => expect(pump.style.transform).toBe("translate(128px,112px)"));
+    await waitFor(() => expect(pump.style.transform).toBe("translate(128px,96px)"));
     expect(onCommand).not.toHaveBeenCalled();
     dispatchFlowMouseEvent(window, "mouseup", { button: 0, clientX: 128, clientY: 112 });
 
@@ -467,10 +467,10 @@ describe("PidCanvas", () => {
   });
 
   it.each([
-    [0, "left", 8, "rotate(0deg)"],
-    [90, "top", 56, "rotate(90deg)"],
-    [180, "right", 56, "rotate(180deg)"],
-    [270, "bottom", 8, "rotate(270deg)"],
+    [0, "left", 48, "rotate(0deg)"],
+    [90, "top", 96, "rotate(90deg)"],
+    [180, "right", 96, "rotate(180deg)"],
+    [270, "bottom", 48, "rotate(270deg)"],
   ] as const)("rotaciona somente a arte e move a porta assimétrica em %i°", async (
     rotation,
     position,

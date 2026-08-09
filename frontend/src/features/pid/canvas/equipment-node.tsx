@@ -4,7 +4,7 @@ import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
 import type { PidNode, PidPort, PortDirection } from "../domain/model";
 import type { PidNodeGeometry } from "../domain/geometry";
-import type { PidPortHitTargetGeometry } from "./port-hit-target";
+import type { PidCanvasInteractionGeometry, PidPortHitTargetGeometry } from "./port-hit-target";
 
 export type EquipmentNodeData = Record<string, unknown> & {
   readonly equipment: PidNode;
@@ -12,6 +12,7 @@ export type EquipmentNodeData = Record<string, unknown> & {
   readonly symbol?: CatalogSymbol;
   readonly editable: boolean;
   readonly geometry: PidNodeGeometry;
+  readonly interactionGeometry: PidCanvasInteractionGeometry;
   readonly portGeometries: ReadonlyMap<string, PidPortHitTargetGeometry>;
   readonly onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void;
 };
@@ -25,20 +26,31 @@ const directionLabel: Record<PortDirection, string> = {
 };
 
 function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<EquipmentFlowNode>) {
-  const { equipment, ports, symbol, editable, portGeometries, onPortKey } = data;
+  const { equipment, ports, symbol, editable, interactionGeometry, portGeometries, onPortKey } = data;
   const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => setImageFailed(false), [symbol?.assetUrl]);
   const title = [equipment.label || symbol?.name || "Equipamento", equipment.tag].filter(Boolean).join(" ");
 
   return (
     <div
-      className={`relative h-full w-full rounded-lg border bg-white p-2 shadow-sm outline-none transition ${
-        selected ? "border-blue-600 ring-2 ring-blue-200" : "border-slate-300"
+      className={`relative h-full w-full rounded-lg outline-none transition ${
+        selected ? "ring-2 ring-blue-200" : ""
       }`}
       data-selected={selected ? "true" : "false"}
       aria-selected={selected}
     >
-      <div className="flex h-full min-h-0 flex-col items-center justify-center gap-1">
+      <div
+        data-testid={`equipment-body-${equipment.id}`}
+        className={`absolute flex min-h-0 flex-col items-center justify-center gap-1 rounded-lg border bg-white p-2 shadow-sm ${
+          selected ? "border-blue-600" : "border-slate-300"
+        }`}
+        style={{
+          left: interactionGeometry.canonicalRect.x,
+          top: interactionGeometry.canonicalRect.y,
+          width: interactionGeometry.canonicalRect.width,
+          height: interactionGeometry.canonicalRect.height,
+        }}
+      >
         <div
           data-testid={`equipment-artwork-${equipment.id}`}
           className="flex min-h-0 max-h-full max-w-full flex-1 items-center justify-center"

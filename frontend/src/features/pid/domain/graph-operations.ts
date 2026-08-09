@@ -129,10 +129,15 @@ export function boundsForNodes(
   return { x, y, width: right - x, height: bottom - y };
 }
 
-export function recalculateGroupBounds(document: PidDocument): PidDocument {
+export function recalculateGroupBounds(
+  document: PidDocument,
+  groupIds?: ReadonlySet<string>,
+): PidDocument {
   if (document.groups === undefined || Object.keys(document.groups).length === 0) return document;
   let groups = document.groups;
-  for (const [groupId, group] of Object.entries(document.groups)) {
+  for (const groupId of groupIds ?? new Set(Object.keys(document.groups))) {
+    const group = document.groups[groupId];
+    if (!group) continue;
     const members = group.memberIds
       .map((memberId) => document.nodes[memberId])
       .filter((node): node is PidNode => Boolean(node));

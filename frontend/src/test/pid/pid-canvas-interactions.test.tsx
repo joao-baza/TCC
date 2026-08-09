@@ -24,6 +24,7 @@ const ids = {
   valveSignal: "30000000-0000-4000-8000-000000000004",
   signalOut: "30000000-0000-4000-8000-000000000005",
   utility: "30000000-0000-4000-8000-000000000006",
+  utilityTarget: "30000000-0000-4000-8000-000000000007",
 } as const;
 
 describe("integrações acessíveis e transientes do PidCanvas", () => {
@@ -59,11 +60,12 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     const onCommand = vi.fn();
     render(<PidCanvas document={interactionDocument()} catalog={localCatalog} editable onCommand={onCommand} />);
     const pump = screen.getByRole("button", { name: "Bomba P-1" });
+    expect(screen.getByTestId(`equipment-body-${ids.pump}`)).toHaveStyle({ top: "16px", left: "0px" });
     fireEvent.click(pump);
     pump.focus();
     fireEvent.keyDown(pump, { key: "ArrowRight", code: "ArrowRight" });
 
-    await waitFor(() => expect(pump.style.transform).toBe("translate(112px,80px)"));
+    await waitFor(() => expect(pump.style.transform).toBe("translate(112px,64px)"));
     expect(onCommand).toHaveBeenCalledTimes(1);
     expect(onCommand).toHaveBeenCalledWith({
       type: "selection.move",
@@ -98,8 +100,8 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     fireEvent.keyDown(pump, { key: "ArrowRight", code: "ArrowRight" });
 
     await waitFor(() => {
-      expect(pump.style.transform).toBe("translate(112px,80px)");
-      expect(tank.style.transform).toBe("translate(372px,80px)");
+      expect(pump.style.transform).toBe("translate(112px,64px)");
+      expect(tank.style.transform).toBe("translate(372px,44px)");
     });
     expect(onCommand).toHaveBeenCalledTimes(1);
     expect(onCommand).toHaveBeenCalledWith({
@@ -143,7 +145,7 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     expect(onCommand).toHaveBeenCalledTimes(1);
   });
 
-  it("mantém portas process e signal da válvula com alvos reais independentes", async () => {
+  it("mantém portas adjacentes reais independentes para conexão por ponteiro", async () => {
     const onCommand = vi.fn();
     render(<PidCanvas document={interactionDocument()} catalog={localCatalog} editable onCommand={onCommand} />);
     const processTarget = screen.getByRole("button", { name: /entrada inlet/i });
@@ -158,10 +160,15 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
 
     await clickConnect(screen.getByRole("button", { name: /saída out/i }), processTarget);
     await clickConnect(screen.getByRole("button", { name: /saída signal-out/i }), signalTarget);
-    await waitFor(() => expect(onCommand).toHaveBeenCalledTimes(2));
+    await clickConnect(
+      screen.getByRole("button", { name: /bidirecional utility$/i }),
+      screen.getByRole("button", { name: /entrada utility-in/i }),
+    );
+    await waitFor(() => expect(onCommand).toHaveBeenCalledTimes(3));
     expect(onCommand.mock.calls.map(([command]) => command)).toEqual([
       { type: "ports.connect", sourcePortId: ids.pumpOut, targetPortId: ids.valveIn },
       { type: "ports.connect", sourcePortId: ids.signalOut, targetPortId: ids.valveSignal },
+      { type: "ports.connect", sourcePortId: ids.utility, targetPortId: ids.utilityTarget },
     ]);
   });
 
@@ -272,7 +279,7 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     expect(documentById(readonlyEdge.getAttribute("aria-describedby"))).not.toMatch(/delete|excluir/i);
     readonlyNode.focus();
     fireEvent.keyDown(readonlyNode, { key: "ArrowRight", code: "ArrowRight" });
-    expect(readonlyNode.style.transform).toBe("translate(100px,80px)");
+    expect(readonlyNode.style.transform).toBe("translate(100px,64px)");
   });
 
   it("limpa a origem do teclado ao entrar em leitura ou remover a porta", async () => {
@@ -379,6 +386,7 @@ function interactionDocument(): PidDocument {
     [ids.valveSignal]: makePort(ids.valveSignal, ids.valve, "signal", "input", "signal"),
     [ids.signalOut]: makePort(ids.signalOut, ids.instrument, "signal-out", "output", "signal"),
     [ids.utility]: makePort(ids.utility, ids.instrument, "utility", "bidirectional", "utility"),
+    [ids.utilityTarget]: makePort(ids.utilityTarget, ids.tank, "utility-in", "input", "utility"),
   };
   return makeDocument(nodes, ports, {});
 }

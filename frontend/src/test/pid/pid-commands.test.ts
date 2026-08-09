@@ -5,6 +5,7 @@ import {
   alignSelection,
   applyCommand,
   assertDocumentInvariants,
+  affectedGroupIdsForCommand,
   connectPorts,
   deleteSelection,
   duplicateSelection,
@@ -18,6 +19,8 @@ import {
   type CatalogSymbol,
   type CommandContext,
 } from "@/features/pid/domain/commands";
+import { createIdAllocator, reduceCommand } from "@/features/pid/domain/command-reducers";
+import { recalculateGroupBounds } from "@/features/pid/domain/graph-operations";
 import type { PidDocument } from "@/features/pid/domain/model";
 import { createEmptyDocument } from "@/features/pid/domain/schema";
 
@@ -69,6 +72,22 @@ function connectedGroup(): PidDocument {
   if (!firstOutput || !secondInput) throw new Error("Fixture de portas inválida.");
   document = applyCommand(document, connectPorts(firstOutput.id, secondInput.id), context);
   return applyCommand(document, groupSelection([firstNode.id, secondNode.id]), context);
+}
+
+function twoGroupsAndUngrouped(): PidDocument {
+  const context = deterministicContext(1_000);
+  let document = emptyDocument();
+  for (let index = 0; index < 6; index += 1) {
+    document = applyCommand(document, insertSymbol(symbol, { x: index * 160, y: 0 }), context);
+  }
+  const nodeIds = Object.keys(document.nodes);
+  document = applyCommand(document, groupSelection(nodeIds.slice(0, 2)), context);
+  return applyCommand(document, groupSelection(nodeIds.slice(2, 4)), context);
+}
+
+function reduceForTest(document: PidDocument, command: Parameters<typeof reduceCommand>[1], start: number): PidDocument {
+  const context = deterministicContext(start);
+  return reduceCommand(document, command, createIdAllocator(document, context.generateId!));
 }
 
 describe("comandos canônicos P&ID", () => {
@@ -414,6 +433,51 @@ describe("comandos canônicos P&ID", () => {
       deterministicContext(701),
     );
     expect(assertDocumentInvariants(repairedByPatch).filter(({ severity }) => severity === "error")).toEqual([]);
+  });
+
+  it("isola o recálculo aos IDs de grupo realmente afetados", () => {
+    const base = twoGroupsAndUngrouped();
+    const [groupA, groupB] = Object.values(base.groups);
+    const invalid: PidDocument = {
+      ...base,
+      groups: { ...base.groups, [groupA.id]: { ...groupA, x: groupA.x + 9 } },
+    };
+    const groupedBNode = groupB.memberIds[0];
+    const ungrouped = Object.keys(base.nodes).filter((id) => (
+      !groupA.memberIds.includes(id) && !groupB.memberIds.includes(id)
+    ));
+
+    const cases = [
+      moveSelection([ungrouped[0]], { x: 16, y: 0 }),
+      moveSelection([groupedBNode], { x: 16, y: 0 }),
+      alignSelection(groupB.memberIds, "left"),
+      rotateSelection([groupedBNode], 90),
+      deleteSelection([groupedBNode]),
+    ];
+    for (const [index, command] of cases.entries()) {
+      const next = reduceForTest(invalid, command, 800 + index * 20);
+      const affected = affectedGroupIdsForCommand(invalid, next, command);
+      expect(affected.has(groupA.id)).toBe(false);
+      expect([...affected]).toEqual(index === 0 ? [] : [groupB.id]);
+      const normalized = recalculateGroupBounds(next, affected);
+      expect(normalized.groups[groupA.id]).toEqual(invalid.groups[groupA.id]);
+      if (index > 0 && normalized.groups[groupB.id]) {
+        expect(normalized.groups[groupB.id]).not.toBe(next.groups[groupB.id]);
+      }
+    }
+
+    const duplicate = duplicateSelection([groupB.id], { x: 32, y: 32 });
+    const duplicated = reduceForTest(invalid, duplicate, 950);
+    const duplicatedAffected = affectedGroupIdsForCommand(invalid, duplicated, duplicate);
+    const createdGroupId = Object.keys(duplicated.groups).find((id) => !invalid.groups[id])!;
+    expect(duplicatedAffected).toEqual(new Set([groupB.id, createdGroupId]));
+    expect(duplicatedAffected.has(groupA.id)).toBe(false);
+
+    const createGroup = groupSelection(ungrouped);
+    const grouped = reduceForTest(invalid, createGroup, 980);
+    const groupedAffected = affectedGroupIdsForCommand(invalid, grouped, createGroup);
+    const newGroupId = Object.keys(grouped.groups).find((id) => !invalid.groups[id])!;
+    expect(groupedAffected).toEqual(new Set([newGroupId]));
   });
 
   it("rejeita uma nova violação mesmo quando o documento importado já está inválido", () => {

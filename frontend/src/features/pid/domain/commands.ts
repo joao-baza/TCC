@@ -7,7 +7,7 @@ import {
   type PidCommand,
 } from "./command-contract";
 import { createIdAllocator, reduceCommand } from "./command-reducers";
-import { recalculateGroupBounds } from "./graph-operations";
+import { buildGraphIndex, recalculateGroupBounds } from "./graph-operations";
 import {
   getBlockingValidation,
   isStrictBlockingImprovement,
@@ -101,7 +101,8 @@ export function applyCommand(
     };
     const allocator = createIdAllocator(canonicalDocument, runtime.generateId);
     let next = reduceCommand(canonicalDocument, command, allocator);
-    if (commandRecalculatesGroupBounds(canonicalDocument, command)) next = recalculateGroupBounds(next);
+    const affectedGroupIds = affectedGroupIdsForCommand(canonicalDocument, next, command);
+    if (affectedGroupIds.size > 0) next = recalculateGroupBounds(next, affectedGroupIds);
     next = {
       ...next,
       metadata: {
@@ -140,28 +141,59 @@ export function applyCommand(
   }
 }
 
-/** Explicit reducer policy: derived group bounds change only with member geometry/membership. */
-export function commandRecalculatesGroupBounds(document: PidDocument, command: PidCommand): boolean {
-  switch (command.type) {
-    case "selection.move":
-    case "selection.align":
-    case "selection.rotate":
-    case "selection.duplicate":
-    case "selection.delete":
-      return command.ids.some((id) => Boolean(document.nodes[id] || document.groups[id]));
-    case "selection.group":
-      return true;
-    case "element.patch":
-      return Boolean(document.nodes[command.id])
-        && Reflect.ownKeys(command.patch).some((key) => (
-          key === "x" || key === "y" || key === "width" || key === "height" || key === "rotation"
-        ));
-    case "symbol.insert":
-    case "annotation.insert":
-    case "ports.connect":
-    case "document.rename":
-      return false;
+/**
+ * Returns only groups whose derived bounds may have changed. Unrelated groups
+ * are deliberately left byte-for-byte untouched, including malformed imported
+ * groups that the current command did not address.
+ */
+export function affectedGroupIdsForCommand(
+  previous: PidDocument,
+  next: PidDocument,
+  command: PidCommand,
+): ReadonlySet<string> {
+  const affected = new Set<string>();
+
+  if ("ids" in command) {
+    for (const id of command.ids) {
+      if (previous.groups[id]) affected.add(id);
+    }
   }
+
+  const previousIndex = buildGraphIndex(previous);
+  const nextIndex = buildGraphIndex(next);
+  const nodeIds = new Set([...Object.keys(previous.nodes), ...Object.keys(next.nodes)]);
+  for (const nodeId of nodeIds) {
+    if (!nodeGeometryChanged(previous.nodes[nodeId], next.nodes[nodeId])) continue;
+    for (const groupId of previousIndex.groupsByNode.get(nodeId) ?? []) affected.add(groupId);
+    for (const groupId of nextIndex.groupsByNode.get(nodeId) ?? []) affected.add(groupId);
+  }
+
+  const groupIds = new Set([...Object.keys(previous.groups), ...Object.keys(next.groups)]);
+  for (const groupId of groupIds) {
+    const before = previous.groups[groupId];
+    const after = next.groups[groupId];
+    if (after && (!before || !sameIds(before.memberIds, after.memberIds))) affected.add(groupId);
+  }
+
+  return affected;
+}
+
+function nodeGeometryChanged(
+  previous: PidDocument["nodes"][string] | undefined,
+  next: PidDocument["nodes"][string] | undefined,
+): boolean {
+  if (!previous || !next) return previous !== next;
+  return previous.x !== next.x
+    || previous.y !== next.y
+    || previous.width !== next.width
+    || previous.height !== next.height
+    || previous.rotation !== next.rotation;
+}
+
+function sameIds(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  const rightIds = new Set(right);
+  return left.every((id) => rightIds.has(id));
 }
 
 function readTimestamp(now: () => Date): string {
