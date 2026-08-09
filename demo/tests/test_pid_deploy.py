@@ -340,6 +340,110 @@ def test_deploy_rejects_unknown_pid_enabled_before_docker(tmp_path):
     assert not docker_marker.exists()
 
 
+def test_deploy_sources_single_quoted_secrets_and_percent_encoded_urls(tmp_path):
+    project, script = _copy_deploy_script(tmp_path)
+    (project / "deploy" / "docker-compose.yaml").write_text(
+        "services: {}\n", encoding="utf-8"
+    )
+    postgres_password = "postgres $ecret #1"
+    redis_password = "redis $ecret #2"
+    database_url = (
+        "postgresql+psycopg://dcou:postgres%20%24ecret%20%231"
+        "@tcc-postgres:5432/dcou"
+    )
+    redis_url = "redis://:redis%20%24ecret%20%232@tcc-redis:6379/0"
+    (project / ".env").write_text(
+        "\n".join(
+            (
+                "POSTGRES_DB=dcou",
+                "POSTGRES_USER=dcou",
+                f"POSTGRES_PASSWORD='{postgres_password}'",
+                f"DATABASE_URL='{database_url}'",
+                f"REDIS_PASSWORD='{redis_password}'",
+                f"REDIS_URL='{redis_url}'",
+                f"PID_TOKEN_PEPPER='{'p' * 32}'",
+                "PID_ALLOWED_ORIGINS='https://editor.example.test'",
+                "PID_WS_PUBLIC_URL='wss://editor.example.test/pid/ws'",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    binary_dir = tmp_path / "bin"
+    binary_dir.mkdir()
+    capture = tmp_path / "environment.log"
+    _write_executable(
+        binary_dir / "docker",
+        """#!/bin/sh
+if [ "$1" = "info" ]; then
+  printf '%s\n%s\n%s\n%s\n' \
+    "$POSTGRES_PASSWORD" "$DATABASE_URL" "$REDIS_PASSWORD" "$REDIS_URL" \
+    > "$DOCKER_CAPTURE"
+fi
+exit 1
+""",
+    )
+    environment = os.environ.copy()
+    for name in REQUIRED_DEPLOY_ENVIRONMENT:
+        environment.pop(name, None)
+    environment.update(
+        DOCKER_CAPTURE=str(capture),
+        PATH=f"{binary_dir}:{environment['PATH']}",
+    )
+
+    result = subprocess.run(
+        ["bash", str(script)],
+        cwd=tmp_path,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert capture.exists(), result.stderr
+    assert capture.read_text(encoding="utf-8").splitlines() == [
+        postgres_password,
+        database_url,
+        redis_password,
+        redis_url,
+    ]
+    assert postgres_password not in result.stderr
+    assert redis_password not in result.stderr
+
+
+def test_docker_stack_config_renders_without_daemon_access():
+    if shutil.which("docker") is None:
+        pytest.skip("Docker CLI is required to inspect the Swarm deployment model")
+
+    environment = os.environ.copy()
+    for name, value in read_example_environment().items():
+        environment[name] = value
+
+    result = subprocess.run(
+        [
+            "docker",
+            "stack",
+            "config",
+            "--compose-file",
+            str(COMPOSE_FILE),
+        ],
+        cwd=ROOT,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "tcc-postgres:" in result.stdout
+    assert "tcc-redis:" in result.stdout
+    assert "tcc_postgres_data:" in result.stdout
+    assert "--appendonly" in result.stdout
+    assert "--save" in result.stdout
+
+
 def test_example_environment_uses_matching_url_safe_credentials():
     values = read_example_environment()
     database_url = urlsplit(values["DATABASE_URL"])

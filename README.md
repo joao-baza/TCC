@@ -110,6 +110,81 @@ The macOS `.dmg` is built on macOS runners via `npm run dist`.
 Desktop packaging reuses the compiled frontend and the Python backend frozen as a local executable.
 Build scripts automatically resolve Python, preferring the project `.venv` and falling back to `python3` or `python` when needed.
 
+#### P&ID Foundation
+
+The first P&ID delivery provides the persistent backend foundation for diagrams,
+capability tokens, snapshots, one-time tickets, and versioned symbol catalogs. It
+does not include the visual editor, external assets, or a link to engineering
+calculations yet. Stable IDs and contracts are in place for that future
+integration.
+
+##### Run the foundation locally
+
+Create the local configuration file:
+
+```bash
+cp .env.example .env
+```
+
+Generate a pepper, then replace the `PID_TOKEN_PEPPER` placeholder in `.env`
+with the generated value. Do not commit the resulting file or print a real
+pepper in logs or documentation.
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Start the isolated test dependencies:
+
+```bash
+docker compose -f deploy/docker-compose.test.yaml up -d --wait
+```
+
+The test Compose file exposes PostgreSQL and Redis only on localhost. Export
+its URLs, migrate the test database, and run the backend suite:
+
+```bash
+export DATABASE_URL='postgresql+psycopg://dcou:dcou_test@127.0.0.1:55432/dcou_test'
+export REDIS_URL='redis://127.0.0.1:56379/0'
+export PID_TEST_DATABASE_URL="$DATABASE_URL"
+export PID_TEST_REDIS_URL="$REDIS_URL"
+alembic upgrade head
+pytest -q
+```
+
+The hostnames in `.env.example`, such as `tcc-postgres` and `tcc-redis`, are
+service names for the production Swarm network. They are not substitutes for
+the localhost URLs above.
+
+Validate both draft catalog manifests independently:
+
+```bash
+python -m pid.catalog.validator \
+  pid/catalog/manifests/isa/foundation.json \
+  pid/catalog/manifests/iso/foundation.json
+```
+
+##### Configuration and operations reference
+
+- The `GET` `/health` endpoint is a dependency-free liveness check. It confirms that the API
+  process is running even when P&ID is disabled.
+- The `GET` `/ready` endpoint is the P&ID readiness check. When P&ID is enabled,
+  it reports an unavailable state until PostgreSQL and Redis respond.
+- Production PostgreSQL data is durable in the named
+  `tcc_postgres_data` volume. Redis is intentionally ephemeral, with AOF and
+  RDB persistence disabled. This open-source MVP foundation does not configure
+  external backups.
+- `deploy/deploy.sh` sources `.env` with Bash. Wrap values containing shell
+  special characters in single quotes. Passwords embedded in `DATABASE_URL`
+  and `REDIS_URL` must be percent-encoded, and the encoded URL credentials must
+  remain consistent with the corresponding plain password variables. Never
+  place a real secret in committed examples.
+- No SVG or PNG files are redistributed in this delivery. Catalog manifests
+  remain draft provenance records until separately reviewed assets are added.
+
+This foundation has no link to calculations now; the persisted UUIDs and API
+contracts are deliberately prepared for a future calculation integration.
+
 ## Tests
 
 ### Frontend
