@@ -31,7 +31,19 @@ async def _schema_state(engine) -> dict:
                 )
             ).scalars()
         )
-    return {**schema, "enums": enum_names}
+        standard_values = tuple(
+            (
+                await connection.execute(
+                    text(
+                        "SELECT enumlabel FROM pg_enum "
+                        "JOIN pg_type ON pg_type.oid = pg_enum.enumtypid "
+                        "WHERE pg_type.typname = 'pid_standard' "
+                        "ORDER BY enumsortorder"
+                    )
+                )
+            ).scalars()
+        )
+    return {**schema, "enums": enum_names, "pid_standard_values": standard_values}
 
 
 def _inspect_schema(sync_connection) -> dict:
@@ -69,6 +81,7 @@ def _inspect_schema(sync_connection) -> dict:
 def _assert_foundation_schema(schema: dict) -> None:
     assert PID_TABLES.issubset(schema["tables"])
     assert schema["enums"] == PID_ENUMS
+    assert schema["pid_standard_values"] == ("isa", "iso", "free")
     assert schema["columns"] == {
         "pid_diagrams": {
             "id",

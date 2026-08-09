@@ -24,6 +24,7 @@ class Base(DeclarativeBase):
 class PidStandard(str, enum.Enum):
     ISA = "isa"
     ISO = "iso"
+    FREE = "free"
 
 
 class AccessScope(str, enum.Enum):

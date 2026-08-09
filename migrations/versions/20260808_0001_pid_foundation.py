@@ -21,6 +21,7 @@ depends_on: str | Sequence[str] | None = None
 pid_standard = postgresql.ENUM(
     "isa",
     "iso",
+    "free",
     name="pid_standard",
     create_type=False,
 )
