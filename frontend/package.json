@@ -9,6 +9,7 @@
     "build:local": "node scripts/build-local.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "test": "vitest run",
+    "benchmark:pid": "node scripts/run-pid-benchmark.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
   },

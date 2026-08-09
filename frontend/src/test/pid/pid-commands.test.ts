@@ -24,6 +24,8 @@ import { recalculateGroupBounds } from "@/features/pid/domain/graph-operations";
 import type { PidDocument } from "@/features/pid/domain/model";
 import { createEmptyDocument } from "@/features/pid/domain/schema";
 
+import { createPidCommandReferenceDocument } from "./pid-performance-fixture";
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const symbol: CatalogSymbol = {
@@ -735,85 +737,20 @@ describe("comandos canônicos P&ID", () => {
   });
 
   it("mantém 100 renomes e movimentos responsivos em 500 nós e 1.000 arestas", () => {
-    let document = createReferenceDocument();
+    let document = createPidCommandReferenceDocument();
     const firstNodeId = Object.keys(document.nodes)[0];
     let tick = 0;
     const context: CommandContext = {
       generateId: () => { throw new Error("Não deveria gerar IDs."); },
       now: () => new Date(1_800_000_000_000 + tick++),
     };
-    const startedAt = performance.now();
     for (let index = 0; index < 50; index += 1) {
       document = applyCommand(document, renameDocument(`Referência ${index}`), context);
       document = applyCommand(document, moveSelection([firstNodeId], { x: 1, y: 0 }), context);
     }
-    const elapsed = performance.now() - startedAt;
 
     expect(document.nodes[firstNodeId].x).toBe(50);
-    // The focused run is normally below 300 ms. The 2.5 s wall-clock guardrail
-    // leaves room for full-suite worker contention while still catching the
-    // original 24 s double-traversal regression by a wide margin.
-    expect(elapsed).toBeLessThan(2_500);
+    expect(document.metadata.title).toBe("Referência 49");
+    expect(tick).toBe(100);
   });
 });
-
-function createReferenceDocument(): PidDocument {
-  const base = emptyDocument();
-  const nodes: PidDocument["nodes"] = {};
-  const ports: PidDocument["ports"] = {};
-  const edges: PidDocument["edges"] = {};
-  const id = (value: number) => `${value.toString(16).padStart(8, "0")}-1000-4000-8000-000000000000`;
-  for (let index = 0; index < 500; index += 1) {
-    const nodeId = id(index + 10);
-    nodes[nodeId] = {
-      id: nodeId,
-      symbolKey: "project.reference",
-      catalogVersion: base.metadata.catalogVersion,
-      x: index * 20,
-      y: 0,
-      width: 10,
-      height: 10,
-      rotation: 0,
-      tag: "",
-      label: "Referência",
-      properties: {},
-    };
-    for (let lane = 0; lane < 2; lane += 1) {
-      const outputId = id(1_000 + index * 4 + lane * 2);
-      const inputId = id(1_000 + index * 4 + lane * 2 + 1);
-      ports[outputId] = {
-        id: outputId,
-        nodeId,
-        templateKey: `out-${lane}`,
-        direction: "output",
-        connectionClass: "process",
-        capacity: 1,
-      };
-      ports[inputId] = {
-        id: inputId,
-        nodeId,
-        templateKey: `in-${lane}`,
-        direction: "input",
-        connectionClass: "process",
-        capacity: 1,
-      };
-    }
-  }
-  for (let index = 0; index < 500; index += 1) {
-    const targetIndex = (index + 1) % 500;
-    for (let lane = 0; lane < 2; lane += 1) {
-      const edgeId = id(4_000 + index * 2 + lane);
-      edges[edgeId] = {
-        id: edgeId,
-        sourcePortId: id(1_000 + index * 4 + lane * 2),
-        targetPortId: id(1_000 + targetIndex * 4 + lane * 2 + 1),
-        connectionClass: "process",
-        route: [],
-        tag: "",
-        label: "",
-        properties: {},
-      };
-    }
-  }
-  return { ...base, nodes, ports, edges };
-}
