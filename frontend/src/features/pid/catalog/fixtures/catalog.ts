@@ -1,4 +1,5 @@
 import type { CatalogSymbol as InsertionCatalogSymbol } from "../../domain/command-contract";
+import { LOCAL_PID_CATALOG_VERSION } from "../../domain/catalog-version";
 import type { PidStandard } from "../../domain/model";
 
 export type CatalogSourceKind = "project";
@@ -6,7 +7,10 @@ export type CatalogSourceKind = "project";
 export interface CatalogProvenance {
   sourceKind: CatalogSourceKind;
   sourceName: string;
-  license: string;
+  license: {
+    name: string;
+    reference: string;
+  };
   attribution: string;
 }
 
@@ -26,7 +30,10 @@ export interface CatalogSymbol extends InsertionCatalogSymbol {
 const projectSource = {
   sourceKind: "project",
   sourceName: "DCOU P&ID",
-  license: "Projeto original - uso no DCOU",
+  license: {
+    name: "Projeto original - uso no DCOU",
+    reference: "Ativos vetoriais originais do projeto DCOU P&ID.",
+  },
   attribution: "Ativo vetorial original do projeto DCOU P&ID.",
 } as const;
 
@@ -44,7 +51,7 @@ export const localCatalog = [
       { key: "discharge", direction: "output", connectionClass: "process", capacity: 1 },
     ],
     standards: ["free", "isa"],
-    catalogVersion: "2026.08.local",
+    catalogVersion: LOCAL_PID_CATALOG_VERSION,
     source: projectSource,
   },
   {
@@ -60,7 +67,7 @@ export const localCatalog = [
       { key: "outlet", direction: "output", connectionClass: "process", capacity: 1 },
     ],
     standards: ["free", "iso"],
-    catalogVersion: "2026.08.local",
+    catalogVersion: LOCAL_PID_CATALOG_VERSION,
     source: projectSource,
   },
   {
@@ -77,7 +84,7 @@ export const localCatalog = [
       { key: "signal", direction: "input", connectionClass: "signal", capacity: 1 },
     ],
     standards: ["free", "isa", "iso"],
-    catalogVersion: "2026.08.local",
+    catalogVersion: LOCAL_PID_CATALOG_VERSION,
     source: projectSource,
   },
   {
@@ -93,7 +100,7 @@ export const localCatalog = [
       { key: "signal", direction: "output", connectionClass: "signal", capacity: 1 },
     ],
     standards: ["free", "isa"],
-    catalogVersion: "2026.08.local",
+    catalogVersion: LOCAL_PID_CATALOG_VERSION,
     source: projectSource,
   },
 ] satisfies readonly CatalogSymbol[];

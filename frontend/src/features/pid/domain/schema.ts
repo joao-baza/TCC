@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { LOCAL_PID_CATALOG_VERSION } from "./catalog-version";
 import type {
   PidAnnotation,
   PidDocument,
@@ -432,7 +433,7 @@ export function createEmptyDocument(
   input: CreateEmptyPidDocumentInput,
   context: PidDocumentFactoryContext = {},
 ): PidDocument {
-  const { title, standard, catalogVersion = "local-v1" } = createEmptyPidDocumentInputSchema.parse(input);
+  const { title, standard, catalogVersion = LOCAL_PID_CATALOG_VERSION } = createEmptyPidDocumentInputSchema.parse(input);
   const normalizedTitle = title.trim();
   const normalizedCatalogVersion = catalogVersion.trim();
 

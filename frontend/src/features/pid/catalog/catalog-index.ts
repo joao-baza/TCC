@@ -11,6 +11,16 @@ export interface CatalogIndex {
   search(query: string, filters: CatalogSearchFilters): readonly CatalogSymbol[];
 }
 
+export class CatalogValidationError extends TypeError {
+  readonly path: readonly (string | number)[];
+
+  constructor(message: string, path: readonly (string | number)[]) {
+    super(message);
+    this.name = "CatalogValidationError";
+    this.path = Object.freeze([...path]);
+  }
+}
+
 interface IndexedSymbol {
   symbol: CatalogSymbol;
   normalizedName: string;
@@ -31,21 +41,24 @@ export function normalizeCatalogText(value: string): string {
 }
 
 export function createCatalogIndex(input: readonly CatalogSymbol[]): CatalogIndex {
-  if (!Array.isArray(input)) throw new TypeError("O catálogo deve ser uma lista.");
+  if (!Array.isArray(input)) throw invalidCatalog("O catálogo deve ser uma lista.", []);
 
   const keys = new Set<string>();
   input.forEach((candidate) => validateSymbol(candidate, keys));
-  const symbols = input.map(toIndexedSymbol);
+  const symbols = Object.freeze(input.map(toIndexedSymbol).sort(compareIndexedSymbols));
 
   return Object.freeze({
     search(query: string, filters: CatalogSearchFilters): readonly CatalogSymbol[] {
-      const normalizedQuery = normalizeCatalogText(query);
       const normalizedCategory = filters.category === undefined
         ? undefined
         : normalizeCatalogText(filters.category);
+      if (query.trim() === "") {
+        return Object.freeze(filterCompatible(symbols, filters, normalizedCategory).map(({ symbol }) => symbol));
+      }
 
-      const matches = symbols
-        .filter(({ symbol }) => isCompatible(symbol, filters, normalizedCategory))
+      const normalizedQuery = normalizeCatalogText(query);
+
+      const matches = filterCompatible(symbols, filters, normalizedCategory)
         .map((entry) => ({ entry, rank: rank(entry, normalizedQuery) }))
         .filter((match) => match.rank !== null)
         .sort((left, right) => {
@@ -59,6 +72,22 @@ export function createCatalogIndex(input: readonly CatalogSymbol[]): CatalogInde
       return Object.freeze(matches);
     },
   });
+}
+
+function filterCompatible(
+  symbols: readonly IndexedSymbol[],
+  filters: CatalogSearchFilters,
+  normalizedCategory: string | undefined,
+): IndexedSymbol[] {
+  return symbols.filter(({ symbol }) => isCompatible(symbol, filters, normalizedCategory));
+}
+
+function compareIndexedSymbols(left: IndexedSymbol, right: IndexedSymbol): number {
+  return compareKeys(left.symbol.key, right.symbol.key);
+}
+
+function compareKeys(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function isCompatible(
@@ -112,37 +141,89 @@ function freezeCatalogValue(value: unknown): unknown {
 }
 
 function validateSymbol(symbol: CatalogSymbol, keys: Set<string>): void {
-  if (!symbol || typeof symbol !== "object") throw new TypeError("Símbolo de catálogo inválido.");
+  if (!symbol || typeof symbol !== "object") throw invalidCatalog("Símbolo de catálogo inválido.", []);
   if (typeof symbol.key !== "string" || normalizeCatalogText(symbol.key) === "") {
-    throw new TypeError("Símbolo sem chave válida.");
+    throw invalidCatalog("Símbolo sem chave válida.", ["key"]);
   }
-  if (keys.has(symbol.key)) throw new TypeError(`Chave duplicada no catálogo: ${symbol.key}`);
+  if (keys.has(symbol.key)) throw invalidCatalog(`Chave duplicada no catálogo: ${symbol.key}`, ["key"]);
   keys.add(symbol.key);
-  if (typeof symbol.name !== "string" || normalizeCatalogText(symbol.name) === "" || !Array.isArray(symbol.aliases)
-    || symbol.aliases.length === 0 || symbol.aliases.some((alias) => typeof alias !== "string" || normalizeCatalogText(alias) === "")) {
-    throw new TypeError(`Símbolo ${symbol.key} sem nome ou aliases válidos.`);
+  if (typeof symbol.name !== "string" || normalizeCatalogText(symbol.name) === "") {
+    throw invalidCatalog(`Símbolo ${symbol.key} sem nome ou aliases válidos.`, ["name"]);
+  }
+  if (!Array.isArray(symbol.aliases) || symbol.aliases.length === 0
+    || symbol.aliases.some((alias) => typeof alias !== "string" || normalizeCatalogText(alias) === "")) {
+    throw invalidCatalog(`Símbolo ${symbol.key} sem nome ou aliases válidos.`, ["aliases"]);
   }
   if (!Array.isArray(symbol.standards) || symbol.standards.length === 0 || symbol.standards.some((value) => !standards.has(value))) {
-    throw new TypeError(`Símbolo ${symbol.key} sem normas válidas.`);
+    throw invalidCatalog(`Símbolo ${symbol.key} sem normas válidas.`, ["standards"]);
+  }
+  if (typeof symbol.catalogVersion !== "string" || symbol.catalogVersion.trim() === "") {
+    throw invalidCatalog(`Símbolo ${symbol.key} sem versão de catálogo válida.`, ["catalogVersion"]);
   }
   if (!symbol.defaultSize || !Number.isFinite(symbol.defaultSize.width) || !Number.isFinite(symbol.defaultSize.height)
     || symbol.defaultSize.width <= 0 || symbol.defaultSize.height <= 0) {
-    throw new TypeError(`Símbolo ${symbol.key} sem tamanho padrão positivo.`);
+    throw invalidCatalog(`Símbolo ${symbol.key} sem tamanho padrão positivo.`, ["defaultSize"]);
   }
   if (!Array.isArray(symbol.portTemplates) || symbol.portTemplates.length === 0) {
-    throw new TypeError(`Símbolo ${symbol.key} precisa de pelo menos uma porta.`);
+    throw invalidCatalog(`Símbolo ${symbol.key} precisa de pelo menos uma porta.`, ["portTemplates"]);
   }
-  for (const port of symbol.portTemplates) {
-    if (!port || typeof port.key !== "string" || port.key === "" || !directions.has(port.direction)
-      || !connectionClasses.has(port.connectionClass) || !Number.isFinite(port.capacity) || port.capacity <= 0) {
-      throw new TypeError(`Símbolo ${symbol.key} possui porta inválida.`);
+  const portKeys = new Set<string>();
+  for (const [index, port] of symbol.portTemplates.entries()) {
+    if (!port) throw invalidCatalog(`Símbolo ${symbol.key} possui porta inválida.`, ["portTemplates", index]);
+    const normalizedPortKey = typeof port.key === "string" ? normalizeCatalogText(port.key) : "";
+    if (normalizedPortKey === "") {
+      throw invalidCatalog(`Símbolo ${symbol.key} possui porta inválida.`, ["portTemplates", index, "key"]);
     }
+    if (!directions.has(port.direction)) {
+      throw invalidCatalog(`Símbolo ${symbol.key} possui porta inválida.`, ["portTemplates", index, "direction"]);
+    }
+    if (!connectionClasses.has(port.connectionClass)) {
+      throw invalidCatalog(`Símbolo ${symbol.key} possui porta inválida.`, ["portTemplates", index, "connectionClass"]);
+    }
+    if (!Number.isInteger(port.capacity) || port.capacity <= 0) {
+      throw invalidCatalog(`Símbolo ${symbol.key} possui porta inválida.`, ["portTemplates", index, "capacity"]);
+    }
+    if (portKeys.has(normalizedPortKey)) {
+      throw invalidCatalog(`Símbolo ${symbol.key} possui porta duplicada: ${port.key}.`, ["portTemplates", index, "key"]);
+    }
+    portKeys.add(normalizedPortKey);
   }
-  if (typeof symbol.category !== "string" || normalizeCatalogText(symbol.category) === ""
-    || typeof symbol.assetUrl !== "string" || !symbol.assetUrl.startsWith("/pid/symbols/")
-    || !/^\d+(?:\.\d+)?\s+\d+(?:\.\d+)?\s+\d+(?:\.\d+)?\s+\d+(?:\.\d+)?$/.test(symbol.viewBox)
-    || !symbol.source || symbol.source.sourceKind !== "project"
-    || !symbol.source.license || !symbol.source.attribution) {
-    throw new TypeError(`Símbolo ${symbol.key} possui metadados de catálogo inválidos.`);
+  if (typeof symbol.category !== "string" || normalizeCatalogText(symbol.category) === "") {
+    throw invalidCatalog(`Símbolo ${symbol.key} possui metadados de catálogo inválidos.`, ["category"]);
   }
+  if (typeof symbol.assetUrl !== "string" || !symbol.assetUrl.startsWith("/pid/symbols/")) {
+    throw invalidCatalog(`Símbolo ${symbol.key} possui metadados de catálogo inválidos.`, ["assetUrl"]);
+  }
+  if (!isValidViewBox(symbol.viewBox)) throw invalidCatalog(`Símbolo ${symbol.key} possui viewBox inválido.`, ["viewBox"]);
+  if (!symbol.source || symbol.source.sourceKind !== "project") {
+    throw invalidCatalog(`Símbolo ${symbol.key} possui proveniência inválida.`, ["source", "sourceKind"]);
+  }
+  if (!isNonBlankString(symbol.source.sourceName)) {
+    throw invalidCatalog(`Símbolo ${symbol.key} possui proveniência inválida.`, ["source", "sourceName"]);
+  }
+  if (!isNonBlankString(symbol.source.license?.name)) {
+    throw invalidCatalog(`Símbolo ${symbol.key} possui proveniência inválida.`, ["source", "license", "name"]);
+  }
+  if (!isNonBlankString(symbol.source.license?.reference)) {
+    throw invalidCatalog(`Símbolo ${symbol.key} possui proveniência inválida.`, ["source", "license", "reference"]);
+  }
+  if (!isNonBlankString(symbol.source.attribution)) {
+    throw invalidCatalog(`Símbolo ${symbol.key} possui proveniência inválida.`, ["source", "attribution"]);
+  }
+}
+
+function invalidCatalog(message: string, path: readonly (string | number)[]): CatalogValidationError {
+  return new CatalogValidationError(message, path);
+}
+
+function isValidViewBox(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const parts = value.trim().split(/\s+/);
+  if (parts.length !== 4) return false;
+  const numbers = parts.map(Number);
+  return numbers.every(Number.isFinite) && numbers[2] > 0 && numbers[3] > 0;
+}
+
+function isNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
 }
