@@ -66,6 +66,19 @@ describe("createCatalogIndex", () => {
       .toContain("project.pump.centrifugal");
   });
 
+  it("publica fixtures profundamente congeladas", () => {
+    const symbol = localCatalog[0];
+    expect(Object.isFrozen(localCatalog)).toBe(true);
+    expect(Object.isFrozen(symbol)).toBe(true);
+    expect(Object.isFrozen(symbol.aliases)).toBe(true);
+    expect(Object.isFrozen(symbol.standards)).toBe(true);
+    expect(Object.isFrozen(symbol.defaultSize)).toBe(true);
+    expect(Object.isFrozen(symbol.portTemplates)).toBe(true);
+    expect(Object.isFrozen(symbol.portTemplates[0])).toBe(true);
+    expect(Object.isFrozen(symbol.source)).toBe(true);
+    expect(Object.isFrozen(symbol.source.license)).toBe(true);
+  });
+
   it("não mistura símbolos exclusivos ISA e ISO", () => {
     const index = createCatalogIndex(localCatalog);
 

@@ -1,6 +1,7 @@
 import type { CatalogSymbol as InsertionCatalogSymbol } from "../domain/command-contract";
 import { parsePidProperties } from "../domain/schema";
-import type { PidProperties, PidStandard } from "../domain/model";
+import type { PidStandard } from "../domain/model";
+import type { ReadonlyPidProperties } from "../domain/command-contract";
 
 export type CatalogSourceKind = "project";
 
@@ -108,6 +109,7 @@ export function parseCatalogSymbol(value: unknown): CatalogSymbol {
 }
 
 /** Strict descriptor-based manifest decoder for programmatic input. */
+/** For inert JSON-like values only; external text must enter through parseCatalogManifestJson. */
 export function parseCatalogManifest(value: unknown): CatalogManifest {
   if (isTrustedCatalogManifest(value)) return value;
   const state: DecodeState = { values: 0, active: new WeakSet() };
@@ -155,7 +157,7 @@ function parsePort(value: unknown, state: DecodeState, index: number) {
   return Object.freeze({ key, direction: direction as "input" | "output" | "bidirectional", connectionClass: connectionClass as "process" | "utility" | "signal", capacity });
 }
 
-function parseProperties(value: unknown, state: DecodeState): PidProperties {
+function parseProperties(value: unknown, state: DecodeState): ReadonlyPidProperties {
   try { return deepFreeze(parsePidProperties(copyJson(value, ["properties"], state, 0))); }
   catch { fail("catalog.properties.invalid", ["properties"], "As propriedades do símbolo são inválidas."); }
 }

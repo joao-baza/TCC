@@ -1,10 +1,19 @@
 import type {
   ConnectionClass,
-  PidProperties,
   PidStandard,
   Point,
   PortDirection,
 } from "./model";
+
+export type ReadonlyPidJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly ReadonlyPidJsonValue[]
+  | { readonly [key: string]: ReadonlyPidJsonValue };
+
+export type ReadonlyPidProperties = Readonly<Record<string, ReadonlyPidJsonValue>>;
 
 export interface CatalogPortTemplate {
   readonly key: string;
@@ -22,7 +31,7 @@ export interface CatalogSymbol {
   portTemplates: readonly CatalogPortTemplate[];
   tag?: string;
   label?: string;
-  properties?: Readonly<PidProperties>;
+  properties?: ReadonlyPidProperties;
 }
 
 export type PidCommand =

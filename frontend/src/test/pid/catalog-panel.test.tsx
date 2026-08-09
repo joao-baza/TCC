@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { CatalogPanel } from "@/features/pid/catalog/catalog-panel";
@@ -63,6 +63,10 @@ describe("CatalogPanel", () => {
     fireEvent.keyDown(pump, { key: "Enter" });
     expect(onInsert).toHaveBeenCalledTimes(1);
     expect(pump.querySelector("button")).toBeNull();
+    expect(pump.querySelector("img")).toHaveClass("bg-white", "object-contain");
+    expect(pump.querySelector("img")).toHaveAttribute("alt", "");
+    expect(pump.querySelector("img")).toHaveAttribute("loading", "lazy");
+    expect(pump.querySelector("img")).toHaveAttribute("decoding", "async");
   });
 
   it("respeita atualização de source controlada", () => {
@@ -110,6 +114,26 @@ describe("CatalogPanel", () => {
 
     expect(screen.getAllByRole("treeitem", { name: /Inserir Bomba sintética/ })).toHaveLength(11);
     expect(screen.queryByRole("treeitem", { name: /Inserir Bomba sintética 119/ })).not.toBeInTheDocument();
+    rect.mockRestore();
+  });
+
+  it("reconcilia foco e posição virtual ao navegar até o fim e filtrar após scroll", async () => {
+    const catalog = Array.from({ length: 80 }, (_, index) => ({
+      ...localCatalog[0], key: `project.scroll.item${index}`, name: `Bomba scroll ${index}`, aliases: [`scroll ${index}`],
+    }));
+    const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, top: 0, left: 0, right: 320, bottom: 160, width: 320, height: 160, toJSON: () => ({}) });
+    render(<CatalogPanel symbols={catalog} standard="free" onInsert={vi.fn()} />);
+    const tree = screen.getByRole("tree");
+    const scrollTo = vi.fn(({ top }: { top: number }) => { Object.defineProperty(tree, "scrollTop", { configurable: true, value: top, writable: true }); fireEvent.scroll(tree); });
+    Object.defineProperty(tree, "clientHeight", { configurable: true, value: 160 });
+    Object.defineProperty(tree, "scrollTo", { configurable: true, value: scrollTo });
+    const first = screen.getByRole("treeitem", { name: "Equipamentos" });
+    first.focus();
+    fireEvent.keyDown(first, { key: "End" });
+    await waitFor(() => expect(scrollTo).toHaveBeenCalled());
+    expect(tree.scrollTop).toBeGreaterThan(0);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Pesquisar símbolos" }), { target: { value: "79" } });
+    await waitFor(() => expect(screen.getByRole("treeitem", { name: /Bomba scroll 79/ })).toBeInTheDocument());
     rect.mockRestore();
   });
 });
