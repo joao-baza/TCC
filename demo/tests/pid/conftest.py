@@ -17,7 +17,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 def _alembic_config(database_url: str) -> Config:
     config = Config(str(PROJECT_ROOT / "alembic.ini"))
-    config.set_main_option("sqlalchemy.url", database_url)
     config.attributes["database_url_override"] = database_url
     return config
 

@@ -54,6 +54,14 @@ def test_test_database_url_is_an_explicit_alembic_override() -> None:
     assert config.attributes["database_url_override"] == database_url
 
 
+def test_alembic_config_preserves_percent_encoded_database_url() -> None:
+    database_url = "postgresql+psycopg://dcou:p%40ssword@localhost/dcou"
+
+    config = _alembic_config(database_url)
+
+    assert config.attributes["database_url_override"] == database_url
+
+
 def test_alembic_offline_is_independent_from_working_directory(
     tmp_path: Path,
 ) -> None:
