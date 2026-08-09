@@ -58,14 +58,19 @@ export interface EditorToolbarActions {
   setConnectionClass(value: ConnectionClass): void;
 }
 
-export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, onExport, connectionClass, actions }: {
+export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions }: {
   readonly editable: boolean;
   readonly capabilities: EditorSelectionCapabilities;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly canPaste: boolean;
   readonly canExport: boolean;
-  readonly onExport: () => void;
+  readonly exporting: boolean;
+  readonly exportErrors: readonly string[];
+  readonly exportBackground: "white" | "transparent";
+  readonly onExportBackgroundChange: (value: "white" | "transparent") => void;
+  readonly onExportSvg: () => void;
+  readonly onExportPng: () => void;
   readonly connectionClass: ConnectionClass;
   readonly actions: EditorToolbarActions;
 }) {
@@ -95,7 +100,23 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
     <Tool label="Ajustar diagrama à tela" onClick={actions.fit} />
     <Tool label="Aumentar zoom" onClick={actions.zoomIn} />
     <Tool label="Diminuir zoom" onClick={actions.zoomOut} />
-    <Tool label="Exportar" disabled={!canExport} onClick={onExport} />
+    <div role="group" aria-label="Exportação" className="pid-toolbar-group">
+      <label className="pid-toolbar-select">Fundo
+        <select
+          aria-label="Fundo da exportação"
+          value={exportBackground}
+          disabled={exporting}
+          onChange={(event) => onExportBackgroundChange(event.target.value as "white" | "transparent")}
+        >
+          <option value="white">Branco</option>
+          <option value="transparent">Transparente</option>
+        </select>
+      </label>
+      <Tool label="Exportar SVG" disabled={!canExport || exporting} onClick={onExportSvg} />
+      <Tool label="Exportar PNG" disabled={!canExport || exporting} onClick={onExportPng} />
+    </div>
+    {exporting && <span role="status">Preparando exportação…</span>}
+    {exportErrors.length > 0 && <div role="group" aria-label="Erros que bloqueiam a exportação" aria-live="assertive" className="pid-export-errors"><p>Corrija os erros antes de exportar:</p><ul>{exportErrors.map((message, index) => <li key={`${index}:${message}`}>{message}</li>)}</ul></div>}
   </div>;
 }
 

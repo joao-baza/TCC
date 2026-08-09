@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
+import { loadSanitizedPidSvgAsset, sanitizedPidSvgDataUrl } from "../catalog/sanitized-svg-asset";
 import type { PidNode, PidPort, PortDirection } from "../domain/model";
 import type { PidNodeGeometry } from "../domain/geometry";
 import type { PidCanvasInteractionGeometry, PidPortHitTargetGeometry } from "./port-hit-target";
@@ -28,7 +29,18 @@ const directionLabel: Record<PortDirection, string> = {
 function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<EquipmentFlowNode>) {
   const { equipment, ports, symbol, editable, interactionGeometry, portGeometries, onPortKey } = data;
   const [imageFailed, setImageFailed] = useState(false);
-  useEffect(() => setImageFailed(false), [symbol?.assetUrl]);
+  const [sanitizedAssetUrl, setSanitizedAssetUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    setImageFailed(false);
+    setSanitizedAssetUrl(null);
+    if (!symbol) return () => { active = false; };
+    void loadSanitizedPidSvgAsset(symbol.assetUrl).then(
+      (asset) => { if (active) setSanitizedAssetUrl(sanitizedPidSvgDataUrl(asset)); },
+      () => { /* A ausência da URL sanitizada já mantém o fallback visível. */ },
+    );
+    return () => { active = false; };
+  }, [symbol]);
   const title = [equipment.label || symbol?.name || "Equipamento", equipment.tag].filter(Boolean).join(" ");
 
   return (
@@ -56,9 +68,9 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
           className="flex min-h-0 max-h-full max-w-full flex-1 items-center justify-center"
           style={{ transform: `rotate(${equipment.rotation}deg)` }}
         >
-          {symbol && !imageFailed ? (
+          {symbol && sanitizedAssetUrl && !imageFailed ? (
             <img
-              src={symbol.assetUrl}
+              src={sanitizedAssetUrl}
               alt=""
               draggable={false}
               className="min-h-0 max-h-full max-w-full object-contain"

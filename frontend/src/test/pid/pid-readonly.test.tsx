@@ -80,7 +80,8 @@ describe("capacidade responsiva de edição", () => {
     expect(screen.getByRole("region", { name: "Validações do documento" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Participantes" })).toHaveTextContent("Você");
     expect(screen.getByText("Sessão local")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Exportar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeEnabled();
     expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveClass("min-h-11", "min-w-11");
 
     fireEvent.click(screen.getByRole("button", { name: "Aumentar zoom" }));
@@ -128,6 +129,8 @@ describe("capacidade responsiva de edição", () => {
       expect(save).toHaveBeenCalledTimes(1);
       expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Salvando");
       expect(screen.getByLabelText("Colaboração local")).toHaveTextContent("Não salvo");
+      expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeDisabled();
     } finally {
       vi.useRealTimers();
     }
@@ -356,25 +359,115 @@ describe("capacidade responsiva de edição", () => {
     expect(screen.getByLabelText("Posição X")).toHaveAttribute("aria-invalid", "true");
   });
 
-  it("exporta uma projeção JSON real também em view mobile", async () => {
+  it("exporta uma projeção SVG real também em view mobile", async () => {
     setViewportWidth(375);
     const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pid-export");
     const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     try {
       mount(services("view"));
-      const exportButton = await screen.findByRole("button", { name: "Exportar" });
+      const exportButton = await screen.findByRole("button", { name: "Exportar SVG" });
       fireEvent.click(exportButton);
 
-      expect(createObjectURL).toHaveBeenCalledTimes(1);
-      expect(createObjectURL.mock.calls[0]?.[0]).toBeInstanceOf(Blob);
+      await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+      const blob = createObjectURL.mock.calls[0]?.[0] as Blob;
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.type).toBe("image/svg+xml;charset=utf-8");
       expect(click).toHaveBeenCalledTimes(1);
-      expect(revokeObjectURL).toHaveBeenCalledWith("blob:pid-export");
-      expect(await screen.findByText("Documento P&ID exportado em JSON.")).toBeInTheDocument();
+      expect(await screen.findByText("Documento P&ID exportado em SVG.")).toBeInTheDocument();
+      await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith("blob:pid-export"));
     } finally {
       createObjectURL.mockRestore();
       revokeObjectURL.mockRestore();
       click.mockRestore();
+    }
+  });
+
+  it("mantém SVG disponível e relata a mensagem exata quando o PNG falha", async () => {
+    const source = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><circle cx="60" cy="40" r="20" fill="none" stroke="currentColor"/></svg>';
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, text: async () => source } as Response);
+    const OriginalImage = globalThis.Image;
+    class FailingImage {
+      onload: ((event: Event) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+      private value = "";
+      set src(value: string) { this.value = value; if (value) queueMicrotask(() => this.onerror?.(new Event("error"))); }
+      get src() { return this.value; }
+    }
+    Object.defineProperty(globalThis, "Image", { configurable: true, value: FailingImage });
+    const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pid-export");
+    const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    try {
+      const nodeId = "50000000-0000-4000-8000-000000000001";
+      const withNode = { ...documentFixture, nodes: {
+        [nodeId]: { id: nodeId, symbolKey: "project.pump.centrifugal", catalogVersion: "local-v1", x: 0, y: 0, width: 96, height: 64, rotation: 0, tag: "P-1", label: "Bomba", properties: {} },
+      } };
+      mount(services("view", { open: vi.fn().mockResolvedValue({ scope: "view", document: withNode, revision: 1 }) }));
+      const png = await screen.findByRole("button", { name: "Exportar PNG" });
+      fireEvent.click(png);
+      fireEvent.click(png);
+
+      expect(await screen.findByText("Não foi possível gerar PNG")).toBeVisible();
+      expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeEnabled();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:pid-export");
+    } finally {
+      fetchMock.mockRestore(); createObjectURL.mockRestore(); revokeObjectURL.mockRestore();
+      Object.defineProperty(globalThis, "Image", { configurable: true, value: OriginalImage });
+    }
+  });
+
+  it("permite repetir SVG depois de falha transitória ao carregar o ativo", async () => {
+    const source = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect x="20" y="10" width="80" height="60" fill="none" stroke="currentColor"/></svg>';
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ ok: true, text: async () => source } as Response);
+    const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pid-export");
+    const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      const nodeId = "50000000-0000-4000-8000-000000000002";
+      const withNode = { ...documentFixture, nodes: {
+        [nodeId]: { id: nodeId, symbolKey: "project.tank.storage", catalogVersion: "local-v1", x: 0, y: 0, width: 80, height: 72, rotation: 0, tag: "T-1", label: "Tanque", properties: {} },
+      } };
+      mount(services("view", { open: vi.fn().mockResolvedValue({ scope: "view", document: withNode, revision: 1 }) }));
+      const svg = await screen.findByRole("button", { name: "Exportar SVG" });
+      fireEvent.click(svg);
+      expect(await screen.findByText("Não foi possível gerar SVG")).toBeVisible();
+
+      fireEvent.click(svg);
+      expect(await screen.findByText("Documento P&ID exportado em SVG.")).toBeVisible();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(click).toHaveBeenCalledOnce();
+    } finally {
+      fetchMock.mockRestore(); createObjectURL.mockRestore(); revokeObjectURL.mockRestore(); click.mockRestore();
+    }
+  });
+
+  it("cancela o download quando o editor desmonta durante o carregamento", async () => {
+    const pending = deferred<Response>();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockReturnValue(pending.promise);
+    const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pid-export");
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      const nodeId = "50000000-0000-4000-8000-000000000003";
+      const withNode = { ...documentFixture, nodes: {
+        [nodeId]: { id: nodeId, symbolKey: "project.instrument.flow-indicator", catalogVersion: "local-v1", x: 0, y: 0, width: 56, height: 56, rotation: 0, tag: "FI-1", label: "Indicador", properties: {} },
+      } };
+      const mounted = mount(services("view", { open: vi.fn().mockResolvedValue({ scope: "view", document: withNode, revision: 1 }) }));
+      fireEvent.click(await screen.findByRole("button", { name: "Exportar SVG" }));
+      mounted.unmount();
+      await act(async () => {
+        pending.resolve({ ok: true, text: async () => '<svg viewBox="0 0 120 80"><circle cx="60" cy="40" r="20" fill="none" stroke="currentColor"/></svg>' } as Response);
+        await pending.promise;
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(createObjectURL).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore(); createObjectURL.mockRestore(); click.mockRestore();
     }
   });
 });

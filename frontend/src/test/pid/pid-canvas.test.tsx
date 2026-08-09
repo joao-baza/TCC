@@ -166,23 +166,30 @@ function expectAxisAligned(points: readonly { x: number; y: number }[]) {
 }
 
 describe("PidCanvas", () => {
-  it("projeta equipamento e portas editáveis com semântica acessível", () => {
+  it("projeta equipamento com o mesmo ativo sanitizado usado pela exportação", async () => {
     const onCommand = vi.fn();
+    const source = '<svg viewBox="0 0 120 80"><circle cx="60" cy="40" r="20" fill="none" stroke="currentColor"/></svg>';
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, text: async () => source } as Response);
 
-    render(
-      <PidCanvas
-        document={pumpDocument()}
-        catalog={localCatalog}
-        editable
-        onCommand={onCommand}
-      />,
-    );
+    try {
+      render(
+        <PidCanvas
+          document={pumpDocument()}
+          catalog={localCatalog}
+          editable
+          onCommand={onCommand}
+        />,
+      );
 
-    fireEvent.click(screen.getByRole("button", { name: /Bomba P-101/i }));
-    expect(screen.getByLabelText(/Porta de saída/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Bomba P-101/i }).querySelector("img")).toHaveAttribute("draggable", "false");
-    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "true");
-    expect(screen.getByRole("button", { name: /Bomba P-101/i })).toHaveAttribute("aria-pressed", "true");
+      fireEvent.click(screen.getByRole("button", { name: /Bomba P-101/i }));
+      expect(screen.getByLabelText(/Porta de saída/i)).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByRole("button", { name: /Bomba P-101/i }).querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/));
+      expect(screen.getByRole("button", { name: /Bomba P-101/i }).querySelector("img")).toHaveAttribute("draggable", "false");
+      expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "true");
+      expect(screen.getByRole("button", { name: /Bomba P-101/i })).toHaveAttribute("aria-pressed", "true");
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 
   it("mantém indicadores de porta no modo leitura sem ação para criar conexão", () => {

@@ -209,7 +209,8 @@ describe("studio focado P&ID", () => {
 
     const repairs = screen.getAllByRole("button", { name: /^Reparar / });
     expect(repairs).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "Exportar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeDisabled();
     fireEvent.click(repairs[0]);
 
     expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Não salvo");
@@ -225,7 +226,8 @@ describe("studio focado P&ID", () => {
     expect(save.mock.calls[0][2].ports[overloadedIds.firstDischarge].capacity).toBe(2);
     expect(save.mock.calls[0][2].ports[overloadedIds.secondDischarge].capacity).toBe(2);
     expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
-    expect(screen.getByRole("button", { name: "Exportar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeEnabled();
   });
 
   it("continua salvando documentos que possuem apenas avisos", async () => {

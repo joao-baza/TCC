@@ -268,8 +268,7 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     render(<PidCanvas document={interactionDocument()} catalog={localCatalog} editable={false} onCommand={vi.fn()} />);
     expect(screen.queryByRole("button", { name: /Criar conexão/i })).not.toBeInTheDocument();
     expect(screen.getAllByRole("img", { name: /Porta de/i }).every((port) => !port.hasAttribute("tabindex"))).toBe(true);
-    fireEvent.error(screen.getAllByRole("presentation")[0]);
-    expect(screen.getByText("Símbolo indisponível")).toBeInTheDocument();
+    expect(screen.getAllByText("Símbolo indisponível").length).toBeGreaterThan(0);
   });
 
   it("mantém seleção controlada no pai e gerencia defaultSelection apenas no modo não controlado", async () => {

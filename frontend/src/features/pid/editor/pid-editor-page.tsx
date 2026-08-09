@@ -14,7 +14,9 @@ import {
 } from "../domain/commands";
 import type { ConnectionClass } from "../domain/model";
 import { validateDocument } from "../domain/validation";
-import { downloadCanonicalPidJson } from "../export/export-canonical-json";
+import { downloadBlob, pidExportFilename } from "../export/download";
+import { renderPidPng } from "../export/render-png";
+import { loadPidSvgAssets, renderPidSvg, type PidExportBackground, type PidSvgAssets } from "../export/render-svg";
 import { DocumentActionsMenu } from "./document-actions-menu";
 import { copyEditorSelection, pasteEditorFragment, type EditorClipboardFragment } from "./editor-clipboard";
 import {
@@ -48,6 +50,7 @@ interface EditorSession {
 }
 
 type EditorLifecycle = "active" | "deleting" | "deleted" | "restoring";
+type ExportFormat = "svg" | "png";
 
 const BLOCKED_SELECTION_CAPABILITIES = Object.freeze({
   canDelete: false,
@@ -142,6 +145,11 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const [viewportAction, setViewportAction] = useState<PidCanvasViewportAction>();
   const [announcement, setAnnouncement] = useState("");
   const [operationError, setOperationError] = useState<string | null>(null);
+  const [exportBackground, setExportBackground] = useState<PidExportBackground>("white");
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
+  const exportInFlightRef = useRef(false);
+  const exportMountedRef = useRef(false);
+  const assetCacheRef = useRef<{ signature: string; promise: Promise<PidSvgAssets> } | null>(null);
   const clipboardRef = useRef<EditorClipboardFragment | null>(null);
   const pasteCountRef = useRef(0);
   const autosave = useEditorAutosave({
@@ -154,6 +162,10 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     getPersistenceBlock: persistenceBlockFor,
     onRevision: setRevision,
   });
+  useEffect(() => {
+    exportMountedRef.current = true;
+    return () => { exportMountedRef.current = false; };
+  }, []);
   const collaboration = useMemo(() => createLocalCollaboration({
     participant: { id: `local:${diagramId}`, name: "Você", color: "#57b9d6", local: true },
   }), [diagramId]);
@@ -226,7 +238,13 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     () => validateDocument(editor.document, { catalog: localCatalog }),
     [editor.document],
   );
-  const canExport = !validationIssues.some((issue) => issue.severity === "error");
+  const exportErrors = useMemo(() => [...new Set(validationIssues
+    .filter((issue) => issue.severity === "error")
+    .map((issue) => issue.message))], [validationIssues]);
+  const canExport = exportErrors.length === 0
+    && lifecycle === "active"
+    && autosave.state !== "Salvando"
+    && exporting === null;
   const canvasSelection: PidCanvasSelection = useMemo(() => ({
     nodeIds: editor.selection.filter((id) => Boolean(editor.document.nodes[id])),
     edgeIds: editor.selection.filter((id) => Boolean(editor.document.edges[id])),
@@ -325,16 +343,49 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const chooseConnectionClass = useCallback((value: ConnectionClass) => {
     afterInspectorDrafts(() => { setConnectionClass(value); return true; }, "Corrija o rascunho no inspetor antes de trocar a ferramenta de conexão.");
   }, [afterInspectorDrafts]);
-  const exportDocument = useCallback(() => {
-    if (!canExport) return;
+  const exportDocument = useCallback(async (format: ExportFormat) => {
+    if (exportInFlightRef.current || !canExport) return;
+    exportInFlightRef.current = true;
+    setExporting(format);
     try {
-      downloadCanonicalPidJson(store.getState().document);
+      const snapshot = store.getState().document;
+      const symbolKeys = [...new Set(Object.values(snapshot.nodes).map((node) => node.symbolKey))].sort();
+      const signature = symbolKeys.join("\u0000");
+      if (assetCacheRef.current?.signature !== signature) {
+        const relevantCatalog = localCatalog.filter((symbol) => symbolKeys.includes(symbol.key));
+        assetCacheRef.current = { signature, promise: loadPidSvgAssets(relevantCatalog) };
+      }
+      const assetPromise = assetCacheRef.current.promise;
+      let assets: PidSvgAssets;
+      try {
+        assets = await assetPromise;
+      } catch (reason) {
+        if (assetCacheRef.current?.promise === assetPromise) assetCacheRef.current = null;
+        throw reason;
+      }
+      if (!exportMountedRef.current) return;
+      const svg = await renderPidSvg(snapshot, assets, { background: exportBackground, padding: 24 });
+      if (!exportMountedRef.current) return;
+      if (format === "svg") {
+        downloadBlob(
+          new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
+          pidExportFilename(snapshot.metadata.title, "svg"),
+        );
+        setAnnouncement("Documento P&ID exportado em SVG.");
+      } else {
+        const png = await renderPidPng(svg, { background: exportBackground });
+        if (!exportMountedRef.current) return;
+        downloadBlob(png, pidExportFilename(snapshot.metadata.title, "png"));
+        setAnnouncement("Documento P&ID exportado em PNG.");
+      }
       setOperationError(null);
-      setAnnouncement("Documento P&ID exportado em JSON.");
     } catch {
-      setOperationError("Não foi possível exportar o documento P&ID.");
+      if (exportMountedRef.current) setOperationError(format === "png" ? "Não foi possível gerar PNG" : "Não foi possível gerar SVG");
+    } finally {
+      exportInFlightRef.current = false;
+      if (exportMountedRef.current) setExporting(null);
     }
-  }, [canExport, store]);
+  }, [canExport, exportBackground, store]);
 
   const toolbarActions: EditorToolbarActions = {
     undo: () => { undo(); }, redo: () => { redo(); }, deleteSelection: () => { remove(); }, duplicate: () => { duplicate(); },
@@ -409,7 +460,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
-      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} onExport={exportDocument} connectionClass={connectionClass} actions={toolbarActions} />
+      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} exportBackground={exportBackground} onExportBackgroundChange={setExportBackground} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} />
       <div className="pid-studio-session-controls">
         <div className="pid-collaboration-summary" aria-label="Colaboração local">
           <span>{collaborationSnapshot.label}</span>
