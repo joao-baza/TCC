@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 
 import { App } from "@/app/app";
@@ -7,7 +6,7 @@ import { ComponentsPage } from "@/features/components/components-page";
 import { FlowPage } from "@/features/flow/flow-page";
 import { GlossaryPage } from "@/features/glossary/glossary-page";
 import { HomePage } from "@/features/home/home-page";
-import { PidRouteErrorPage, PidServicesBoundary } from "@/features/pid/api/pid-services";
+import { pidRoute } from "@/features/pid/routing/active-pid-route";
 import {
   PipingConnectionsTab,
   PipingPage,
@@ -23,31 +22,6 @@ import {
   SizingRealDiameterTab,
 } from "@/features/sizing/sizing-page";
 
-const CreatePidPage = lazy(() =>
-  import("@/features/pid/editor/create-pid-page").then(({ CreatePidPage }) => ({
-    default: CreatePidPage,
-  })),
-);
-const PidEditorPage = lazy(() =>
-  import("@/features/pid/editor/pid-editor-page").then(({ PidEditorPage }) => ({
-    default: PidEditorPage,
-  })),
-);
-
-function PidRouteFallback() {
-  return <div role="status">Carregando editor P&ID…</div>;
-}
-
-function PidServicesLayout() {
-  return (
-    <PidServicesBoundary>
-      <Suspense fallback={<PidRouteFallback />}>
-        <Outlet />
-      </Suspense>
-    </PidServicesBoundary>
-  );
-}
-
 function EmptyRoute() {
   return null;
 }
@@ -57,15 +31,7 @@ export const routes = [
     path: "/",
     element: <App />,
     children: [
-      {
-        path: "pid",
-        element: <PidServicesLayout />,
-        errorElement: <PidRouteErrorPage />,
-        children: [
-          { index: true, element: <CreatePidPage /> },
-          { path: ":diagramId", element: <PidEditorPage /> },
-        ],
-      },
+      pidRoute,
       {
         element: <AppShell />,
         children: [

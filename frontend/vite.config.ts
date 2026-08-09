@@ -5,16 +5,23 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, process.cwd(), "");
-  if (environment.VITE_PID_ADAPTER !== "local") {
+  if (!["local", "disabled"].includes(environment.VITE_PID_ADAPTER)) {
     throw new Error("Adaptador P&ID não configurado");
   }
+  const pidRouteEntry = environment.VITE_PID_ADAPTER === "local"
+    ? "./src/features/pid/routing/pid-route-local.tsx"
+    : "./src/features/pid/routing/pid-route-disabled.tsx";
 
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "./src")
-      }
+      alias: [
+        {
+          find: "@/features/pid/routing/active-pid-route",
+          replacement: path.resolve(__dirname, pidRouteEntry),
+        },
+        { find: "@", replacement: path.resolve(__dirname, "./src") },
+      ],
     },
     build: {
       chunkSizeWarningLimit: 600,

@@ -35,7 +35,7 @@ def test_canonical_deploy_script_builds_and_uses_the_vite_frontend_image():
     script = read("deploy/deploy.sh")
 
     assert (
-        'docker build --no-cache --build-arg VITE_PID_ADAPTER=local '
+        'docker build --no-cache --build-arg VITE_PID_ADAPTER=disabled '
         '-t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .'
     ) in script
     assert 'docker stack deploy -c "$COMPOSE_FILE" "$STACK_NAME"' in script

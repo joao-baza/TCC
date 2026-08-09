@@ -10,8 +10,9 @@ describe("configuração rastreada do adaptador P&ID", () => {
     expect(read(`frontend/.env.${mode}`)).toMatch(/^VITE_PID_ADAPTER=local\s*$/m);
   });
 
-  it("não embute seleção local no ambiente de produção", () => {
-    expect(existsSync(resolve(repositoryRoot, "frontend/.env.production"))).toBe(false);
+  it("desabilita explicitamente P&ID no ambiente de produção", () => {
+    expect(existsSync(resolve(repositoryRoot, "frontend/.env.production"))).toBe(true);
+    expect(read("frontend/.env.production")).toMatch(/^VITE_PID_ADAPTER=disabled\s*$/m);
   });
 
   it("documenta a seleção no exemplo de ambiente", () => {
@@ -23,12 +24,12 @@ describe("configuração rastreada do adaptador P&ID", () => {
     expect(dockerfile).toMatch(/ARG VITE_PID_ADAPTER(?:=local)?/);
     expect(dockerfile).toContain("ENV VITE_PID_ADAPTER=${VITE_PID_ADAPTER}");
     expect(dockerfile.indexOf("ARG VITE_PID_ADAPTER")).toBeLessThan(dockerfile.indexOf("RUN npm run build"));
-    expect(dockerfile).toContain('test "$VITE_PID_ADAPTER" = "local"');
+    expect(dockerfile).toContain('test "$VITE_PID_ADAPTER" = "disabled"');
   });
 
-  it("fornece local explicitamente no build do compose", () => {
+  it("desabilita o adaptador local explicitamente no build do compose", () => {
     const compose = read("deploy/docker-compose.yaml");
-    expect(compose).toMatch(/tcc-frontend:[\s\S]*args:\s*\n\s*VITE_PID_ADAPTER: local/);
+    expect(compose).toMatch(/tcc-frontend:[\s\S]*args:\s*\n\s*VITE_PID_ADAPTER: disabled/);
   });
 
   it("fornece local explicitamente nos builds locais e de CI", () => {
@@ -38,13 +39,14 @@ describe("configuração rastreada do adaptador P&ID", () => {
     expect(read(".github/workflows/ci.yml")).toContain("npm run build:local");
     expect(read(".github/workflows/desktop-publish.yml")).toContain("npm run build:local");
     for (const workflow of [".github/workflows/ci.yml", ".github/workflows/docker-publish.yml"]) {
-      expect(read(workflow)).toMatch(/file: deploy\/Dockerfile\.frontend[\s\S]*build-args:\s*\|\s*\n\s*VITE_PID_ADAPTER=local/);
+      expect(read(workflow)).toMatch(/file: deploy\/Dockerfile\.frontend[\s\S]*build-args:\s*\|\s*\n\s*VITE_PID_ADAPTER=disabled/);
     }
   });
 
   it("mantém validação de build sem fallback para valor ausente ou não suportado", () => {
     const viteConfig = read("frontend/vite.config.ts");
     expect(viteConfig).toContain("loadEnv");
+    expect(viteConfig).toContain('["local", "disabled"]');
     expect(viteConfig).toContain("Adaptador P&ID não configurado");
   });
 
@@ -52,6 +54,7 @@ describe("configuração rastreada do adaptador P&ID", () => {
     const readme = read("README.md");
     expect(readme).toContain("npm run build:local");
     expect(readme).toContain("VITE_PID_ADAPTER=local npm run build");
+    expect(readme).toContain("VITE_PID_ADAPTER=disabled npm run build");
     expect(readme).toContain("Adaptador P&ID não configurado");
     expect(readme).not.toMatch(/```bash\s*\ncd frontend\s*\nnpm run build\s*\n```/);
   });

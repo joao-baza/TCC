@@ -1,4 +1,7 @@
-export const moduleRoutes = [
+import { PID_EDITOR_ENABLED } from "@/features/pid/routing/active-pid-route";
+
+export function createModuleRoutes(includePid: boolean) {
+  return [
   { path: "/", label: "Início", group: "root" },
   { path: "/piping", label: "Tubulações", group: "Hidráulica & Escoamento" },
   {
@@ -12,5 +15,10 @@ export const moduleRoutes = [
   { path: "/reactor", label: "CSTR / PFR", group: "Reatores" },
   { path: "/balance", label: "Balanço", group: "Balanço de Massa" },
   { path: "/glossary", label: "Glossário", group: "Ferramentas" },
-  { path: "/pid", label: "Editor P&ID", group: "Ferramentas" },
-] as const;
+    ...(includePid
+      ? [{ path: "/pid", label: "Editor P&ID", group: "Ferramentas" }]
+      : []),
+  ] as const;
+}
+
+export const moduleRoutes = createModuleRoutes(PID_EDITOR_ENABLED);

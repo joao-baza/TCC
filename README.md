@@ -234,16 +234,19 @@ cd frontend
 npm run build:local
 ```
 
-The local helper supplies `VITE_PID_ADAPTER=local` explicitly. Other build
-entrypoints must do the same instead of relying on a production environment
-file:
+The local helper supplies `VITE_PID_ADAPTER=local` explicitly. Use the disabled
+adapter for a production web build until a remote frontend adapter is available:
 
 ```bash
 VITE_PID_ADAPTER=local npm run build
+VITE_PID_ADAPTER=disabled npm run build
 ```
 
-Production builds are fail-closed: if `VITE_PID_ADAPTER` is absent or has an
-unsupported value, Vite stops with `Adaptador P&ID não configurado`.
+The production Docker and publishing paths use `disabled`, which removes P&ID
+navigation and exposes only an unavailable page at direct P&ID URLs. This avoids
+publishing browser-local documents and capability links as if they were shared.
+Builds remain fail-closed: if `VITE_PID_ADAPTER` is absent or unsupported, Vite
+stops with `Adaptador P&ID não configurado`.
 
 Run the local preview used by Playwright:
 
