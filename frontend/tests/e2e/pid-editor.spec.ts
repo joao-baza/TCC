@@ -34,6 +34,17 @@ test("abre o link de visualização sem expor escrita ou persistir mutações", 
   await insertPump(page);
   await expectSaveState(page, "Sincronizado");
   const before = await persistedPidRecord(page);
+  const diagramId = new URL(viewUrl).pathname.split("/").at(-1)!;
+  await page.addInitScript(({ recordKey }) => {
+    const runtime = window as Window & { __pidStorageWrites?: string[] };
+    runtime.__pidStorageWrites = [];
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function setItem(key: string, value: string) {
+      if (key === recordKey) runtime.__pidStorageWrites!.push(value);
+      return original.call(this, key, value);
+    };
+  }, { recordKey: `dcou.pid.local.v1.${diagramId}` });
+  await page.clock.install();
 
   await page.goto(viewUrl);
   await expect(page.getByText("Acesso de visualização", { exact: true })).toBeAttached();
@@ -44,8 +55,12 @@ test("abre o link de visualização sem expor escrita ou persistir mutações", 
 
   await equipmentNodes(page).first().click();
   await page.keyboard.press("Delete");
-  await page.waitForTimeout(500);
+  await expectSaveState(page, "Sincronizado");
+  await page.clock.runFor(400);
   await expect(equipmentNodes(page)).toHaveCount(1);
+  expect(await page.evaluate(() => (
+    window as Window & { __pidStorageWrites?: string[] }
+  ).__pidStorageWrites ?? [])).toEqual([]);
   expect(await persistedPidRecord(page)).toBe(before);
 });
 
