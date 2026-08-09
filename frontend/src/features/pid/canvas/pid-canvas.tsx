@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import {
   Background,
   applyNodeChanges,
@@ -37,6 +37,7 @@ const edgeTypes = { process: ProcessEdge } satisfies EdgeTypes;
 export interface PidCanvasSelection {
   readonly nodeIds: readonly string[];
   readonly edgeIds: readonly string[];
+  readonly annotationIds?: readonly string[];
 }
 
 interface PidCanvasBaseProps {
@@ -107,6 +108,7 @@ function PidCanvasInner({
   const initialSelection = controlledSelection ?? defaultSelection ?? EMPTY_SELECTION;
   const [selection, setSelection] = useState<PidCanvasSelection>(initialSelection);
   const selectionRef = useRef(initialSelection);
+  const pendingControlledSelectionRef = useRef(initialSelection);
   const notifiedSelectionRef = useRef(initialSelection);
   const documentRef = useRef(document);
   const onCommandRef = useRef(onCommand);
@@ -119,6 +121,7 @@ function PidCanvasInner({
   const [keyboardSourcePortId, setKeyboardSourcePortId] = useState<string | null>(null);
   const keyboardSourcePortRef = useRef<string | null>(null);
   const [connectionAnnouncement, setConnectionAnnouncement] = useState("");
+  const [canvasViewport, setCanvasViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   documentRef.current = document;
   onCommandRef.current = onCommand;
   onSelectionChangeRef.current = onSelectionChange;
@@ -188,10 +191,11 @@ function PidCanvasInner({
   nodesRef.current = nodes;
 
   const commitSelection = useCallback((update: (current: PidCanvasSelection) => PidCanvasSelection) => {
-    const current = selectionRef.current;
+    const current = isControlledRef.current ? pendingControlledSelectionRef.current : selectionRef.current;
     const next = update(current);
     if (sameSelection(current, next)) return;
     if (isControlledRef.current) {
+      pendingControlledSelectionRef.current = next;
       onSelectionChangeRef.current?.(next);
       return;
     }
@@ -205,7 +209,9 @@ function PidCanvasInner({
     onSelectionChange?.(selection);
   }, [isControlled, onSelectionChange, selection]);
   useEffect(() => {
-    if (!controlledSelection || sameSelection(selectionRef.current, controlledSelection)) return;
+    if (!controlledSelection) return;
+    pendingControlledSelectionRef.current = controlledSelection;
+    if (sameSelection(selectionRef.current, controlledSelection)) return;
     selectionRef.current = controlledSelection;
     notifiedSelectionRef.current = controlledSelection;
     setSelection(controlledSelection);
@@ -214,8 +220,9 @@ function PidCanvasInner({
     commitSelection((current) => ({
       nodeIds: current.nodeIds.filter((id) => Boolean(document.nodes[id])),
       edgeIds: current.edgeIds.filter((id) => Boolean(document.edges[id])),
+      ...selectionAnnotations(current.annotationIds?.filter((id) => Boolean(document.annotations[id])) ?? []),
     }));
-  }, [commitSelection, document.edges, document.nodes]);
+  }, [commitSelection, document.annotations, document.edges, document.nodes]);
   useEffect(() => {
     const selectedProjection = applyPidCanvasSelection(projection, selectionRef.current);
     const transientNodeIds = pointerDraggingRef.current ? draggingNodeIdsRef.current : undefined;
@@ -236,7 +243,7 @@ function PidCanvasInner({
           if (change.type === "select" && change.selected) selected.add(change.id);
           else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
         }
-        return { nodeIds: [...selected], edgeIds: current.edgeIds };
+        return { nodeIds: [...selected], edgeIds: current.edgeIds, ...selectionAnnotations(current.annotationIds ?? []) };
       });
     }
     const selectionNormalizedChanges = isControlledRef.current
@@ -299,7 +306,7 @@ function PidCanvasInner({
           if (change.type === "select" && change.selected) selected.add(change.id);
           else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
         }
-        return { nodeIds: current.nodeIds, edgeIds: [...selected] };
+        return { nodeIds: current.nodeIds, edgeIds: [...selected], ...selectionAnnotations(current.annotationIds ?? []) };
       });
     }
     const normalized = isControlledRef.current
@@ -345,6 +352,22 @@ function PidCanvasInner({
     const ids = [...deletedNodes.map(({ id }) => id), ...deletedEdges.map(({ id }) => id)];
     if (ids.length > 0) onCommand(deleteSelection(ids));
   }, [editable, onCommand]);
+  const handleAnnotationClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>, annotationId: string) => {
+    event.stopPropagation();
+    commitSelection((current) => {
+      const selected = new Set(current.annotationIds ?? []);
+      if (event.ctrlKey || event.metaKey) {
+        if (selected.has(annotationId)) selected.delete(annotationId); else selected.add(annotationId);
+        return { nodeIds: current.nodeIds, edgeIds: current.edgeIds, ...selectionAnnotations([...selected]) };
+      }
+      return { nodeIds: [], edgeIds: [], annotationIds: [annotationId] };
+    });
+  }, [commitSelection]);
+  const handleAnnotationKeyDown = useCallback((event: ReactKeyboardEvent<HTMLButtonElement>, annotationId: string) => {
+    if (!editableRef.current || (event.key !== "Delete" && event.key !== "Backspace")) return;
+    event.preventDefault(); event.stopPropagation();
+    onCommandRef.current(deleteSelection([annotationId]));
+  }, []);
   useEffect(() => {
     if (!viewportAction) return;
     if (viewportAction.type === "fit") void flow.fitView({ duration: 200 });
@@ -357,7 +380,7 @@ function PidCanvasInner({
       data-testid="pid-canvas"
       data-editable={String(editable)}
       data-keyboard-source-port={keyboardSourcePortId ?? ""}
-      className={`h-[640px] min-h-[320px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${className ?? ""}`}
+      className={`relative h-[640px] min-h-[320px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${className ?? ""}`}
       style={{ height: "640px" }}
     >
       <ReactFlow<EquipmentFlowNode, ProcessFlowEdge>
@@ -386,7 +409,8 @@ function PidCanvasInner({
         onNodeDragStop={handleDragStop}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
-        onMoveEnd={(_event, nextViewport) => onViewportChange?.(nextViewport)}
+        onMove={(_event, nextViewport) => setCanvasViewport(nextViewport)}
+        onMoveEnd={(_event, nextViewport) => { setCanvasViewport(nextViewport); onViewportChange?.(nextViewport); }}
         onDelete={handleDelete}
         proOptions={{ hideAttribution: true }}
       >
@@ -394,6 +418,23 @@ function PidCanvasInner({
         <Controls showInteractive={false} />
         <MiniMap pannable zoomable ariaLabel="Minimapa do diagrama P&ID" />
       </ReactFlow>
+      <div className="pid-canvas-annotations" aria-label="Anotações do diagrama">
+        <div style={{ transform: `translate(${canvasViewport.x}px, ${canvasViewport.y}px) scale(${canvasViewport.zoom})` }}>
+          {Object.values(document.annotations).map((annotation) => {
+            const selected = selectionRef.current.annotationIds?.includes(annotation.id) === true;
+            return <button
+              key={annotation.id}
+              type="button"
+              aria-label={`Anotação: ${annotation.text}`}
+              aria-pressed={selected}
+              className="pid-canvas-annotation"
+              style={{ left: annotation.x, top: annotation.y, width: annotation.width, height: annotation.height, transform: `rotate(${annotation.rotation}deg)` }}
+              onClick={(event) => handleAnnotationClick(event, annotation.id)}
+              onKeyDown={(event) => handleAnnotationKeyDown(event, annotation.id)}
+            >{annotation.text}</button>;
+          })}
+        </div>
+      </div>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {connectionAnnouncement}
       </div>
@@ -476,8 +517,14 @@ export function createPidMoveCommand(
 function sameSelection(left: PidCanvasSelection, right: PidCanvasSelection): boolean {
   return left.nodeIds.length === right.nodeIds.length
     && left.edgeIds.length === right.edgeIds.length
+    && (left.annotationIds?.length ?? 0) === (right.annotationIds?.length ?? 0)
     && left.nodeIds.every((id, index) => id === right.nodeIds[index])
-    && left.edgeIds.every((id, index) => id === right.edgeIds[index]);
+    && left.edgeIds.every((id, index) => id === right.edgeIds[index])
+    && (left.annotationIds ?? []).every((id, index) => id === right.annotationIds?.[index]);
+}
+
+function selectionAnnotations(annotationIds: readonly string[]): { annotationIds?: readonly string[] } {
+  return annotationIds.length > 0 ? { annotationIds: [...annotationIds] } : {};
 }
 
 function reconcileNodes(

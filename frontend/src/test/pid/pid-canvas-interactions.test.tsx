@@ -28,6 +28,28 @@ const ids = {
 } as const;
 
 describe("integrações acessíveis e transientes do PidCanvas", () => {
+  it("renderiza e seleciona anotações canônicas no canvas", () => {
+    const initial = interactionDocument();
+    const annotationId = "60000000-0000-4000-8000-000000000001";
+    initial.annotations[annotationId] = {
+      id: annotationId,
+      kind: "text",
+      text: "Nota operacional",
+      x: 120,
+      y: 80,
+      width: 180,
+      height: 56,
+      rotation: 0,
+      properties: {},
+    };
+    const onSelectionChange = vi.fn();
+    render(<PidCanvas document={initial} catalog={localCatalog} editable onCommand={vi.fn()} onSelectionChange={onSelectionChange} />);
+    const annotation = screen.getByRole("button", { name: "Anotação: Nota operacional" });
+    expect(annotation).toBeVisible();
+    fireEvent.click(annotation);
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [], edgeIds: [], annotationIds: [annotationId] });
+    expect(annotation).toHaveAttribute("aria-pressed", "true");
+  });
   it("não clobbera a posição transiente quando outro trecho do documento muda durante o drag", async () => {
     const onCommand = vi.fn();
     const initial = interactionDocument();

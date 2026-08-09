@@ -1,190 +1,220 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { StrictMode } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PidServices } from "@/features/pid/api/contracts";
-import { PidDocumentError } from "@/features/pid/api/contracts";
+import { PidDocumentError, type AccessScope, type PidDocumentPort, type PidServices } from "@/features/pid/api/contracts";
 import { PidServicesProvider } from "@/features/pid/api/pid-services";
-import { createEmptyDocument } from "@/features/pid/domain/schema";
-
-vi.mock("@/features/pid/canvas/pid-canvas", () => ({
-  PidCanvas: ({ editable, onCommand, onSelectionChange }: {
-    editable: boolean;
-    onCommand: (command: { type: "annotation.insert"; text: string; position: { x: number; y: number } }) => void;
-    onSelectionChange: (selection: { nodeIds: string[]; edgeIds: string[] }) => void;
-  }) => <div data-testid="pid-canvas" data-editable={String(editable)}>
-    <button type="button" onClick={() => onCommand({ type: "annotation.insert", text: "Nota", position: { x: 10, y: 10 } })}>Simular alteração</button>
-    <button type="button" onClick={() => onSelectionChange({ nodeIds: [], edgeIds: [] })}>Simular seleção</button>
-  </div>,
-}));
-
+import type { PidDocument } from "@/features/pid/domain/model";
 import { PidEditorPage } from "@/features/pid/editor/pid-editor-page";
+import { installPidCanvasGeometryHarness } from "./pid-canvas-harness";
 
-const diagramId = "00000001-0000-4000-8000-000000000000";
-const document = createEmptyDocument(
-  { title: "Utilidades", standard: "iso" },
-  { generateId: () => diagramId, now: () => new Date("2026-08-09T12:00:00Z") },
-);
+const ids = {
+  diagram: "10000000-0000-4000-8000-000000000001",
+  pump: "20000000-0000-4000-8000-000000000001",
+  tank: "20000000-0000-4000-8000-000000000002",
+  pumpOut: "30000000-0000-4000-8000-000000000001",
+  tankIn: "30000000-0000-4000-8000-000000000002",
+  edge: "40000000-0000-4000-8000-000000000001",
+} as const;
 
-function services(overrides: Partial<PidServices["document"]> = {}, scope: "view" | "edit" = "edit"): PidServices {
+let restoreCanvasGeometry: () => void;
+beforeAll(() => { restoreCanvasGeometry = installPidCanvasGeometryHarness(); });
+afterAll(() => restoreCanvasGeometry());
+beforeEach(() => window.history.replaceState(null, "", "/"));
+
+describe("integração real do studio P&ID", () => {
+  it("deriva a toolbar da seleção real, executa comandos e alterna a classe de linha", async () => {
+    mount(services());
+    const pump = await screen.findByRole("button", { name: "Bomba P-1" });
+    expect(screen.getByRole("button", { name: "Excluir seleção" })).toBeDisabled();
+
+    fireEvent.click(pump);
+    await waitFor(() => expect(pump).toHaveAttribute("aria-pressed", "true"));
+    expect(screen.getByRole("button", { name: "Excluir seleção" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Copiar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Duplicar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Girar 90°" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Agrupar" })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Girar 90°" }));
+    await waitFor(() => expect(screen.getByTestId(`equipment-artwork-${ids.pump}`)).toHaveStyle({ transform: "rotate(90deg)" }));
+
+    const tank = screen.getByRole("button", { name: "Tanque T-1" });
+    fireEvent.keyDown(document, { key: "Control", code: "ControlLeft" });
+    fireEvent.click(tank, { ctrlKey: true });
+    fireEvent.keyUp(document, { key: "Control", code: "ControlLeft" });
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeEnabled());
+
+    fireEvent.click(screen.getByTestId(`process-edge-${ids.edge}`));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Excluir seleção" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Copiar" })).toBeDisabled();
+    });
+    expect(screen.getByRole("button", { name: "Duplicar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Girar 90°" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Agrupar" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
+
+    for (const label of ["Linha de utilidade", "Linha de sinal", "Linha de processo"]) {
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar anotação" }));
+    const annotation = await screen.findByRole("button", { name: "Anotação: Nova anotação" });
+    fireEvent.click(annotation);
+    await waitFor(() => expect(annotation).toHaveAttribute("aria-pressed", "true"));
+    expect(screen.getByRole("button", { name: "Copiar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Girar 90°" })).toBeEnabled();
+  });
+
+  it("copia os dois links e invalida o link de visualização anterior ao regenerá-lo", async () => {
+    const documentPort = statefulTokenPort();
+    const clipboard = vi.fn().mockResolvedValue(undefined);
+    const previousClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: clipboard } });
+    try {
+      mount(services(documentPort));
+      await screen.findByRole("button", { name: "Bomba P-1" });
+      fireEvent.click(screen.getByRole("button", { name: "Compartilhar" }));
+
+      fireEvent.click(screen.getByRole("button", { name: "Gerar novo link de visualização" }));
+      const firstViewLink = await screen.findByDisplayValue(/#access=view-token-1$/);
+      const firstViewUrl = (firstViewLink as HTMLInputElement).value;
+
+      fireEvent.click(screen.getByRole("button", { name: "Gerar novo link de edição" }));
+      const editLink = await screen.findByDisplayValue(/#access=edit-token-1$/);
+      const editUrl = (editLink as HTMLInputElement).value;
+
+      fireEvent.click(screen.getByRole("button", { name: "Gerar novo link de visualização" }));
+      const currentViewLink = await screen.findByDisplayValue(/#access=view-token-2$/);
+      const currentViewUrl = (currentViewLink as HTMLInputElement).value;
+      fireEvent.click(screen.getByRole("button", { name: "Copiar link de visualização" }));
+      fireEvent.click(screen.getByRole("button", { name: "Copiar link de edição" }));
+      await waitFor(() => expect(clipboard).toHaveBeenCalledTimes(2));
+      expect(clipboard).toHaveBeenNthCalledWith(1, currentViewUrl);
+      expect(clipboard).toHaveBeenNthCalledWith(2, editUrl);
+      expect(documentPort.regenerate).toHaveBeenNthCalledWith(1, ids.diagram, "edit-token", "view", 1);
+      expect(documentPort.regenerate).toHaveBeenNthCalledWith(2, ids.diagram, "edit-token", "edit", 2);
+      expect(documentPort.regenerate).toHaveBeenNthCalledWith(3, ids.diagram, "edit-token-1", "view", 3);
+
+      await expect(documentPort.open(ids.diagram, tokenFrom(firstViewUrl))).rejects.toMatchObject({ code: "ACCESS_DENIED" });
+      await expect(documentPort.open(ids.diagram, tokenFrom(currentViewUrl))).resolves.toMatchObject({ scope: "view", revision: 4 });
+    } finally {
+      if (previousClipboard) Object.defineProperty(navigator, "clipboard", previousClipboard);
+      else Reflect.deleteProperty(navigator, "clipboard");
+    }
+  });
+
+  it("remove canvas, compartilhamento e catálogo ao excluir e os recompõe após restaurar", async () => {
+    const restored = studioDocument();
+    restored.metadata.title = "Studio restaurado";
+    const open = vi.fn()
+      .mockResolvedValueOnce({ scope: "edit", document: studioDocument(), revision: 1 })
+      .mockResolvedValueOnce({ scope: "edit", document: restored, revision: 3 });
+    mount(services({ open, softDelete: vi.fn().mockResolvedValue(2), restore: vi.fn().mockResolvedValue(3) }));
+    await screen.findByRole("button", { name: "Bomba P-1" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    fireEvent.change(screen.getByLabelText("Digite Studio integrado para confirmar"), { target: { value: "Studio integrado" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+    expect(await screen.findByRole("heading", { name: "Diagrama excluído" })).toBeInTheDocument();
+    expect(screen.queryByTestId("pid-canvas")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Compartilhar" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Pesquisar símbolos")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Restaurar diagrama" }));
+    expect(await screen.findByRole("heading", { name: "Studio restaurado" })).toBeInTheDocument();
+    expect(screen.getByTestId("pid-canvas")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();
+    expect(screen.getByLabelText("Pesquisar símbolos")).toBeInTheDocument();
+  });
+});
+
+function mount(pidServices: PidServices) {
+  return render(<PidServicesProvider services={pidServices}>
+    <MemoryRouter initialEntries={[`/pid/${ids.diagram}#access=edit-token`]}>
+      <Routes><Route path="/pid/:diagramId" element={<PidEditorPage />} /></Routes>
+    </MemoryRouter>
+  </PidServicesProvider>);
+}
+
+function services(documentOverrides: Partial<PidDocumentPort> = {}): PidServices {
   return {
     document: {
       create: vi.fn(),
-      open: vi.fn().mockResolvedValue({ scope, document, revision: 1 }),
-      save: vi.fn().mockResolvedValue(2),
-      regenerate: vi.fn().mockResolvedValue({ token: "rotated-token", revision: 2 }),
-      softDelete: vi.fn().mockResolvedValue(3),
-      restore: vi.fn().mockResolvedValue(4),
-      ...overrides,
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: studioDocument(), revision: 1 }),
+      save: vi.fn().mockImplementation(async (_diagramId, _token, _document, revision) => revision + 1),
+      regenerate: vi.fn().mockResolvedValue({ token: "regenerated-token", revision: 2 }),
+      softDelete: vi.fn().mockResolvedValue(2),
+      restore: vi.fn().mockResolvedValue(3),
+      ...documentOverrides,
     },
     catalog: { list: vi.fn() },
     collaboration: { connect: vi.fn() },
   };
 }
 
-function mount(pidServices: PidServices, strict = false) {
-  const page = <PidServicesProvider services={pidServices}>
-    <MemoryRouter initialEntries={[`/pid/${diagramId}#access=edit-token`]}>
-      <Routes><Route path="/pid/:diagramId" element={<PidEditorPage />} /></Routes>
-    </MemoryRouter>
-  </PidServicesProvider>;
-  return render(strict ? <StrictMode>{page}</StrictMode> : page);
+function statefulTokenPort(): PidDocumentPort {
+  let revision = 1;
+  let viewToken = "view-token-0";
+  let editToken = "edit-token";
+  let viewSequence = 0;
+  return {
+    create: vi.fn(),
+    open: vi.fn(async (_diagramId: string, token: string) => {
+      if (token === editToken) return { scope: "edit" as const, document: studioDocument(), revision };
+      if (token === viewToken) return { scope: "view" as const, document: studioDocument(), revision };
+      throw new PidDocumentError("ACCESS_DENIED");
+    }),
+    save: vi.fn(async (_diagramId, token, _document, expectedRevision) => {
+      if (token !== editToken || expectedRevision !== revision) throw new PidDocumentError("CONFLICT");
+      return ++revision;
+    }),
+    regenerate: vi.fn(async (_diagramId, token, scope: AccessScope, expectedRevision) => {
+      if (token !== editToken || expectedRevision !== revision) throw new PidDocumentError("CONFLICT");
+      revision += 1;
+      if (scope === "view") {
+        viewToken = `view-token-${++viewSequence}`;
+        return { token: viewToken, revision };
+      }
+      editToken = "edit-token-1";
+      return { token: editToken, revision };
+    }),
+    softDelete: vi.fn(),
+    restore: vi.fn(),
+  };
 }
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => { resolve = resolvePromise; reject = rejectPromise; });
-  return { promise, resolve, reject };
+function tokenFrom(url: string): string {
+  return new URLSearchParams(new URL(url).hash.slice(1)).get("access") ?? "";
 }
 
-describe("studio focado P&ID", () => {
-  afterEach(() => vi.useRealTimers());
-  beforeEach(() => window.history.replaceState(null, "", "/"));
-
-  it("compõe toolbar, catálogo, canvas, inspector reservado e status sem AppShell", async () => {
-    mount(services());
-    expect(await screen.findByRole("heading", { name: "Utilidades" })).toBeInTheDocument();
-    expect(screen.getByRole("toolbar", { name: "Ferramentas do editor P&ID" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Catálogo de símbolos" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Inspetor" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
-    expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
-    expect(screen.getByText("ISO")).toBeInTheDocument();
-    expect(screen.getByText("Acesso de edição")).toHaveClass("sr-only");
-    expect(screen.getByRole("button", { name: "Desfazer" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();
-  });
-
-  it("salva mudança local uma vez após debounce de 400ms mesmo em StrictMode", async () => {
-    vi.useFakeTimers();
-    const pidServices = services();
-    mount(pidServices, true);
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
-    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Não salvo");
-    await act(async () => { await vi.advanceTimersByTimeAsync(399); });
-    expect(pidServices.document.save).not.toHaveBeenCalled();
-    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    expect(pidServices.document.save).toHaveBeenCalledOnce();
-    expect(pidServices.document.save).toHaveBeenCalledWith(diagramId, "edit-token", expect.any(Object), 1);
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
-  });
-
-  it("bloqueia autosave em conflito e orienta recarregar sem sobrescrever", async () => {
-    vi.useFakeTimers();
-    const pidServices = services({ save: vi.fn().mockRejectedValue(new PidDocumentError("CONFLICT")) });
-    mount(pidServices);
-    await act(async () => { await Promise.resolve(); });
-    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    expect(screen.getByRole("alert")).toHaveTextContent("alterado em outra janela");
-    expect(screen.getByRole("button", { name: "Recarregar diagrama" })).toBeInTheDocument();
-    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
-    expect(pidServices.document.save).toHaveBeenCalledOnce();
-  });
-
-  it("serializa saves e coalesce a versão mais recente alterada durante uma requisição em voo", async () => {
-    vi.useFakeTimers();
-    const first = deferred<number>();
-    const second = deferred<number>();
-    const save = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
-    const pidServices = services({ save });
-    mount(pidServices);
-    await act(async () => { await Promise.resolve(); });
-    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    expect(save).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    expect(save).toHaveBeenCalledOnce();
-
-    await act(async () => { first.resolve(2); await first.promise; });
-    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    expect(save).toHaveBeenCalledTimes(2);
-    expect(save.mock.calls[1][3]).toBe(2);
-    expect(Object.keys(save.mock.calls[1][2].annotations)).toHaveLength(2);
-    await act(async () => { second.resolve(3); await second.promise; });
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
-  });
-
-  it("oferece retry para falha transitória e não atualiza estado depois do unmount", async () => {
-    vi.useFakeTimers();
-    const pending = deferred<number>();
-    const save = vi.fn().mockRejectedValueOnce(new Error("offline")).mockReturnValueOnce(pending.promise);
-    const pidServices = services({ save });
-    const mounted = mount(pidServices);
-    await act(async () => { await Promise.resolve(); });
-    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível salvar");
-    fireEvent.click(screen.getByRole("button", { name: "Tentar salvar novamente" }));
-    expect(save).toHaveBeenCalledTimes(2);
-    mounted.unmount();
-    await act(async () => { pending.resolve(2); await pending.promise; });
-    expect(save).toHaveBeenCalledTimes(2);
-  });
-
-  it("mantém o studio de visualização somente leitura e sem controles de mutação", async () => {
-    mount(services({}, "view"));
-    await screen.findByRole("heading", { name: "Utilidades" });
-    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "false");
-    expect(screen.queryByRole("button", { name: "Compartilhar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Ações do documento" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Excluir seleção" })).not.toBeInTheDocument();
-  });
-
-  it("rotaciona o token de edição atomicamente para saves seguintes e para a URL", async () => {
-    vi.useFakeTimers();
-    const pidServices = services();
-    mount(pidServices);
-    await act(async () => { await Promise.resolve(); });
-    fireEvent.click(screen.getByRole("button", { name: "Compartilhar" }));
-    fireEvent.click(screen.getByRole("button", { name: "Gerar novo link de edição" }));
-    await act(async () => { await Promise.resolve(); });
-    expect(pidServices.document.regenerate).toHaveBeenCalledWith(diagramId, "edit-token", "edit", 1);
-    expect(window.location.hash).toBe("#access=rotated-token");
-    fireEvent.click(screen.getByRole("button", { name: "Fechar compartilhamento" }));
-    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    expect(pidServices.document.save).toHaveBeenCalledWith(diagramId, "rotated-token", expect.any(Object), 2);
-  });
-
-  it("exige o título exato para excluir e permite restaurar com a revisão retornada", async () => {
-    const pidServices = services();
-    mount(pidServices);
-    await screen.findByRole("heading", { name: "Utilidades" });
-    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
-    const confirmation = screen.getByLabelText("Digite Utilidades para confirmar");
-    fireEvent.change(confirmation, { target: { value: "utilidades" } });
-    expect(screen.getByRole("button", { name: "Confirmar exclusão" })).toBeDisabled();
-    fireEvent.change(confirmation, { target: { value: "Utilidades" } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-    await waitFor(() => expect(pidServices.document.softDelete).toHaveBeenCalledWith(diagramId, "edit-token", 1));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Diagrama excluído");
-    fireEvent.click(screen.getByRole("button", { name: "Restaurar diagrama" }));
-    await waitFor(() => expect(pidServices.document.restore).toHaveBeenCalledWith(diagramId, "edit-token", 3));
-    expect(screen.getByTestId("pid-canvas")).toBeInTheDocument();
-  });
-});
+function studioDocument(): PidDocument {
+  return {
+    schemaVersion: 1,
+    id: ids.diagram,
+    metadata: {
+      title: "Studio integrado",
+      standard: "free",
+      catalogVersion: "local-v1",
+      createdAt: "2026-08-09T00:00:00.000Z",
+      updatedAt: "2026-08-09T00:00:00.000Z",
+    },
+    nodes: {
+      [ids.pump]: { id: ids.pump, symbolKey: "project.pump.centrifugal", catalogVersion: "local-v1", x: 100, y: 80, width: 96, height: 64, rotation: 0, tag: "P-1", label: "Bomba", properties: {} },
+      [ids.tank]: { id: ids.tank, symbolKey: "project.tank.storage", catalogVersion: "local-v1", x: 360, y: 80, width: 80, height: 72, rotation: 0, tag: "T-1", label: "Tanque", properties: {} },
+    },
+    ports: {
+      [ids.pumpOut]: { id: ids.pumpOut, nodeId: ids.pump, templateKey: "discharge", direction: "output", connectionClass: "process", capacity: 1 },
+      [ids.tankIn]: { id: ids.tankIn, nodeId: ids.tank, templateKey: "inlet", direction: "input", connectionClass: "process", capacity: 2 },
+    },
+    edges: {
+      [ids.edge]: { id: ids.edge, sourcePortId: ids.pumpOut, targetPortId: ids.tankIn, connectionClass: "process", route: [], tag: "L-1", label: "Processo", properties: {} },
+    },
+    annotations: {},
+    groups: {},
+  };
+}

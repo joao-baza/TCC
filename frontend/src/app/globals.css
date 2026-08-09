@@ -261,6 +261,23 @@ body {
 }
 
 .pid-studio-canvas-surface { height: 100% !important; min-height: 100%; border: 0; border-radius: 0; }
+.pid-canvas-annotations { position: absolute; z-index: 8; inset: 0; overflow: hidden; pointer-events: none; }
+.pid-canvas-annotations > div { position: absolute; inset: 0; transform-origin: 0 0; }
+.pid-canvas-annotation {
+  position: absolute;
+  overflow: hidden;
+  padding: .45rem .65rem;
+  border: 1px solid #64748b;
+  border-radius: .35rem;
+  color: #1e293b;
+  background: rgb(255 251 235 / 94%);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 14%);
+  font-size: .78rem;
+  text-align: left;
+  transform-origin: center;
+  pointer-events: auto;
+}
+.pid-canvas-annotation[aria-pressed="true"] { border-color: #2563eb; outline: 3px solid rgb(37 99 235 / 24%); }
 .pid-deleted-blocker { display: grid; height: 100%; place-content: center; padding: 2rem; color: #7f1d1d; text-align: center; background: #fff7ed; }
 .pid-editor-error { position: absolute; z-index: 10; inset: auto 1rem 1rem; padding: .75rem; border: 1px solid #ef4444; border-radius: .6rem; color: #7f1d1d; background: #fff; box-shadow: 0 8px 28px rgb(15 23 42 / 18%); }
 

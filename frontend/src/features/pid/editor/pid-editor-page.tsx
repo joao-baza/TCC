@@ -14,7 +14,7 @@ import {
 import type { ConnectionClass } from "../domain/model";
 import { DocumentActionsMenu } from "./document-actions-menu";
 import { copyEditorSelection, pasteEditorFragment, type EditorClipboardFragment } from "./editor-clipboard";
-import { EditorToolbar, type EditorToolbarActions } from "./editor-toolbar";
+import { EditorToolbar, getEditorSelectionCapabilities, type EditorToolbarActions } from "./editor-toolbar";
 import { createEditorStore, type EditorStore } from "./editor-store";
 import { ShareDialog } from "./share-dialog";
 import { StatusBar } from "./status-bar";
@@ -28,6 +28,17 @@ interface EditorSession {
   readonly routeToken: string;
   readonly store: EditorStore;
 }
+
+type EditorLifecycle = "active" | "deleting" | "deleted" | "restoring";
+
+const BLOCKED_SELECTION_CAPABILITIES = Object.freeze({
+  canDelete: false,
+  canCopy: false,
+  canDuplicate: false,
+  canRotate: false,
+  canGroup: false,
+  canAlign: false,
+});
 
 export function PidEditorPage() {
   const { document: documentPort } = usePidServices();
@@ -71,7 +82,8 @@ function EditorStudio({ diagramId, session }: { diagramId: string; session: Edit
   const editable = opened.scope === "edit";
   const [revision, setRevision] = useState(opened.revision);
   const [editToken, setEditToken] = useState(session.routeToken);
-  const [deleted, setDeleted] = useState(false);
+  const [lifecycle, setLifecycle] = useState<EditorLifecycle>("active");
+  const lifecycleRef = useRef<EditorLifecycle>("active");
   const [catalogCollapsed, setCatalogCollapsed] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [connectionClass, setConnectionClass] = useState<ConnectionClass>("process");
@@ -81,28 +93,36 @@ function EditorStudio({ diagramId, session }: { diagramId: string; session: Edit
   const clipboardRef = useRef<EditorClipboardFragment | null>(null);
   const pasteCountRef = useRef(0);
   const autosave = useEditorAutosave({ diagramId, editToken, revision, store, documentPort, editable, onRevision: setRevision });
-  const selectionCount = editor.selection.length;
+  const editorEnabled = editable && lifecycle === "active";
   const selectedNodeIds = editor.selection.filter((id) => Boolean(editor.document.nodes[id]));
+  const selectedAnnotationIds = editor.selection.filter((id) => Boolean(editor.document.annotations[id]));
+  const positionedSelectionIds = [...selectedNodeIds, ...selectedAnnotationIds];
+  const activeSelectionCapabilities = useMemo(
+    () => getEditorSelectionCapabilities(editor.document, editor.selection),
+    [editor.document, editor.selection],
+  );
+  const selectionCapabilities = lifecycle === "active" ? activeSelectionCapabilities : BLOCKED_SELECTION_CAPABILITIES;
   const canvasSelection: PidCanvasSelection = useMemo(() => ({
     nodeIds: editor.selection.filter((id) => Boolean(editor.document.nodes[id])),
     edgeIds: editor.selection.filter((id) => Boolean(editor.document.edges[id])),
-  }), [editor.document.edges, editor.document.nodes, editor.selection]);
+    annotationIds: editor.selection.filter((id) => Boolean(editor.document.annotations[id])),
+  }), [editor.document.annotations, editor.document.edges, editor.document.nodes, editor.selection]);
 
   const mutate = useCallback((operation: () => void): boolean => {
-    if (!editable || deleted) return false;
+    if (!editable || lifecycleRef.current !== "active") return false;
     try { operation(); autosave.markLocalChange(); setOperationError(null); return true; }
     catch (reason) { setOperationError(reason instanceof Error ? reason.message : "A operação não pôde ser concluída."); return false; }
-  }, [autosave, deleted, editable]);
+  }, [autosave, editable]);
   const dispatch = useCallback((command: PidCommand) => mutate(() => store.dispatch(command)), [mutate, store]);
   const copy = useCallback((): boolean => {
-    if (editor.selection.length === 0) return false;
+    if (!selectionCapabilities.canCopy) return false;
     try {
       clipboardRef.current = copyEditorSelection(editor.document, editor.selection);
       pasteCountRef.current = 0;
       setAnnouncement("Seleção copiada para o clipboard interno do editor.");
       return true;
     } catch (reason) { setOperationError(reason instanceof Error ? reason.message : "Não foi possível copiar a seleção."); return false; }
-  }, [editor.document, editor.selection]);
+  }, [editor.document, editor.selection, selectionCapabilities.canCopy]);
   const paste = useCallback((): boolean => {
     const fragment = clipboardRef.current;
     if (!fragment) return false;
@@ -115,13 +135,13 @@ function EditorStudio({ diagramId, session }: { diagramId: string; session: Edit
       setAnnouncement("Fragmento colado com novos identificadores.");
     });
   }, [mutate, store]);
-  const duplicate = useCallback(() => copy() && paste(), [copy, paste]);
+  const duplicate = useCallback(() => selectionCapabilities.canDuplicate && copy() && paste(), [copy, paste, selectionCapabilities.canDuplicate]);
   const undo = useCallback(() => editor.past.length > 0 && mutate(store.undo), [editor.past.length, mutate, store.undo]);
   const redo = useCallback(() => editor.future.length > 0 && mutate(store.redo), [editor.future.length, mutate, store.redo]);
-  const remove = useCallback(() => editor.selection.length > 0 && dispatch(deleteSelection([...editor.selection])), [dispatch, editor.selection]);
-  const rotate = useCallback((degrees: 90 | -90) => editor.selection.length > 0 && dispatch(rotateSelection([...editor.selection], degrees)), [dispatch, editor.selection]);
-  const group = useCallback(() => selectedNodeIds.length > 0 && dispatch(groupSelection(selectedNodeIds)), [dispatch, selectedNodeIds]);
-  const align = useCallback((axis: Parameters<EditorToolbarActions["align"]>[0]) => selectedNodeIds.length > 1 && dispatch(alignSelection(selectedNodeIds, axis)), [dispatch, selectedNodeIds]);
+  const remove = useCallback(() => selectionCapabilities.canDelete && dispatch(deleteSelection([...editor.selection])), [dispatch, editor.selection, selectionCapabilities.canDelete]);
+  const rotate = useCallback((degrees: 90 | -90) => selectionCapabilities.canRotate && dispatch(rotateSelection(positionedSelectionIds, degrees)), [dispatch, positionedSelectionIds, selectionCapabilities.canRotate]);
+  const group = useCallback(() => selectionCapabilities.canGroup && dispatch(groupSelection(selectedNodeIds)), [dispatch, selectedNodeIds, selectionCapabilities.canGroup]);
+  const align = useCallback((axis: Parameters<EditorToolbarActions["align"]>[0]) => selectionCapabilities.canAlign && dispatch(alignSelection(positionedSelectionIds, axis)), [dispatch, positionedSelectionIds, selectionCapabilities.canAlign]);
   const annotation = useCallback(() => dispatch(insertAnnotation("Nova anotação", canvasCenter(editor.viewport))), [dispatch, editor.viewport]);
   const viewport = useCallback((type: PidCanvasViewportAction["type"]) => setViewportAction((current) => ({ type, nonce: (current?.nonce ?? 0) + 1 })), []);
 
@@ -136,38 +156,75 @@ function EditorStudio({ diagramId, session }: { diagramId: string; session: Edit
     rotateClockwise: () => rotate(90), rotateCounterclockwise: () => rotate(-90), group,
     alignLeft: () => align("left"), insertAnnotation: annotation,
   };
-  useEditorShortcuts({ editable: editable && !deleted, actions: shortcutActions });
+  useEditorShortcuts({ editable: editorEnabled, actions: shortcutActions });
 
   const reload = async () => {
     try {
       const remote = await documentPort.open(diagramId, editToken);
       store.replace(remote.document, "remote");
       setRevision(remote.revision);
-      autosave.acceptRemoteRevision(remote.revision);
+      autosave.resumeRemote(remote.revision);
       setOperationError(null); setAnnouncement("Versão atual recarregada.");
     } catch (reason) { setOperationError(isPidDocumentError(reason) ? reason.message : "Não foi possível recarregar o diagrama."); }
   };
+
+  const beforeDelete = useCallback(async () => {
+    lifecycleRef.current = "deleting";
+    setLifecycle("deleting");
+    setOperationError(null);
+    return autosave.suspend();
+  }, [autosave]);
+  const deletedSuccessfully = useCallback((nextRevision: number) => {
+    setRevision(nextRevision);
+    lifecycleRef.current = "deleted";
+    setLifecycle("deleted");
+  }, []);
+  const deleteFailed = useCallback((currentRevision: number) => {
+    setRevision(currentRevision);
+    autosave.resumeLocal(currentRevision);
+    lifecycleRef.current = "active";
+    setLifecycle("active");
+  }, [autosave]);
+  const beforeRestore = useCallback(() => {
+    lifecycleRef.current = "restoring";
+    setLifecycle("restoring");
+    setOperationError(null);
+  }, []);
+  const restoredSuccessfully = useCallback(async (nextRevision: number) => {
+    const remote = await documentPort.open(diagramId, editToken);
+    if (remote.scope !== "edit") throw new Error("A restauração não devolveu acesso de edição ao diagrama.");
+    store.replace(remote.document, "remote");
+    const restoredRevision = Math.max(nextRevision, remote.revision);
+    setRevision(restoredRevision);
+    autosave.resumeRemote(restoredRevision);
+    lifecycleRef.current = "active";
+    setLifecycle("active");
+  }, [autosave, diagramId, documentPort, editToken, store]);
+  const restoreFailed = useCallback(() => {
+    lifecycleRef.current = "deleted";
+    setLifecycle("deleted");
+  }, []);
 
   return <main className="pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]">
     <p className="sr-only">{editable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
-      <EditorToolbar editable={editable && !deleted} selectionCount={selectionCount} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={clipboardRef.current !== null} connectionClass={connectionClass} actions={toolbarActions} />
+      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} connectionClass={connectionClass} actions={toolbarActions} />
       {editable && <div className="pid-studio-document-controls">
-        <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />
-        <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={deleted} onRevision={setRevision} onDeleted={setDeleted} onAnnouncement={setAnnouncement} />
+        {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
+        <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={lifecycle === "deleted" || lifecycle === "restoring"} onBeforeDelete={beforeDelete} onDeleted={deletedSuccessfully} onDeleteFailed={deleteFailed} onBeforeRestore={beforeRestore} onRestored={restoredSuccessfully} onRestoreFailed={restoreFailed} onAnnouncement={setAnnouncement} />
       </div>}
     </header>
     <div className={`pid-studio-workspace ${catalogCollapsed ? "pid-catalog-collapsed" : ""} ${inspectorCollapsed ? "pid-inspector-collapsed" : ""}`}>
       <aside role="region" aria-label="Catálogo de símbolos" className="pid-studio-panel pid-catalog-panel">
         <button type="button" aria-expanded={!catalogCollapsed} onClick={() => setCatalogCollapsed((value) => !value)}>{catalogCollapsed ? "Abrir catálogo" : "Fechar catálogo"}</button>
-        {!catalogCollapsed && (editable
+        {!catalogCollapsed && (editorEnabled
           ? <CatalogPanel index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} />
-          : <p>O catálogo está reservado neste acesso de visualização.</p>)}
+          : <p>{editable ? "O catálogo fica bloqueado enquanto o diagrama está indisponível." : "O catálogo está reservado neste acesso de visualização."}</p>)}
       </aside>
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
-        {deleted ? <div className="pid-deleted-blocker" role="alert"><h2>Diagrama excluído</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
-          : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editable} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds }) => store.setSelection([...nodeIds, ...edgeIds])} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}
+        {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
+          : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editable} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => store.setSelection([...nodeIds, ...edgeIds, ...annotationIds])} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}
         {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}
       </section>

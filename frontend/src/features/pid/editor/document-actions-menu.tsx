@@ -2,15 +2,19 @@ import { useEffect, useRef, useState } from "react";
 
 import { isPidDocumentError, type PidDocumentPort } from "../api/contracts";
 
-export function DocumentActionsMenu({ documentPort, diagramId, editToken, revision, title, deleted, onRevision, onDeleted, onAnnouncement }: {
+export function DocumentActionsMenu({ documentPort, diagramId, editToken, revision, title, deleted, onBeforeDelete, onDeleted, onDeleteFailed, onBeforeRestore, onRestored, onRestoreFailed, onAnnouncement }: {
   readonly documentPort: PidDocumentPort;
   readonly diagramId: string;
   readonly editToken: string;
   readonly revision: number;
   readonly title: string;
   readonly deleted: boolean;
-  readonly onRevision: (revision: number) => void;
-  readonly onDeleted: (deleted: boolean) => void;
+  readonly onBeforeDelete: () => Promise<number>;
+  readonly onDeleted: (revision: number) => void;
+  readonly onDeleteFailed: (revision: number) => void;
+  readonly onBeforeRestore: () => void;
+  readonly onRestored: (revision: number) => Promise<void>;
+  readonly onRestoreFailed: () => void;
   readonly onAnnouncement: (message: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,25 +24,44 @@ export function DocumentActionsMenu({ documentPort, diagramId, editToken, revisi
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const activeRef = useRef(true);
   useEffect(() => { if (confirming) inputRef.current?.focus(); }, [confirming]);
+  useEffect(() => {
+    activeRef.current = true;
+    return () => { activeRef.current = false; };
+  }, []);
   const fail = (reason: unknown, fallback: string) => setError(isPidDocumentError(reason) ? reason.message : fallback);
   const remove = async () => {
     if (confirmation !== title) return;
     setBusy(true); setError(null);
+    let expectedRevision = revision;
     try {
-      const next = await documentPort.softDelete(diagramId, editToken, revision);
-      onRevision(next); onDeleted(true); setConfirming(false); setMenuOpen(false); setConfirmation("");
+      expectedRevision = await onBeforeDelete();
+      if (!activeRef.current) return;
+      const next = await documentPort.softDelete(diagramId, editToken, expectedRevision);
+      if (!activeRef.current) return;
+      onDeleted(next); setConfirming(false); setMenuOpen(false); setConfirmation("");
       onAnnouncement("Diagrama excluído. Ele pode ser restaurado durante o prazo de retenção.");
-    } catch (reason) { fail(reason, "Não foi possível excluir o diagrama."); }
-    finally { setBusy(false); }
+    } catch (reason) {
+      if (!activeRef.current) return;
+      onDeleteFailed(expectedRevision);
+      fail(reason, "Não foi possível excluir o diagrama.");
+    } finally { if (activeRef.current) setBusy(false); }
   };
   const restore = async () => {
     setBusy(true); setError(null);
+    onBeforeRestore();
     try {
       const next = await documentPort.restore(diagramId, editToken, revision);
-      onRevision(next); onDeleted(false); onAnnouncement("Diagrama restaurado.");
-    } catch (reason) { fail(reason, "Não foi possível restaurar o diagrama."); }
-    finally { setBusy(false); }
+      if (!activeRef.current) return;
+      await onRestored(next);
+      if (!activeRef.current) return;
+      onAnnouncement("Diagrama restaurado.");
+    } catch (reason) {
+      if (!activeRef.current) return;
+      onRestoreFailed();
+      fail(reason, "Não foi possível restaurar o diagrama.");
+    } finally { if (activeRef.current) setBusy(false); }
   };
   if (deleted) return <div><button type="button" disabled={busy} onClick={() => void restore()}>Restaurar diagrama</button>{error && <p role="alert">{error}</p>}</div>;
   return <div className="pid-document-actions">
