@@ -233,24 +233,35 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     annotationIds: editor.selection.filter((id) => Boolean(editor.document.annotations[id])),
   }), [editor.document.annotations, editor.document.edges, editor.document.nodes, editor.selection]);
 
+  const draftBoundaryActiveRef = useRef(false);
+  const afterInspectorDrafts = useCallback((operation: () => boolean, blockedMessage: string): boolean => {
+    if (draftBoundaryActiveRef.current) return operation();
+    draftBoundaryActiveRef.current = true;
+    try {
+      if (prepareInspectorDrafts().hasUnresolvedDrafts) {
+        setAnnouncement(blockedMessage);
+        return false;
+      }
+      return operation();
+    } finally {
+      draftBoundaryActiveRef.current = false;
+    }
+  }, [prepareInspectorDrafts]);
   const mutate = useCallback((operation: () => void): boolean => {
     if (!capabilityEditable || lifecycleRef.current !== "active") return false;
-    try { operation(); autosave.markLocalChange(); setOperationError(null); return true; }
-    catch (reason) { setOperationError(reason instanceof Error ? reason.message : "A operação não pôde ser concluída."); return false; }
-  }, [autosave, capabilityEditable]);
-  const dispatch = useCallback((command: PidCommand) => {
-    if (prepareInspectorDrafts().hasUnresolvedDrafts) {
-      setAnnouncement("Corrija o rascunho no inspetor antes de continuar.");
-      return false;
-    }
-    return mutate(() => store.dispatch(command));
-  }, [mutate, prepareInspectorDrafts, store]);
+    return afterInspectorDrafts(() => {
+      try { operation(); autosave.markLocalChange(); setOperationError(null); return true; }
+      catch (reason) { setOperationError(reason instanceof Error ? reason.message : "A operação não pôde ser concluída."); return false; }
+    }, "Corrija o rascunho no inspetor antes de continuar.");
+  }, [afterInspectorDrafts, autosave, capabilityEditable]);
+  const dispatch = useCallback((command: PidCommand) => mutate(() => store.dispatch(command)), [mutate, store]);
   const dispatchInspector = useCallback((command: PidCommand): InspectorCommandResult => {
     const field = inspectorCommandField(command);
     if (!editLease || lifecycleRef.current !== "active") {
       return { ok: false, field, message: "A edição não está disponível neste momento." };
     }
     try {
+      // The draft boundary finalizes fields through this callback, so this command must not re-enter it.
       store.dispatch(command);
       autosave.markLocalChange();
       setOperationError(null);
@@ -282,7 +293,20 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       setAnnouncement("Fragmento colado com novos identificadores.");
     });
   }, [mutate, store]);
-  const duplicate = useCallback(() => selectionCapabilities.canDuplicate && copy() && paste(), [copy, paste, selectionCapabilities.canDuplicate]);
+  const duplicate = useCallback(() => {
+    if (!selectionCapabilities.canDuplicate) return false;
+    return mutate(() => {
+      const state = store.getState();
+      const fragment = copyEditorSelection(state.document, state.selection);
+      clipboardRef.current = fragment;
+      pasteCountRef.current = 0;
+      const result = pasteEditorFragment(state.document, fragment, { offset: { x: 24, y: 24 } });
+      store.replace(result.document, "local");
+      store.setSelection(result.selection);
+      pasteCountRef.current = 1;
+      setAnnouncement("Seleção duplicada com novos identificadores.");
+    });
+  }, [mutate, selectionCapabilities.canDuplicate, store]);
   const undo = useCallback(() => editor.past.length > 0 && mutate(store.undo), [editor.past.length, mutate, store.undo]);
   const redo = useCallback(() => editor.future.length > 0 && mutate(store.redo), [editor.future.length, mutate, store.redo]);
   const remove = useCallback(() => selectionCapabilities.canDelete && dispatch(deleteSelection([...editor.selection])), [dispatch, editor.selection, selectionCapabilities.canDelete]);
@@ -291,14 +315,16 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const align = useCallback((axis: Parameters<EditorToolbarActions["align"]>[0]) => selectionCapabilities.canAlign && dispatch(alignSelection(positionedSelectionIds, axis)), [dispatch, positionedSelectionIds, selectionCapabilities.canAlign]);
   const annotation = useCallback(() => dispatch(insertAnnotation("Nova anotação", canvasCenter(editor.viewport))), [dispatch, editor.viewport]);
   const viewport = useCallback((type: PidCanvasViewportAction["type"]) => setViewportAction((current) => ({ type, nonce: (current?.nonce ?? 0) + 1 })), []);
+  const select = useCallback((selection: readonly string[]): boolean => afterInspectorDrafts(() => {
+    store.setSelection(selection);
+    return true;
+  }, "Corrija o rascunho no inspetor antes de trocar a seleção."), [afterInspectorDrafts, store]);
   const focusValidationIssue = useCallback((elementId: string) => {
-    if (prepareInspectorDrafts().hasUnresolvedDrafts) {
-      setAnnouncement("Corrija o rascunho no inspetor antes de trocar a seleção.");
-      return;
-    }
-    store.setSelection([elementId]);
-    setAnnouncement("Elemento afetado pela validação selecionado no inspetor.");
-  }, [prepareInspectorDrafts, store]);
+    if (select([elementId])) setAnnouncement("Elemento afetado pela validação selecionado no inspetor.");
+  }, [select]);
+  const chooseConnectionClass = useCallback((value: ConnectionClass) => {
+    afterInspectorDrafts(() => { setConnectionClass(value); return true; }, "Corrija o rascunho no inspetor antes de trocar a ferramenta de conexão.");
+  }, [afterInspectorDrafts]);
   const exportDocument = useCallback(() => {
     if (!canExport) return;
     try {
@@ -314,7 +340,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     undo: () => { undo(); }, redo: () => { redo(); }, deleteSelection: () => { remove(); }, duplicate: () => { duplicate(); },
     copy: () => { copy(); }, paste: () => { paste(); }, rotate: (degrees) => { rotate(degrees); }, align: (axis) => { align(axis); },
     group: () => { group(); }, insertAnnotation: () => { annotation(); }, fit: () => viewport("fit"), zoomIn: () => viewport("zoom-in"),
-    zoomOut: () => viewport("zoom-out"), setConnectionClass,
+    zoomOut: () => viewport("zoom-out"), setConnectionClass: chooseConnectionClass,
   };
   const shortcutActions: EditorShortcutActions = {
     undo, redo, deleteSelection: remove, duplicate, copy, paste,
@@ -324,10 +350,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   useEditorShortcuts({ editable: editorEnabled, actions: shortcutActions });
 
   const reload = async () => {
-    if (prepareInspectorDrafts().hasUnresolvedDrafts) {
-      setOperationError("Corrija o rascunho no inspetor antes de recarregar o diagrama.");
-      return;
-    }
+    if (!afterInspectorDrafts(() => true, "Corrija o rascunho no inspetor antes de recarregar o diagrama.")) return;
     try {
       const remote = await documentPort.open(diagramId, editToken);
       store.replace(remote.document, "remote");
@@ -338,14 +361,14 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   };
 
   const beforeDelete = useCallback(async () => {
-    if (prepareInspectorDrafts().hasUnresolvedDrafts) {
+    if (!afterInspectorDrafts(() => true, "Corrija o rascunho no inspetor antes de excluir o diagrama.")) {
       throw new Error("Corrija o rascunho no inspetor antes de excluir o diagrama.");
     }
     lifecycleRef.current = "deleting";
     setLifecycle("deleting");
     setOperationError(null);
     return autosave.suspend();
-  }, [autosave, prepareInspectorDrafts]);
+  }, [afterInspectorDrafts, autosave]);
   const deletedSuccessfully = useCallback((nextRevision: number) => {
     setRevision(nextRevision);
     lifecycleRef.current = "deleted";
@@ -408,11 +431,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
         {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
           : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editorEnabled} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => {
-            if (prepareInspectorDrafts().hasUnresolvedDrafts) {
-              setAnnouncement("Corrija o rascunho no inspetor antes de trocar a seleção.");
-              return;
-            }
-            store.setSelection([...nodeIds, ...edgeIds, ...annotationIds]);
+            select([...nodeIds, ...edgeIds, ...annotationIds]);
           }} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}
         {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{capabilityEditable && autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}

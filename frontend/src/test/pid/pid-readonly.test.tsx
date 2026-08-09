@@ -21,6 +21,7 @@ vi.mock("@/features/pid/canvas/pid-canvas", () => ({
     data-testid="pid-canvas"
     data-editable={String(editable)}
     data-annotation-count={Object.keys(document.annotations).length}
+    data-annotation-texts={Object.values(document.annotations).map((annotation) => annotation.text).join("|")}
     data-viewport-action={viewportAction?.type ?? ""}
   >
     <button type="button" onClick={() => onCommand({ type: "annotation.insert", text: "Forçada", position: { x: 1, y: 1 } })}>
@@ -31,6 +32,9 @@ vi.mock("@/features/pid/canvas/pid-canvas", () => ({
     })}>
       Selecionar anotação
     </button>}
+    <button type="button" onClick={() => onSelectionChange({ nodeIds: [], edgeIds: [], annotationIds: [] })}>
+      Limpar seleção
+    </button>
   </div>,
 }));
 
@@ -250,6 +254,106 @@ describe("capacidade responsiva de edição", () => {
       }),
       1,
     ));
+  });
+
+  it.each([
+    ["undo", "botão"],
+    ["undo", "atalho"],
+    ["redo", "botão"],
+    ["redo", "atalho"],
+    ["paste", "botão"],
+    ["paste", "atalho"],
+    ["duplicate", "botão"],
+    ["duplicate", "atalho"],
+  ] as const)("bloqueia %s por %s sem descartar o rascunho inválido", async (action, trigger) => {
+    const annotationId = "50000000-0000-4000-8000-000000000099";
+    mount(services("edit", {
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: documentWithAnnotation(annotationId), revision: 1 }),
+    }), true);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
+    const text = screen.getByLabelText("Texto");
+    if (action === "undo" || action === "redo") {
+      fireEvent.change(text, { target: { value: "Texto confirmado" } });
+      fireEvent.blur(text);
+      await waitFor(() => expect(screen.getByRole("button", { name: "Desfazer" })).toBeEnabled());
+    }
+    if (action === "redo") {
+      fireEvent.click(screen.getByRole("button", { name: "Desfazer" }));
+      await waitFor(() => expect(screen.getByRole("button", { name: "Refazer" })).toBeEnabled());
+    }
+    if (action === "paste") {
+      fireEvent.click(screen.getByRole("button", { name: "Copiar" }));
+      await waitFor(() => expect(screen.getByRole("button", { name: "Colar" })).toBeEnabled());
+    }
+
+    const x = screen.getByLabelText("Posição X");
+    fireEvent.change(x, { target: { value: "" } });
+    fireEvent.blur(x);
+    expect(x).toHaveAttribute("aria-invalid", "true");
+
+    if (trigger === "botão") {
+      fireEvent.click(screen.getByRole("button", { name: action === "undo"
+        ? "Desfazer"
+        : action === "redo"
+          ? "Refazer"
+          : action === "paste"
+            ? "Colar"
+            : "Duplicar" }));
+    } else {
+      fireEvent.keyDown(window, action === "undo"
+        ? { key: "z", ctrlKey: true }
+        : action === "redo"
+          ? { key: "z", ctrlKey: true, shiftKey: true }
+          : action === "paste"
+            ? { key: "v", ctrlKey: true }
+            : { key: "d", ctrlKey: true });
+    }
+
+    await waitFor(() => expect(screen.getByLabelText("Posição X")).toHaveValue(null));
+    expect(screen.getByLabelText("Posição X")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Informe um número.")).toBeVisible();
+    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-annotation-count", "1");
+    expect(screen.getByLabelText("Texto")).toHaveValue(action === "undo" ? "Texto confirmado" : "Texto persistido");
+  });
+
+  it("prepara o rascunho válido uma vez antes de duplicar", async () => {
+    const annotationId = "50000000-0000-4000-8000-000000000099";
+    mount(services("edit", {
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: documentWithAnnotation(annotationId), revision: 1 }),
+    }), true);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
+    const text = screen.getByLabelText("Texto");
+    text.focus();
+    fireEvent.change(text, { target: { value: "Rascunho válido" } });
+    fireEvent.click(screen.getByRole("button", { name: "Duplicar" }));
+
+    await waitFor(() => expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-annotation-count", "2"));
+    expect(screen.getByTestId("pid-canvas")).toHaveAttribute(
+      "data-annotation-texts",
+      "Rascunho válido|Rascunho válido",
+    );
+  });
+
+  it("bloqueia troca de seleção e ferramenta enquanto o rascunho exige correção", async () => {
+    const annotationId = "50000000-0000-4000-8000-000000000099";
+    mount(services("edit", {
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: documentWithAnnotation(annotationId), revision: 1 }),
+    }), true);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
+    const x = screen.getByLabelText("Posição X");
+    fireEvent.change(x, { target: { value: "" } });
+    fireEvent.blur(x);
+
+    fireEvent.click(screen.getByRole("button", { name: "Linha de utilidade" }));
+    expect(screen.getByRole("button", { name: "Linha de processo" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Linha de utilidade" })).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpar seleção" }));
+    expect(screen.getByLabelText("Posição X")).toHaveValue(null);
+    expect(screen.getByLabelText("Posição X")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("exporta uma projeção JSON real também em view mobile", async () => {
