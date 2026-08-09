@@ -52,16 +52,16 @@ interface JsonTraversalState {
   valuesVisited: number;
 }
 
-const propertiesSchema: z.ZodType<PidProperties> = z.unknown().transform((value, context) => {
+export const pidPropertiesSchema: z.ZodType<PidProperties> = z.unknown().transform((value, context) => {
   return cloneJsonProperties(value, context, []);
 });
 
-const pointSchema: z.ZodType<Point> = z.object({
+export const pidPointSchema: z.ZodType<Point> = z.object({
   x: finiteNumberSchema,
   y: finiteNumberSchema,
 }).strict();
 
-const nodeSchema: z.ZodType<PidNode> = z.object({
+export const pidNodeSchema: z.ZodType<PidNode> = z.object({
   id: uuidSchema,
   symbolKey: nonBlankStringSchema,
   catalogVersion: nonBlankStringSchema,
@@ -72,10 +72,10 @@ const nodeSchema: z.ZodType<PidNode> = z.object({
   rotation: rotationSchema,
   tag: z.string(),
   label: z.string(),
-  properties: propertiesSchema,
+  properties: pidPropertiesSchema,
 }).strict();
 
-const portSchema: z.ZodType<PidPort> = z.object({
+export const pidPortSchema: z.ZodType<PidPort> = z.object({
   id: uuidSchema,
   nodeId: uuidSchema,
   templateKey: nonBlankStringSchema,
@@ -84,18 +84,18 @@ const portSchema: z.ZodType<PidPort> = z.object({
   capacity: positiveIntegerSchema,
 }).strict();
 
-const edgeSchema: z.ZodType<PidEdge> = z.object({
+export const pidEdgeSchema: z.ZodType<PidEdge> = z.object({
   id: uuidSchema,
   sourcePortId: uuidSchema,
   targetPortId: uuidSchema,
   connectionClass: z.enum(["process", "utility", "signal"]),
-  route: z.array(pointSchema),
+  route: z.array(pidPointSchema),
   tag: z.string(),
   label: z.string(),
-  properties: propertiesSchema,
+  properties: pidPropertiesSchema,
 }).strict();
 
-const annotationSchema: z.ZodType<PidAnnotation> = z.object({
+export const pidAnnotationSchema: z.ZodType<PidAnnotation> = z.object({
   id: uuidSchema,
   kind: z.enum(["text", "note", "callout"]),
   text: z.string(),
@@ -106,10 +106,10 @@ const annotationSchema: z.ZodType<PidAnnotation> = z.object({
   rotation: rotationSchema,
   nodeId: uuidSchema.optional(),
   edgeId: uuidSchema.optional(),
-  properties: propertiesSchema,
+  properties: pidPropertiesSchema,
 }).strict();
 
-const groupSchema: z.ZodType<PidGroup> = z.object({
+export const pidGroupSchema: z.ZodType<PidGroup> = z.object({
   id: uuidSchema,
   label: z.string(),
   memberIds: z.array(uuidSchema),
@@ -117,26 +117,28 @@ const groupSchema: z.ZodType<PidGroup> = z.object({
   y: finiteNumberSchema,
   width: positiveNumberSchema,
   height: positiveNumberSchema,
-  properties: propertiesSchema,
+  properties: pidPropertiesSchema,
 }).strict();
 
 const recordSchema = <T>(itemSchema: z.ZodType<T>) => z.record(z.string(), itemSchema);
 
+export const pidMetadataSchema: z.ZodType<PidDocument["metadata"]> = z.object({
+  title: nonBlankStringSchema,
+  standard: z.enum(["isa", "iso", "free"]),
+  catalogVersion: nonBlankStringSchema,
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true }),
+}).strict();
+
 export const pidDocumentSchema: z.ZodType<PidDocument> = z.object({
   schemaVersion: z.literal(1),
   id: uuidSchema,
-  metadata: z.object({
-    title: nonBlankStringSchema,
-    standard: z.enum(["isa", "iso", "free"]),
-    catalogVersion: nonBlankStringSchema,
-    createdAt: z.string().datetime({ offset: true }),
-    updatedAt: z.string().datetime({ offset: true }),
-  }).strict(),
-  nodes: recordSchema(nodeSchema),
-  ports: recordSchema(portSchema),
-  edges: recordSchema(edgeSchema),
-  annotations: recordSchema(annotationSchema),
-  groups: recordSchema(groupSchema),
+  metadata: pidMetadataSchema,
+  nodes: recordSchema(pidNodeSchema),
+  ports: recordSchema(pidPortSchema),
+  edges: recordSchema(pidEdgeSchema),
+  annotations: recordSchema(pidAnnotationSchema),
+  groups: recordSchema(pidGroupSchema),
 }).strict().superRefine((document, context) => {
   validateMapIds(context, "nodes", document.nodes);
   validateMapIds(context, "ports", document.ports);
@@ -462,6 +464,10 @@ export function createEmptyDocument(
 
 export function parsePidDocument(value: unknown): PidDocument {
   return pidDocumentSchema.parse(value);
+}
+
+export function parsePidProperties(value: unknown): PidProperties {
+  return pidPropertiesSchema.parse(value);
 }
 
 function defaultIdGenerator(): string {
