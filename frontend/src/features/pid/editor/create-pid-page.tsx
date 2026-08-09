@@ -133,7 +133,7 @@ export function CreatePidPage() {
           <input
             aria-describedby={errors.title ? "pid-title-error" : undefined}
             aria-invalid={Boolean(errors.title)}
-            className="rounded-md border bg-background px-3 py-2"
+            className="min-h-11 rounded-md border bg-background px-3 py-2"
             id="pid-title"
             name="title"
             required
@@ -143,7 +143,7 @@ export function CreatePidPage() {
         </div>
         <div className="grid gap-1">
           <label htmlFor="pid-standard">Norma</label>
-          <select className="rounded-md border bg-background px-3 py-2" defaultValue="isa" id="pid-standard" name="standard" required>
+          <select className="min-h-11 rounded-md border bg-background px-3 py-2" defaultValue="isa" id="pid-standard" name="standard" required>
             <option value="isa">ISA</option>
             <option value="iso">ISO</option>
             <option value="free">Livre</option>
@@ -154,7 +154,7 @@ export function CreatePidPage() {
           <input
             aria-describedby={errors.participantName ? "pid-participant-error" : undefined}
             aria-invalid={Boolean(errors.participantName)}
-            className="rounded-md border bg-background px-3 py-2"
+            className="min-h-11 rounded-md border bg-background px-3 py-2"
             id="pid-participant"
             name="participantName"
             required
@@ -162,7 +162,7 @@ export function CreatePidPage() {
           />
           {errors.participantName && <p id="pid-participant-error" role="alert" className="text-sm text-destructive">{errors.participantName}</p>}
         </div>
-        <button className="w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50" disabled={pending} type="submit">
+        <button className="min-h-11 min-w-11 w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50" disabled={pending} type="submit">
           {pending ? "Criando…" : "Criar diagrama"}
         </button>
       </form>
@@ -180,13 +180,13 @@ export function CreatePidPage() {
             <label htmlFor="pid-view-url">Link de visualização</label>
             <div className="flex flex-wrap items-center gap-3">
               <input
-                className="min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
+                className="min-h-11 min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
                 id="pid-view-url"
                 onFocus={(event) => event.currentTarget.select()}
                 readOnly
                 value={created.viewUrl}
               />
-              <button type="button" className="rounded-md border px-3 py-2" onClick={() => void copyLink("Link de visualização", created.viewUrl)}>
+              <button type="button" className="min-h-11 min-w-11 rounded-md border px-3 py-2" onClick={() => void copyLink("Link de visualização", created.viewUrl)}>
                 Copiar visualização
               </button>
             </div>
@@ -195,40 +195,40 @@ export function CreatePidPage() {
             <label htmlFor="pid-edit-url">Link de edição</label>
             <div className="flex flex-wrap items-center gap-3">
               <input
-                className="min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
+                className="min-h-11 min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
                 id="pid-edit-url"
                 onFocus={(event) => event.currentTarget.select()}
                 readOnly
                 value={created.editUrl}
               />
-              <button type="button" className="rounded-md border px-3 py-2" onClick={() => void copyLink("Link de edição", created.editUrl)}>
+              <button type="button" className="min-h-11 min-w-11 rounded-md border px-3 py-2" onClick={() => void copyLink("Link de edição", created.editUrl)}>
                 Copiar edição
               </button>
             </div>
           </div>
-          <label className="flex items-center gap-2">
+          <label className="flex min-h-11 items-center gap-2">
             <input checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} type="checkbox" />
             Copiei o link de edição
           </label>
           <div className="flex flex-wrap gap-3">
             {confirmed ? (
               <>
-                <a className="w-fit rounded-md border px-4 py-2" href={created.viewUrl}>Abrir visualização</a>
-                <a className="w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground" href={created.editUrl}>Abrir editor</a>
+                <a className="inline-flex min-h-11 min-w-11 w-fit items-center justify-center rounded-md border px-4 py-2" href={created.viewUrl}>Abrir visualização</a>
+                <a className="inline-flex min-h-11 min-w-11 w-fit items-center justify-center rounded-md bg-primary px-4 py-2 text-primary-foreground" href={created.editUrl}>Abrir editor</a>
               </>
             ) : (
               <>
-                <button className="w-fit rounded-md border px-4 py-2 opacity-50" disabled type="button">Abrir visualização</button>
-                <button className="w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground opacity-50" disabled type="button">Abrir editor</button>
+                <button className="min-h-11 min-w-11 w-fit rounded-md border px-4 py-2 opacity-50" disabled type="button">Abrir visualização</button>
+                <button className="min-h-11 min-w-11 w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground opacity-50" disabled type="button">Abrir editor</button>
               </>
             )}
           </div>
         </section>
       )}
       {navigationLocked ? (
-        <button className="w-fit text-sm font-medium underline opacity-50" disabled type="button">Voltar ao DCOU</button>
+        <button className="min-h-11 min-w-11 w-fit text-sm font-medium underline opacity-50" disabled type="button">Voltar ao DCOU</button>
       ) : (
-        <Link className="w-fit text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
+        <Link className="inline-flex min-h-11 min-w-11 w-fit items-center text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
       )}
       <AlertDialog
         open={navigationBlocker.state === "blocked"}

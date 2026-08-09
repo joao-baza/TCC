@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 interface DiagramAccess {
   readonly editUrl: string;
@@ -18,6 +20,13 @@ test("cria, desenha, recarrega e exporta o documento canônico", async ({ page }
   await page.getByRole("button", { name: "Exportar SVG" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("area-100.svg");
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  const svg = await readFile(downloadPath!, "utf8");
+  expect(svg).toContain('aria-label="Área 100"');
+  expect(svg).toContain("Bomba centrífuga");
+  expect(svg).toContain("data-element-id=");
+  expect(svg).not.toMatch(/minimap|selection|cursor|validation/i);
 });
 
 test("abre o link de visualização sem expor escrita ou persistir mutações", async ({ page }) => {
@@ -40,27 +49,55 @@ test("abre o link de visualização sem expor escrita ou persistir mutações", 
   expect(await persistedPidRecord(page)).toBe(before);
 });
 
+test("mantém a criação acessível em todos os viewports e temas", async ({ page }) => {
+  for (const theme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    for (const width of [375, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/pid");
+      await expect(page.getByRole("heading", { name: "Editor P&ID" })).toBeVisible();
+      await page.evaluate((selectedTheme) => {
+        document.documentElement.classList.toggle("dark", selectedTheme === "dark");
+      }, theme);
+
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await expectMinimumTargetSize(page.locator("main"));
+      await expectKeyboardFocusVisible(page);
+    }
+  }
+});
+
 test("mantém o canvas utilizável em 375, 768, 1024 e 1440 px", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 800 });
   await createDiagram(page, "Responsivo");
   await insertPump(page);
   await expectSaveState(page, "Sincronizado");
 
-  for (const width of [375, 768, 1024, 1440]) {
-    await page.setViewportSize({ width, height: 800 });
-    const canvas = page.getByRole("region", { name: "Canvas P&ID" });
-    await expect(canvas).toBeVisible();
-    const bounds = await canvas.boundingBox();
-    expect(bounds, `canvas ausente em ${width}px`).not.toBeNull();
-    expect(bounds!.x, `canvas fora da tela em ${width}px`).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width, `canvas excede a tela em ${width}px`).toBeLessThanOrEqual(width + 1);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  for (const theme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: theme === "dark" ? "reduce" : "no-preference" });
+    await page.evaluate((selectedTheme) => {
+      document.documentElement.classList.toggle("dark", selectedTheme === "dark");
+    }, theme);
+    for (const width of [375, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 800 });
+      const canvas = page.getByRole("region", { name: "Canvas P&ID" });
+      await expect(canvas).toBeVisible();
+      const bounds = await canvas.boundingBox();
+      expect(bounds, `canvas ausente em ${width}px`).not.toBeNull();
+      expect(bounds!.x, `canvas fora da tela em ${width}px`).toBeGreaterThanOrEqual(0);
+      expect(bounds!.x + bounds!.width, `canvas excede a tela em ${width}px`).toBeLessThanOrEqual(width + 1);
+      expect(await canvas.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(248, 250, 252)");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await expectMinimumTargetSize(page.locator("main"));
+      await expectPanelsOutsideCanvas(page, canvas);
 
-    if (width < 768) {
-      await expect(page.getByText("Edição disponível em telas a partir de 768 px")).toBeVisible();
-      await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toHaveCount(0);
-    } else {
-      await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toBeVisible();
+      if (width < 768) {
+        await expect(page.getByText("Edição disponível em telas a partir de 768 px")).toBeVisible();
+        await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toHaveCount(0);
+      } else {
+        await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toBeVisible();
+      }
+      if (width === 1024) await expectKeyboardFocusVisible(page);
     }
   }
 });
@@ -195,4 +232,57 @@ async function failNextPidWrite(page: Page): Promise<void> {
       return original.call(this, key, value);
     };
   });
+}
+
+async function expectMinimumTargetSize(main: Locator): Promise<void> {
+  const targets = main.locator('button, a, input:not([type="checkbox"]), select, textarea, [role="button"], [role="treeitem"]');
+  for (let index = 0; index < await targets.count(); index += 1) {
+    const target = targets.nth(index);
+    if (!(await target.isVisible())) continue;
+    const box = await target.boundingBox();
+    expect(box, `alvo interativo ${index} sem geometria`).not.toBeNull();
+    const label = await target.getAttribute("aria-label") ?? await target.textContent() ?? `alvo ${index}`;
+    expect(box!.width, `${label.trim()} deve ter largura mínima de 44 px`).toBeGreaterThanOrEqual(44);
+    expect(box!.height, `${label.trim()} deve ter altura mínima de 44 px`).toBeGreaterThanOrEqual(44);
+  }
+}
+
+async function expectPanelsOutsideCanvas(page: Page, canvas: Locator): Promise<void> {
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  for (const panelName of ["Catálogo de símbolos", "Inspetor"]) {
+    const panel = page.getByRole("region", { name: panelName, exact: true });
+    if (await panel.count() === 0 || !(await panel.isVisible())) continue;
+    const panelBox = await panel.boundingBox();
+    expect(panelBox).not.toBeNull();
+    const overlapWidth = Math.min(canvasBox!.x + canvasBox!.width, panelBox!.x + panelBox!.width)
+      - Math.max(canvasBox!.x, panelBox!.x);
+    const overlapHeight = Math.min(canvasBox!.y + canvasBox!.height, panelBox!.y + panelBox!.height)
+      - Math.max(canvasBox!.y, panelBox!.y);
+    expect(
+      overlapWidth <= 0 || overlapHeight <= 0,
+      `${panelName} não deve sobrepor geometricamente o canvas`,
+    ).toBe(true);
+  }
+}
+
+async function expectKeyboardFocusVisible(page: Page): Promise<void> {
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("Tab");
+  const focus = await page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null;
+    if (!active || active === document.body) return null;
+    const style = getComputedStyle(active);
+    return {
+      tag: active.tagName,
+      outlineStyle: style.outlineStyle,
+      outlineWidth: Number.parseFloat(style.outlineWidth),
+      boxShadow: style.boxShadow,
+    };
+  });
+  expect(focus, "Tab deve alcançar um controle").not.toBeNull();
+  expect(
+    focus!.outlineStyle !== "none" && focus!.outlineWidth > 0 || focus!.boxShadow !== "none",
+    `${focus!.tag} deve expor foco visível`,
+  ).toBe(true);
 }
