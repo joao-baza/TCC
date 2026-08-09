@@ -114,7 +114,7 @@ The macOS `.dmg` is built on macOS runners via `npm run dist`.
 Desktop packaging reuses the compiled frontend and the Python backend frozen as a local executable.
 Build scripts automatically resolve Python, preferring the project `.venv` and falling back to `python3` or `python` when needed.
 
-#### P&ID Editor and Foundation
+#### P&ID Foundation
 
 The current P&ID delivery includes a visual editor for equipment, ports,
 connections, annotations, grouping, local collaboration state, and SVG/PNG
