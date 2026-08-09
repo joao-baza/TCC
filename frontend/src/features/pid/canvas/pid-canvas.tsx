@@ -8,6 +8,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   SelectionMode,
+  useReactFlow,
   useEdgesState,
   useNodesState,
   type Connection,
@@ -15,6 +16,7 @@ import {
   type EdgeChange,
   type NodeChange,
   type NodeTypes,
+  type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -22,6 +24,7 @@ import type { CatalogIndex } from "../catalog/catalog-index";
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
 import { deleteSelection, type PidCommand } from "../domain/commands";
 import type { PidDocument } from "../domain/model";
+import type { ConnectionClass } from "../domain/model";
 import { createPortConnectionValidation, getPortConnectionRejection, type PidGraphIndex, uniqueIds } from "../domain/graph-operations";
 import { EquipmentNode, type EquipmentFlowNode } from "./equipment-node";
 import { applyPidCanvasSelection, projectPidCanvasDocument, type PidFlowProjection } from "./flow-projection";
@@ -42,6 +45,14 @@ interface PidCanvasBaseProps {
   readonly editable: boolean;
   readonly onCommand: (command: PidCommand) => void;
   readonly className?: string;
+  readonly activeConnectionClass?: ConnectionClass;
+  readonly viewportAction?: PidCanvasViewportAction;
+  readonly onViewportChange?: (viewport: Viewport) => void;
+}
+
+export interface PidCanvasViewportAction {
+  readonly type: "fit" | "zoom-in" | "zoom-out";
+  readonly nonce: number;
 }
 
 type ControlledSelectionProps = {
@@ -87,7 +98,11 @@ function PidCanvasInner({
   selection: controlledSelection,
   defaultSelection,
   className,
+  activeConnectionClass,
+  viewportAction,
+  onViewportChange,
 }: PidCanvasProps) {
+  const flow = useReactFlow();
   const isControlled = controlledSelection !== undefined;
   const initialSelection = controlledSelection ?? defaultSelection ?? EMPTY_SELECTION;
   const [selection, setSelection] = useState<PidCanvasSelection>(initialSelection);
@@ -98,6 +113,7 @@ function PidCanvasInner({
   const onSelectionChangeRef = useRef(onSelectionChange);
   const isControlledRef = useRef(isControlled);
   const editableRef = useRef(editable);
+  const activeConnectionClassRef = useRef(activeConnectionClass);
   const pointerDraggingRef = useRef(false);
   const draggingNodeIdsRef = useRef<ReadonlySet<string>>(new Set());
   const [keyboardSourcePortId, setKeyboardSourcePortId] = useState<string | null>(null);
@@ -108,6 +124,7 @@ function PidCanvasInner({
   onSelectionChangeRef.current = onSelectionChange;
   isControlledRef.current = isControlled;
   editableRef.current = editable;
+  activeConnectionClassRef.current = activeConnectionClass;
   const connectionValidation = useMemo(() => createPortConnectionValidation(document), [document]);
   const connectionValidationRef = useRef(connectionValidation);
   connectionValidationRef.current = connectionValidation;
@@ -149,8 +166,10 @@ function PidCanvasInner({
     const rejection = normalized
       ? connectionValidationRef.current.getRejection(normalized.sourcePortId, normalized.targetPortId)
       : { message: "As duas portas da conexão devem existir." };
-    if (!normalized || rejection) {
-      setConnectionAnnouncement(`Conexão inválida: ${rejection?.message}`);
+    const classMatches = normalized
+      && matchesActiveConnectionClass(currentDocument, normalized, activeConnectionClassRef.current);
+    if (!normalized || rejection || !classMatches) {
+      setConnectionAnnouncement(`Conexão inválida: ${rejection?.message ?? "as portas não correspondem ao tipo de linha ativo."}`);
       return;
     }
     onCommandRef.current({ type: "ports.connect", ...normalized });
@@ -297,13 +316,15 @@ function PidCanvasInner({
   );
   const isValidConnection = useCallback((connection: ProcessFlowEdge | Connection) => {
     const normalized = normalizeConnection(connection);
-    return normalized !== null && connectionValidation.isValid(normalized.sourcePortId, normalized.targetPortId);
-  }, [connectionValidation, normalizeConnection]);
+    return normalized !== null
+      && matchesActiveConnectionClass(document, normalized, activeConnectionClass)
+      && connectionValidation.isValid(normalized.sourcePortId, normalized.targetPortId);
+  }, [activeConnectionClass, connectionValidation, document, normalizeConnection]);
   const handleConnect = useCallback((connection: Connection) => {
     if (!editable) return;
     const command = pidConnectionCommand(document, connection, connectionValidation.index);
-    if (command) onCommand(command);
-  }, [connectionValidation.index, document, editable, onCommand]);
+    if (command && matchesActiveConnectionClass(document, command, activeConnectionClass)) onCommand(command);
+  }, [activeConnectionClass, connectionValidation.index, document, editable, onCommand]);
   const handleDragStart = useCallback((_event: MouseEvent | TouchEvent, node: EquipmentFlowNode, movedNodes: EquipmentFlowNode[]) => {
     pointerDraggingRef.current = true;
     draggingNodeIdsRef.current = new Set((movedNodes.length > 0 ? movedNodes : [node]).map(({ id }) => id));
@@ -324,6 +345,12 @@ function PidCanvasInner({
     const ids = [...deletedNodes.map(({ id }) => id), ...deletedEdges.map(({ id }) => id)];
     if (ids.length > 0) onCommand(deleteSelection(ids));
   }, [editable, onCommand]);
+  useEffect(() => {
+    if (!viewportAction) return;
+    if (viewportAction.type === "fit") void flow.fitView({ duration: 200 });
+    else if (viewportAction.type === "zoom-in") void flow.zoomIn({ duration: 150 });
+    else void flow.zoomOut({ duration: 150 });
+  }, [flow, viewportAction]);
 
   return (
     <div
@@ -359,6 +386,7 @@ function PidCanvasInner({
         onNodeDragStop={handleDragStop}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
+        onMoveEnd={(_event, nextViewport) => onViewportChange?.(nextViewport)}
         onDelete={handleDelete}
         proOptions={{ hideAttribution: true }}
       >
@@ -413,6 +441,16 @@ export function pidConnectionCommand(
   const normalized = normalizePidConnection(document, connection);
   if (!normalized || !isPidConnectionValid(document, normalized.sourcePortId, normalized.targetPortId, index)) return null;
   return { type: "ports.connect", ...normalized };
+}
+
+function matchesActiveConnectionClass(
+  document: PidDocument,
+  connection: { readonly sourcePortId: string; readonly targetPortId: string },
+  activeConnectionClass: ConnectionClass | undefined,
+): boolean {
+  if (!activeConnectionClass) return true;
+  return document.ports[connection.sourcePortId]?.connectionClass === activeConnectionClass
+    && document.ports[connection.targetPortId]?.connectionClass === activeConnectionClass;
 }
 
 export function createPidMoveCommand(

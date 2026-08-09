@@ -6,6 +6,14 @@ if (!globalThis.DOMMatrixReadOnly) {
   } as typeof DOMMatrixReadOnly;
 }
 
+if (!globalThis.ResizeObserver) {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // ResizeObserver enables Base UI's overflow observer branch in jsdom.
 if (!Element.prototype.getAnimations) {
   Element.prototype.getAnimations = () => [];

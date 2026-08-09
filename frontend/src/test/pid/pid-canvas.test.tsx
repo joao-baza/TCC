@@ -255,6 +255,23 @@ describe("PidCanvas", () => {
     });
   });
 
+  it("impede conexão cuja classe não corresponde à ferramenta de linha ativa", async () => {
+    const onCommand = vi.fn();
+    render(<PidCanvas document={connectionDocument()} catalog={localCatalog} editable onCommand={onCommand} activeConnectionClass="signal" />);
+    const target = screen.getByLabelText(/Criar conexão pela porta de entrada inlet/i);
+    const originalElementFromPoint = Object.getOwnPropertyDescriptor(document, "elementFromPoint");
+    Object.defineProperty(document, "elementFromPoint", { configurable: true, value: () => target });
+    try {
+      fireEvent.click(screen.getByLabelText(/Criar conexão pela porta de saída discharge/i));
+      fireEvent.click(target);
+    } finally {
+      if (originalElementFromPoint) Object.defineProperty(document, "elementFromPoint", originalElementFromPoint);
+      else Reflect.deleteProperty(document, "elementFromPoint");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(onCommand).not.toHaveBeenCalled();
+  });
+
   it("valida ausência, identidade, nó, direção, classe, capacidade, duplicidade e bidirecionalidade", () => {
     const document = connectionDocument();
 
