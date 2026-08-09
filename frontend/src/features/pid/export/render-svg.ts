@@ -50,8 +50,9 @@ export async function renderPidSvg(
     bounds.push(rectBounds(group.x, group.y, group.width, group.height, 1));
     if (group.label) bounds.push(textBounds(group.label, group.x + 4, group.y - 5));
   }
-  for (const edge of sortedValues(document.edges)) {
-    const result = renderEdge(portPositions, edge);
+  const edges = sortedValues(document.edges);
+  for (let edgeIndex = 0; edgeIndex < edges.length; edgeIndex += 1) {
+    const result = renderEdge(portPositions, edges[edgeIndex], edgeIndex);
     if (!result) continue;
     rendered.push(result.markup);
     bounds.push(result.bounds);
@@ -107,18 +108,23 @@ function renderNode(node: PidNode, asset: SanitizedPidSvgAsset) {
   };
 }
 
-function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: PidEdge) {
+function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: PidEdge, edgeIndex: number) {
   const source = portPositions.get(edge.sourcePortId);
   const target = portPositions.get(edge.targetPortId);
   if (!source || !target) return null;
   const points = orthogonalPoints(source, edge.route, target);
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${number(point.x)} ${number(point.y)}`).join(" ");
+  const arrow = closedArrowPoints(points);
+  const stroke = edge.connectionClass === "signal" ? "#64748b" : "#475569";
+  const arrowMarkup = arrow.length === 3
+    ? `<polygon id="pid-arrow-${edgeIndex}" data-arrow-for="${attribute(edge.id)}" points="${arrow.map((point) => `${number(point.x)},${number(point.y)}`).join(" ")}" fill="${stroke}" stroke="${stroke}" stroke-width="1" stroke-linejoin="round"/>`
+    : "";
   const label = [edge.tag, edge.label].filter(Boolean).join(" ");
   const midpoint = pathMidpoint(points);
   const labelY = midpoint.y - 5;
   return {
-    markup: `<g data-element-id="${attribute(edge.id)}"><path d="${attribute(path)}" fill="none" stroke="${edge.connectionClass === "signal" ? "#64748b" : "#475569"}"${edge.connectionClass === "signal" ? ' stroke-dasharray="6 4"' : ""}/>${label ? `<text x="${number(midpoint.x)}" y="${number(labelY)}" text-anchor="middle" fill="#334155" stroke="none" font-size="11">${text(label)}</text>` : ""}</g>`,
-    bounds: pointsBounds(points, 2),
+    markup: `<g data-element-id="${attribute(edge.id)}"><path d="${attribute(path)}" fill="none" stroke="${stroke}"${edge.connectionClass === "signal" ? ' stroke-dasharray="6 4"' : ""}/>${arrowMarkup}${label ? `<text x="${number(midpoint.x)}" y="${number(labelY)}" text-anchor="middle" fill="#334155" stroke="none" font-size="11">${text(label)}</text>` : ""}</g>`,
+    bounds: unionBounds([pointsBounds(points, 1), pointsBounds(arrow, 1)]),
     labelBounds: label ? centeredTextBounds(label, midpoint.x, labelY, 11) : undefined,
   };
 }
@@ -163,13 +169,16 @@ function buildPortPositions(document: PidDocument): ReadonlyMap<string, Position
 function orthogonalPoints(source: PositionedPort, route: readonly Point[], target: PositionedPort): Point[] {
   const points: Point[] = [{ ...source.point }];
   appendPoint(points, tangentPoint(source.point, source.side));
-  for (const waypoint of [...route, tangentPoint(target.point, target.side)]) {
-    const previous = points.at(-1)!;
-    if (previous.x !== waypoint.x && previous.y !== waypoint.y) appendPoint(points, { x: waypoint.x, y: previous.y });
-    appendPoint(points, waypoint);
-  }
+  for (const waypoint of route) appendOrthogonalPoint(points, waypoint);
+  appendOrthogonalPoint(points, tangentPoint(target.point, target.side));
   appendPoint(points, target.point);
   return points;
+}
+
+function appendOrthogonalPoint(points: Point[], waypoint: Point): void {
+  const previous = points.at(-1)!;
+  if (previous.x !== waypoint.x && previous.y !== waypoint.y) appendPoint(points, { x: waypoint.x, y: previous.y });
+  appendPoint(points, waypoint);
 }
 
 function tangentPoint(point: Point, side: PidFlowPosition): Point {
@@ -185,17 +194,44 @@ function appendPoint(points: Point[], point: Point): void {
 }
 
 function pathMidpoint(points: readonly Point[]): Point {
-  const segments = points.slice(1).map((to, index) => ({ from: points[index], to, length: Math.abs(to.x - points[index].x) + Math.abs(to.y - points[index].y) }));
-  const halfway = segments.reduce((total, segment) => total + segment.length, 0) / 2;
+  let length = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    length += Math.abs(points[index].x - points[index - 1].x) + Math.abs(points[index].y - points[index - 1].y);
+  }
+  const halfway = length / 2;
   let walked = 0;
-  for (const segment of segments) {
-    if (walked + segment.length >= halfway) {
-      const ratio = segment.length ? (halfway - walked) / segment.length : 0;
-      return { x: segment.from.x + (segment.to.x - segment.from.x) * ratio, y: segment.from.y + (segment.to.y - segment.from.y) * ratio };
+  for (let index = 1; index < points.length; index += 1) {
+    const from = points[index - 1];
+    const to = points[index];
+    const segmentLength = Math.abs(to.x - from.x) + Math.abs(to.y - from.y);
+    if (walked + segmentLength >= halfway) {
+      const ratio = segmentLength ? (halfway - walked) / segmentLength : 0;
+      return { x: from.x + (to.x - from.x) * ratio, y: from.y + (to.y - from.y) * ratio };
     }
-    walked += segment.length;
+    walked += segmentLength;
   }
   return points[0] ?? { x: 0, y: 0 };
+}
+
+function closedArrowPoints(points: readonly Point[]): Point[] {
+  if (points.length < 2) return [];
+  const tip = points[points.length - 1];
+  const previous = points[points.length - 2];
+  const dx = tip.x - previous.x;
+  const dy = tip.y - previous.y;
+  const length = Math.hypot(dx, dy);
+  if (!length) return [];
+  const unitX = dx / length;
+  const unitY = dy / length;
+  const baseX = tip.x - unitX * 8;
+  const baseY = tip.y - unitY * 8;
+  const perpendicularX = -unitY * 4;
+  const perpendicularY = unitX * 4;
+  return [
+    { ...tip },
+    { x: baseX + perpendicularX, y: baseY + perpendicularY },
+    { x: baseX - perpendicularX, y: baseY - perpendicularY },
+  ];
 }
 
 function verifyAssets(assets: PidSvgAssets): void {
@@ -234,21 +270,44 @@ function rotatePoint(point: Point, centerX: number, centerY: number, rotation: 0
 }
 
 function pointsBounds(points: readonly Point[], stroke: number): Bounds {
+  if (!points.length) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  let minX = points[0].x;
+  let minY = points[0].y;
+  let maxX = points[0].x;
+  let maxY = points[0].y;
+  for (let index = 1; index < points.length; index += 1) {
+    const point = points[index];
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+  }
   return {
-    minX: Math.min(...points.map(({ x }) => x)) - stroke,
-    minY: Math.min(...points.map(({ y }) => y)) - stroke,
-    maxX: Math.max(...points.map(({ x }) => x)) + stroke,
-    maxY: Math.max(...points.map(({ y }) => y)) + stroke,
+    minX: minX - stroke,
+    minY: minY - stroke,
+    maxX: maxX + stroke,
+    maxY: maxY + stroke,
   };
 }
 
 function textBounds(value: string, x: number, baselineY: number, size = 12): Bounds {
-  return rectBounds(x, baselineY - size, Math.max(1, [...value].length * size * 0.62), size + 3);
+  return rectBounds(x - 1, baselineY - size - 1, deterministicTextWidth(value, size) + 2, size + 5);
 }
 
 function centeredTextBounds(value: string, centerX: number, baselineY: number, size = 12): Bounds {
-  const width = Math.max(1, [...value].length * size * 0.62);
-  return rectBounds(centerX - width / 2, baselineY - size, width, size + 3);
+  const width = deterministicTextWidth(value, size);
+  return rectBounds(centerX - width / 2 - 1, baselineY - size - 1, width + 2, size + 5);
+}
+
+function deterministicTextWidth(value: string, size: number): number {
+  let glyphCount = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    glyphCount += 1;
+    const first = value.charCodeAt(index);
+    const second = value.charCodeAt(index + 1);
+    if (first >= 0xd800 && first <= 0xdbff && second >= 0xdc00 && second <= 0xdfff) index += 1;
+  }
+  return Math.max(1, glyphCount * size);
 }
 
 function normalizedRotation(rotation: number): 0 | 90 | 180 | 270 {

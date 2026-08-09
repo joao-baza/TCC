@@ -11,8 +11,9 @@ export interface PidPngRuntime {
 }
 
 const pngFailureMessage = "Não foi possível gerar PNG";
-const maximumCanvasDimension = 32_767;
-const maximumCanvasPixels = 64 * 1024 * 1024;
+const maximumCanvasDimension = 4_096;
+const maximumCanvasPixels = 8 * 1024 * 1024;
+const minimumEffectiveScale = 0.1;
 
 export async function renderPidPng(
   svg: string,
@@ -22,22 +23,19 @@ export async function renderPidPng(
   const dimensions = svgDimensions(svg);
   if (!dimensions) throw new Error(pngFailureMessage);
   const dpr = Math.min(2, Math.max(1, finiteOr(runtime.devicePixelRatio, 1)));
-  const pixelWidth = Math.max(1, Math.ceil(dimensions.width * dpr));
-  const pixelHeight = Math.max(1, Math.ceil(dimensions.height * dpr));
-  if (pixelWidth > maximumCanvasDimension
-    || pixelHeight > maximumCanvasDimension
-    || pixelWidth * pixelHeight > maximumCanvasPixels) throw new Error(pngFailureMessage);
+  const raster = safeRasterDimensions(dimensions, dpr);
+  if (!raster) throw new Error(pngFailureMessage);
   const image = runtime.createImage();
   const canvas = runtime.createCanvas();
-  canvas.width = pixelWidth;
-  canvas.height = pixelHeight;
+  canvas.width = raster.width;
+  canvas.height = raster.height;
   const svgUrl = runtime.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
 
   try {
     await loadImage(image, svgUrl);
     const context = canvas.getContext("2d");
     if (!context) throw new Error(pngFailureMessage);
-    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.setTransform(raster.scale, 0, 0, raster.scale, 0, 0);
     if ((options.background ?? "transparent") === "white") {
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, dimensions.width, dimensions.height);
@@ -52,6 +50,30 @@ export async function renderPidPng(
     image.src = "";
     runtime.revokeObjectURL(svgUrl);
   }
+}
+
+function safeRasterDimensions(
+  dimensions: Readonly<{ width: number; height: number }>,
+  requestedScale: number,
+): { width: number; height: number; scale: number } | null {
+  const area = dimensions.width * dimensions.height;
+  if (!Number.isFinite(area) || area <= 0) return null;
+  const scaleLimit = Math.min(
+    requestedScale,
+    maximumCanvasDimension / dimensions.width,
+    maximumCanvasDimension / dimensions.height,
+    Math.sqrt(maximumCanvasPixels / area),
+  );
+  if (!Number.isFinite(scaleLimit) || scaleLimit < minimumEffectiveScale) return null;
+  const downscaled = scaleLimit < requestedScale;
+  const round = downscaled ? Math.floor : Math.ceil;
+  const width = Math.max(1, round(dimensions.width * scaleLimit));
+  const height = Math.max(1, round(dimensions.height * scaleLimit));
+  if (width > maximumCanvasDimension || height > maximumCanvasDimension || width * height > maximumCanvasPixels) return null;
+  const effectiveScale = downscaled
+    ? Math.min(width / dimensions.width, height / dimensions.height)
+    : requestedScale;
+  return effectiveScale >= minimumEffectiveScale ? { width, height, scale: effectiveScale } : null;
 }
 
 function svgDimensions(svg: string): { width: number; height: number } | null {

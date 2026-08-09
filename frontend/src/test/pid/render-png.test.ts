@@ -68,6 +68,32 @@ describe("renderPidPng", () => {
     await expect(promise).rejects.toThrow("Não foi possível gerar PNG");
     expect(harness.runtime.createObjectURL).not.toHaveBeenCalled();
   });
+
+  it("reduz proporcionalmente um diagrama 4096x4096 no DPR 2 para um orçamento móvel seguro", async () => {
+    const harness = pngHarness({ dpr: 2 });
+    const promise = renderPidPng('<svg viewBox="0 0 4096 4096"></svg>', {}, harness.runtime);
+    harness.image.onload?.(new Event("load"));
+    await promise;
+
+    expect(harness.canvas.width).toBe(harness.canvas.height);
+    expect(harness.canvas.width * harness.canvas.height).toBeLessThanOrEqual(8 * 1024 * 1024);
+    expect(harness.canvas.width).toBeLessThan(4096);
+    const effectiveScale = vi.mocked(harness.context.setTransform).mock.calls[0][0];
+    expect(effectiveScale).toBeGreaterThanOrEqual(0.1);
+    expect(effectiveScale).toBeLessThan(1);
+    expect(harness.context.drawImage).toHaveBeenCalledWith(harness.image, 0, 0, 4096, 4096);
+    expect(harness.runtime.revokeObjectURL).toHaveBeenCalledOnce();
+    expect(harness.image.src).toBe("");
+  });
+
+  it("rejeita redução extrema antes de alocar recursos do navegador", async () => {
+    const harness = pngHarness({ dpr: 2 });
+    await expect(renderPidPng('<svg viewBox="0 0 1000000000 1000000000"></svg>', {}, harness.runtime)).rejects.toThrow("Não foi possível gerar PNG");
+    expect(harness.runtime.createImage).not.toHaveBeenCalled();
+    expect(harness.runtime.createCanvas).not.toHaveBeenCalled();
+    expect(harness.runtime.createObjectURL).not.toHaveBeenCalled();
+    expect(harness.runtime.revokeObjectURL).not.toHaveBeenCalled();
+  });
 });
 
 function pngHarness(options: { dpr: number; context?: CanvasRenderingContext2D | null; blob?: Blob | null }) {

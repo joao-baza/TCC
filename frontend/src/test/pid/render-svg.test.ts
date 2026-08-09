@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { PidDocument } from "@/features/pid/domain/model";
+import type { ConnectionClass, PidDocument } from "@/features/pid/domain/model";
 import {
   renderPidSvg,
   sanitizePidSvgAsset,
@@ -106,7 +106,121 @@ describe("renderPidSvg", () => {
     expect(x + width).toBeLessThan(30);
     expect(y + height).toBeGreaterThan(250);
   });
+
+  it.each([
+    ["process", 0, "right"], ["utility", 0, "right"], ["signal", 0, "right"],
+    ["process", 90, "down"], ["utility", 90, "down"], ["signal", 90, "down"],
+    ["process", 180, "left"], ["utility", 180, "left"], ["signal", 180, "left"],
+    ["process", 270, "up"], ["utility", 270, "up"], ["signal", 270, "up"],
+  ] as const)("desenha seta fechada %s na rotação %i apontando para %s", async (connectionClass, rotation, direction) => {
+    const document = arrowDocument(connectionClass, rotation);
+    const first = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+    const second = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+    const parsed = new DOMParser().parseFromString(first, "image/svg+xml");
+    const arrow = parsed.querySelector('polygon[data-arrow-for="edge"]');
+    const points = arrow?.getAttribute("points")?.trim().split(/\s+/).map((pair) => pair.split(",").map(Number));
+
+    expect(first).toBe(second);
+    expect(arrow?.getAttribute("id")).toBe("pid-arrow-0");
+    expect(arrow?.getAttribute("fill")).toBe(connectionClass === "signal" ? "#64748b" : "#475569");
+    expect(points).toHaveLength(3);
+    const [tip, firstBase, secondBase] = points!;
+    const base = [(firstBase[0] + secondBase[0]) / 2, (firstBase[1] + secondBase[1]) / 2];
+    if (direction === "right") expect(tip[0]).toBeGreaterThan(base[0]);
+    if (direction === "left") expect(tip[0]).toBeLessThan(base[0]);
+    if (direction === "down") expect(tip[1]).toBeGreaterThan(base[1]);
+    if (direction === "up") expect(tip[1]).toBeLessThan(base[1]);
+    const [x, y] = parsed.documentElement.getAttribute("viewBox")!.split(" ").map(Number);
+    expect(x).toBeLessThan(0);
+    expect(y).toBeLessThan(0);
+  });
+
+  it("inclui geometria e traço da seta nos limites do SVG", async () => {
+    const document = arrowDocument("process", 0);
+    document.nodes["node-a"] = { ...document.nodes["node-a"], x: -80, y: 0, width: 2, height: 2 };
+    document.nodes["node-b"] = { ...document.nodes["node-b"], x: 0, y: 0, width: 2, height: 2 };
+    const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+    const [, y, , height] = new DOMParser().parseFromString(svg, "image/svg+xml")
+      .documentElement.getAttribute("viewBox")!.split(" ").map(Number);
+    expect(y).toBeLessThanOrEqual(-4);
+    expect(y + height).toBeGreaterThanOrEqual(6);
+  });
+
+  it("enquadra glifos largos em legendas de nó, aresta, grupo e anotação", async () => {
+    const value = "WW界語".repeat(10);
+    const fixtures = wideTextDocuments(value);
+
+    for (const fixture of fixtures) {
+      const svg = await renderPidSvg(fixture.document, new Map([["project.pump", pump]]), { padding: 0 });
+      expectTextToFitViewBox(svg, value, fixture.fontSize, fixture.centered);
+    }
+  });
+
+  it("processa rota grande em passagem linear sem exceder o orçamento de armazenamento", async () => {
+    const document = exportDocument();
+    document.edges.edge.route = Array.from({ length: 125_000 }, (_, index) => {
+      const step = Math.floor(index / 2);
+      return index % 2 === 0 ? { x: step, y: step } : { x: step + 1, y: step };
+    });
+    document.edges.edge.tag = "";
+    document.edges.edge.label = "";
+    expect(JSON.stringify(document).length).toBeLessThan(5 * 1024 * 1024);
+
+    const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+    expect(svg).toContain("L 62500 62499");
+    expect(svg).toContain('data-arrow-for="edge"');
+  }, 15_000);
 });
+
+function arrowDocument(connectionClass: ConnectionClass, rotation: number): PidDocument {
+  const document = exportDocument();
+  document.nodes["node-a"] = { ...document.nodes["node-a"], x: -320, y: -120, width: 40, height: 40, rotation: 0, tag: "", label: "" };
+  document.nodes["node-b"] = { ...document.nodes["node-b"], x: -120, y: -120, width: 40, height: 40, rotation, tag: "", label: "" };
+  document.ports.source = { ...document.ports.source, connectionClass };
+  document.ports.target = { ...document.ports.target, connectionClass };
+  document.edges.edge = { ...document.edges.edge, connectionClass, route: [], tag: "", label: "" };
+  document.annotations = {};
+  document.groups = {};
+  return document;
+}
+
+function wideTextDocuments(value: string): readonly { document: PidDocument; fontSize: number; centered: boolean }[] {
+  const node = exportDocument();
+  node.nodes = { "node-a": { ...node.nodes["node-a"], x: 0, y: 0, width: 10, height: 10, rotation: 0, tag: "", label: value } };
+  node.ports = {}; node.edges = {}; node.annotations = {}; node.groups = {};
+
+  const edge = exportDocument();
+  edge.nodes["node-a"] = { ...edge.nodes["node-a"], x: 0, y: 0, width: 10, height: 10, rotation: 0, tag: "", label: "" };
+  edge.nodes["node-b"] = { ...edge.nodes["node-b"], x: 50, y: 0, width: 10, height: 10, rotation: 0, tag: "", label: "" };
+  edge.edges.edge = { ...edge.edges.edge, route: [], tag: "", label: value };
+  edge.annotations = {}; edge.groups = {};
+
+  const group = emptyDocument("Grupo largo");
+  group.groups.group = { id: "group", label: value, memberIds: [], x: 0, y: 0, width: 5, height: 5, properties: {} };
+
+  const annotation = emptyDocument("Anotação larga");
+  annotation.annotations.note = { id: "note", kind: "text", text: value, x: 0, y: 0, width: 5, height: 5, rotation: 0, properties: {} };
+
+  return [
+    { document: node, fontSize: 12, centered: true },
+    { document: edge, fontSize: 11, centered: true },
+    { document: group, fontSize: 12, centered: false },
+    { document: annotation, fontSize: 12, centered: false },
+  ];
+}
+
+function expectTextToFitViewBox(svg: string, value: string, fontSize: number, centered: boolean): void {
+  const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
+  const element = Array.from(parsed.querySelectorAll("text")).find((candidate) => candidate.textContent === value);
+  expect(element).toBeDefined();
+  const textX = Number(element!.getAttribute("x"));
+  const width = [...value].length * fontSize;
+  const expectedMinX = centered ? textX - width / 2 : textX;
+  const expectedMaxX = centered ? textX + width / 2 : textX + width;
+  const [viewX, , viewWidth] = parsed.documentElement.getAttribute("viewBox")!.split(" ").map(Number);
+  expect(viewX).toBeLessThanOrEqual(expectedMinX);
+  expect(viewX + viewWidth).toBeGreaterThanOrEqual(expectedMaxX);
+}
 
 function emptyDocument(title: string): PidDocument {
   return {
