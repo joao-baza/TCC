@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
 import type { PidDocument } from "@/features/pid/domain/model";
@@ -25,13 +25,31 @@ it("mantém somente exclusão habilitada para seleção exclusiva de aresta", ()
     canGroup: false,
     canAlign: false,
   };
-  render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} connectionClass="process" actions={actions} />);
+  const onExport = vi.fn();
+  render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport onExport={onExport} connectionClass="process" actions={actions} />);
   expect(screen.getByRole("button", { name: "Excluir seleção" })).toBeEnabled();
   expect(screen.getByRole("button", { name: "Copiar" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Duplicar" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Girar 90°" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Agrupar" })).toBeDisabled();
   expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Exportar" }));
+  expect(onExport).toHaveBeenCalledTimes(1);
+});
+
+it("mantém exportação independente da permissão de edição", () => {
+  const onExport = vi.fn();
+  const capabilities: EditorSelectionCapabilities = {
+    canDelete: false, canCopy: false, canDuplicate: false, canRotate: false, canGroup: false, canAlign: false,
+  };
+  const { rerender } = render(<EditorToolbar editable={false} capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport onExport={onExport} connectionClass="process" actions={actions} />);
+  const exportButton = screen.getByRole("button", { name: "Exportar" });
+  expect(exportButton).toBeEnabled();
+  fireEvent.click(exportButton);
+  expect(onExport).toHaveBeenCalledTimes(1);
+
+  rerender(<EditorToolbar editable={false} capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport={false} onExport={onExport} connectionClass="process" actions={actions} />);
+  expect(screen.getByRole("button", { name: "Exportar" })).toBeDisabled();
 });
 
 it("habilita rotação e alinhamento de grupo e preserva o ID do grupo para o comando", () => {

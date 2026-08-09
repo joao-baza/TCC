@@ -14,6 +14,7 @@ import {
 } from "../domain/commands";
 import type { ConnectionClass } from "../domain/model";
 import { validateDocument } from "../domain/validation";
+import { downloadCanonicalPidJson } from "../export/export-canonical-json";
 import { DocumentActionsMenu } from "./document-actions-menu";
 import { copyEditorSelection, pasteEditorFragment, type EditorClipboardFragment } from "./editor-clipboard";
 import {
@@ -142,7 +143,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     revision,
     store,
     documentPort,
-    editable: opened.scope === "edit",
+    editable,
     getPersistenceBlock: persistenceBlockFor,
     onRevision: setRevision,
   });
@@ -172,14 +173,14 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   }, [autosave.conflict, autosave.state, collaboration]);
   useEffect(() => registerNavigationGuard(autosave.flush), [autosave.flush, registerNavigationGuard]);
   useEffect(() => {
-    if (!editable || autosave.state === "Sincronizado") return;
+    if (autosave.state === "Sincronizado") return;
     const protectPendingSave = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", protectPendingSave);
     return () => window.removeEventListener("beforeunload", protectPendingSave);
-  }, [autosave.state, editable]);
+  }, [autosave.state]);
   const editorEnabled = editable && lifecycle === "active";
   const selectedNodeIds = editor.selection.filter((id) => Boolean(editor.document.nodes[id]));
   const positionedSelectionIds = getEditorPositionedSelectionIds(editor.document, editor.selection);
@@ -192,6 +193,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     () => validateDocument(editor.document, { catalog: localCatalog }),
     [editor.document],
   );
+  const canExport = !validationIssues.some((issue) => issue.severity === "error");
   const canvasSelection: PidCanvasSelection = useMemo(() => ({
     nodeIds: editor.selection.filter((id) => Boolean(editor.document.nodes[id])),
     edgeIds: editor.selection.filter((id) => Boolean(editor.document.edges[id])),
@@ -254,6 +256,16 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     store.setSelection([elementId]);
     setAnnouncement("Elemento afetado pela validação selecionado no inspetor.");
   }, [store]);
+  const exportDocument = useCallback(() => {
+    if (!canExport) return;
+    try {
+      downloadCanonicalPidJson(store.getState().document);
+      setOperationError(null);
+      setAnnouncement("Documento P&ID exportado em JSON.");
+    } catch {
+      setOperationError("Não foi possível exportar o documento P&ID.");
+    }
+  }, [canExport, store]);
 
   const toolbarActions: EditorToolbarActions = {
     undo: () => { undo(); }, redo: () => { redo(); }, deleteSelection: () => { remove(); }, duplicate: () => { duplicate(); },
@@ -323,8 +335,8 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   return <main className="pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]">
     <p className="sr-only">{editable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
-      <div className="pid-studio-identity"><Link to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
-      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} connectionClass={connectionClass} actions={toolbarActions} />
+      <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
+      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} onExport={exportDocument} connectionClass={connectionClass} actions={toolbarActions} />
       <div className="pid-studio-session-controls">
         <div className="pid-collaboration-summary" aria-label="Colaboração local">
           <span>{collaborationSnapshot.label}</span>
@@ -346,7 +358,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
         {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
           : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editorEnabled} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => store.setSelection([...nodeIds, ...edgeIds, ...annotationIds])} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}
-        {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
+        {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{editable && autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}
       </section>
       <aside role="region" aria-label="Inspetor" className="pid-studio-panel pid-inspector-panel">
@@ -357,7 +369,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         </div>}
       </aside>
     </div>
-    <StatusBar state={editor} saveState={autosave.state} onRetry={!autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
+    <StatusBar state={editor} saveState={autosave.state} onRetry={editable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
     <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
   </main>;
 }

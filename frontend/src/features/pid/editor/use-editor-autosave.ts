@@ -37,6 +37,8 @@ export function useEditorAutosave(input: {
   const inFlightRef = useRef(false);
   const inFlightPromiseRef = useRef<Promise<void> | null>(null);
   const flushOnUnmountRef = useRef<() => void>(() => {});
+  const previousEditableRef = useRef(input.editable);
+  const retryOnCapabilityRestoreRef = useRef(false);
   const suspendedRef = useRef(false);
   const versionRef = useRef(0);
   const savedVersionRef = useRef(0);
@@ -64,7 +66,7 @@ export function useEditorAutosave(input: {
     readonly scheduleFollowup?: boolean;
   } = {}): Promise<void> => {
     if (inFlightRef.current) return inFlightPromiseRef.current ?? Promise.resolve();
-    if ((!options.allowSuspended && suspendedRef.current) || !latest.current.editable
+    if ((!options.allowSuspended && suspendedRef.current)
       || savedVersionRef.current === versionRef.current) return Promise.resolve();
     if (blockedRef.current) {
       const reason = new Error("O autosave está bloqueado por um conflito de revisão.");
@@ -119,6 +121,14 @@ export function useEditorAutosave(input: {
       } finally {
         inFlightRef.current = false;
         inFlightPromiseRef.current = null;
+        if (retryOnCapabilityRestoreRef.current) {
+          if (savedVersionRef.current === versionRef.current || blockedRef.current || validationBlockedRef.current) {
+            retryOnCapabilityRestoreRef.current = false;
+          } else if (latest.current.editable) {
+            retryOnCapabilityRestoreRef.current = false;
+            timerRef.current = setTimeout(() => { void save(); }, 0);
+          }
+        }
       }
     })();
     inFlightPromiseRef.current = execution;
@@ -156,6 +166,29 @@ export function useEditorAutosave(input: {
     timerRef.current = setTimeout(() => { void save(); }, 400);
   }, [save]);
 
+  useEffect(() => {
+    const wasEditable = previousEditableRef.current;
+    previousEditableRef.current = input.editable;
+    if (wasEditable && !input.editable) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = null;
+      if (savedVersionRef.current !== versionRef.current) void save();
+      return;
+    }
+    if (!wasEditable && input.editable
+      && savedVersionRef.current !== versionRef.current
+      && !blockedRef.current
+      && !validationBlockedRef.current) {
+      if (inFlightRef.current) {
+        retryOnCapabilityRestoreRef.current = true;
+        return;
+      }
+      retryOnCapabilityRestoreRef.current = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => { void save(); }, 0);
+    }
+  }, [input.editable, save]);
+
   const retry = useCallback(() => {
     if (blockedRef.current || suspendedRef.current) return;
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -184,7 +217,7 @@ export function useEditorAutosave(input: {
   }, [flushLatest]);
 
   flushOnUnmountRef.current = () => {
-    if (!latest.current.editable || suspendedRef.current || blockedRef.current || validationBlockedRef.current
+    if (suspendedRef.current || blockedRef.current || validationBlockedRef.current
       || savedVersionRef.current === versionRef.current) return;
     void flushLatest(false).catch(() => {});
   };

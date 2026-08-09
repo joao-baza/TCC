@@ -2,7 +2,7 @@ import { StrictMode, useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { PidCanvas } from "@/features/pid/canvas/pid-canvas";
+import { PidCanvas, pidCanvasViewportDuration } from "@/features/pid/canvas/pid-canvas";
 import { applyPidCanvasSelection, projectPidCanvasDocument } from "@/features/pid/canvas/flow-projection";
 import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
 import type { PidDocument, PidEdge, PidNode, PidPort } from "@/features/pid/domain/model";
@@ -28,6 +28,34 @@ const ids = {
 } as const;
 
 describe("integrações acessíveis e transientes do PidCanvas", () => {
+  it("zera dinamicamente as durações de viewport com movimento reduzido", async () => {
+    const listeners = new Set<(event: MediaQueryListEvent) => void>();
+    let reduced = false;
+    const matchMedia = vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
+      matches: query === "(prefers-reduced-motion: reduce)" && reduced,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => listeners.add(listener as (event: MediaQueryListEvent) => void),
+      removeEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => listeners.delete(listener as (event: MediaQueryListEvent) => void),
+      dispatchEvent: () => false,
+    }));
+    try {
+      const { rerender } = render(<PidCanvas document={interactionDocument()} catalog={localCatalog} editable={false} onCommand={vi.fn()} viewportAction={{ type: "zoom-in", nonce: 1 }} />);
+      expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-viewport-animation-duration", "150");
+      expect(pidCanvasViewportDuration("fit", false)).toBe(200);
+
+      reduced = true;
+      listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent));
+      rerender(<PidCanvas document={interactionDocument()} catalog={localCatalog} editable={false} onCommand={vi.fn()} viewportAction={{ type: "zoom-out", nonce: 2 }} />);
+      await waitFor(() => expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-viewport-animation-duration", "0"));
+      expect(pidCanvasViewportDuration("fit", true)).toBe(0);
+      expect(pidCanvasViewportDuration("zoom-in", true)).toBe(0);
+    } finally {
+      matchMedia.mockRestore();
+    }
+  });
   it("renderiza e seleciona anotações canônicas no canvas", () => {
     const initial = interactionDocument();
     const annotationId = "60000000-0000-4000-8000-000000000001";

@@ -58,12 +58,14 @@ export interface EditorToolbarActions {
   setConnectionClass(value: ConnectionClass): void;
 }
 
-export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, connectionClass, actions }: {
+export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, onExport, connectionClass, actions }: {
   readonly editable: boolean;
   readonly capabilities: EditorSelectionCapabilities;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly canPaste: boolean;
+  readonly canExport: boolean;
+  readonly onExport: () => void;
   readonly connectionClass: ConnectionClass;
   readonly actions: EditorToolbarActions;
 }) {
@@ -93,7 +95,7 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
     <Tool label="Ajustar diagrama à tela" onClick={actions.fit} />
     <Tool label="Aumentar zoom" onClick={actions.zoomIn} />
     <Tool label="Diminuir zoom" onClick={actions.zoomOut} />
-    <Tool label="Exportar" disabled onClick={() => {}} />
+    <Tool label="Exportar" disabled={!canExport} onClick={onExport} />
   </div>;
 }
 

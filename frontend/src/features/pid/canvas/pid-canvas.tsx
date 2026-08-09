@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import {
   Background,
   applyNodeChanges,
@@ -81,6 +81,15 @@ const READONLY_ARIA_LABELS = {
   "node.a11yDescription.keyboardDisabled": "Pressione Enter ou Espaço para selecionar um equipamento. Escape cancela a seleção.",
   "edge.a11yDescription.default": "Pressione Enter ou Espaço para selecionar uma conexão. Escape cancela a seleção.",
 } as const;
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+export function pidCanvasViewportDuration(
+  type: PidCanvasViewportAction["type"],
+  reducedMotion: boolean,
+): number {
+  if (reducedMotion) return 0;
+  return type === "fit" ? 200 : 150;
+}
 
 export function PidCanvas(props: PidCanvasProps) {
   return (
@@ -104,6 +113,9 @@ function PidCanvasInner({
   onViewportChange,
 }: PidCanvasProps) {
   const flow = useReactFlow();
+  const reducedMotion = usePrefersReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
   const isControlled = controlledSelection !== undefined;
   const initialSelection = controlledSelection ?? defaultSelection ?? EMPTY_SELECTION;
   const [selection, setSelection] = useState<PidCanvasSelection>(initialSelection);
@@ -381,9 +393,10 @@ function PidCanvasInner({
   }, []);
   useEffect(() => {
     if (!viewportAction) return;
-    if (viewportAction.type === "fit") void flow.fitView({ duration: 200 });
-    else if (viewportAction.type === "zoom-in") void flow.zoomIn({ duration: 150 });
-    else void flow.zoomOut({ duration: 150 });
+    const duration = pidCanvasViewportDuration(viewportAction.type, reducedMotionRef.current);
+    if (viewportAction.type === "fit") void flow.fitView({ duration });
+    else if (viewportAction.type === "zoom-in") void flow.zoomIn({ duration });
+    else void flow.zoomOut({ duration });
   }, [flow, viewportAction]);
 
   return (
@@ -391,6 +404,9 @@ function PidCanvasInner({
       data-testid="pid-canvas"
       data-editable={String(editable)}
       data-keyboard-source-port={keyboardSourcePortId ?? ""}
+      data-viewport-animation-duration={viewportAction
+        ? pidCanvasViewportDuration(viewportAction.type, reducedMotion)
+        : undefined}
       className={`relative h-[640px] min-h-[320px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${className ?? ""}`}
       style={{ height: "640px" }}
       onPointerDownCapture={(event) => { additiveSelectionIntentRef.current = event.ctrlKey || event.metaKey; }}
@@ -454,6 +470,24 @@ function PidCanvasInner({
       </div>
     </div>
   );
+}
+
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(subscribeReducedMotion, readReducedMotion, () => false);
+}
+
+function subscribeReducedMotion(notify: () => void): () => void {
+  const media = window.matchMedia(REDUCED_MOTION_QUERY);
+  if (typeof media.addEventListener === "function") {
+    media.addEventListener("change", notify);
+    return () => media.removeEventListener("change", notify);
+  }
+  media.addListener(notify);
+  return () => media.removeListener(notify);
+}
+
+function readReducedMotion(): boolean {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
 function resolveCatalog(catalog: CatalogIndex | readonly CatalogSymbol[], document: PidDocument): ReadonlyMap<string, CatalogSymbol> {
