@@ -1,6 +1,107 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { createEmptyDocument, parsePidDocument } from "@/features/pid/domain/schema";
+import type { PidDocument } from "@/features/pid/domain/model";
+import {
+  createEmptyDocument,
+  parsePidDocument,
+  pidDocumentSchema,
+} from "@/features/pid/domain/schema";
+
+const ids = {
+  document: "10000000-0000-4000-8000-000000000001",
+  node: "20000000-0000-4000-8000-000000000002",
+  sourcePort: "30000000-0000-4000-8000-000000000003",
+  targetPort: "40000000-0000-4000-8000-000000000004",
+  edge: "50000000-0000-4000-8000-000000000005",
+  annotation: "60000000-0000-4000-8000-000000000006",
+  group: "70000000-0000-4000-8000-000000000007",
+} as const;
+
+function createPopulatedDocument(): PidDocument {
+  return {
+    schemaVersion: 1,
+    id: ids.document,
+    metadata: {
+      title: "Área 100",
+      standard: "free",
+      catalogVersion: "local-v1",
+      createdAt: "2026-08-09T12:00:00.000Z",
+      updatedAt: "2026-08-09T12:00:00.000Z",
+    },
+    nodes: {
+      [ids.node]: {
+        id: ids.node,
+        symbolKey: "tank",
+        catalogVersion: "local-v1",
+        x: 10,
+        y: 20,
+        width: 100,
+        height: 80,
+        rotation: 90,
+        tag: "T-100",
+        label: "Tanque",
+        properties: { operating: { pressure: 3.5 }, enabled: true },
+      },
+    },
+    ports: {
+      [ids.sourcePort]: {
+        id: ids.sourcePort,
+        nodeId: ids.node,
+        templateKey: "outlet",
+        direction: "output",
+        connectionClass: "process",
+        capacity: 2,
+      },
+      [ids.targetPort]: {
+        id: ids.targetPort,
+        nodeId: ids.node,
+        templateKey: "inlet",
+        direction: "input",
+        connectionClass: "process",
+        capacity: 1,
+      },
+    },
+    edges: {
+      [ids.edge]: {
+        id: ids.edge,
+        sourcePortId: ids.sourcePort,
+        targetPortId: ids.targetPort,
+        connectionClass: "process",
+        route: [{ x: 110, y: 20 }, { x: 180, y: 20 }],
+        tag: "L-100",
+        label: "Linha de processo",
+        properties: { insulation: { class: "A" } },
+      },
+    },
+    annotations: {
+      [ids.annotation]: {
+        id: ids.annotation,
+        kind: "callout",
+        text: "Operação normal",
+        x: 120,
+        y: 30,
+        width: 160,
+        height: 50,
+        rotation: 0,
+        nodeId: ids.node,
+        edgeId: ids.edge,
+        properties: { style: { color: "blue" } },
+      },
+    },
+    groups: {
+      [ids.group]: {
+        id: ids.group,
+        label: "Área de processo",
+        memberIds: [ids.node],
+        x: 0,
+        y: 0,
+        width: 400,
+        height: 300,
+        properties: { area: { code: "A100" } },
+      },
+    },
+  };
+}
 
 describe("documento canônico P&ID", () => {
   it("cria um documento v1 com mapas vazios e UUID", () => {
@@ -20,128 +121,117 @@ describe("documento canônico P&ID", () => {
     expect(parsePidDocument(JSON.parse(JSON.stringify(document)))).toEqual(document);
   });
 
-  it("normaliza o título e rejeita títulos em branco", () => {
-    expect(createEmptyDocument({ title: "  Área 100  ", standard: "isa" }).metadata.title).toBe("Área 100");
-    expect(() => createEmptyDocument({ title: " \n ", standard: "iso" })).toThrow();
+  it("aceita dependências injetadas para UUID e relógio", () => {
+    const factory = createEmptyDocument as (
+      input: Parameters<typeof createEmptyDocument>[0],
+      context: { generateId: () => string; now: () => Date },
+    ) => PidDocument;
+
+    expect(factory(
+      { title: "  Área 100  ", standard: "isa", catalogVersion: " catálogo-local " },
+      {
+        generateId: () => ids.document,
+        now: () => new Date("2026-08-09T12:00:00.000Z"),
+      },
+    )).toMatchObject({
+      id: ids.document,
+      metadata: {
+        title: "Área 100",
+        catalogVersion: "catálogo-local",
+        createdAt: "2026-08-09T12:00:00.000Z",
+        updatedAt: "2026-08-09T12:00:00.000Z",
+      },
+    });
   });
 
-  it("rejeita referências e números não finitos", () => {
-    const document = createEmptyDocument({ title: "Inválido", standard: "isa" });
-    const nodeId = "0d3154fb-627d-4c22-ae10-64d2f6192b61";
-
-    expect(() => parsePidDocument({
-      ...document,
-      nodes: {
-        [nodeId]: {
-          id: nodeId,
-          symbolKey: "tank",
-          catalogVersion: "local-v1",
-          x: Infinity,
-          y: 0,
-          width: 100,
-          height: 100,
-          rotation: 0,
-          tag: "T-100",
-          label: "Tanque",
-          properties: {},
-        },
-      },
-    })).toThrow();
-
-    expect(() => parsePidDocument({
-      ...document,
-      ports: {
-        "0d3154fb-627d-4c22-ae10-64d2f6192b61": {
-          id: "0d3154fb-627d-4c22-ae10-64d2f6192b61",
-          nodeId: "d583b060-18e8-455d-a3e4-912b6f81f2ee",
-          templateKey: "outlet",
-          direction: "output",
-          connectionClass: "process",
-          capacity: 1,
-        },
-      },
-    })).toThrow(/nodeId/i);
+  it.each([
+    ["título em branco", { title: " \n ", standard: "iso" }],
+    ["standard fora do contrato", { title: "Área 100", standard: "outro" }],
+    ["versão de catálogo em branco", { title: "Área 100", standard: "free", catalogVersion: " " }],
+  ])("rejeita entrada de fábrica inválida: %s", (_rule, input) => {
+    expect(() => createEmptyDocument(input as Parameters<typeof createEmptyDocument>[0])).toThrow();
   });
 
-  it("impõe IDs, chaves, rotação e dimensões válidas", () => {
-    const document = createEmptyDocument({ title: "Validação", standard: "iso" });
-    const nodeId = "0d3154fb-627d-4c22-ae10-64d2f6192b61";
-
-    expect(() => parsePidDocument({
-      ...document,
-      nodes: {
-        outraChave: {
-          id: nodeId,
-          symbolKey: "tank",
-          catalogVersion: "local-v1",
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 100,
-          rotation: 45,
-          tag: "T-100",
-          label: "Tanque",
-          properties: {},
-          ignored: true,
-        },
-      },
-    })).toThrow();
+  it("expõe um erro de domínio quando randomUUID não existe no runtime padrão", () => {
+    vi.stubGlobal("crypto", {});
+    try {
+      expect(() => createEmptyDocument({ title: "Área 100", standard: "free" })).toThrow(/indisponível/i);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
-  it("rejeita referências pendentes de bordas, anotações e grupos", () => {
-    const document = createEmptyDocument({ title: "Referências", standard: "free" });
-    const edgeId = "e8c7ebd1-0ea0-4c4a-8954-05e1f6f1bb8a";
+  it("faz round-trip de um grafo completo serializável", () => {
+    const document = createPopulatedDocument();
 
-    expect(() => parsePidDocument({
-      ...document,
-      edges: {
-        [edgeId]: {
-          id: edgeId,
-          sourcePortId: "0d3154fb-627d-4c22-ae10-64d2f6192b61",
-          targetPortId: "d583b060-18e8-455d-a3e4-912b6f81f2ee",
-          connectionClass: "process",
-          route: [],
-          tag: "L-100",
-          label: "Linha",
-          properties: {},
-        },
-      },
-    })).toThrow(/sourcePortId/i);
-
-    const annotationId = "b305900d-3a14-48e9-9702-8aab7470d9a9";
-    expect(() => parsePidDocument({
-      ...document,
-      annotations: {
-        [annotationId]: {
-          id: annotationId,
-          kind: "note",
-          text: "Verificar pressão",
-          x: 0,
-          y: 0,
-          width: 200,
-          height: 100,
-          rotation: 0,
-          nodeId: "0d3154fb-627d-4c22-ae10-64d2f6192b61",
-          properties: {},
-        },
-      },
-    })).toThrow(/anota.*inexistente/i);
-
-    const groupId = "f73f539d-5eb8-4d47-a2f0-27ab1c6b0f0b";
-    expect(() => parsePidDocument({
-      ...document,
-      groups: {
-        [groupId]: {
-          id: groupId,
-          label: "Área de processo",
-          memberIds: ["0d3154fb-627d-4c22-ae10-64d2f6192b61"],
-          x: 0,
-          y: 0,
-          width: 400,
-          height: 300,
-          properties: {},
-        },
-      },
-    })).toThrow(/grupo.*inexistente/i);
+    expect(parsePidDocument(JSON.parse(JSON.stringify(document)))).toEqual(document);
   });
+
+  it.each([
+    ["números não finitos", () => ({
+      ...createPopulatedDocument(),
+      nodes: { [ids.node]: { ...createPopulatedDocument().nodes[ids.node], x: Infinity } },
+    })],
+    ["chave de mapa diferente do id", () => ({
+      ...createPopulatedDocument(),
+      nodes: { outraChave: createPopulatedDocument().nodes[ids.node] },
+    })],
+    ["dimensões não positivas", () => ({
+      ...createPopulatedDocument(),
+      nodes: { [ids.node]: { ...createPopulatedDocument().nodes[ids.node], width: 0 } },
+    })],
+    ["rotação fora de múltiplo de 90", () => ({
+      ...createPopulatedDocument(),
+      nodes: { [ids.node]: { ...createPopulatedDocument().nodes[ids.node], rotation: 45 } },
+    })],
+    ["porta com nó pendente", () => ({
+      ...createPopulatedDocument(),
+      ports: { ...createPopulatedDocument().ports, [ids.sourcePort]: { ...createPopulatedDocument().ports[ids.sourcePort], nodeId: ids.document } },
+    })],
+    ["borda com porta de origem pendente", () => ({
+      ...createPopulatedDocument(),
+      edges: { [ids.edge]: { ...createPopulatedDocument().edges[ids.edge], sourcePortId: ids.document } },
+    })],
+    ["borda com porta de destino pendente", () => ({
+      ...createPopulatedDocument(),
+      edges: { [ids.edge]: { ...createPopulatedDocument().edges[ids.edge], targetPortId: ids.document } },
+    })],
+    ["anotação com nó pendente", () => ({
+      ...createPopulatedDocument(),
+      annotations: { [ids.annotation]: { ...createPopulatedDocument().annotations[ids.annotation], nodeId: ids.document } },
+    })],
+    ["anotação com borda pendente", () => ({
+      ...createPopulatedDocument(),
+      annotations: { [ids.annotation]: { ...createPopulatedDocument().annotations[ids.annotation], edgeId: ids.document } },
+    })],
+    ["grupo com membro pendente", () => ({
+      ...createPopulatedDocument(),
+      groups: { [ids.group]: { ...createPopulatedDocument().groups[ids.group], memberIds: [ids.document] } },
+    })],
+  ])("rejeita %s", (_rule, invalidDocument) => {
+    expect(() => parsePidDocument(invalidDocument())).toThrow();
+  });
+
+  it.each([0, 0.5])("rejeita capacidade de porta inválida: %s", (capacity) => {
+    const document = createPopulatedDocument();
+    document.ports[ids.sourcePort].capacity = capacity;
+
+    expect(() => parsePidDocument(document)).toThrow();
+  });
+
+  it.each(["__proto__", "prototype", "constructor"])(
+    "rejeita a chave recursiva insegura %s com caminho exato",
+    (unsafeKey) => {
+      const document = createPopulatedDocument();
+      document.nodes[ids.node].properties = JSON.parse(`{"${unsafeKey}": {"value": true}}`);
+
+      const result = pidDocumentSchema.safeParse(document);
+      expect(result.success).toBe(false);
+      if (result.success) return;
+
+      expect(result.error.issues).toContainEqual(expect.objectContaining({
+        path: ["nodes", ids.node, "properties", unsafeKey],
+      }));
+    },
+  );
 });

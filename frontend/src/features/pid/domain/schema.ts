@@ -5,32 +5,48 @@ import type {
   PidDocument,
   PidEdge,
   PidGroup,
-  PidJsonValue,
   PidNode,
   PidPort,
+  PidProperties,
   Point,
 } from "./model";
+
+export interface CreateEmptyPidDocumentInput {
+  title: string;
+  standard: PidDocument["metadata"]["standard"];
+  catalogVersion?: string;
+}
+
+export interface PidDocumentFactoryContext {
+  generateId?: () => string;
+  now?: () => Date;
+}
+
+export class PidDocumentFactoryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PidDocumentFactoryError";
+  }
+}
 
 const uuidSchema = z.string().uuid();
 const finiteNumberSchema = z.number().finite();
 const positiveNumberSchema = finiteNumberSchema.positive();
+const positiveIntegerSchema = finiteNumberSchema.int().positive();
 const nonBlankStringSchema = z.string().refine((value) => value.trim().length > 0, {
   message: "Obrigatório informar um texto não vazio.",
 });
 const rotationSchema = finiteNumberSchema.refine((value) => value % 90 === 0, {
   message: "A rotação deve ser múltipla de 90 graus.",
 });
+const unsafePropertyKeys = new Set(["__proto__", "prototype", "constructor"]);
+const propertyKeySchema = z.string().refine((key) => !unsafePropertyKeys.has(key), {
+  message: "Chave de propriedade insegura.",
+});
 
-const jsonValueSchema: z.ZodType<PidJsonValue> = z.lazy(() => z.union([
-  z.string(),
-  finiteNumberSchema,
-  z.boolean(),
-  z.null(),
-  z.array(jsonValueSchema),
-  z.record(z.string(), jsonValueSchema),
-]));
-
-const propertiesSchema = z.record(z.string(), jsonValueSchema);
+const propertiesSchema: z.ZodType<PidProperties> = z.any().superRefine((value, context) => {
+  validateJsonProperties(value, context, []);
+});
 
 const pointSchema: z.ZodType<Point> = z.object({
   x: finiteNumberSchema,
@@ -57,7 +73,7 @@ const portSchema: z.ZodType<PidPort> = z.object({
   templateKey: nonBlankStringSchema,
   direction: z.enum(["input", "output", "bidirectional"]),
   connectionClass: z.enum(["process", "utility", "signal"]),
-  capacity: positiveNumberSchema,
+  capacity: positiveIntegerSchema,
 }).strict();
 
 const edgeSchema: z.ZodType<PidEdge> = z.object({
@@ -98,7 +114,7 @@ const groupSchema: z.ZodType<PidGroup> = z.object({
 
 const recordSchema = <T>(itemSchema: z.ZodType<T>) => z.record(z.string(), itemSchema);
 
-export const pidDocumentSchema = z.object({
+export const pidDocumentSchema: z.ZodType<PidDocument> = z.object({
   schemaVersion: z.literal(1),
   id: uuidSchema,
   metadata: z.object({
@@ -193,17 +209,61 @@ function validateMapIds(
   }
 }
 
-export interface CreateEmptyPidDocumentInput {
-  title: string;
-  standard: PidDocument["metadata"]["standard"];
-  catalogVersion?: string;
+function validateJsonProperties(value: unknown, context: z.RefinementCtx, path: PropertyKey[]): void {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path,
+        message: "Os valores das propriedades devem ser números finitos.",
+      });
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => validateJsonProperties(item, context, [...path, index]));
+    return;
+  }
+  if (!isPlainRecord(value)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path,
+      message: "As propriedades devem conter apenas valores JSON serializáveis.",
+    });
+    return;
+  }
+
+  for (const key of Object.getOwnPropertyNames(value)) {
+    if (!propertyKeySchema.safeParse(key).success) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [...path, key],
+        message: "Chave de propriedade insegura.",
+      });
+      continue;
+    }
+    validateJsonProperties(value[key], context, [...path, key]);
+  }
 }
 
-export function createEmptyDocument({
-  title,
-  standard,
-  catalogVersion = "local-v1",
-}: CreateEmptyPidDocumentInput): PidDocument {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object"
+    && value !== null
+    && Object.getPrototypeOf(value) === Object.prototype;
+}
+
+const createEmptyPidDocumentInputSchema: z.ZodType<CreateEmptyPidDocumentInput> = z.object({
+  title: z.string(),
+  standard: z.enum(["isa", "iso", "free"]),
+  catalogVersion: z.string().optional(),
+}).strict();
+
+export function createEmptyDocument(
+  input: CreateEmptyPidDocumentInput,
+  context: PidDocumentFactoryContext = {},
+): PidDocument {
+  const { title, standard, catalogVersion = "local-v1" } = createEmptyPidDocumentInputSchema.parse(input);
   const normalizedTitle = title.trim();
   const normalizedCatalogVersion = catalogVersion.trim();
 
@@ -214,10 +274,10 @@ export function createEmptyDocument({
     throw new Error("A versão do catálogo é obrigatória.");
   }
 
-  const timestamp = new Date().toISOString();
-  return {
+  const timestamp = (context.now ?? defaultClock)().toISOString();
+  return parsePidDocument({
     schemaVersion: 1,
-    id: crypto.randomUUID(),
+    id: (context.generateId ?? defaultIdGenerator)(),
     metadata: {
       title: normalizedTitle,
       standard,
@@ -230,9 +290,21 @@ export function createEmptyDocument({
     edges: {},
     annotations: {},
     groups: {},
-  };
+  });
 }
 
 export function parsePidDocument(value: unknown): PidDocument {
-  return pidDocumentSchema.parse(value) as PidDocument;
+  return pidDocumentSchema.parse(value);
+}
+
+function defaultIdGenerator(): string {
+  const randomUUID = globalThis.crypto?.randomUUID;
+  if (typeof randomUUID !== "function") {
+    throw new PidDocumentFactoryError("crypto.randomUUID está indisponível no runtime padrão.");
+  }
+  return randomUUID.call(globalThis.crypto);
+}
+
+function defaultClock(): Date {
+  return new Date();
 }
