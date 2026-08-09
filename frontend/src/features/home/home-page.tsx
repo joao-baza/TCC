@@ -29,6 +29,7 @@ const quickAccess = [
   { to: "/reactor", group: "Reatores", label: "CSTR / PFR" },
   { to: "/balance", group: "Balanço", label: "Balanço de Massa" },
   { to: "/glossary", group: "Ferramentas", label: "Glossário" },
+  { to: "/pid", group: "Ferramentas", label: "P&ID" },
 ];
 
 export function HomePage() {

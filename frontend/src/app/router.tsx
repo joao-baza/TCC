@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 
@@ -22,6 +23,21 @@ import {
   SizingRealDiameterTab,
 } from "@/features/sizing/sizing-page";
 
+const CreatePidPage = lazy(() =>
+  import("@/features/pid/editor/create-pid-page").then(({ CreatePidPage }) => ({
+    default: CreatePidPage,
+  })),
+);
+const PidEditorPage = lazy(() =>
+  import("@/features/pid/editor/pid-editor-page").then(({ PidEditorPage }) => ({
+    default: PidEditorPage,
+  })),
+);
+
+function PidRouteFallback() {
+  return <div role="status">Carregando editor P&ID…</div>;
+}
+
 function EmptyRoute() {
   return null;
 }
@@ -31,6 +47,22 @@ export const routes = [
     path: "/",
     element: <App />,
     children: [
+      {
+        path: "pid",
+        element: (
+          <Suspense fallback={<PidRouteFallback />}>
+            <CreatePidPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "pid/:diagramId",
+        element: (
+          <Suspense fallback={<PidRouteFallback />}>
+            <PidEditorPage />
+          </Suspense>
+        ),
+      },
       {
         element: <AppShell />,
         children: [
