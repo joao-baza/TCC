@@ -122,12 +122,7 @@ describe("documento canônico P&ID", () => {
   });
 
   it("aceita dependências injetadas para UUID e relógio", () => {
-    const factory = createEmptyDocument as (
-      input: Parameters<typeof createEmptyDocument>[0],
-      context: { generateId: () => string; now: () => Date },
-    ) => PidDocument;
-
-    expect(factory(
+    expect(createEmptyDocument(
       { title: "  Área 100  ", standard: "isa", catalogVersion: " catálogo-local " },
       {
         generateId: () => ids.document,
@@ -163,8 +158,19 @@ describe("documento canônico P&ID", () => {
 
   it("faz round-trip de um grafo completo serializável", () => {
     const document = createPopulatedDocument();
+    const parsed = parsePidDocument(document);
 
-    expect(parsePidDocument(JSON.parse(JSON.stringify(document)))).toEqual(document);
+    expect(parsed).toEqual(document);
+    expect(JSON.parse(JSON.stringify(parsed))).toEqual(parsed);
+  });
+
+  it("destaca propriedades analisadas do objeto de entrada", () => {
+    const input = createPopulatedDocument();
+    const parsed = parsePidDocument(input);
+
+    (input.nodes[ids.node].properties.operating as Record<string, unknown>).pressure = 99;
+
+    expect(parsed.nodes[ids.node].properties).toEqual({ operating: { pressure: 3.5 }, enabled: true });
   });
 
   it.each([
@@ -234,4 +240,54 @@ describe("documento canônico P&ID", () => {
       }));
     },
   );
+
+  it("rejeita arrays esparsos nas propriedades", () => {
+    const document = createPopulatedDocument();
+    const values = [1, null, 3];
+    delete values[1];
+    document.nodes[ids.node].properties = { values };
+
+    expect(() => parsePidDocument(document)).toThrow();
+  });
+
+  it("rejeita propriedades com chaves symbol sem inspecionar o valor bigint", () => {
+    const document = createPopulatedDocument();
+    const properties: PidDocument["nodes"][string]["properties"] = {};
+    Object.defineProperty(properties, Symbol("bigint"), { enumerable: true, value: 1n });
+    document.nodes[ids.node].properties = properties;
+
+    expect(() => parsePidDocument(document)).toThrow();
+  });
+
+  it.each([
+    ["não enumerável", (properties: PidDocument["nodes"][string]["properties"]) => {
+      Object.defineProperty(properties, "hidden", { enumerable: false, value: "segredo" });
+    }],
+    ["accessor", (properties: PidDocument["nodes"][string]["properties"]) => {
+      Object.defineProperty(properties, "computed", {
+        enumerable: true,
+        get: () => "não deve ser lido",
+      });
+    }],
+  ])("rejeita propriedades com descritor %s", (_rule, defineProperty) => {
+    const document = createPopulatedDocument();
+    const properties: PidDocument["nodes"][string]["properties"] = {};
+    defineProperty(properties);
+    document.nodes[ids.node].properties = properties;
+
+    expect(() => parsePidDocument(document)).toThrow();
+  });
+
+  it("inclui o índice do membro pendente no caminho do erro de grupo", () => {
+    const document = createPopulatedDocument();
+    document.groups[ids.group].memberIds = [ids.node, ids.document];
+
+    const result = pidDocumentSchema.safeParse(document);
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    expect(result.error.issues).toContainEqual(expect.objectContaining({
+      path: ["groups", ids.group, "memberIds", 1],
+    }));
+  });
 });

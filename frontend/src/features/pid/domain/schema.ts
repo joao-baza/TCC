@@ -5,6 +5,7 @@ import type {
   PidDocument,
   PidEdge,
   PidGroup,
+  PidJsonValue,
   PidNode,
   PidPort,
   PidProperties,
@@ -40,12 +41,9 @@ const rotationSchema = finiteNumberSchema.refine((value) => value % 90 === 0, {
   message: "A rotação deve ser múltipla de 90 graus.",
 });
 const unsafePropertyKeys = new Set(["__proto__", "prototype", "constructor"]);
-const propertyKeySchema = z.string().refine((key) => !unsafePropertyKeys.has(key), {
-  message: "Chave de propriedade insegura.",
-});
 
-const propertiesSchema: z.ZodType<PidProperties> = z.any().superRefine((value, context) => {
-  validateJsonProperties(value, context, []);
+const propertiesSchema: z.ZodType<PidProperties> = z.unknown().transform((value, context) => {
+  return cloneJsonProperties(value, context, []);
 });
 
 const pointSchema: z.ZodType<Point> = z.object({
@@ -181,11 +179,11 @@ export const pidDocumentSchema: z.ZodType<PidDocument> = z.object({
   }
 
   for (const [groupId, group] of Object.entries(document.groups)) {
-    for (const memberId of group.memberIds) {
+    for (const [memberIndex, memberId] of group.memberIds.entries()) {
       if (!document.nodes[memberId]) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["groups", groupId, "memberIds"],
+          path: ["groups", groupId, "memberIds", memberIndex],
           message: `O grupo referencia o nó inexistente ${memberId}.`,
         });
       }
@@ -209,42 +207,116 @@ function validateMapIds(
   }
 }
 
-function validateJsonProperties(value: unknown, context: z.RefinementCtx, path: PropertyKey[]): void {
-  if (value === null || typeof value === "string" || typeof value === "boolean") return;
+function cloneJsonProperties(value: unknown, context: z.RefinementCtx, path: PropertyKey[]): PidProperties {
+  if (!isPlainRecord(value)) {
+    addJsonPropertyIssue(context, path, "As propriedades devem ser objetos JSON simples.");
+    return {};
+  }
+  return cloneJsonRecord(value, context, path);
+}
+
+function cloneJsonValue(value: unknown, context: z.RefinementCtx, path: PropertyKey[]): PidJsonValue {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path,
-        message: "Os valores das propriedades devem ser números finitos.",
-      });
+      addJsonPropertyIssue(context, path, "Os valores das propriedades devem ser números finitos.");
+      return null;
     }
-    return;
+    return value;
   }
   if (Array.isArray(value)) {
-    value.forEach((item, index) => validateJsonProperties(item, context, [...path, index]));
-    return;
+    return cloneJsonArray(value, context, path);
   }
   if (!isPlainRecord(value)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path,
-      message: "As propriedades devem conter apenas valores JSON serializáveis.",
-    });
-    return;
+    addJsonPropertyIssue(context, path, "As propriedades devem conter apenas valores JSON serializáveis.");
+    return null;
   }
 
-  for (const key of Object.getOwnPropertyNames(value)) {
-    if (!propertyKeySchema.safeParse(key).success) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [...path, key],
-        message: "Chave de propriedade insegura.",
-      });
+  return cloneJsonRecord(value, context, path);
+}
+
+function cloneJsonRecord(
+  value: Record<string, unknown>,
+  context: z.RefinementCtx,
+  path: PropertyKey[],
+): PidProperties {
+  const clone: PidProperties = {};
+  for (const key of Reflect.ownKeys(value)) {
+    const keyPath = appendPropertyPath(path, key);
+    if (typeof key !== "string") {
+      addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter chaves symbol.");
       continue;
     }
-    validateJsonProperties(value[key], context, [...path, key]);
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor) continue;
+    if (!descriptor.enumerable) {
+      addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter chaves não enumeráveis.");
+      continue;
+    }
+    if ("get" in descriptor || "set" in descriptor) {
+      addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter accessors.");
+      continue;
+    }
+    if (unsafePropertyKeys.has(key)) {
+      addJsonPropertyIssue(context, keyPath, "Chave de propriedade insegura.");
+      continue;
+    }
+    clone[key] = cloneJsonValue(descriptor.value, context, keyPath);
   }
+  return clone;
+}
+
+function cloneJsonArray(value: unknown[], context: z.RefinementCtx, path: PropertyKey[]): PidJsonValue[] {
+  const clone: PidJsonValue[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    const itemPath = [...path, index];
+    if (!descriptor) {
+      addJsonPropertyIssue(context, itemPath, "Arrays de propriedades não podem ser esparsos.");
+      clone.push(null);
+      continue;
+    }
+    if (!descriptor.enumerable) {
+      addJsonPropertyIssue(context, itemPath, "Arrays não podem ter índices não enumeráveis.");
+      clone.push(null);
+      continue;
+    }
+    if ("get" in descriptor || "set" in descriptor) {
+      addJsonPropertyIssue(context, itemPath, "Arrays não podem ter accessors.");
+      clone.push(null);
+      continue;
+    }
+    clone.push(cloneJsonValue(descriptor.value, context, itemPath));
+  }
+
+  for (const key of Reflect.ownKeys(value)) {
+    if (key === "length" || (typeof key === "string" && isArrayIndex(key, value.length))) continue;
+    addJsonPropertyIssue(
+      context,
+      appendPropertyPath(path, key),
+      typeof key === "symbol"
+        ? "Arrays de propriedades não podem ter chaves symbol."
+        : "Arrays de propriedades não podem ter chaves extras.",
+    );
+  }
+  return clone;
+}
+
+function isArrayIndex(key: string, length: number): boolean {
+  const index = Number(key);
+  return Number.isInteger(index) && index >= 0 && index < length && String(index) === key;
+}
+
+function appendPropertyPath(path: PropertyKey[], key: PropertyKey): PropertyKey[] {
+  return [...path, typeof key === "symbol" ? `[${String(key)}]` : key];
+}
+
+function addJsonPropertyIssue(context: z.RefinementCtx, path: PropertyKey[], message: string): void {
+  context.addIssue({
+    code: z.ZodIssueCode.custom,
+    path,
+    message,
+  });
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
