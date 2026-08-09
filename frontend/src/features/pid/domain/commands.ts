@@ -11,6 +11,8 @@ import { recalculateGroupBounds } from "./graph-operations";
 import {
   getBlockingValidation,
   isStrictBlockingImprovement,
+  registerTrustedCommandResult,
+  toTrustedCanonicalDocument,
   validateCommandResult,
 } from "./invariants";
 import type { PidDocument, Point } from "./model";
@@ -91,16 +93,14 @@ export function applyCommand(
   context: CommandContext = {},
 ): PidDocument {
   try {
-    const before = getBlockingValidation(document);
-    if (!before.schemaValid) {
-      throw new DomainCommandError("O documento de entrada viola o schema canônico.", before.issues);
-    }
+    const canonicalDocument = toTrustedCanonicalDocument(document);
+    const before = getBlockingValidation(canonicalDocument);
     const runtime: Required<CommandContext> = {
       generateId: context.generateId ?? defaultIdGenerator,
       now: context.now ?? defaultClock,
     };
-    const allocator = createIdAllocator(document, runtime.generateId);
-    let next = reduceCommand(document, command, allocator);
+    const allocator = createIdAllocator(canonicalDocument, runtime.generateId);
+    let next = reduceCommand(canonicalDocument, command, allocator);
     next = recalculateGroupBounds(next);
     next = {
       ...next,
@@ -110,7 +110,7 @@ export function applyCommand(
       },
     };
 
-    const after = validateCommandResult(document, next);
+    const after = validateCommandResult(canonicalDocument, next);
     if (!after.schemaValid) {
       throw new DomainCommandError("O comando produziria uma estrutura inválida.", after.issues);
     }
@@ -128,7 +128,7 @@ export function applyCommand(
         [repairIssue, ...after.issues],
       );
     }
-    return next;
+    return registerTrustedCommandResult(next, after);
   } catch (error) {
     if (error instanceof DomainCommandError) throw error;
     throw commandError(

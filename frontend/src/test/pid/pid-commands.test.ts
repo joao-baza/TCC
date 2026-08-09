@@ -95,15 +95,17 @@ describe("comandos canônicos P&ID", () => {
   it("não muta a entrada e compartilha mapas que não foram alterados", () => {
     const empty = emptyDocument();
     const before = structuredClone(empty);
-    const next = applyCommand(empty, insertSymbol(symbol, { x: 120, y: 80 }), deterministicContext());
+    const canonical = applyCommand(empty, renameDocument("Canônico"), deterministicContext());
+    const next = applyCommand(canonical, insertSymbol(symbol, { x: 120, y: 80 }), deterministicContext(10));
 
     expect(empty).toEqual(before);
-    expect(next).not.toBe(empty);
-    expect(next.nodes).not.toBe(empty.nodes);
-    expect(next.ports).not.toBe(empty.ports);
-    expect(next.edges).toBe(empty.edges);
-    expect(next.annotations).toBe(empty.annotations);
-    expect(next.groups).toBe(empty.groups);
+    expect(canonical.nodes).not.toBe(empty.nodes);
+    expect(next).not.toBe(canonical);
+    expect(next.nodes).not.toBe(canonical.nodes);
+    expect(next.ports).not.toBe(canonical.ports);
+    expect(next.edges).toBe(canonical.edges);
+    expect(next.annotations).toBe(canonical.annotations);
+    expect(next.groups).toBe(canonical.groups);
   });
 
   it("rejeita símbolo incompatível com o standard sem tocar no documento", () => {
@@ -516,6 +518,101 @@ describe("comandos canônicos P&ID", () => {
     }
   });
 
+  it("revalida um documento externo mutável sem reutilizar diagnóstico obsoleto", () => {
+    const external = structuredClone(connectedGroup());
+    const edge = Object.values(external.edges)[0];
+    const source = external.ports[edge.sourcePortId];
+    expect(assertDocumentInvariants(external).filter((issue) => issue.code === "connection.direction")).toEqual([]);
+    expect(Object.isFrozen(external)).toBe(false);
+    expect(Object.isFrozen(source)).toBe(false);
+
+    source.direction = "input";
+
+    expect(assertDocumentInvariants(external)).toContainEqual(expect.objectContaining({
+      code: "connection.direction",
+      severity: "error",
+    }));
+  });
+
+  it("destaca a entrada externa antes de confiar e percebe mutações entre comandos", () => {
+    const external = structuredClone(connectedGroup());
+    const first = applyCommand(external, renameDocument("Primeiro"), deterministicContext(450));
+    const edge = Object.values(external.edges)[0];
+    external.ports[edge.sourcePortId].direction = "input";
+
+    expect(Object.isFrozen(external)).toBe(false);
+    expect(Object.isFrozen(external.nodes)).toBe(false);
+    expect(first).not.toBe(external);
+    expect(first.nodes).not.toBe(external.nodes);
+    expect(() => applyCommand(external, renameDocument("Segundo"), deterministicContext(451))).toThrowError(
+      expect.objectContaining({
+        issues: expect.arrayContaining([expect.objectContaining({ code: "command.repair-required" })]),
+      }),
+    );
+  });
+
+  it("retorna documento confiável profundamente imutável e compartilha subtrees congelados", () => {
+    const external = structuredClone(connectedGroup());
+    const nodeId = Object.keys(external.nodes)[0];
+    const edgeId = Object.keys(external.edges)[0];
+    external.nodes[nodeId].properties = { nested: { value: 1 } };
+    external.edges[edgeId].route = [{ x: 0, y: 0 }];
+    const first = applyCommand(external, renameDocument("Confiável"), deterministicContext(460));
+    const edge = first.edges[edgeId];
+
+    expect(Object.isFrozen(first)).toBe(true);
+    expect(Object.isFrozen(first.nodes)).toBe(true);
+    expect(Object.isFrozen(first.nodes[nodeId])).toBe(true);
+    expect(Object.isFrozen(first.nodes[nodeId].properties)).toBe(true);
+    expect(Object.isFrozen(first.nodes[nodeId].properties.nested)).toBe(true);
+    expect(Object.isFrozen(edge.route)).toBe(true);
+    expect(Object.isFrozen(edge.route[0])).toBe(true);
+    expect(() => {
+      (first.nodes[nodeId].properties.nested as { value: number }).value = 2;
+    }).toThrow();
+    expect(() => { edge.route[0].x = 1; }).toThrow();
+    expect(() => edge.route.push({ x: 1, y: 1 })).toThrow();
+
+    const second = applyCommand(first, renameDocument("Ainda confiável"), deterministicContext(461));
+    expect(second.nodes).toBe(first.nodes);
+    expect(second.ports).toBe(first.ports);
+    expect(second.edges).toBe(first.edges);
+    expect(assertDocumentInvariants(second).filter((issue) => issue.severity === "error")).toEqual([]);
+  });
+
+  it.each(["x", "y", "width", "height"])("bloqueia patch direto do bound derivado %s do grupo", (field) => {
+    const document = connectedGroup();
+    const groupId = Object.keys(document.groups)[0];
+
+    expect(() => applyCommand(
+      document,
+      patchElement(groupId, { [field]: 999 }),
+      deterministicContext(470),
+    )).toThrowError(expect.objectContaining({
+      issues: expect.arrayContaining([expect.objectContaining({
+        code: "command.patch.forbidden-field",
+        path: ["groups", groupId, field],
+      })]),
+    }));
+  });
+
+  it("reconstrói issues rasas congeladas sem preservar alias mutável do path", () => {
+    const hostilePath: (string | number)[] = ["nodes", "hostile"];
+    const hostileIssue = Object.freeze({
+      code: "hostile.issue",
+      severity: "error" as const,
+      path: hostilePath,
+      message: "Issue hostil",
+    });
+
+    const error = new DomainCommandError("Falha", [hostileIssue]);
+    hostilePath.push("mutated");
+
+    expect(error.issues[0].path).toEqual(["nodes", "hostile"]);
+    expect(Object.isFrozen(error.issues[0])).toBe(true);
+    expect(Object.isFrozen(error.issues[0].path)).toBe(true);
+  });
+
   it("mantém 100 renomes e movimentos responsivos em 500 nós e 1.000 arestas", () => {
     let document = createReferenceDocument();
     const firstNodeId = Object.keys(document.nodes)[0];
@@ -532,9 +629,10 @@ describe("comandos canônicos P&ID", () => {
     const elapsed = performance.now() - startedAt;
 
     expect(document.nodes[firstNodeId].x).toBe(50);
-    // 1.5 s means at most 15 ms per canonical interaction on the reference
-    // graph; typical local execution remains comfortably below this guardrail.
-    expect(elapsed).toBeLessThan(1_500);
+    // The focused run is normally below 300 ms. The 2.5 s wall-clock guardrail
+    // leaves room for full-suite worker contention while still catching the
+    // original 24 s double-traversal regression by a wide margin.
+    expect(elapsed).toBeLessThan(2_500);
   });
 });
 

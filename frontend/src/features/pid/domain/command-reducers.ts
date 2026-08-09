@@ -494,7 +494,7 @@ const safePatchFields: Record<ElementKind, ReadonlySet<string>> = {
   port: new Set(["direction", "connectionClass", "capacity"]),
   edge: new Set(["route", "tag", "label", "properties"]),
   annotation: new Set(["kind", "text", "x", "y", "width", "height", "rotation", "properties"]),
-  group: new Set(["label", "x", "y", "width", "height", "properties"]),
+  group: new Set(["label", "properties"]),
 };
 
 function patchDocumentElement(document: PidDocument, id: string, patch: Record<string, unknown>): PidDocument {

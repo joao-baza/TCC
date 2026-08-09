@@ -4,9 +4,8 @@ import {
   type PidCommand,
 } from "../domain/commands";
 import { hasSelectableElement } from "../domain/graph-operations";
-import { primeDocumentValidation } from "../domain/invariants";
+import { toTrustedCanonicalDocument } from "../domain/invariants";
 import type { PidDocument, Point } from "../domain/model";
-import { parsePidDocument } from "../domain/schema";
 
 export type EditorChangeOrigin = "local" | "remote";
 
@@ -61,7 +60,7 @@ export function createEditorStore(
   const historyLimit = normalizeHistoryLimit(options.historyLimit);
   const listeners = new Set<(state: EditorState) => void>();
   const notificationQueue: EditorState[] = [];
-  const initial = freezeAndPrime(parsePidDocument(initialDocument));
+  const initial = toTrustedCanonicalDocument(initialDocument);
   const state: InternalEditorState = {
     document: initial,
     past: [],
@@ -121,7 +120,7 @@ export function createEditorStore(
     origin: EditorChangeOrigin,
     coalesceKey?: string,
   ) => {
-    const next = freezeAndPrime(document);
+    const next = toTrustedCanonicalDocument(document);
     const shouldCoalesce = origin === "local"
       && coalesceKey !== undefined
       && coalesceKey === activeCoalesceKey;
@@ -148,7 +147,7 @@ export function createEditorStore(
     },
     replace(document, origin = "local") {
       activeCoalesceKey = undefined;
-      applyDocument(parsePidDocument(document), origin);
+      applyDocument(document, origin);
     },
     undo() {
       activeCoalesceKey = undefined;
@@ -218,18 +217,4 @@ function createSnapshot(state: InternalEditorState): EditorState {
     selection: Object.freeze([...state.selection]),
     viewport: Object.freeze({ ...state.viewport }),
   });
-}
-
-function freezeAndPrime(document: PidDocument): PidDocument {
-  const frozen = deepFreeze(document);
-  primeDocumentValidation(frozen);
-  return frozen;
-}
-
-function deepFreeze<T>(value: T): T {
-  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
-    for (const child of Object.values(value)) deepFreeze(child);
-    Object.freeze(value);
-  }
-  return value;
 }

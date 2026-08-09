@@ -1,6 +1,7 @@
 import type { z } from "zod";
 
 import {
+  DomainCommandError,
   freezeIssues,
   invariantIssue,
   type DocumentInvariantIssue,
@@ -23,15 +24,21 @@ interface BlockingValidation {
 }
 
 const validationCache = new WeakMap<PidDocument, BlockingValidation>();
+const trustedDocuments = new WeakSet<PidDocument>();
 
-// Performance model: canonical outputs are cached by identity; each following
-// command validates only changed Zod entities. Reference and blocking graph
-// checks stay linear in V + E through a one-pass index. Tag diagnostics are
-// intentionally lazy because warnings do not participate in command admission.
+// Performance model: only detached, deeply frozen canonical outputs enter the
+// identity cache. Each following command validates changed Zod entities;
+// reference and blocking graph checks stay linear in V + E through a one-pass
+// index. Tag diagnostics remain lazy because warnings do not admit commands.
 
 export function assertDocumentInvariants(value: unknown): DocumentInvariantIssue[] {
   if (!isPidDocumentObject(value)) {
     return [...schemaIssues(pidDocumentSchema.safeParse(value))];
+  }
+  if (!trustedDocuments.has(value)) {
+    const parsed = pidDocumentSchema.safeParse(value);
+    if (!parsed.success) return [...schemaIssues(parsed)];
+    return [...blockingSemanticIssues(parsed.data), ...tagDiagnostics(parsed.data)];
   }
   const validation = getBlockingValidation(value);
   if (!validation.schemaValid) return [...validation.issues];
@@ -39,15 +46,10 @@ export function assertDocumentInvariants(value: unknown): DocumentInvariantIssue
 }
 
 export function getBlockingValidation(document: PidDocument): BlockingValidation {
+  if (!trustedDocuments.has(document)) return validateUntrustedDocument(document);
   const cached = validationCache.get(document);
-  if (cached) return cached;
-
-  const parsed = pidDocumentSchema.safeParse(document);
-  const validation: BlockingValidation = parsed.success
-    ? { schemaValid: true, issues: freezeIssues(blockingSemanticIssues(document)) }
-    : { schemaValid: false, issues: schemaIssues(parsed) };
-  validationCache.set(document, validation);
-  return validation;
+  if (!cached) throw new Error("Documento confiável sem registro de validação.");
+  return cached;
 }
 
 export function validateCommandResult(
@@ -61,12 +63,36 @@ export function validateCommandResult(
   const validation: BlockingValidation = structuralIssues.length > 0
     ? { schemaValid: false, issues: freezeIssues(structuralIssues) }
     : { schemaValid: true, issues: freezeIssues(blockingSemanticIssues(next)) };
-  validationCache.set(next, validation);
   return validation;
 }
 
-export function primeDocumentValidation(document: PidDocument): void {
-  getBlockingValidation(document);
+export function toTrustedCanonicalDocument(document: PidDocument): PidDocument {
+  if (trustedDocuments.has(document)) return document;
+  const parsed = pidDocumentSchema.safeParse(document);
+  if (!parsed.success) {
+    throw new DomainCommandError(
+      "O documento de entrada viola o schema canônico.",
+      schemaIssues(parsed),
+    );
+  }
+  const detached = deepFreeze(parsed.data);
+  const validation: BlockingValidation = {
+    schemaValid: true,
+    issues: freezeIssues(blockingSemanticIssues(detached)),
+  };
+  trustedDocuments.add(detached);
+  validationCache.set(detached, validation);
+  return detached;
+}
+
+export function registerTrustedCommandResult(
+  document: PidDocument,
+  validation: BlockingValidation,
+): PidDocument {
+  const frozen = deepFreeze(document);
+  trustedDocuments.add(frozen);
+  validationCache.set(frozen, validation);
+  return frozen;
 }
 
 export function isStrictBlockingImprovement(
@@ -147,6 +173,13 @@ function incrementalSchemaIssues(previous: PidDocument, next: PidDocument): Docu
     }
   }
   return issues;
+}
+
+function validateUntrustedDocument(document: PidDocument): BlockingValidation {
+  const parsed = pidDocumentSchema.safeParse(document);
+  return parsed.success
+    ? { schemaValid: true, issues: freezeIssues(blockingSemanticIssues(parsed.data)) }
+    : { schemaValid: false, issues: schemaIssues(parsed) };
 }
 
 function validateChangedMap<T extends { id: string }>(
@@ -389,4 +422,12 @@ function issueKey(issue: DocumentInvariantIssue): string {
 
 function isPidDocumentObject(value: unknown): value is PidDocument {
   return typeof value === "object" && value !== null;
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+    for (const child of Object.values(value)) deepFreeze(child);
+    Object.freeze(value);
+  }
+  return value;
 }

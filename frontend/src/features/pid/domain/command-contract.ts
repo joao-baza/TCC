@@ -96,7 +96,10 @@ export function commandError(
 export function freezeIssues(
   issues: readonly DocumentInvariantIssue[],
 ): readonly DocumentInvariantIssue[] {
-  return Object.freeze(issues.map((issue) => Object.isFrozen(issue)
-    ? issue
-    : invariantIssue(issue.code, issue.severity, issue.path, issue.message)));
+  return Object.freeze(issues.map((issue) => invariantIssue(
+    issue.code,
+    issue.severity,
+    issue.path,
+    issue.message,
+  )));
 }
