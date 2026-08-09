@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
-import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { createMemoryRouter, RouterProvider, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PidServices } from "@/features/pid/api/contracts";
@@ -45,11 +45,11 @@ function services(overrides: Partial<PidServices["document"]> = {}, scope: "view
 }
 
 function mount(pidServices: PidServices, strict = false) {
-  const page = <PidServicesProvider services={pidServices}>
-    <MemoryRouter initialEntries={[`/pid/${diagramId}#access=edit-token`]}>
-      <Routes><Route path="/pid/:diagramId" element={<PidEditorPage />} /></Routes>
-    </MemoryRouter>
-  </PidServicesProvider>;
+  const router = createMemoryRouter([{
+    path: "/pid/:diagramId",
+    element: <PidEditorPage />,
+  }], { initialEntries: [`/pid/${diagramId}#access=edit-token`] });
+  const page = <PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>;
   return render(strict ? <StrictMode>{page}</StrictMode> : page);
 }
 
@@ -59,12 +59,19 @@ function NavigationControl({ targetId }: { targetId: string }) {
 }
 
 function mountWithNavigation(pidServices: PidServices, targetId: string) {
-  return render(<PidServicesProvider services={pidServices}>
-    <MemoryRouter initialEntries={[`/pid/${diagramId}#access=edit-token`]}>
-      <NavigationControl targetId={targetId} />
-      <Routes><Route path="/pid/:diagramId" element={<PidEditorPage />} /></Routes>
-    </MemoryRouter>
-  </PidServicesProvider>);
+  const router = createMemoryRouter([{
+    path: "/pid/:diagramId",
+    element: <><NavigationControl targetId={targetId} /><PidEditorPage /></>,
+  }], { initialEntries: [`/pid/${diagramId}#access=edit-token`] });
+  return { router, ...render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>) };
+}
+
+function mountWithExitNavigation(pidServices: PidServices) {
+  const router = createMemoryRouter([
+    { path: "/", element: <h1>Início</h1> },
+    { path: "/pid/:diagramId", element: <PidEditorPage /> },
+  ], { initialEntries: ["/", `/pid/${diagramId}#access=edit-token`], initialIndex: 1 });
+  return { router, ...render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>) };
 }
 
 function deferred<T>() {
@@ -209,6 +216,39 @@ describe("studio focado P&ID", () => {
     expect(Object.keys(save.mock.calls[1][2].annotations)).toHaveLength(1);
   });
 
+  it.each([
+    ["link Voltar ao DCOU", async (router: ReturnType<typeof createMemoryRouter>) => {
+      fireEvent.click(screen.getByRole("link", { name: "Voltar ao DCOU" }));
+      await Promise.resolve();
+    }],
+    ["histórico Back", async (router: ReturnType<typeof createMemoryRouter>) => { await router.navigate(-1); }],
+  ])("bloqueia saída por %s até salvar e só prossegue uma vez após retry", async (_label, leave) => {
+    const save = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(2);
+    const { router } = mountWithExitNavigation(services({ save }));
+    await screen.findByRole("heading", { name: "Utilidades" });
+    let destinationArrivals = 0;
+    const unsubscribe = router.subscribe((state) => {
+      if (state.location.pathname === "/") destinationArrivals += 1;
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
+
+    await act(async () => { await leave(router); });
+
+    expect(await screen.findByText(/Não foi possível salvar o diagrama antes de navegar/)).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe(`/pid/${diagramId}`);
+    expect(screen.getByRole("heading", { name: "Utilidades" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Permanecer no editor" })).toBeEnabled();
+    expect(destinationArrivals).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Tentar navegar novamente" }));
+    expect(await screen.findByRole("heading", { name: "Início" })).toBeInTheDocument();
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(destinationArrivals).toBe(1);
+    await act(async () => { await Promise.resolve(); });
+    expect(destinationArrivals).toBe(1);
+    unsubscribe();
+  });
+
   it("mantém o studio de visualização somente leitura e sem controles de mutação", async () => {
     mount(services({}, "view"));
     await screen.findByRole("heading", { name: "Utilidades" });
@@ -313,6 +353,42 @@ describe("studio focado P&ID", () => {
     await waitFor(() => expect(screen.queryByRole("alertdialog", { name: "Excluir diagrama" })).not.toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();
     expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Não salvo");
+  });
+
+  it("preserva a revisão confirmada quando um flush parcial falha antes da exclusão", async () => {
+    const firstSave = deferred<number>();
+    const save = vi.fn()
+      .mockReturnValueOnce(firstSave.promise)
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockImplementationOnce(async (_diagramId, _token, _document, expectedRevision) => {
+        if (expectedRevision !== 2) throw new PidDocumentError("CONFLICT");
+        return 3;
+      });
+    const softDelete = vi.fn().mockResolvedValue(4);
+    const pidServices = services({ save, softDelete });
+    mount(pidServices);
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    fireEvent.change(screen.getByLabelText("Digite Utilidades para confirmar"), { target: { value: "Utilidades" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+
+    await act(async () => { firstSave.resolve(2); await firstSave.promise; await Promise.resolve(); });
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(Object.keys(save.mock.calls[0][2].annotations)).toHaveLength(1);
+    expect(Object.keys(save.mock.calls[1][2].annotations)).toHaveLength(2);
+    expect(save.mock.calls[1][3]).toBe(2);
+    expect(softDelete).not.toHaveBeenCalled();
+    expect(screen.getByRole("alertdialog", { name: "Excluir diagrama" })).toHaveTextContent("Não foi possível excluir");
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+    await waitFor(() => expect(softDelete).toHaveBeenCalledWith(diagramId, "edit-token", 3));
+    expect(save).toHaveBeenCalledTimes(3);
+    expect(Object.keys(save.mock.calls[2][2].annotations)).toHaveLength(2);
+    expect(save.mock.calls[2][3]).toBe(2);
   });
 
   it("contém foco e bloqueia atalhos do editor nos diálogos de share e exclusão", async () => {

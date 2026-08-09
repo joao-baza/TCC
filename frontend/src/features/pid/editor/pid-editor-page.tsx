@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useBlocker, useLocation, useParams } from "react-router-dom";
 
 import { isPidDocumentError, type OpenedPidDiagram } from "../api/contracts";
 import { usePidServices } from "../api/pid-services";
@@ -49,25 +49,33 @@ export function PidEditorPage() {
   const { hash } = useLocation();
   const [session, setSession] = useState<EditorSession | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [navigationError, setNavigationError] = useState<string | null>(null);
   const [navigationRetry, setNavigationRetry] = useState(0);
-  const navigationGuardRef = useRef<(() => Promise<number>) | null>(null);
+  const [navigationGuard, setNavigationGuard] = useState<(() => Promise<number>) | null>(null);
+  const navigationBlocker = useBlocker(navigationGuard !== null);
   const token = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash).get("access") ?? "";
   const registerNavigationGuard = useCallback((guard: () => Promise<number>) => {
-    navigationGuardRef.current = guard;
-    return () => { if (navigationGuardRef.current === guard) navigationGuardRef.current = null; };
+    setNavigationGuard(() => guard);
+    return () => setNavigationGuard((current) => current === guard ? null : current);
   }, []);
+
+  useEffect(() => {
+    if (navigationBlocker.state !== "blocked" || !navigationGuard) return;
+    let active = true;
+    setNavigationError(null);
+    void navigationGuard().then(
+      () => { if (active) navigationBlocker.proceed(); },
+      () => {
+        if (active) setNavigationError("Não foi possível salvar o diagrama antes de navegar. Verifique a conexão e tente novamente.");
+      },
+    );
+    return () => { active = false; };
+  }, [navigationBlocker, navigationGuard, navigationRetry]);
 
   useEffect(() => {
     let active = true;
     setError(null);
     void (async () => {
-      try {
-        await navigationGuardRef.current?.();
-      } catch {
-        if (active) setError("Não foi possível salvar o diagrama antes de navegar. Verifique a conexão e tente novamente.");
-        return;
-      }
-      if (!active) return;
       if (!diagramId || !token) {
         setError("O link do diagrama não contém uma credencial de acesso válida.");
         return;
@@ -83,12 +91,12 @@ export function PidEditorPage() {
       }
     })();
     return () => { active = false; };
-  }, [diagramId, documentPort, navigationRetry, token]);
+  }, [diagramId, documentPort, token]);
 
   if (!session) return <main className="pid-editor-loading"><h1>Editor P&amp;ID</h1>{error
     ? <p role="alert">{error}</p>
     : <p role="status">Carregando diagrama…</p>}<Link to="/">Voltar ao DCOU</Link></main>;
-  return <>{error && <div className="pid-navigation-error" role="alert"><p>{error}</p><button type="button" onClick={() => setNavigationRetry((value) => value + 1)}>Tentar navegar novamente</button></div>}
+  return <>{navigationError && navigationBlocker.state === "blocked" && <div className="pid-navigation-error" role="alert"><p>{navigationError}</p><button type="button" onClick={() => setNavigationRetry((value) => value + 1)}>Tentar navegar novamente</button><button type="button" onClick={() => { navigationBlocker.reset(); setNavigationError(null); }}>Permanecer no editor</button></div>}
     <EditorStudio key={`${session.diagramId}:${session.routeToken}`} diagramId={session.diagramId} session={session} registerNavigationGuard={registerNavigationGuard} />
   </>;
 }
@@ -212,8 +220,8 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     setLifecycle("deleted");
   }, []);
   const deleteFailed = useCallback((currentRevision: number) => {
-    setRevision(currentRevision);
-    autosave.resumeLocal(currentRevision);
+    const preservedRevision = autosave.resumeLocal(currentRevision);
+    setRevision((previous) => Math.max(previous, preservedRevision));
     lifecycleRef.current = "active";
     setLifecycle("active");
   }, [autosave]);

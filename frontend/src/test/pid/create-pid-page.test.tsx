@@ -1,9 +1,6 @@
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import {
-  MemoryRouter,
-  Route,
   RouterProvider,
-  Routes,
   createMemoryRouter,
 } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -311,15 +308,11 @@ describe("PidServicesProvider", () => {
 describe("PidEditorPage", () => {
   it("abre pelo UUID e token do fragmento e renderiza título e escopo", async () => {
     const pidServices = services();
-    render(
-      <PidServicesProvider services={pidServices}>
-        <MemoryRouter initialEntries={[`/pid/${diagramId}#access=edit-token`]}>
-          <Routes>
-            <Route path="/pid/:diagramId" element={<PidEditorPage />} />
-          </Routes>
-        </MemoryRouter>
-      </PidServicesProvider>,
-    );
+    const router = createMemoryRouter([{
+      path: "/pid/:diagramId",
+      element: <PidEditorPage />,
+    }], { initialEntries: [`/pid/${diagramId}#access=edit-token`] });
+    render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>);
 
     expect(screen.getByRole("status")).toHaveTextContent("Carregando diagrama");
     expect(await screen.findByRole("heading", { name: "Utilidades" })).toBeInTheDocument();

@@ -13,7 +13,7 @@ export interface EditorAutosaveController {
   retry(): void;
   flush(): Promise<number>;
   suspend(): Promise<number>;
-  resumeLocal(revision: number): void;
+  resumeLocal(revision: number): number;
   resumeRemote(revision: number): void;
 }
 
@@ -42,7 +42,7 @@ export function useEditorAutosave(input: {
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
 
-  useEffect(() => { revisionRef.current = input.revision; }, [input.revision]);
+  useEffect(() => { revisionRef.current = Math.max(revisionRef.current, input.revision); }, [input.revision]);
   useEffect(() => {
     activeRef.current = true;
     return () => {
@@ -150,7 +150,7 @@ export function useEditorAutosave(input: {
   };
 
   const resumeLocal = useCallback((revision: number) => {
-    revisionRef.current = revision;
+    revisionRef.current = Math.max(revisionRef.current, revision);
     suspendedRef.current = false;
     if (!blockedRef.current) { setConflict(false); setError(null); }
     if (savedVersionRef.current === versionRef.current) setState("Sincronizado");
@@ -158,6 +158,7 @@ export function useEditorAutosave(input: {
       setState("Não salvo");
       timerRef.current = setTimeout(() => { void save(); }, 400);
     }
+    return revisionRef.current;
   }, [save]);
 
   const resumeRemote = useCallback((revision: number) => {

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 
 import { PidDocumentError, type AccessScope, type PidDocumentPort, type PidServices } from "@/features/pid/api/contracts";
 import { PidServicesProvider } from "@/features/pid/api/pid-services";
@@ -134,11 +134,11 @@ describe("integração real do studio P&ID", () => {
 });
 
 function mount(pidServices: PidServices) {
-  return render(<PidServicesProvider services={pidServices}>
-    <MemoryRouter initialEntries={[`/pid/${ids.diagram}#access=edit-token`]}>
-      <Routes><Route path="/pid/:diagramId" element={<PidEditorPage />} /></Routes>
-    </MemoryRouter>
-  </PidServicesProvider>);
+  const router = createMemoryRouter([{
+    path: "/pid/:diagramId",
+    element: <PidEditorPage />,
+  }], { initialEntries: [`/pid/${ids.diagram}#access=edit-token`] });
+  return render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>);
 }
 
 function services(documentOverrides: Partial<PidDocumentPort> = {}): PidServices {
