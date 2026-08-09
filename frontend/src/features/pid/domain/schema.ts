@@ -41,6 +41,16 @@ const rotationSchema = finiteNumberSchema.refine((value) => value % 90 === 0, {
   message: "A rotação deve ser múltipla de 90 graus.",
 });
 const unsafePropertyKeys = new Set(["__proto__", "prototype", "constructor"]);
+const maxPropertyDepth = 64;
+const maxPropertyValues = 100_000;
+const maxPropertyArrayLength = 10_000;
+const maxPropertyObjectKeys = 10_000;
+
+interface JsonTraversalState {
+  activePath: WeakSet<object>;
+  exhausted: boolean;
+  valuesVisited: number;
+}
 
 const propertiesSchema: z.ZodType<PidProperties> = z.unknown().transform((value, context) => {
   return cloneJsonProperties(value, context, []);
@@ -208,14 +218,27 @@ function validateMapIds(
 }
 
 function cloneJsonProperties(value: unknown, context: z.RefinementCtx, path: PropertyKey[]): PidProperties {
+  const state: JsonTraversalState = {
+    activePath: new WeakSet(),
+    exhausted: false,
+    valuesVisited: 0,
+  };
+  if (!consumeTraversalValue(state, context, path)) return {};
   if (!isPlainRecord(value)) {
     addJsonPropertyIssue(context, path, "As propriedades devem ser objetos JSON simples.");
     return {};
   }
-  return cloneJsonRecord(value, context, path);
+  return cloneJsonRecord(value, context, path, state, 0);
 }
 
-function cloneJsonValue(value: unknown, context: z.RefinementCtx, path: PropertyKey[]): PidJsonValue {
+function cloneJsonValue(
+  value: unknown,
+  context: z.RefinementCtx,
+  path: PropertyKey[],
+  state: JsonTraversalState,
+  depth: number,
+): PidJsonValue {
+  if (!consumeTraversalValue(state, context, path)) return null;
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
@@ -225,81 +248,124 @@ function cloneJsonValue(value: unknown, context: z.RefinementCtx, path: Property
     return value;
   }
   if (Array.isArray(value)) {
-    return cloneJsonArray(value, context, path);
+    return cloneJsonArray(value, context, path, state, depth);
   }
   if (!isPlainRecord(value)) {
     addJsonPropertyIssue(context, path, "As propriedades devem conter apenas valores JSON serializáveis.");
     return null;
   }
 
-  return cloneJsonRecord(value, context, path);
+  return cloneJsonRecord(value, context, path, state, depth);
 }
 
 function cloneJsonRecord(
   value: Record<string, unknown>,
   context: z.RefinementCtx,
   path: PropertyKey[],
+  state: JsonTraversalState,
+  depth: number,
 ): PidProperties {
+  if (!enterContainer(value, context, path, state, depth)) return {};
   const clone: PidProperties = {};
-  for (const key of Reflect.ownKeys(value)) {
-    const keyPath = appendPropertyPath(path, key);
-    if (typeof key !== "string") {
-      addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter chaves symbol.");
-      continue;
+  try {
+    const keys = Reflect.ownKeys(value);
+    if (keys.length > maxPropertyObjectKeys) {
+      addJsonPropertyIssue(context, path, "Objetos de propriedades não podem exceder 10.000 chaves próprias.");
+      return clone;
     }
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (!descriptor) continue;
-    if (!descriptor.enumerable) {
-      addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter chaves não enumeráveis.");
-      continue;
+
+    for (const key of keys) {
+      if (state.exhausted) break;
+      const keyPath = appendPropertyPath(path, key);
+      if (typeof key !== "string") {
+        addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter chaves symbol.");
+        continue;
+      }
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor) continue;
+      if (!descriptor.enumerable) {
+        addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter chaves não enumeráveis.");
+        continue;
+      }
+      if ("get" in descriptor || "set" in descriptor) {
+        addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter accessors.");
+        continue;
+      }
+      if (unsafePropertyKeys.has(key)) {
+        addJsonPropertyIssue(context, keyPath, "Chave de propriedade insegura.");
+        continue;
+      }
+      clone[key] = cloneJsonValue(descriptor.value, context, keyPath, state, depth + 1);
     }
-    if ("get" in descriptor || "set" in descriptor) {
-      addJsonPropertyIssue(context, keyPath, "As propriedades não podem ter accessors.");
-      continue;
-    }
-    if (unsafePropertyKeys.has(key)) {
-      addJsonPropertyIssue(context, keyPath, "Chave de propriedade insegura.");
-      continue;
-    }
-    clone[key] = cloneJsonValue(descriptor.value, context, keyPath);
+    return clone;
+  } finally {
+    state.activePath.delete(value);
   }
-  return clone;
 }
 
-function cloneJsonArray(value: unknown[], context: z.RefinementCtx, path: PropertyKey[]): PidJsonValue[] {
+function cloneJsonArray(
+  value: unknown[],
+  context: z.RefinementCtx,
+  path: PropertyKey[],
+  state: JsonTraversalState,
+  depth: number,
+): PidJsonValue[] {
+  if (!enterContainer(value, context, path, state, depth)) return [];
   const clone: PidJsonValue[] = [];
-  for (let index = 0; index < value.length; index += 1) {
-    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
-    const itemPath = [...path, index];
-    if (!descriptor) {
-      addJsonPropertyIssue(context, itemPath, "Arrays de propriedades não podem ser esparsos.");
-      clone.push(null);
-      continue;
+  try {
+    const keys = Reflect.ownKeys(value);
+    if (keys.length - 1 > maxPropertyObjectKeys) {
+      addJsonPropertyIssue(context, path, "Arrays de propriedades não podem exceder 10.000 chaves próprias.");
+      return clone;
     }
-    if (!descriptor.enumerable) {
-      addJsonPropertyIssue(context, itemPath, "Arrays não podem ter índices não enumeráveis.");
-      clone.push(null);
-      continue;
+    if (value.length > maxPropertyArrayLength) {
+      addJsonPropertyIssue(context, path, "Arrays de propriedades não podem exceder 10.000 itens.");
+      return clone;
     }
-    if ("get" in descriptor || "set" in descriptor) {
-      addJsonPropertyIssue(context, itemPath, "Arrays não podem ter accessors.");
-      clone.push(null);
-      continue;
-    }
-    clone.push(cloneJsonValue(descriptor.value, context, itemPath));
-  }
 
-  for (const key of Reflect.ownKeys(value)) {
-    if (key === "length" || (typeof key === "string" && isArrayIndex(key, value.length))) continue;
-    addJsonPropertyIssue(
-      context,
-      appendPropertyPath(path, key),
-      typeof key === "symbol"
-        ? "Arrays de propriedades não podem ter chaves symbol."
-        : "Arrays de propriedades não podem ter chaves extras.",
-    );
+    let indexedKeyCount = 0;
+    for (const key of keys) {
+      if (key === "length") continue;
+      if (typeof key === "string" && isArrayIndex(key, value.length)) {
+        indexedKeyCount += 1;
+        continue;
+      }
+      addJsonPropertyIssue(
+        context,
+        appendPropertyPath(path, key),
+        typeof key === "symbol"
+          ? "Arrays de propriedades não podem ter chaves symbol."
+          : "Arrays de propriedades não podem ter chaves extras.",
+      );
+    }
+    if (indexedKeyCount !== value.length) {
+      for (let index = 0; index < value.length; index += 1) {
+        if (!Object.hasOwn(value, index)) {
+          addJsonPropertyIssue(context, [...path, index], "Arrays de propriedades não podem ser esparsos.");
+          break;
+        }
+      }
+      return clone;
+    }
+
+    for (let index = 0; index < value.length; index += 1) {
+      if (state.exhausted) break;
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      const itemPath = [...path, index];
+      if (!descriptor || !descriptor.enumerable) {
+        addJsonPropertyIssue(context, itemPath, "Arrays não podem ter índices não enumeráveis.");
+        continue;
+      }
+      if ("get" in descriptor || "set" in descriptor) {
+        addJsonPropertyIssue(context, itemPath, "Arrays não podem ter accessors.");
+        continue;
+      }
+      clone.push(cloneJsonValue(descriptor.value, context, itemPath, state, depth + 1));
+    }
+    return clone;
+  } finally {
+    state.activePath.delete(value);
   }
-  return clone;
 }
 
 function isArrayIndex(key: string, length: number): boolean {
@@ -317,6 +383,35 @@ function addJsonPropertyIssue(context: z.RefinementCtx, path: PropertyKey[], mes
     path,
     message,
   });
+}
+
+function consumeTraversalValue(state: JsonTraversalState, context: z.RefinementCtx, path: PropertyKey[]): boolean {
+  if (state.exhausted) return false;
+  state.valuesVisited += 1;
+  if (state.valuesVisited <= maxPropertyValues) return true;
+
+  state.exhausted = true;
+  addJsonPropertyIssue(context, path, "Limite de 100.000 valores de propriedades excedido.");
+  return false;
+}
+
+function enterContainer(
+  value: object,
+  context: z.RefinementCtx,
+  path: PropertyKey[],
+  state: JsonTraversalState,
+  depth: number,
+): boolean {
+  if (depth > maxPropertyDepth) {
+    addJsonPropertyIssue(context, path, "Profundidade máxima de propriedades (64) excedida.");
+    return false;
+  }
+  if (state.activePath.has(value)) {
+    addJsonPropertyIssue(context, path, "Referência cíclica em propriedades não é permitida.");
+    return false;
+  }
+  state.activePath.add(value);
+  return true;
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {

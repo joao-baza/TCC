@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { PidDocument } from "@/features/pid/domain/model";
+import type { PidDocument, PidJsonValue, PidProperties } from "@/features/pid/domain/model";
 import {
   createEmptyDocument,
   parsePidDocument,
@@ -288,6 +288,98 @@ describe("documento canônico P&ID", () => {
 
     expect(result.error.issues).toContainEqual(expect.objectContaining({
       path: ["groups", ids.group, "memberIds", 1],
+    }));
+  });
+
+  it("rejeita uma referência circular direta com o caminho da propriedade", () => {
+    const document = createPopulatedDocument();
+    const properties: PidProperties = {};
+    properties.self = properties;
+    document.nodes[ids.node].properties = properties;
+
+    const result = pidDocumentSchema.safeParse(document);
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    expect(result.error.issues).toContainEqual(expect.objectContaining({
+      path: ["nodes", ids.node, "properties", "self"],
+      message: expect.stringMatching(/cíclica/i),
+    }));
+  });
+
+  it("rejeita referências circulares mútuas", () => {
+    const document = createPopulatedDocument();
+    const first: PidProperties = {};
+    const second: PidProperties = {};
+    first.next = second;
+    second.next = first;
+    document.nodes[ids.node].properties = { first };
+
+    expect(() => parsePidDocument(document)).toThrow(/cíclica/i);
+  });
+
+  it("aceita referências acíclicas compartilhadas e as destaca", () => {
+    const document = createPopulatedDocument();
+    const shared: PidProperties = { status: "normal" };
+    document.nodes[ids.node].properties = { left: shared, right: shared };
+
+    const parsed = parsePidDocument(document);
+    const left = parsed.nodes[ids.node].properties.left as PidProperties;
+    const right = parsed.nodes[ids.node].properties.right as PidProperties;
+    shared.status = "alterado";
+
+    expect(left).toEqual({ status: "normal" });
+    expect(right).toEqual({ status: "normal" });
+    expect(left).not.toBe(right);
+  });
+
+  it("rejeita profundidade de propriedades acima de 64 com o caminho exato", () => {
+    const document = createPopulatedDocument();
+    let nested: PidJsonValue = "fim";
+    for (let depth = 0; depth < 65; depth += 1) nested = { child: nested };
+    document.nodes[ids.node].properties = { root: nested };
+
+    const result = pidDocumentSchema.safeParse(document);
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    expect(result.error.issues).toContainEqual(expect.objectContaining({
+      path: ["nodes", ids.node, "properties", "root", ...Array(64).fill("child")],
+      message: expect.stringMatching(/profundidade máxima/i),
+    }));
+  });
+
+  it("rejeita um array esparso de comprimento declarado muito grande sem percorrê-lo", () => {
+    const document = createPopulatedDocument();
+    const values: PidJsonValue[] = [];
+    values.length = 1_000_000;
+    document.nodes[ids.node].properties = { values };
+
+    const result = pidDocumentSchema.safeParse(document);
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    expect(result.error.issues).toContainEqual(expect.objectContaining({
+      path: ["nodes", ids.node, "properties", "values"],
+      message: expect.stringMatching(/10\.000/i),
+    }));
+  });
+
+  it("rejeita uma travessia que excede o orçamento de 100.000 valores", () => {
+    const document = createPopulatedDocument();
+    const rows: PidJsonValue[] = Array.from(
+      { length: 20 },
+      () => Array.from({ length: 5_000 }, () => 0),
+    );
+    document.nodes[ids.node].properties = { rows };
+
+    const result = pidDocumentSchema.safeParse(document);
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    expect(result.error.issues).toContainEqual(expect.objectContaining({
+      path: ["nodes", ids.node, "properties", "rows", 19, 4978],
+      message: expect.stringMatching(/100\.000/i),
     }));
   });
 });
