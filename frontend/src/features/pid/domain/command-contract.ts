@@ -22,7 +22,7 @@ export interface CatalogSymbol {
   portTemplates: readonly CatalogPortTemplate[];
   tag?: string;
   label?: string;
-  properties?: PidProperties;
+  properties?: Readonly<PidProperties>;
 }
 
 export type PidCommand =

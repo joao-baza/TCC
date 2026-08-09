@@ -69,8 +69,19 @@ describe("CatalogPanel", () => {
     const index = createCatalogIndex(localCatalog);
     const { rerender } = render(<CatalogPanel index={index} standard="free" source="project" onInsert={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Fonte: Projeto" })).toHaveAttribute("aria-pressed", "true");
-    rerender(<CatalogPanel index={index} standard="free" onInsert={vi.fn()} />);
+    rerender(<CatalogPanel index={index} standard="free" source={undefined} onInsert={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Fonte: Projeto" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("mantém IDs únicos entre painéis e unifica categorias canônicas", () => {
+    const symbols = [
+      { ...localCatalog[0], key: "project.cafe.one", category: "Café" },
+      { ...localCatalog[1], key: "project.cafe.two", category: "Cafe" },
+    ];
+    render(<><CatalogPanel symbols={symbols} standard="free" onInsert={vi.fn()} /><CatalogPanel symbols={symbols} standard="free" onInsert={vi.fn()} /></>);
+    expect(screen.getAllByRole("treeitem", { name: /Cafe|Café/ }).filter((item) => item.getAttribute("aria-level") === "1")).toHaveLength(2);
+    const ids = screen.getAllByRole("treeitem").map((item) => item.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("mostra estado vazio e permite limpar a busca", () => {

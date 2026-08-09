@@ -19,6 +19,8 @@ export interface CatalogSymbol extends InsertionCatalogSymbol {
   readonly source: CatalogProvenance;
 }
 
+export type CatalogManifest = readonly CatalogSymbol[];
+
 export class CatalogValidationError extends TypeError {
   readonly code: string;
   readonly path: readonly (string | number)[];
@@ -36,6 +38,8 @@ const maxDepth = 32;
 const maxValues = 20_000;
 const maxArrayLength = 2_000;
 const maxObjectKeys = 200;
+const maxSymbols = 500;
+const trustedManifests = new WeakSet<object>();
 const keyPattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)+$/;
 const portKeyPattern = /^[a-z][a-z0-9-]*$/;
 const assetOrigin = "https://catalog.local";
@@ -50,7 +54,6 @@ export function parseCatalogSymbol(value: unknown): CatalogSymbol {
     "key", "name", "aliases", "category", "assetUrl", "viewBox", "defaultSize",
     "portTemplates", "standards", "catalogVersion", "source", "tag", "label", "properties",
   ], ["key", "name", "aliases", "category", "assetUrl", "viewBox", "defaultSize", "portTemplates", "standards", "catalogVersion", "source"]);
-  try { structuredClone(value); } catch { fail("catalog.uncloneable", [], "O catálogo não pode conter proxies ou valores não clonáveis."); }
   const key = string(root, "key", state, ["key"]);
   if (!keyPattern.test(key)) fail("catalog.key.invalid", ["key"], "A key do símbolo deve ser ASCII minúscula e namespaced.");
   const name = nonBlank(string(root, "name", state, ["name"]), ["name"]);
@@ -102,6 +105,41 @@ export function parseCatalogSymbol(value: unknown): CatalogSymbol {
     ...(Object.hasOwn(root, "label") ? { label: string(root, "label", state, ["label"]) } : {}),
     ...(properties === undefined ? {} : { properties }),
   });
+}
+
+/** Strict descriptor-based manifest decoder for programmatic input. */
+export function parseCatalogManifest(value: unknown): CatalogManifest {
+  if (isTrustedCatalogManifest(value)) return value;
+  const state: DecodeState = { values: 0, active: new WeakSet() };
+  const entries = arrayValue(value, [], state);
+  if (entries.length > maxSymbols) fail("catalog.manifest.budget", [], "O catálogo excede o limite de símbolos.");
+  const keys = new Set<string>();
+  const symbols: CatalogSymbol[] = [];
+  for (let index = 0; index < entries.length; index += 1) {
+    const symbol = parseCatalogSymbol(entries[index]);
+    if (keys.has(symbol.key)) fail("catalog.key.duplicate", [index, "key"], `Chave duplicada no catálogo: ${symbol.key}`);
+    keys.add(symbol.key);
+    symbols.push(symbol);
+  }
+  return Object.freeze(symbols);
+}
+
+/** Decodes external text with inert JSON before applying the strict decoder. */
+export function parseCatalogManifestJson(text: string): CatalogManifest {
+  if (typeof text !== "string") fail("catalog.json.type", [], "O manifesto JSON deve ser texto.");
+  try { return parseCatalogManifest(JSON.parse(text)); }
+  catch (error) { if (error instanceof CatalogValidationError) throw error; fail("catalog.json.invalid", [], "O manifesto JSON é inválido."); }
+}
+
+/** Creates a one-time validated immutable bundled manifest. */
+export function createTrustedCatalogManifest(value: unknown): CatalogManifest {
+  const manifest = parseCatalogManifest(value);
+  trustedManifests.add(manifest as object);
+  return manifest;
+}
+
+export function isTrustedCatalogManifest(value: unknown): value is CatalogManifest {
+  return typeof value === "object" && value !== null && trustedManifests.has(value);
 }
 
 function parsePort(value: unknown, state: DecodeState, index: number) {

@@ -1,5 +1,5 @@
 import { LOCAL_PID_CATALOG_VERSION } from "../../domain/catalog-version";
-import type { CatalogSymbol } from "../catalog-symbol";
+import { createTrustedCatalogManifest, type CatalogSymbol } from "../catalog-symbol";
 export type { CatalogProvenance, CatalogSourceKind, CatalogSymbol } from "../catalog-symbol";
 
 const projectSource = {
@@ -12,7 +12,7 @@ const projectSource = {
   attribution: "Ativo vetorial original do projeto DCOU P&ID.",
 } as const;
 
-export const localCatalog = [
+const localCatalogSymbols = [
   {
     key: "project.pump.centrifugal",
     name: "Bomba centrífuga",
@@ -79,3 +79,5 @@ export const localCatalog = [
     source: projectSource,
   },
 ] satisfies readonly CatalogSymbol[];
+
+export const localCatalog = createTrustedCatalogManifest(localCatalogSymbols);

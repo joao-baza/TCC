@@ -1,6 +1,6 @@
 import { isCatalogSymbolCompatible } from "../domain/catalog-compatibility";
 import type { PidStandard } from "../domain/model";
-import { CatalogValidationError, parseCatalogSymbol, type CatalogSourceKind, type CatalogSymbol } from "./catalog-symbol";
+import { CatalogValidationError, parseCatalogManifest, type CatalogSourceKind, type CatalogSymbol } from "./catalog-symbol";
 
 export { CatalogValidationError } from "./catalog-symbol";
 
@@ -27,14 +27,8 @@ export function normalizeCatalogText(value: string): string {
 }
 
 /** Parses every unknown input exactly once, then indexes immutable snapshots. */
-export function createCatalogIndex(input: readonly unknown[]): CatalogIndex {
-  if (!Array.isArray(input)) throw new CatalogValidationError("catalog.list", [], "O catálogo deve ser uma lista.");
-  const parsed = input.map(parseCatalogSymbol);
-  const keys = new Set<string>();
-  for (const symbol of parsed) {
-    if (keys.has(symbol.key)) throw new CatalogValidationError("catalog.key.duplicate", ["key"], `Chave duplicada no catálogo: ${symbol.key}`);
-    keys.add(symbol.key);
-  }
+export function createCatalogIndex(input: unknown): CatalogIndex {
+  const parsed = parseCatalogManifest(input);
   const symbols = Object.freeze(parsed.map((symbol) => Object.freeze({
     symbol,
     name: normalizeCatalogText(symbol.name),

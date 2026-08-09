@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { CatalogValidationError, createCatalogIndex } from "@/features/pid/catalog/catalog-index";
-import { parseCatalogSymbol } from "@/features/pid/catalog/catalog-symbol";
+import { parseCatalogManifest, parseCatalogManifestJson, parseCatalogSymbol } from "@/features/pid/catalog/catalog-symbol";
 import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
 import { applyCommand, insertSymbol } from "@/features/pid/domain/commands";
 import { LOCAL_PID_CATALOG_VERSION } from "@/features/pid/domain/catalog-version";
@@ -20,7 +20,7 @@ describe("createCatalogIndex", () => {
       value[Symbol("catalog")] = true;
       return value;
     }],
-    ["proxy", () => new Proxy({ ...localCatalog[0] }, {})],
+    ["proxy", () => new Proxy({ ...localCatalog[0] }, { getOwnPropertyDescriptor: () => { throw new Error("trap"); } })],
     ["array esparso", () => ({ ...localCatalog[0], aliases: new Array(1) })],
     ["ciclo", () => {
       const properties: Record<string, unknown> = {};
@@ -45,6 +45,18 @@ describe("createCatalogIndex", () => {
     Object.defineProperty(value, "name", { enumerable: true, get: () => { reads += 1; return "Bomba"; } });
     expect(() => parseCatalogSymbol(value)).toThrow(CatalogValidationError);
     expect(reads).toBe(0);
+  });
+
+  it("decodifica a lista externa por descritores e rejeita fronteiras adversariais", () => {
+    expect(() => parseCatalogManifest(new Proxy([], { ownKeys: () => { throw new Error("trap"); } }))).toThrow(CatalogValidationError);
+    expect(() => parseCatalogManifest(new Array(1))).toThrow(CatalogValidationError);
+    expect(() => parseCatalogManifest(Array.from({ length: 501 }, () => localCatalog[0]))).toThrow(CatalogValidationError);
+    let reads = 0;
+    const nested = { ...localCatalog[0], source: { ...localCatalog[0].source } } as Record<string, unknown>;
+    Object.defineProperty(nested.source as object, "sourceName", { enumerable: true, get: () => { reads += 1; return "DCOU"; } });
+    expect(() => parseCatalogManifest([nested])).toThrow(CatalogValidationError);
+    expect(reads).toBe(0);
+    expect(() => parseCatalogManifestJson("[")).toThrow(CatalogValidationError);
   });
 
   it("encontra bomba por alias em português sem acento", () => {
