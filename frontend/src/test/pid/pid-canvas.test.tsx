@@ -467,10 +467,10 @@ describe("PidCanvas", () => {
   });
 
   it.each([
-    [0, "left", 22, "rotate(0deg)"],
-    [90, "top", 70, "rotate(90deg)"],
-    [180, "right", 70, "rotate(180deg)"],
-    [270, "bottom", 22, "rotate(270deg)"],
+    [0, "left", 8, "rotate(0deg)"],
+    [90, "top", 56, "rotate(90deg)"],
+    [180, "right", 56, "rotate(180deg)"],
+    [270, "bottom", 8, "rotate(270deg)"],
   ] as const)("rotaciona somente a arte e move a porta assimétrica em %i°", async (
     rotation,
     position,

@@ -3,10 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   canonicalPositionFromFlow,
-  getPidNodeFlowGeometry,
-  getPidPortFlowGeometry,
-  minimumNodeSizeForPorts,
+  getPidNodeGeometry,
+  getPidPortAnchorGeometry,
 } from "@/features/pid/domain/geometry";
+import { getPidPortHitTargetGeometry } from "@/features/pid/canvas/port-hit-target";
 import {
   boundsForNodes,
   buildGraphIndex,
@@ -15,6 +15,7 @@ import {
 } from "@/features/pid/domain/graph-operations";
 import type { PidDocument, PidNode, PidPort } from "@/features/pid/domain/model";
 import { orthogonalPoints } from "@/features/pid/canvas/process-edge";
+import { assertDocumentInvariants } from "@/features/pid/domain/commands";
 
 const node: PidNode = {
   id: "node",
@@ -43,36 +44,68 @@ function ports(count = 2): PidPort[] {
 
 describe("geometria canônica compartilhada do canvas P&ID", () => {
   it.each([
-    [0, { x: 10, y: 4, width: 120, height: 92 }],
-    [90, { x: 24, y: -10, width: 92, height: 120 }],
-    [180, { x: 10, y: 4, width: 120, height: 92 }],
-    [270, { x: 24, y: -10, width: 92, height: 120 }],
+    [0, { x: 10, y: 20, width: 120, height: 60 }],
+    [90, { x: 40, y: -10, width: 60, height: 120 }],
+    [180, { x: 10, y: 20, width: 120, height: 60 }],
+    [270, { x: 40, y: -10, width: 60, height: 120 }],
   ] as const)("rotaciona bounds retangulares em %i° preservando o centro", (rotation, expected) => {
     const rotated = { ...node, rotation };
-    const geometry = getPidNodeFlowGeometry(rotated, ports());
+    const geometry = getPidNodeGeometry(rotated);
 
     expect(geometry.bounds).toEqual(expected);
     expect(canonicalPositionFromFlow(rotated, geometry, {
       x: geometry.bounds.x + 32,
       y: geometry.bounds.y - 16,
     })).toEqual({ x: rotated.x + 32, y: rotated.y - 16 });
-    expect(boundsForNodes([rotated], ports())).toEqual(expected);
+    expect(boundsForNodes([rotated])).toEqual(expected);
   });
 
-  it("expande nó legado pequeno e mantém alvos de 44px sem sobreposição", () => {
+  it("mantém bounds canônicos e escalona apenas alvos interativos de nó legado", () => {
     const legacy = { ...node, width: 40, height: 40 };
     const legacyPorts = ports(3);
-    const geometry = getPidNodeFlowGeometry(legacy, legacyPorts);
-    const handles = legacyPorts.map((port, index) => getPidPortFlowGeometry(geometry, port, index, legacyPorts));
+    const geometry = getPidNodeGeometry(legacy);
+    const anchors = legacyPorts.map((port, index) => getPidPortAnchorGeometry(geometry, port, index, legacyPorts));
+    const handles = anchors.map((anchor, index) => getPidPortHitTargetGeometry(
+      geometry,
+      anchor,
+      legacyPorts[index],
+      index,
+      legacyPorts,
+    ));
 
-    expect(minimumNodeSizeForPorts(legacyPorts)).toEqual({ width: 44, height: 140 });
-    expect(geometry.bounds.height).toBe(140);
+    expect(geometry.bounds).toEqual({ x: legacy.x, y: legacy.y, width: 40, height: 40 });
+    expect(anchors.map(({ y }) => y)).toEqual([10, 20, 30]);
     expect(handles.every(({ position, targetSize }) => position === Position.Left && targetSize === 44)).toBe(true);
     for (let index = 1; index < handles.length; index += 1) {
       expect(handles[index].targetRect.y).toBeGreaterThanOrEqual(
         handles[index - 1].targetRect.y + handles[index - 1].targetRect.height,
       );
     }
+  });
+
+  it("não deixa o tamanho do alvo de UI alterar bounds ou invariantes do domínio", () => {
+    const document = validationDocument();
+    const grouped = {
+      ...document,
+      groups: {
+        group: { id: "group", memberIds: ["sourceNode", "targetNode"], label: "Grupo", properties: {}, ...boundsForNodes(Object.values(document.nodes)) },
+      },
+    };
+    const sourceNode = document.nodes.sourceNode;
+    const sourcePorts = Object.values(document.ports).filter(({ nodeId }) => nodeId === sourceNode.id);
+    const geometry = getPidNodeGeometry(sourceNode);
+    const anchor = getPidPortAnchorGeometry(geometry, sourcePorts[0], 0, sourcePorts);
+    const smallTarget = getPidPortHitTargetGeometry(geometry, anchor, sourcePorts[0], 0, sourcePorts, 20);
+    const largeTarget = getPidPortHitTargetGeometry(geometry, anchor, sourcePorts[0], 0, sourcePorts, 96);
+
+    expect(smallTarget.targetRect).not.toEqual(largeTarget.targetRect);
+    expect(boundsForNodes(Object.values(document.nodes))).toEqual({
+      x: grouped.groups.group.x,
+      y: grouped.groups.group.y,
+      width: grouped.groups.group.width,
+      height: grouped.groups.group.height,
+    });
+    expect(assertDocumentInvariants(grouped).filter(({ code }) => code === "group.bounds")).toEqual([]);
   });
 
   it.each([

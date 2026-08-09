@@ -317,7 +317,7 @@ function blockingSemanticIssues(document: PidDocument): DocumentInvariantIssue[]
     }
     const memberNodes = group.memberIds.map((memberId) => document.nodes[memberId]).filter(Boolean);
     if (memberNodes.length === group.memberIds.length) {
-      const bounds = boundsForNodes(memberNodes, Object.values(document.ports));
+      const bounds = boundsForNodes(memberNodes);
       if (group.x !== bounds.x || group.y !== bounds.y
         || group.width !== bounds.width || group.height !== bounds.height) {
         issues.push(invariantIssue(

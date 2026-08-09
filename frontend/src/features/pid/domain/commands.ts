@@ -101,10 +101,7 @@ export function applyCommand(
     };
     const allocator = createIdAllocator(canonicalDocument, runtime.generateId);
     let next = reduceCommand(canonicalDocument, command, allocator);
-    // A metadata-only rename must not be accepted merely because the generic
-    // bounds normalizer happened to repair an unrelated imported violation.
-    // Spatial/structural commands still normalize groups before validation.
-    if (command.type !== "document.rename") next = recalculateGroupBounds(next);
+    if (commandRecalculatesGroupBounds(canonicalDocument, command)) next = recalculateGroupBounds(next);
     next = {
       ...next,
       metadata: {
@@ -140,6 +137,30 @@ export function applyCommand(
       [],
       error,
     );
+  }
+}
+
+/** Explicit reducer policy: derived group bounds change only with member geometry/membership. */
+export function commandRecalculatesGroupBounds(document: PidDocument, command: PidCommand): boolean {
+  switch (command.type) {
+    case "selection.move":
+    case "selection.align":
+    case "selection.rotate":
+    case "selection.duplicate":
+    case "selection.delete":
+      return command.ids.some((id) => Boolean(document.nodes[id] || document.groups[id]));
+    case "selection.group":
+      return true;
+    case "element.patch":
+      return Boolean(document.nodes[command.id])
+        && Reflect.ownKeys(command.patch).some((key) => (
+          key === "x" || key === "y" || key === "width" || key === "height" || key === "rotation"
+        ));
+    case "symbol.insert":
+    case "annotation.insert":
+    case "ports.connect":
+    case "document.rename":
+      return false;
   }
 }
 

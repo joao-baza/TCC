@@ -359,6 +359,63 @@ describe("comandos canônicos P&ID", () => {
     expect(assertDocumentInvariants(repaired).filter((issue) => issue.severity === "error")).toEqual([]);
   });
 
+  it("recalcula grupos inválidos somente para comandos que alteram membros ou geometria", () => {
+    const base = connectedGroup();
+    const group = Object.values(base.groups)[0];
+    const invalidGroup: PidDocument = {
+      ...base,
+      groups: { ...base.groups, [group.id]: { ...group, x: group.x + 7 } },
+    };
+    const [firstNode, secondNode] = Object.values(base.nodes);
+    const edge = Object.values(base.edges)[0];
+    const firstInput = Object.values(base.ports).find((port) => port.nodeId === firstNode.id && port.direction === "input")!;
+    const secondOutput = Object.values(base.ports).find((port) => port.nodeId === secondNode.id && port.direction === "output")!;
+    expect(assertDocumentInvariants(invalidGroup)).toContainEqual(expect.objectContaining({ code: "group.bounds" }));
+
+    for (const command of [
+      renameDocument("Sem reparo"),
+      insertAnnotation("Nota", { x: 20, y: 20 }),
+      connectPorts(secondOutput.id, firstInput.id),
+      patchElement(firstNode.id, { tag: "P-999" }),
+      patchElement(firstNode.id, { properties: { service: "updated" } }),
+      deleteSelection([edge.id]),
+    ]) {
+      expect(() => applyCommand(invalidGroup, command, deterministicContext(600))).toThrowError(
+        expect.objectContaining({
+          issues: expect.arrayContaining([expect.objectContaining({ code: "command.repair-required" })]),
+        }),
+      );
+    }
+
+    const withAnnotation = applyCommand(base, insertAnnotation("Nota móvel", { x: 20, y: 20 }), deterministicContext(650));
+    const annotationId = Object.keys(withAnnotation.annotations)[0];
+    const invalidWithAnnotation: PidDocument = {
+      ...withAnnotation,
+      groups: { ...withAnnotation.groups, [group.id]: { ...group, x: group.x + 7 } },
+    };
+    expect(() => applyCommand(
+      invalidWithAnnotation,
+      moveSelection([annotationId], { x: 16, y: 0 }),
+      deterministicContext(651),
+    )).toThrowError(expect.objectContaining({
+      issues: expect.arrayContaining([expect.objectContaining({ code: "command.repair-required" })]),
+    }));
+
+    const repairedByMove = applyCommand(
+      invalidGroup,
+      moveSelection([firstNode.id], { x: 16, y: 0 }),
+      deterministicContext(700),
+    );
+    expect(assertDocumentInvariants(repairedByMove).filter(({ severity }) => severity === "error")).toEqual([]);
+
+    const repairedByPatch = applyCommand(
+      invalidGroup,
+      patchElement(firstNode.id, { width: firstNode.width + 16 }),
+      deterministicContext(701),
+    );
+    expect(assertDocumentInvariants(repairedByPatch).filter(({ severity }) => severity === "error")).toEqual([]);
+  });
+
   it("rejeita uma nova violação mesmo quando o documento importado já está inválido", () => {
     const base = connectedGroup();
     const edge = Object.values(base.edges)[0];

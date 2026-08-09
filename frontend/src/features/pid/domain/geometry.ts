@@ -1,8 +1,5 @@
 import type { PidNode, PidPort, PortDirection } from "./model";
 
-export const PID_PORT_TARGET_SIZE = 44;
-export const PID_PORT_TARGET_GAP = 4;
-
 export type PidFlowPosition = "left" | "right" | "top" | "bottom";
 
 export interface PidRect {
@@ -12,110 +9,83 @@ export interface PidRect {
   readonly height: number;
 }
 
-export interface PidNodeFlowGeometry {
+export interface PidNodeGeometry {
   readonly bounds: PidRect;
   readonly unrotatedBounds: PidRect;
   readonly center: Readonly<{ x: number; y: number }>;
   readonly rotation: 0 | 90 | 180 | 270;
 }
 
-export interface PidPortFlowGeometry {
+export interface PidPortAnchorGeometry {
   readonly position: PidFlowPosition;
   readonly x: number;
   readonly y: number;
-  readonly targetSize: number;
-  readonly targetRect: PidRect;
 }
 
-export function minimumNodeSizeForPorts(ports: readonly Pick<PidPort, "direction">[]): {
-  width: number;
-  height: number;
-} {
-  const left = ports.filter(({ direction }) => sideForDirection(direction) === "left").length;
-  const right = ports.filter(({ direction }) => sideForDirection(direction) === "right").length;
-  const bottom = ports.filter(({ direction }) => sideForDirection(direction) === "bottom").length;
-  return {
-    width: requiredSideLength(bottom),
-    height: Math.max(requiredSideLength(left), requiredSideLength(right)),
-  };
-}
-
-export function getPidNodeFlowGeometry(node: PidNode, ports: readonly PidPort[]): PidNodeFlowGeometry {
-  const minimum = minimumNodeSizeForPorts(ports);
-  const width = Math.max(node.width, minimum.width);
-  const height = Math.max(node.height, minimum.height);
+/** Canonical equipment geometry: modeled dimensions only, independent of UI hit targets. */
+export function getPidNodeGeometry(node: PidNode): PidNodeGeometry {
   const center = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
-  const unrotatedBounds = {
-    x: center.x - width / 2,
-    y: center.y - height / 2,
-    width,
-    height,
-  };
+  const unrotatedBounds = { x: node.x, y: node.y, width: node.width, height: node.height };
   const rotation = normalizeRotation(node.rotation);
   const bounds = rotation === 90 || rotation === 270
-    ? { x: center.x - height / 2, y: center.y - width / 2, width: height, height: width }
+    ? {
+        x: center.x - node.height / 2,
+        y: center.y - node.width / 2,
+        width: node.height,
+        height: node.width,
+      }
     : { ...unrotatedBounds };
   return { bounds, unrotatedBounds, center, rotation };
 }
 
-export function getPidPortFlowGeometry(
-  geometry: PidNodeFlowGeometry,
+/** Canonical anchors are fractions of modeled side lengths; DOM target size never participates. */
+export function getCanonicalPortAnchorLayout(
+  size: Readonly<{ width: number; height: number }>,
+  ports: readonly Pick<PidPort, "direction">[],
+): readonly PidPortAnchorGeometry[] {
+  return ports.map((port, index) => {
+    const side = sideForDirection(port.direction);
+    const sameSideIndexes = ports
+      .map((candidate, candidateIndex) => sideForDirection(candidate.direction) === side ? candidateIndex : -1)
+      .filter((candidateIndex) => candidateIndex >= 0);
+    const sideIndex = sameSideIndexes.indexOf(index);
+    const offset = (sideIndex + 1) / (sameSideIndexes.length + 1);
+    if (side === "left") return { position: side, x: 0, y: offset * size.height };
+    if (side === "right") return { position: side, x: size.width, y: offset * size.height };
+    return { position: side, x: offset * size.width, y: size.height };
+  });
+}
+
+export function getPidPortAnchorGeometry(
+  geometry: PidNodeGeometry,
   port: PidPort,
   index: number,
   ports: readonly PidPort[],
-): PidPortFlowGeometry {
-  const side = sideForDirection(port.direction);
-  const sameSide = ports.filter((candidate) => sideForDirection(candidate.direction) === side);
-  const actualPort = ports[index];
-  const sideIndex = Math.max(0, sameSide.findIndex((candidate) => candidate.id === actualPort?.id));
-  const base = pointForSide(geometry.unrotatedBounds, side, sideIndex, sameSide.length);
-  const rotated = rotatePoint(base, geometry.center, geometry.rotation);
-  const local = { x: rotated.x - geometry.bounds.x, y: rotated.y - geometry.bounds.y };
-  const position = rotateSide(side, geometry.rotation);
+): PidPortAnchorGeometry {
+  const layout = getCanonicalPortAnchorLayout(geometry.unrotatedBounds, ports);
+  const actualIndex = ports[index]?.id === port.id ? index : ports.findIndex(({ id }) => id === port.id);
+  const anchor = layout[Math.max(0, actualIndex)];
+  const absolute = {
+    x: geometry.unrotatedBounds.x + anchor.x,
+    y: geometry.unrotatedBounds.y + anchor.y,
+  };
+  const rotated = rotatePoint(absolute, geometry.center, geometry.rotation);
   return {
-    position,
-    x: local.x,
-    y: local.y,
-    targetSize: PID_PORT_TARGET_SIZE,
-    targetRect: {
-      x: local.x - PID_PORT_TARGET_SIZE / 2,
-      y: local.y - PID_PORT_TARGET_SIZE / 2,
-      width: PID_PORT_TARGET_SIZE,
-      height: PID_PORT_TARGET_SIZE,
-    },
+    position: rotateSide(anchor.position, geometry.rotation),
+    x: rotated.x - geometry.bounds.x,
+    y: rotated.y - geometry.bounds.y,
   };
 }
 
 export function canonicalPositionFromFlow(
   node: PidNode,
-  geometry: PidNodeFlowGeometry,
+  geometry: PidNodeGeometry,
   flowPosition: Readonly<{ x: number; y: number }>,
 ): { x: number; y: number } {
   return {
     x: flowPosition.x - (geometry.bounds.x - node.x),
     y: flowPosition.y - (geometry.bounds.y - node.y),
   };
-}
-
-function requiredSideLength(count: number): number {
-  if (count === 0) return PID_PORT_TARGET_SIZE;
-  return count * PID_PORT_TARGET_SIZE + (count - 1) * PID_PORT_TARGET_GAP;
-}
-
-function pointForSide(
-  bounds: PidRect,
-  side: PidFlowPosition,
-  index: number,
-  count: number,
-): { x: number; y: number } {
-  const length = side === "left" || side === "right" ? bounds.height : bounds.width;
-  const occupied = requiredSideLength(count);
-  const offset = (length - occupied) / 2 + PID_PORT_TARGET_SIZE / 2
-    + index * (PID_PORT_TARGET_SIZE + PID_PORT_TARGET_GAP);
-  if (side === "left") return { x: bounds.x, y: bounds.y + offset };
-  if (side === "right") return { x: bounds.x + bounds.width, y: bounds.y + offset };
-  if (side === "top") return { x: bounds.x + offset, y: bounds.y };
-  return { x: bounds.x + offset, y: bounds.y + bounds.height };
 }
 
 function sideForDirection(direction: PortDirection): PidFlowPosition {

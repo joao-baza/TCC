@@ -2,18 +2,24 @@ import { MarkerType, type Position } from "@xyflow/react";
 
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
 import {
-  getPidNodeFlowGeometry,
-  getPidPortFlowGeometry,
-  type PidNodeFlowGeometry,
+  getPidNodeGeometry,
+  getPidPortAnchorGeometry,
+  type PidNodeGeometry,
 } from "../domain/geometry";
 import type { PidDocument, PidEdge, PidNode, PidPort } from "../domain/model";
 import type { EquipmentFlowNode } from "./equipment-node";
 import type { ProcessFlowEdge } from "./process-edge";
+import { getPidPortHitTargetGeometry } from "./port-hit-target";
 
 export interface PidFlowProjection {
   readonly nodes: EquipmentFlowNode[];
   readonly edges: ProcessFlowEdge[];
-  readonly geometries: ReadonlyMap<string, PidNodeFlowGeometry>;
+  readonly geometries: ReadonlyMap<string, PidNodeGeometry>;
+}
+
+interface FlowSelection {
+  readonly nodeIds: readonly string[];
+  readonly edgeIds: readonly string[];
 }
 
 interface DocumentSnapshot {
@@ -28,7 +34,7 @@ interface NodeCacheEntry {
   readonly editable: boolean;
   readonly onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void;
   readonly node: EquipmentFlowNode;
-  readonly geometry: PidNodeFlowGeometry;
+  readonly geometry: PidNodeGeometry;
 }
 
 interface EdgeCacheEntry {
@@ -49,7 +55,7 @@ export function projectPidCanvasDocument(
   onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void,
 ): PidFlowProjection {
   const snapshot = snapshotDocument(document);
-  const geometries = new Map<string, PidNodeFlowGeometry>();
+  const geometries = new Map<string, PidNodeGeometry>();
   const nodes = snapshot.nodes.map((node) => {
     const ports = snapshot.portsByNode.get(node.id) ?? [];
     const symbol = symbols.get(node.symbolKey);
@@ -62,10 +68,16 @@ export function projectPidCanvasDocument(
       geometries.set(node.id, cached.geometry);
       return cached.node;
     }
-    const geometry = getPidNodeFlowGeometry(node, ports);
+    const geometry = getPidNodeGeometry(node);
     const portGeometries = new Map(ports.map((port, index) => [
       port.id,
-      getPidPortFlowGeometry(geometry, port, index, ports),
+      getPidPortHitTargetGeometry(
+        geometry,
+        getPidPortAnchorGeometry(geometry, port, index, ports),
+        port,
+        index,
+        ports,
+      ),
     ]));
     const flowNode: EquipmentFlowNode = {
       id: node.id,
@@ -91,6 +103,8 @@ export function projectPidCanvasDocument(
       connectable: editable,
       deletable: editable,
       selectable: true,
+      selected: false,
+      domAttributes: { "aria-pressed": false },
       ariaRole: "button",
       ariaLabel: [node.label || symbol?.name || "Equipamento", node.tag].filter(Boolean).join(" "),
       data: { equipment: node, ports, symbol, editable, geometry, portGeometries, onPortKey },
@@ -117,6 +131,7 @@ export function projectPidCanvasDocument(
       selectable: true,
       deletable: editable,
       reconnectable: false,
+      selected: false,
       ariaLabel: [edge.tag, edge.label].filter(Boolean).join(" ") || `Conexão ${edge.id}`,
       data: { processEdge: edge, route: edge.route, editable },
     } : null;
@@ -124,6 +139,35 @@ export function projectPidCanvasDocument(
     return flowEdge ? [flowEdge] : [];
   });
   return { nodes, edges, geometries };
+}
+
+/** Applies selection with structural sharing; an unchanged selection returns the projection itself. */
+export function applyPidCanvasSelection(
+  projection: PidFlowProjection,
+  selection: FlowSelection,
+): PidFlowProjection {
+  const selectedNodes = new Set(selection.nodeIds);
+  const selectedEdges = new Set(selection.edgeIds);
+  let nodesChanged = false;
+  let edgesChanged = false;
+  const nodes = projection.nodes.map((node) => {
+    const selected = selectedNodes.has(node.id);
+    if (node.selected === selected && node.domAttributes?.["aria-pressed"] === selected) return node;
+    nodesChanged = true;
+    return { ...node, selected, domAttributes: { ...node.domAttributes, "aria-pressed": selected } };
+  });
+  const edges = projection.edges.map((edge) => {
+    const selected = selectedEdges.has(edge.id);
+    if (edge.selected === selected) return edge;
+    edgesChanged = true;
+    return { ...edge, selected };
+  });
+  if (!nodesChanged && !edgesChanged) return projection;
+  return {
+    nodes: nodesChanged ? nodes : projection.nodes,
+    edges: edgesChanged ? edges : projection.edges,
+    geometries: projection.geometries,
+  };
 }
 
 function snapshotDocument(document: PidDocument): DocumentSnapshot {

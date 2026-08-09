@@ -3,15 +3,16 @@ import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
 import type { PidNode, PidPort, PortDirection } from "../domain/model";
-import type { PidNodeFlowGeometry, PidPortFlowGeometry } from "../domain/geometry";
+import type { PidNodeGeometry } from "../domain/geometry";
+import type { PidPortHitTargetGeometry } from "./port-hit-target";
 
 export type EquipmentNodeData = Record<string, unknown> & {
   readonly equipment: PidNode;
   readonly ports: readonly PidPort[];
   readonly symbol?: CatalogSymbol;
   readonly editable: boolean;
-  readonly geometry: PidNodeFlowGeometry;
-  readonly portGeometries: ReadonlyMap<string, PidPortFlowGeometry>;
+  readonly geometry: PidNodeGeometry;
+  readonly portGeometries: ReadonlyMap<string, PidPortHitTargetGeometry>;
   readonly onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void;
 };
 
@@ -110,7 +111,7 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
 }
 
 function normalizedPortStyle(
-  geometry: PidPortFlowGeometry,
+  geometry: PidPortHitTargetGeometry,
 ): { left?: number; right?: number; top?: number; bottom?: number } {
   if (geometry.position === Position.Left) return { left: 0, top: geometry.y };
   if (geometry.position === Position.Right) return { right: 0, top: geometry.y };

@@ -179,11 +179,12 @@ describe("createCatalogIndex", () => {
     }])).toThrow("tamanho");
   });
 
-  it("rejeita dimensões padrão que sobrepõem alvos de portas do mesmo lado", () => {
-    expect(() => parseCatalogSymbol({
+  it("valida portas pela geometria canônica sem acoplar o catálogo ao alvo DOM", () => {
+    const parsed = parseCatalogSymbol({
       ...localCatalog[2],
       defaultSize: { width: 72, height: 56 },
-    })).toThrow("44px");
+    });
+    expect(parsed.defaultSize).toEqual({ width: 72, height: 56 });
   });
 
   it.each([

@@ -1,5 +1,5 @@
 import type { PidDocument, PidGroup, PidNode, PidPort } from "./model";
-import { getPidNodeFlowGeometry } from "./geometry";
+import { getPidNodeGeometry } from "./geometry";
 
 export interface PidGraphIndex {
   readonly portsByNode: ReadonlyMap<string, readonly PidPort[]>;
@@ -120,12 +120,8 @@ function rejection(
 
 export function boundsForNodes(
   nodes: readonly PidNode[],
-  ports: readonly PidPort[] = [],
 ): Pick<PidGroup, "x" | "y" | "width" | "height"> {
-  const nodeBounds = nodes.map((node) => getPidNodeFlowGeometry(
-    node,
-    ports.filter((port) => port.nodeId === node.id),
-  ).bounds);
+  const nodeBounds = nodes.map((node) => getPidNodeGeometry(node).bounds);
   const x = Math.min(...nodeBounds.map((bounds) => bounds.x));
   const y = Math.min(...nodeBounds.map((bounds) => bounds.y));
   const right = Math.max(...nodeBounds.map((bounds) => bounds.x + bounds.width));
@@ -145,7 +141,7 @@ export function recalculateGroupBounds(document: PidDocument): PidDocument {
       delete groups[groupId];
       continue;
     }
-    const bounds = boundsForNodes(members, Object.values(document.ports));
+    const bounds = boundsForNodes(members);
     if (group.x !== bounds.x
       || group.y !== bounds.y
       || group.width !== bounds.width
