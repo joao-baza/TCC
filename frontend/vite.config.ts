@@ -25,6 +25,10 @@ export default defineConfig(({ mode }) => {
               return undefined;
             }
 
+            if (id.includes("@xyflow/react") || id.includes("@tanstack/react-virtual")) {
+              return "pid-editor";
+            }
+
             if (id.includes("recharts") || id.includes("d3-")) {
               return "charts";
             }

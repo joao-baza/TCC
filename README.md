@@ -83,12 +83,16 @@ The backend health check is exposed at `/health` on the selected port, and it st
 ```bash
 cd frontend
 npm install
-npm run dev
+VITE_PID_ADAPTER=local npm run dev
 ```
 
 Default app: `http://localhost:5173`
 
 Vite already proxies `/api` to `http://localhost:5000`.
+
+> **Development only:** `VITE_PID_ADAPTER=local` stores P&ID documents and
+> capability tokens in the browser. It is not the production PostgreSQL/Redis
+> adapter and must not be used as a silent production fallback.
 
 #### Desktop
 
