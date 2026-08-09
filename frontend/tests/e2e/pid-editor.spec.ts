@@ -97,6 +97,7 @@ test("mantém o canvas utilizável em 375, 768, 1024 e 1440 px", async ({ page }
       } else {
         await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toBeVisible();
       }
+      if (width === 768 || width === 1440) await expectToolbarContentContained(page);
       if (width === 1024) await expectKeyboardFocusVisible(page);
     }
   }
@@ -263,6 +264,43 @@ async function expectPanelsOutsideCanvas(page: Page, canvas: Locator): Promise<v
       overlapWidth <= 0 || overlapHeight <= 0,
       `${panelName} não deve sobrepor geometricamente o canvas`,
     ).toBe(true);
+  }
+}
+
+async function expectToolbarContentContained(page: Page): Promise<void> {
+  const toolbar = page.getByRole("toolbar", { name: "Ferramentas do editor P&ID" });
+  const targets = toolbar.locator("button, select, label, [role=group]");
+  for (let index = 0; index < await targets.count(); index += 1) {
+    const target = targets.nth(index);
+    if (!(await target.isVisible())) continue;
+    const geometry = await target.evaluate((element) => ({
+      label: element.getAttribute("aria-label") ?? element.textContent?.trim() ?? element.tagName,
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(
+      geometry.scrollWidth,
+      `${geometry.label} deve conter o próprio texto sem corte`,
+    ).toBeLessThanOrEqual(geometry.clientWidth + 1);
+  }
+
+  for (const container of [toolbar, ...await toolbar.locator(":scope > [role=group]").all()]) {
+    const children = container.locator(":scope > button, :scope > label, :scope > [role=group]");
+    const rectangles = [];
+    for (let index = 0; index < await children.count(); index += 1) {
+      const child = children.nth(index);
+      if (!(await child.isVisible())) continue;
+      const box = await child.boundingBox();
+      if (box) rectangles.push({ box, label: await child.getAttribute("aria-label") ?? await child.textContent() ?? `${index}` });
+    }
+    for (let index = 1; index < rectangles.length; index += 1) {
+      const previous = rectangles[index - 1];
+      const current = rectangles[index];
+      expect(
+        previous.box.x + previous.box.width,
+        `${previous.label.trim()} não deve sobrepor ${current.label.trim()}`,
+      ).toBeLessThanOrEqual(current.box.x + 0.5);
+    }
   }
 }
 

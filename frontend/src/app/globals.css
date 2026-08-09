@@ -219,7 +219,10 @@ body {
 .pid-studio-identity span { color: #91adba; font-size: .7rem; letter-spacing: .08em; }
 .pid-studio-identity a { color: #b7e2ee; font-size: .8rem; text-decoration: underline; }
 
-.pid-editor-toolbar { overflow-x: auto; padding-block: .125rem; }
+.pid-editor-toolbar { min-width: 0; max-width: 100%; overflow-x: auto; padding-block: .125rem; contain: inline-size paint; }
+.pid-editor-toolbar > *,
+.pid-toolbar-group > * { flex: 0 0 auto; }
+.pid-toolbar-select { min-width: max-content; }
 .pid-editor-toolbar button,
 .pid-editor-toolbar select,
 .pid-studio-header > * button,
