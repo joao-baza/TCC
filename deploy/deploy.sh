@@ -84,7 +84,7 @@ fi
 
 command -v docker >/dev/null 2>&1 || { echo "Docker não encontrado." >&2; exit 1; }
 
-if ! docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -q "active"; then
+if ! docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -Fxq "active"; then
   echo "Docker Swarm não está ativo. Execute 'docker swarm init' primeiro." >&2
   exit 1
 fi
@@ -153,7 +153,7 @@ else
   fi
 
   echo "==> Buildando imagem ${IMAGE_NAME}..."
-  # Sem --pull: usa python:3.10-slim já em cache se Docker Hub estiver lento/indisponível
+  # Sem --pull: usa python:3.12-slim já em cache se Docker Hub estiver lento/indisponível
   # (--pull=never exige Docker recente; buildx antigo só aceita bool em --pull)
   docker build -t "$IMAGE_NAME" -f deploy/Dockerfile.api .
 

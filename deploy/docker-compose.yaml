@@ -55,7 +55,7 @@ services:
       dockerfile: deploy/Dockerfile.api
     environment:
       DCOU_ROOT_PATH: /api
-      PID_ENABLED: ${PID_ENABLED:-true}
+      PID_ENABLED: ${PID_ENABLED:-false}
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
       PID_TOKEN_PEPPER: ${PID_TOKEN_PEPPER}

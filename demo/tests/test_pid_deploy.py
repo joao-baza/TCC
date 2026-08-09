@@ -154,6 +154,9 @@ def test_compose_passes_pid_configuration_and_checks_api_readiness(compose_confi
     assert api["healthcheck"]["test"][0] == "CMD"
     assert api["healthcheck"]["test"][1:3] == ["python", "-c"]
     assert "http://127.0.0.1:5000/ready" in api["healthcheck"]["test"][3]
+    assert "PID_ENABLED: ${PID_ENABLED:-false}" in read(
+        "deploy/docker-compose.yaml"
+    )
 
 
 def test_start_script_exists_and_dockerfile_uses_it():
@@ -161,6 +164,7 @@ def test_start_script_exists_and_dockerfile_uses_it():
     dockerfile = read("deploy/Dockerfile.api")
     assert dockerfile.startswith("FROM python:3.12-slim\n")
     assert 'CMD ["sh", "deploy/start-api.sh"]' in dockerfile
+    assert "python:3.10-slim" not in read("deploy/deploy.sh")
 
 
 def _write_executable(path: Path, body: str) -> None:
@@ -476,6 +480,50 @@ fi
     assert docker_log.read_text(encoding="utf-8").splitlines() == [
         "info --format {{.Swarm.LocalNodeState}}",
         "node ls --format {{.Hostname}}",
+    ]
+
+
+def test_deploy_rejects_inactive_swarm_before_node_lookup_or_mutation(tmp_path):
+    project, script = _copy_deploy_script(tmp_path)
+    values = _complete_deploy_environment()
+    (project / ".env").write_text(
+        "".join(f"{name}={value}\n" for name, value in values.items()),
+        encoding="utf-8",
+    )
+    (project / "deploy" / "docker-compose.yaml").write_text(
+        "services: {}\n", encoding="utf-8"
+    )
+    binary_dir = tmp_path / "bin"
+    binary_dir.mkdir()
+    docker_log = tmp_path / "docker.log"
+    _write_executable(
+        binary_dir / "docker",
+        """#!/bin/sh
+printf '%s\n' "$*" >> "$DOCKER_LOG"
+if [ "$1 $2" = "info --format" ]; then
+  printf 'inactive\n'
+fi
+""",
+    )
+    environment = os.environ.copy()
+    environment.update(
+        DOCKER_LOG=str(docker_log),
+        PATH=f"{binary_dir}:{environment['PATH']}",
+    )
+
+    result = subprocess.run(
+        ["bash", str(script)],
+        cwd=tmp_path,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "Swarm" in result.stderr
+    assert docker_log.read_text(encoding="utf-8").splitlines() == [
+        "info --format {{.Swarm.LocalNodeState}}"
     ]
 
 
