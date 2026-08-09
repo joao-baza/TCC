@@ -172,7 +172,6 @@ export function useEditorAutosave(input: {
     if (wasEditable && !input.editable) {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = null;
-      if (savedVersionRef.current !== versionRef.current) void save();
       return;
     }
     if (!wasEditable && input.editable

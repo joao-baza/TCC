@@ -22,7 +22,9 @@ import {
 } from "./editor-toolbar";
 import { createEditorStore, type EditorStore } from "./editor-store";
 import { ShareDialog } from "./share-dialog";
-import { PropertiesInspector, type InspectorCommandResult } from "./properties-inspector";
+import {
+  PropertiesInspector, type InspectorCommandResult, type PropertiesInspectorHandle,
+} from "./properties-inspector";
 import { StatusBar } from "./status-bar";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { MINIMUM_EDIT_VIEWPORT_WIDTH, useEditCapability } from "./use-edit-capability";
@@ -123,8 +125,13 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const { store, opened } = session;
   const subscribe = useCallback((notify: () => void) => store.subscribe(() => notify()), [store]);
   const editor = useSyncExternalStore(subscribe, store.getState, store.getState);
-  const { editable, viewportWidth } = useEditCapability(opened.scope);
+  const { editable: capabilityEditable, viewportWidth } = useEditCapability(opened.scope);
   const compactReadOnly = viewportWidth < MINIMUM_EDIT_VIEWPORT_WIDTH;
+  const [editLease, setEditLease] = useState(capabilityEditable);
+  const capabilityEditableRef = useRef(capabilityEditable);
+  capabilityEditableRef.current = capabilityEditable;
+  const [hasInspectorDrafts, setHasInspectorDrafts] = useState(false);
+  const inspectorRef = useRef<PropertiesInspectorHandle>(null);
   const [revision, setRevision] = useState(opened.revision);
   const [editToken, setEditToken] = useState(session.routeToken);
   const [lifecycle, setLifecycle] = useState<EditorLifecycle>("active");
@@ -143,7 +150,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     revision,
     store,
     documentPort,
-    editable,
+    editable: editLease,
     getPersistenceBlock: persistenceBlockFor,
     onRevision: setRevision,
   });
@@ -171,17 +178,43 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     else if (autosave.state !== "Sincronizado") collaboration.setStatus("unsaved");
     else collaboration.setStatus("synced");
   }, [autosave.conflict, autosave.state, collaboration]);
-  useEffect(() => registerNavigationGuard(autosave.flush), [autosave.flush, registerNavigationGuard]);
+  const prepareInspectorDrafts = useCallback(
+    () => inspectorRef.current?.prepareForReadOnly() ?? { hasUnresolvedDrafts: false },
+    [],
+  );
+  const flushBeforeNavigation = useCallback(async () => {
+    const prepared = prepareInspectorDrafts();
+    if (prepared.hasUnresolvedDrafts) {
+      throw new Error("Corrija o rascunho inválido no inspetor antes de navegar.");
+    }
+    return autosave.flush();
+  }, [autosave.flush, prepareInspectorDrafts]);
+  useEffect(() => registerNavigationGuard(flushBeforeNavigation), [flushBeforeNavigation, registerNavigationGuard]);
   useEffect(() => {
-    if (autosave.state === "Sincronizado") return;
+    if (capabilityEditable) {
+      setEditLease(true);
+      return;
+    }
+    if (!editLease) return;
+    let active = true;
+    prepareInspectorDrafts();
+    void autosave.flush().catch(() => {
+      if (capabilityEditableRef.current) autosave.retry();
+    }).finally(() => {
+      if (active) setEditLease(false);
+    });
+    return () => { active = false; };
+  }, [autosave.flush, autosave.retry, capabilityEditable, editLease, prepareInspectorDrafts]);
+  useEffect(() => {
+    if (autosave.state === "Sincronizado" && !hasInspectorDrafts) return;
     const protectPendingSave = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", protectPendingSave);
     return () => window.removeEventListener("beforeunload", protectPendingSave);
-  }, [autosave.state]);
-  const editorEnabled = editable && lifecycle === "active";
+  }, [autosave.state, hasInspectorDrafts]);
+  const editorEnabled = capabilityEditable && editLease && lifecycle === "active";
   const selectedNodeIds = editor.selection.filter((id) => Boolean(editor.document.nodes[id]));
   const positionedSelectionIds = getEditorPositionedSelectionIds(editor.document, editor.selection);
   const activeSelectionCapabilities = useMemo(
@@ -201,14 +234,20 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   }), [editor.document.annotations, editor.document.edges, editor.document.nodes, editor.selection]);
 
   const mutate = useCallback((operation: () => void): boolean => {
-    if (!editable || lifecycleRef.current !== "active") return false;
+    if (!capabilityEditable || lifecycleRef.current !== "active") return false;
     try { operation(); autosave.markLocalChange(); setOperationError(null); return true; }
     catch (reason) { setOperationError(reason instanceof Error ? reason.message : "A operação não pôde ser concluída."); return false; }
-  }, [autosave, editable]);
-  const dispatch = useCallback((command: PidCommand) => mutate(() => store.dispatch(command)), [mutate, store]);
+  }, [autosave, capabilityEditable]);
+  const dispatch = useCallback((command: PidCommand) => {
+    if (prepareInspectorDrafts().hasUnresolvedDrafts) {
+      setAnnouncement("Corrija o rascunho no inspetor antes de continuar.");
+      return false;
+    }
+    return mutate(() => store.dispatch(command));
+  }, [mutate, prepareInspectorDrafts, store]);
   const dispatchInspector = useCallback((command: PidCommand): InspectorCommandResult => {
     const field = inspectorCommandField(command);
-    if (!editable || lifecycleRef.current !== "active") {
+    if (!editLease || lifecycleRef.current !== "active") {
       return { ok: false, field, message: "A edição não está disponível neste momento." };
     }
     try {
@@ -221,7 +260,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       setOperationError(message);
       return { ok: false, field, message };
     }
-  }, [autosave, editable, store]);
+  }, [autosave, editLease, store]);
   const copy = useCallback((): boolean => {
     if (!selectionCapabilities.canCopy) return false;
     try {
@@ -253,9 +292,13 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const annotation = useCallback(() => dispatch(insertAnnotation("Nova anotação", canvasCenter(editor.viewport))), [dispatch, editor.viewport]);
   const viewport = useCallback((type: PidCanvasViewportAction["type"]) => setViewportAction((current) => ({ type, nonce: (current?.nonce ?? 0) + 1 })), []);
   const focusValidationIssue = useCallback((elementId: string) => {
+    if (prepareInspectorDrafts().hasUnresolvedDrafts) {
+      setAnnouncement("Corrija o rascunho no inspetor antes de trocar a seleção.");
+      return;
+    }
     store.setSelection([elementId]);
     setAnnouncement("Elemento afetado pela validação selecionado no inspetor.");
-  }, [store]);
+  }, [prepareInspectorDrafts, store]);
   const exportDocument = useCallback(() => {
     if (!canExport) return;
     try {
@@ -281,6 +324,10 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   useEditorShortcuts({ editable: editorEnabled, actions: shortcutActions });
 
   const reload = async () => {
+    if (prepareInspectorDrafts().hasUnresolvedDrafts) {
+      setOperationError("Corrija o rascunho no inspetor antes de recarregar o diagrama.");
+      return;
+    }
     try {
       const remote = await documentPort.open(diagramId, editToken);
       store.replace(remote.document, "remote");
@@ -291,11 +338,14 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   };
 
   const beforeDelete = useCallback(async () => {
+    if (prepareInspectorDrafts().hasUnresolvedDrafts) {
+      throw new Error("Corrija o rascunho no inspetor antes de excluir o diagrama.");
+    }
     lifecycleRef.current = "deleting";
     setLifecycle("deleting");
     setOperationError(null);
     return autosave.suspend();
-  }, [autosave]);
+  }, [autosave, prepareInspectorDrafts]);
   const deletedSuccessfully = useCallback((nextRevision: number) => {
     setRevision(nextRevision);
     lifecycleRef.current = "deleted";
@@ -333,7 +383,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   }, []);
 
   return <main className="pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]">
-    <p className="sr-only">{editable ? "Acesso de edição" : "Acesso de visualização"}</p>
+    <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
       <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} onExport={exportDocument} connectionClass={connectionClass} actions={toolbarActions} />
@@ -343,7 +393,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
           <span role="status">{collaborationStatusLabel(collaborationSnapshot.status)}</span>
           <div role="group" aria-label="Participantes">{collaborationSnapshot.participants.map((participant) => <span key={participant.id} style={{ "--participant-color": participant.color } as CSSProperties}>{participant.name}</span>)}</div>
         </div>
-        {editable && <div className="pid-studio-document-controls">
+        {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
           <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={lifecycle === "deleted" || lifecycle === "restoring"} onBeforeDelete={beforeDelete} onDeleted={deletedSuccessfully} onDeleteFailed={deleteFailed} onBeforeRestore={beforeRestore} onRestoreConfirmed={restoreConfirmed} onRestored={restoredSuccessfully} onRestoreFailed={restoreFailed} onAnnouncement={setAnnouncement} />
         </div>}
@@ -357,19 +407,31 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       </aside>}
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
         {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
-          : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editorEnabled} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => store.setSelection([...nodeIds, ...edgeIds, ...annotationIds])} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}
-        {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{editable && autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
+          : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editorEnabled} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => {
+            if (prepareInspectorDrafts().hasUnresolvedDrafts) {
+              setAnnouncement("Corrija o rascunho no inspetor antes de trocar a seleção.");
+              return;
+            }
+            store.setSelection([...nodeIds, ...edgeIds, ...annotationIds]);
+          }} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}
+        {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{capabilityEditable && autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}
       </section>
       <aside role="region" aria-label="Inspetor" className="pid-studio-panel pid-inspector-panel">
-        <button type="button" aria-expanded={!inspectorCollapsed} onClick={() => setInspectorCollapsed((value) => !value)}>{inspectorCollapsed ? "Abrir inspetor" : "Fechar inspetor"}</button>
+        <button type="button" aria-expanded={!inspectorCollapsed} onClick={() => {
+          if (!inspectorCollapsed && prepareInspectorDrafts().hasUnresolvedDrafts) {
+            setAnnouncement("Corrija o rascunho no inspetor antes de fechá-lo.");
+            return;
+          }
+          setInspectorCollapsed((value) => !value);
+        }}>{inspectorCollapsed ? "Abrir inspetor" : "Fechar inspetor"}</button>
         {!inspectorCollapsed && <div className="pid-inspector-content">
-          <PropertiesInspector document={editor.document} selection={editor.selection} editable={editorEnabled} onCommand={dispatchInspector} />
+          <PropertiesInspector ref={inspectorRef} document={editor.document} selection={editor.selection} editable={editorEnabled} commitAllowed={editLease && lifecycle === "active"} onCommand={dispatchInspector} onDraftStateChange={setHasInspectorDrafts} />
           <ValidationPanel issues={validationIssues} onFocusElement={focusValidationIssue} />
         </div>}
       </aside>
     </div>
-    <StatusBar state={editor} saveState={autosave.state} onRetry={editable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
+    <StatusBar state={editor} saveState={autosave.state} onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
     <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
   </main>;
 }

@@ -11,10 +11,11 @@ import { createEmptyDocument } from "@/features/pid/domain/schema";
 import { canEdit } from "@/features/pid/editor/use-edit-capability";
 
 vi.mock("@/features/pid/canvas/pid-canvas", () => ({
-  PidCanvas: ({ document, editable, onCommand, viewportAction }: {
+  PidCanvas: ({ document, editable, onCommand, onSelectionChange, viewportAction }: {
     document: PidDocument;
     editable: boolean;
     onCommand: (command: PidCommand) => boolean;
+    onSelectionChange: (selection: { nodeIds: string[]; edgeIds: string[]; annotationIds: string[] }) => void;
     viewportAction?: { type: string };
   }) => <div
     data-testid="pid-canvas"
@@ -25,6 +26,11 @@ vi.mock("@/features/pid/canvas/pid-canvas", () => ({
     <button type="button" onClick={() => onCommand({ type: "annotation.insert", text: "Forçada", position: { x: 1, y: 1 } })}>
       Tentar comando do canvas
     </button>
+    {Object.keys(document.annotations)[0] && <button type="button" onClick={() => onSelectionChange({
+      nodeIds: [], edgeIds: [], annotationIds: [Object.keys(document.annotations)[0]],
+    })}>
+      Selecionar anotação
+    </button>}
   </div>,
 }));
 
@@ -169,6 +175,83 @@ describe("capacidade responsiva de edição", () => {
     }
   });
 
+  it("consolida e salva o rascunho válido do inspetor antes de revogar a edição", async () => {
+    const annotationId = "50000000-0000-4000-8000-000000000099";
+    let persisted = documentWithAnnotation(annotationId);
+    let revision = 1;
+    const save = vi.fn().mockImplementation(async (_id, _token, next: PidDocument) => {
+      persisted = structuredClone(next);
+      revision += 1;
+      return revision;
+    });
+    const pidServices = services("edit", {
+      open: vi.fn().mockImplementation(async () => ({ scope: "edit", document: structuredClone(persisted), revision })),
+      save,
+    });
+    const first = mount(pidServices, true);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
+    const text = screen.getByLabelText("Texto");
+    text.focus();
+    fireEvent.change(text, { target: { value: "Rascunho sem blur" } });
+
+    resizeViewport(375);
+    await waitFor(() => expect(save).toHaveBeenCalledWith(
+      diagramId,
+      "token",
+      expect.objectContaining({
+        annotations: expect.objectContaining({
+          [annotationId]: expect.objectContaining({ text: "Rascunho sem blur" }),
+        }),
+      }),
+      1,
+    ));
+    expect(screen.getByLabelText("Texto")).toBeDisabled();
+
+    first.unmount();
+    setViewportWidth(768);
+    mount(pidServices, true);
+    fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
+    expect(screen.getByLabelText("Texto")).toHaveValue("Rascunho sem blur");
+  });
+
+  it("preserva um rascunho inválido no modo somente leitura e permite corrigi-lo ao expandir", async () => {
+    const annotationId = "50000000-0000-4000-8000-000000000099";
+    const save = vi.fn().mockImplementation(async (_id, _token, _next, currentRevision) => currentRevision + 1);
+    mount(services("edit", {
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: documentWithAnnotation(annotationId), revision: 1 }),
+      save,
+    }), true);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
+    const x = screen.getByLabelText("Posição X");
+    x.focus();
+    fireEvent.change(x, { target: { value: "" } });
+
+    resizeViewport(375);
+    await waitFor(() => expect(screen.getByLabelText("Posição X")).toHaveAttribute("aria-invalid", "true"));
+    expect(screen.getByLabelText("Posição X")).toBeDisabled();
+    expect(screen.getByLabelText("Posição X")).toHaveValue(null);
+    expect(screen.getByText("Informe um número.")).toBeVisible();
+    expect(save).not.toHaveBeenCalled();
+
+    resizeViewport(768);
+    await waitFor(() => expect(screen.getByLabelText("Posição X")).toBeEnabled());
+    expect(screen.getByLabelText("Posição X")).toHaveValue(null);
+    fireEvent.change(screen.getByLabelText("Posição X"), { target: { value: "42" } });
+    fireEvent.blur(screen.getByLabelText("Posição X"));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(
+      diagramId,
+      "token",
+      expect.objectContaining({
+        annotations: expect.objectContaining({
+          [annotationId]: expect.objectContaining({ x: 42 }),
+        }),
+      }),
+      1,
+    ));
+  });
+
   it("exporta uma projeção JSON real também em view mobile", async () => {
     setViewportWidth(375);
     const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pid-export");
@@ -235,4 +318,20 @@ function deferred<T>() {
     reject = rejectPromise;
   });
   return { promise, resolve, reject };
+}
+
+function documentWithAnnotation(annotationId: string): PidDocument {
+  const document = structuredClone(documentFixture);
+  document.annotations[annotationId] = {
+    id: annotationId,
+    kind: "note",
+    text: "Texto persistido",
+    x: 10,
+    y: 20,
+    width: 120,
+    height: 80,
+    rotation: 0,
+    properties: {},
+  };
+  return document;
 }

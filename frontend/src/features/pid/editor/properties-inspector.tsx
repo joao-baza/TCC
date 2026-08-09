@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 
 import { patchElement, type PidCommand } from "../domain/commands";
 import type { PidDocument, PidJsonValue, PidProperties } from "../domain/model";
@@ -7,7 +7,14 @@ export interface PropertiesInspectorProps {
   readonly document: PidDocument;
   readonly selection: readonly string[];
   readonly editable: boolean;
+  readonly commitAllowed?: boolean;
   readonly onCommand: (command: PidCommand) => void | InspectorCommandResult;
+  readonly onDraftStateChange?: (hasDrafts: boolean) => void;
+}
+
+export interface PropertiesInspectorHandle {
+  prepareForReadOnly(): { readonly hasUnresolvedDrafts: boolean };
+  hasUnresolvedDrafts(): boolean;
 }
 
 export type InspectorCommandResult =
@@ -15,18 +22,26 @@ export type InspectorCommandResult =
   | { readonly ok: false; readonly field: string; readonly message: string };
 
 type FieldValue = string | number | PidProperties;
+interface FieldDraft {
+  readonly raw: string;
+  readonly base: FieldValue;
+  readonly conflicted?: boolean;
+  readonly preserve?: boolean;
+}
 
-export function PropertiesInspector({
+export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, PropertiesInspectorProps>(function PropertiesInspector({
   document,
   selection,
   editable,
+  commitAllowed = editable,
   onCommand,
-}: PropertiesInspectorProps) {
+  onDraftStateChange,
+}, ref) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [announcement, setAnnouncement] = useState("");
-  const [fieldRevisions, setFieldRevisions] = useState<Record<string, number>>({});
+  const [drafts, setDrafts] = useState<Record<string, FieldDraft>>({});
+  const draftsRef = useRef<Record<string, FieldDraft>>({});
   const activeFieldRef = useRef<string | null>(null);
-  const dirtyFieldsRef = useRef(new Set<string>());
   const previousCanonicalRef = useRef<{ selectedId?: string; fields: Record<string, FieldValue> }>({ fields: {} });
   const selectedId = selection.length === 1 ? selection[0] : undefined;
   const selected = selectedId ? resolveSelectedElement(document, selectedId) : undefined;
@@ -36,62 +51,86 @@ export function PropertiesInspector({
     const previous = previousCanonicalRef.current;
     if (previous.selectedId !== selectedId) {
       activeFieldRef.current = null;
-      dirtyFieldsRef.current.clear();
+      draftsRef.current = {};
+      setDrafts({});
       setFieldErrors({});
-      setFieldRevisions({});
       setAnnouncement("");
       previousCanonicalRef.current = { selectedId, fields: canonicalFields };
       return;
     }
 
     const activeField = activeFieldRef.current;
-    const preserveActiveDraft = activeField !== null && dirtyFieldsRef.current.has(activeField);
     const allFields = new Set([...Object.keys(previous.fields), ...Object.keys(canonicalFields)]);
-    const refreshFields = [...allFields].filter((field) => !(preserveActiveDraft && field === activeField));
-    const activeCanonicalChanged = preserveActiveDraft
-      && activeField !== null
-      && !sameValue(canonicalFields[activeField], previous.fields[activeField]);
-    const conflictMessage = activeCanonicalChanged
+    const nextDrafts = { ...draftsRef.current };
+    let draftsChanged = false;
+    let conflictField: string | null = null;
+    for (const field of allFields) {
+      const draft = nextDrafts[field];
+      if (!draft) continue;
+      if (activeField === field || draft.preserve) {
+        if (!sameValue(canonicalFields[field], previous.fields[field])) {
+          nextDrafts[field] = { ...draft, conflicted: true, preserve: true };
+          conflictField = field;
+          draftsChanged = true;
+        }
+      } else {
+        delete nextDrafts[field];
+        draftsChanged = true;
+      }
+    }
+    if (draftsChanged) {
+      draftsRef.current = nextDrafts;
+      setDrafts(nextDrafts);
+    }
+    const conflictMessage = conflictField
       ? "Este campo mudou remotamente enquanto você editava. Seu rascunho foi preservado; revise-o antes de confirmar."
       : null;
-
-    setFieldRevisions((current) => {
-      const next = { ...current };
-      for (const field of refreshFields) next[field] = (next[field] ?? 0) + 1;
-      return next;
-    });
     setFieldErrors((current) => {
       let next = current;
-      for (const field of refreshFields) next = omitField(next, field);
-      return conflictMessage && activeField ? { ...next, [activeField]: conflictMessage } : next;
+      for (const field of allFields) {
+        if (!nextDrafts[field]) next = omitField(next, field);
+      }
+      return conflictMessage && conflictField ? { ...next, [conflictField]: conflictMessage } : next;
     });
-    for (const field of refreshFields) dirtyFieldsRef.current.delete(field);
     setAnnouncement(conflictMessage ?? "");
     previousCanonicalRef.current = { selectedId, fields: canonicalFields };
   }, [selectedId, selectedValue]);
 
-  const commit = (field: string, value: FieldValue, previous: FieldValue) => {
-    if (!selectedId || !editable) return;
+  useEffect(() => onDraftStateChange?.(Object.keys(drafts).length > 0), [drafts, onDraftStateChange]);
+
+  const replaceDrafts = (next: Record<string, FieldDraft>) => {
+    draftsRef.current = next;
+    setDrafts(next);
+  };
+
+  const commit = (field: string, value: FieldValue, previous: FieldValue): boolean => {
+    if (!selectedId || !commitAllowed) return false;
     if (sameValue(value, previous)) {
-      dirtyFieldsRef.current.delete(field);
+      const next = { ...draftsRef.current };
+      delete next[field];
+      replaceDrafts(next);
       setFieldErrors((current) => omitField(current, field));
       setAnnouncement("");
-      return;
+      return true;
     }
     try {
       const result = onCommand(patchElement(selectedId, { [field]: value }));
       if (result?.ok === false) {
         setFieldErrors((current) => ({ ...current, [result.field]: result.message }));
         setAnnouncement(result.message);
-        return;
+        return false;
       }
-      dirtyFieldsRef.current.delete(field);
+      const next = { ...draftsRef.current };
+      delete next[field];
+      replaceDrafts(next);
       setFieldErrors((current) => omitField(current, field));
       setAnnouncement(`${fieldLabel(field)} atualizado.`);
+      return true;
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Não foi possível atualizar o campo.";
       setFieldErrors((current) => ({ ...current, [field]: message }));
       setAnnouncement(message);
+      return false;
     }
   };
   const reject = (field: string, message: string) => {
@@ -99,11 +138,52 @@ export function PropertiesInspector({
     setAnnouncement(message);
   };
   const beginDraft = (field: string) => { activeFieldRef.current = field; };
-  const changeDraft = (field: string) => { dirtyFieldsRef.current.add(field); };
+  const changeDraft = (field: string, raw: string, base: FieldValue) => {
+    const previous = draftsRef.current[field];
+    const next = {
+      ...draftsRef.current,
+      [field]: { raw, base: previous?.conflicted ? canonicalFields[field] ?? base : previous?.base ?? base },
+    };
+    replaceDrafts(next);
+    if (previous?.conflicted) {
+      setFieldErrors((current) => omitField(current, field));
+      setAnnouncement("");
+    }
+  };
   const endDraft = (field: string) => {
     if (activeFieldRef.current === field) activeFieldRef.current = null;
   };
-  const common = { editable, errors: fieldErrors, fieldRevisions, beginDraft, changeDraft, endDraft, commit, reject };
+  const finalizeDraft = (field: string): boolean => {
+    endDraft(field);
+    const draft = draftsRef.current[field];
+    if (!draft) return true;
+    if (draft.conflicted) {
+      reject(field, "Este campo mudou remotamente. Revise o rascunho antes de confirmar.");
+      return false;
+    }
+    const parsed = parseDraftValue(selected, field, draft.raw);
+    if (!parsed.ok) {
+      reject(field, parsed.message);
+      return false;
+    }
+    return commit(field, parsed.value, canonicalFields[field] ?? draft.base);
+  };
+  const prepareForReadOnly = () => {
+    activeFieldRef.current = null;
+    for (const field of Object.keys(draftsRef.current)) finalizeDraft(field);
+    const unresolved = Object.keys(draftsRef.current).length > 0;
+    if (unresolved) {
+      const next = Object.fromEntries(Object.entries(draftsRef.current).map(([field, draft]) => [field, { ...draft, preserve: true }]));
+      replaceDrafts(next);
+      setAnnouncement("Há um rascunho que precisa ser corrigido antes de ser salvo.");
+    }
+    return { hasUnresolvedDrafts: unresolved };
+  };
+  useImperativeHandle(ref, () => ({
+    prepareForReadOnly,
+    hasUnresolvedDrafts: () => Object.keys(draftsRef.current).length > 0,
+  }));
+  const common = { editable, errors: fieldErrors, drafts, beginDraft, changeDraft, finalizeDraft };
 
   return <div className="pid-properties-inspector">
     <div className="pid-inspector-heading-row">
@@ -160,47 +240,43 @@ export function PropertiesInspector({
       {announcement}
     </div>
   </div>;
-}
+});
 
 interface SharedFieldProps {
   readonly editable: boolean;
   readonly errors: Record<string, string>;
-  readonly fieldRevisions: Record<string, number>;
+  readonly drafts: Record<string, FieldDraft>;
   readonly beginDraft: (field: string) => void;
-  readonly changeDraft: (field: string) => void;
-  readonly endDraft: (field: string) => void;
-  readonly commit: (field: string, value: FieldValue, previous: FieldValue) => void;
-  readonly reject: (field: string, message: string) => void;
+  readonly changeDraft: (field: string, raw: string, base: FieldValue) => void;
+  readonly finalizeDraft: (field: string) => boolean;
 }
 
-function TextField({ label, field, value, multiline = false, editable, errors, fieldRevisions, beginDraft, changeDraft, endDraft, commit }: SharedFieldProps & {
+function TextField({ label, field, value, multiline = false, editable, errors, drafts, beginDraft, changeDraft, finalizeDraft }: SharedFieldProps & {
   label: string; field: string; value: string; multiline?: boolean;
 }) {
   const id = useId();
   const error = errors[field];
   const props = {
     id,
-    defaultValue: value,
+    "aria-label": label,
+    value: drafts[field]?.raw ?? value,
     disabled: !editable,
     "aria-invalid": Boolean(error),
     "aria-describedby": error ? `${id}-error` : undefined,
     onFocus: () => beginDraft(field),
-    onChange: () => changeDraft(field),
-    onBlur: (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      endDraft(field);
-      commit(field, event.currentTarget.value, value);
-    },
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => changeDraft(field, event.currentTarget.value, value),
+    onBlur: () => { finalizeDraft(field); },
   };
   return <label className="pid-inspector-field" htmlFor={id}>
     <span>{label}</span>
     {multiline
-      ? <textarea key={`${field}:${fieldRevisions[field] ?? 0}`} {...props} rows={3} />
-      : <input key={`${field}:${fieldRevisions[field] ?? 0}`} {...props} type="text" />}
+      ? <textarea {...props} rows={3} />
+      : <input {...props} type="text" />}
     <FieldError id={`${id}-error`} message={error} />
   </label>;
 }
 
-function NumberField({ label, field, value, positive = false, integer = false, rotation = false, editable, errors, fieldRevisions, beginDraft, changeDraft, endDraft, commit, reject }: SharedFieldProps & {
+function NumberField({ label, field, value, positive = false, integer = false, rotation = false, editable, errors, drafts, beginDraft, changeDraft, finalizeDraft }: SharedFieldProps & {
   label: string; field: string; value: number; positive?: boolean; integer?: boolean; rotation?: boolean;
 }) {
   const id = useId();
@@ -209,38 +285,25 @@ function NumberField({ label, field, value, positive = false, integer = false, r
     <span>{label}</span>
     <input
       id={id}
-      key={`${field}:${fieldRevisions[field] ?? 0}`}
+      aria-label={label}
       type="number"
-      defaultValue={value}
+      value={drafts[field]?.raw ?? String(value)}
       disabled={!editable}
       step={integer || rotation ? 1 : "any"}
       aria-invalid={Boolean(error)}
       aria-describedby={error ? `${id}-error` : undefined}
       onFocus={() => beginDraft(field)}
-      onChange={() => changeDraft(field)}
-      onBlur={(event) => {
-        endDraft(field);
-        const rawValue = event.currentTarget.value.trim();
-        const parsed = rawValue === "" ? Number.NaN : Number(rawValue);
-        const message = rawValue === ""
-          ? "Informe um número."
-          : !Number.isFinite(parsed)
-          ? "Informe um número finito."
-          : positive && parsed <= 0
-            ? integer ? "Informe um inteiro positivo." : "Informe um número positivo."
-            : integer && !Number.isInteger(parsed)
-              ? "Informe um inteiro positivo."
-              : rotation && parsed % 90 !== 0
-                ? "A rotação deve ser múltipla de 90 graus."
-                : null;
-        if (message) reject(field, message); else commit(field, parsed, value);
-      }}
+      data-positive={positive || undefined}
+      data-integer={integer || undefined}
+      data-rotation={rotation || undefined}
+      onChange={(event) => changeDraft(field, event.currentTarget.value, value)}
+      onBlur={() => { finalizeDraft(field); }}
     />
     <FieldError id={`${id}-error`} message={error} />
   </label>;
 }
 
-function SelectField({ label, field, value, options, editable, errors, fieldRevisions, beginDraft, changeDraft, endDraft, commit }: SharedFieldProps & {
+function SelectField({ label, field, value, options, editable, errors, drafts, beginDraft, changeDraft, finalizeDraft }: SharedFieldProps & {
   label: string; field: string; value: string; options: readonly (readonly [string, string])[];
 }) {
   const id = useId();
@@ -249,17 +312,14 @@ function SelectField({ label, field, value, options, editable, errors, fieldRevi
     <span>{label}</span>
     <select
       id={id}
-      key={`${field}:${fieldRevisions[field] ?? 0}`}
-      defaultValue={value}
+      aria-label={label}
+      value={drafts[field]?.raw ?? value}
       disabled={!editable}
       aria-invalid={Boolean(error)}
       aria-describedby={error ? `${id}-error` : undefined}
       onFocus={() => beginDraft(field)}
-      onChange={() => changeDraft(field)}
-      onBlur={(event) => {
-        endDraft(field);
-        commit(field, event.currentTarget.value, value);
-      }}
+      onChange={(event) => changeDraft(field, event.currentTarget.value, value)}
+      onBlur={() => { finalizeDraft(field); }}
     >
       {options.map(([option, text]) => <option key={option} value={option}>{text}</option>)}
     </select>
@@ -267,7 +327,7 @@ function SelectField({ label, field, value, options, editable, errors, fieldRevi
   </label>;
 }
 
-function PropertiesField({ value, editable, errors, fieldRevisions, beginDraft, changeDraft, endDraft, commit, reject }: SharedFieldProps & { value: PidProperties }) {
+function PropertiesField({ value, editable, errors, drafts, beginDraft, changeDraft, finalizeDraft }: SharedFieldProps & { value: PidProperties }) {
   const id = useId();
   const field = "properties";
   const error = errors[field];
@@ -275,25 +335,16 @@ function PropertiesField({ value, editable, errors, fieldRevisions, beginDraft, 
     <span>Propriedades (JSON)</span>
     <textarea
       id={id}
-      key={`${field}:${fieldRevisions[field] ?? 0}`}
-      defaultValue={JSON.stringify(value, null, 2)}
+      aria-label="Propriedades (JSON)"
+      value={drafts[field]?.raw ?? JSON.stringify(value, null, 2)}
       disabled={!editable}
       rows={5}
       spellCheck={false}
       aria-invalid={Boolean(error)}
       aria-describedby={error ? `${id}-error` : undefined}
       onFocus={() => beginDraft(field)}
-      onChange={() => changeDraft(field)}
-      onBlur={(event) => {
-        endDraft(field);
-        try {
-          const parsed: unknown = JSON.parse(event.currentTarget.value);
-          if (!isProperties(parsed)) throw new Error();
-          commit(field, parsed, value);
-        } catch {
-          reject(field, "Informe um objeto JSON válido.");
-        }
-      }}
+      onChange={(event) => changeDraft(field, event.currentTarget.value, value)}
+      onBlur={() => { finalizeDraft(field); }}
     />
     <FieldError id={`${id}-error`} message={error} />
   </label>;
@@ -367,6 +418,41 @@ function sameValue(left: FieldValue | undefined, right: FieldValue | undefined):
   return typeof left === "object" || typeof right === "object"
     ? JSON.stringify(left) === JSON.stringify(right)
     : left === right;
+}
+
+function parseDraftValue(
+  selected: ReturnType<typeof resolveSelectedElement>,
+  field: string,
+  raw: string,
+): { readonly ok: true; readonly value: FieldValue } | { readonly ok: false; readonly message: string } {
+  if (field === "properties") {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return isProperties(parsed)
+        ? { ok: true, value: parsed }
+        : { ok: false, message: "Informe um objeto JSON válido." };
+    } catch {
+      return { ok: false, message: "Informe um objeto JSON válido." };
+    }
+  }
+  const numeric = field === "x" || field === "y" || field === "width" || field === "height"
+    || field === "rotation" || field === "capacity";
+  if (!numeric) return { ok: true, value: raw };
+  const trimmed = raw.trim();
+  if (trimmed === "") return { ok: false, message: "Informe um número." };
+  const value = Number(trimmed);
+  if (!Number.isFinite(value)) return { ok: false, message: "Informe um número finito." };
+  if (field === "capacity" && (value <= 0 || !Number.isInteger(value))) {
+    return { ok: false, message: "Informe um inteiro positivo." };
+  }
+  if ((field === "width" || field === "height") && value <= 0) {
+    return { ok: false, message: "Informe um número positivo." };
+  }
+  if (field === "rotation" && value % 90 !== 0) {
+    return { ok: false, message: "A rotação deve ser múltipla de 90 graus." };
+  }
+  if (!selected) return { ok: false, message: "O elemento selecionado não existe mais." };
+  return { ok: true, value };
 }
 
 function isProperties(value: unknown): value is Record<string, PidJsonValue> {
