@@ -119,6 +119,18 @@ describe("validação estruturada P&ID", () => {
     expect(issues.some((issue) => issue.code === "port.required-disconnected" || issue.code === "property.required-missing")).toBe(false);
     expect(issues).toEqual(validateDocument(structuredClone(document), { catalog: wrongVersionCatalog }));
   });
+
+  it("normaliza espaços da versão do símbolo como o comando de inserção", () => {
+    const paddedCatalog = catalog.map((symbol) => ({
+      ...symbol,
+      catalogVersion: `  ${symbol.catalogVersion}\n`,
+    }));
+
+    const issues = validateDocument(baseDocument(), { catalog: paddedCatalog });
+
+    expect(issues.some((issue) => issue.code === "catalog.symbol-version-mismatch")).toBe(false);
+    expect(issues).toEqual([]);
+  });
 });
 
 function baseDocument(): PidDocument {

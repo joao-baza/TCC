@@ -79,7 +79,7 @@ function validateCatalogRules(
       });
       continue;
     }
-    if (symbol.catalogVersion !== document.metadata.catalogVersion) {
+    if (symbol.catalogVersion.trim() !== document.metadata.catalogVersion) {
       issues.push({
         code: "catalog.symbol-version-mismatch",
         severity: "error",

@@ -150,6 +150,45 @@ describe("inspetor contextual P&ID", () => {
     expect(screen.getByLabelText("Capacidade")).toHaveAttribute("aria-invalid", "false");
     expect(screen.queryByText(/informe um número/i)).not.toBeInTheDocument();
   });
+
+  it("preserva rascunho focado quando uma projeção remota altera outro campo", async () => {
+    const initial = documentFixture();
+    const { rerender } = render(
+      <PropertiesInspector document={initial} selection={[ids.node]} editable onCommand={vi.fn()} />,
+    );
+    const label = screen.getByLabelText("Rótulo");
+    label.focus();
+    fireEvent.change(label, { target: { value: "Rascunho local" } });
+    expect(label).toHaveFocus();
+
+    const remote = structuredClone(initial);
+    remote.nodes[ids.node] = { ...remote.nodes[ids.node], x: 99 };
+    rerender(<PropertiesInspector document={remote} selection={[ids.node]} editable onCommand={vi.fn()} />);
+
+    await waitFor(() => expect(screen.getByLabelText("Posição X")).toHaveValue(99));
+    expect(screen.getByLabelText("Rótulo")).toBe(label);
+    expect(label).toHaveValue("Rascunho local");
+    expect(label).toHaveFocus();
+  });
+
+  it("preserva rascunho focado e sinaliza conflito quando o mesmo campo muda remotamente", async () => {
+    const initial = documentFixture();
+    const { rerender } = render(
+      <PropertiesInspector document={initial} selection={[ids.node]} editable onCommand={vi.fn()} />,
+    );
+    const label = screen.getByLabelText("Rótulo");
+    label.focus();
+    fireEvent.change(label, { target: { value: "Rascunho local" } });
+
+    const remote = structuredClone(initial);
+    remote.nodes[ids.node] = { ...remote.nodes[ids.node], label: "Valor remoto" };
+    rerender(<PropertiesInspector document={remote} selection={[ids.node]} editable onCommand={vi.fn()} />);
+
+    await waitFor(() => expect(label).toHaveAttribute("aria-invalid", "true"));
+    expect(label).toHaveValue("Rascunho local");
+    expect(label).toHaveFocus();
+    expect(screen.getAllByText(/mudou remotamente/i).length).toBeGreaterThan(0);
+  });
 });
 
 describe("painel de validação", () => {
