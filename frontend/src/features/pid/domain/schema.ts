@@ -1,0 +1,238 @@
+import { z } from "zod";
+
+import type {
+  PidAnnotation,
+  PidDocument,
+  PidEdge,
+  PidGroup,
+  PidJsonValue,
+  PidNode,
+  PidPort,
+  Point,
+} from "./model";
+
+const uuidSchema = z.string().uuid();
+const finiteNumberSchema = z.number().finite();
+const positiveNumberSchema = finiteNumberSchema.positive();
+const nonBlankStringSchema = z.string().refine((value) => value.trim().length > 0, {
+  message: "Obrigatório informar um texto não vazio.",
+});
+const rotationSchema = finiteNumberSchema.refine((value) => value % 90 === 0, {
+  message: "A rotação deve ser múltipla de 90 graus.",
+});
+
+const jsonValueSchema: z.ZodType<PidJsonValue> = z.lazy(() => z.union([
+  z.string(),
+  finiteNumberSchema,
+  z.boolean(),
+  z.null(),
+  z.array(jsonValueSchema),
+  z.record(z.string(), jsonValueSchema),
+]));
+
+const propertiesSchema = z.record(z.string(), jsonValueSchema);
+
+const pointSchema: z.ZodType<Point> = z.object({
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+}).strict();
+
+const nodeSchema: z.ZodType<PidNode> = z.object({
+  id: uuidSchema,
+  symbolKey: nonBlankStringSchema,
+  catalogVersion: nonBlankStringSchema,
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+  width: positiveNumberSchema,
+  height: positiveNumberSchema,
+  rotation: rotationSchema,
+  tag: z.string(),
+  label: z.string(),
+  properties: propertiesSchema,
+}).strict();
+
+const portSchema: z.ZodType<PidPort> = z.object({
+  id: uuidSchema,
+  nodeId: uuidSchema,
+  templateKey: nonBlankStringSchema,
+  direction: z.enum(["input", "output", "bidirectional"]),
+  connectionClass: z.enum(["process", "utility", "signal"]),
+  capacity: positiveNumberSchema,
+}).strict();
+
+const edgeSchema: z.ZodType<PidEdge> = z.object({
+  id: uuidSchema,
+  sourcePortId: uuidSchema,
+  targetPortId: uuidSchema,
+  connectionClass: z.enum(["process", "utility", "signal"]),
+  route: z.array(pointSchema),
+  tag: z.string(),
+  label: z.string(),
+  properties: propertiesSchema,
+}).strict();
+
+const annotationSchema: z.ZodType<PidAnnotation> = z.object({
+  id: uuidSchema,
+  kind: z.enum(["text", "note", "callout"]),
+  text: z.string(),
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+  width: positiveNumberSchema,
+  height: positiveNumberSchema,
+  rotation: rotationSchema,
+  nodeId: uuidSchema.optional(),
+  edgeId: uuidSchema.optional(),
+  properties: propertiesSchema,
+}).strict();
+
+const groupSchema: z.ZodType<PidGroup> = z.object({
+  id: uuidSchema,
+  label: z.string(),
+  memberIds: z.array(uuidSchema),
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+  width: positiveNumberSchema,
+  height: positiveNumberSchema,
+  properties: propertiesSchema,
+}).strict();
+
+const recordSchema = <T>(itemSchema: z.ZodType<T>) => z.record(z.string(), itemSchema);
+
+export const pidDocumentSchema = z.object({
+  schemaVersion: z.literal(1),
+  id: uuidSchema,
+  metadata: z.object({
+    title: nonBlankStringSchema,
+    standard: z.enum(["isa", "iso", "free"]),
+    catalogVersion: nonBlankStringSchema,
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }),
+  }).strict(),
+  nodes: recordSchema(nodeSchema),
+  ports: recordSchema(portSchema),
+  edges: recordSchema(edgeSchema),
+  annotations: recordSchema(annotationSchema),
+  groups: recordSchema(groupSchema),
+}).strict().superRefine((document, context) => {
+  validateMapIds(context, "nodes", document.nodes);
+  validateMapIds(context, "ports", document.ports);
+  validateMapIds(context, "edges", document.edges);
+  validateMapIds(context, "annotations", document.annotations);
+  validateMapIds(context, "groups", document.groups);
+
+  for (const [portId, port] of Object.entries(document.ports)) {
+    if (!document.nodes[port.nodeId]) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ports", portId, "nodeId"],
+        message: `A porta referencia o nó inexistente ${port.nodeId}.`,
+      });
+    }
+  }
+
+  for (const [edgeId, edge] of Object.entries(document.edges)) {
+    if (!document.ports[edge.sourcePortId]) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["edges", edgeId, "sourcePortId"],
+        message: `A borda referencia a porta de origem inexistente ${edge.sourcePortId}.`,
+      });
+    }
+    if (!document.ports[edge.targetPortId]) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["edges", edgeId, "targetPortId"],
+        message: `A borda referencia a porta de destino inexistente ${edge.targetPortId}.`,
+      });
+    }
+  }
+
+  for (const [annotationId, annotation] of Object.entries(document.annotations)) {
+    if (annotation.nodeId && !document.nodes[annotation.nodeId]) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["annotations", annotationId, "nodeId"],
+        message: `A anotação referencia o nó inexistente ${annotation.nodeId}.`,
+      });
+    }
+    if (annotation.edgeId && !document.edges[annotation.edgeId]) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["annotations", annotationId, "edgeId"],
+        message: `A anotação referencia a borda inexistente ${annotation.edgeId}.`,
+      });
+    }
+  }
+
+  for (const [groupId, group] of Object.entries(document.groups)) {
+    for (const memberId of group.memberIds) {
+      if (!document.nodes[memberId]) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["groups", groupId, "memberIds"],
+          message: `O grupo referencia o nó inexistente ${memberId}.`,
+        });
+      }
+    }
+  }
+});
+
+function validateMapIds(
+  context: z.RefinementCtx,
+  mapName: string,
+  values: Record<string, { id: string }>,
+) {
+  for (const [key, value] of Object.entries(values)) {
+    if (key !== value.id) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [mapName, key, "id"],
+        message: `A chave ${key} deve ser igual ao id do elemento.`,
+      });
+    }
+  }
+}
+
+export interface CreateEmptyPidDocumentInput {
+  title: string;
+  standard: PidDocument["metadata"]["standard"];
+  catalogVersion?: string;
+}
+
+export function createEmptyDocument({
+  title,
+  standard,
+  catalogVersion = "local-v1",
+}: CreateEmptyPidDocumentInput): PidDocument {
+  const normalizedTitle = title.trim();
+  const normalizedCatalogVersion = catalogVersion.trim();
+
+  if (!normalizedTitle) {
+    throw new Error("O título do diagrama é obrigatório.");
+  }
+  if (!normalizedCatalogVersion) {
+    throw new Error("A versão do catálogo é obrigatória.");
+  }
+
+  const timestamp = new Date().toISOString();
+  return {
+    schemaVersion: 1,
+    id: crypto.randomUUID(),
+    metadata: {
+      title: normalizedTitle,
+      standard,
+      catalogVersion: normalizedCatalogVersion,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    nodes: {},
+    ports: {},
+    edges: {},
+    annotations: {},
+    groups: {},
+  };
+}
+
+export function parsePidDocument(value: unknown): PidDocument {
+  return pidDocumentSchema.parse(value) as PidDocument;
+}
