@@ -98,6 +98,23 @@ describe("CatalogPanel", () => {
     expect(search).toHaveValue("");
   });
 
+  it("preserva o foco do campo de busca, mas recupera o foco quando a tree remove a linha ativa", async () => {
+    renderPanel();
+    const pump = screen.getByRole("treeitem", { name: /^Inserir Bomba centrífuga/ });
+    const search = screen.getByRole("searchbox", { name: "Pesquisar símbolos" });
+
+    pump.focus();
+    search.focus();
+    fireEvent.change(search, { target: { value: "valvula" } });
+    expect(search).toHaveFocus();
+
+    fireEvent.change(search, { target: { value: "" } });
+    const restoredPump = await screen.findByRole("treeitem", { name: /^Inserir Bomba centrífuga/ });
+    restoredPump.focus();
+    fireEvent.change(search, { target: { value: "valvula" } });
+    await waitFor(() => expect(screen.getByRole("treeitem", { name: "Válvulas" })).toHaveFocus());
+  });
+
   it("mantém uma janela virtual pequena para um catálogo sintético grande", () => {
     const catalog = Array.from({ length: 120 }, (_, index) => ({
       ...localCatalog[0],
@@ -143,7 +160,13 @@ describe("CatalogPanel", () => {
       return { x: 0, y: 0, top: 0, left: 0, right: 320, bottom: height, width: 320, height, toJSON: () => ({}) };
     });
     const emitResize = (target: Element, height: number) => {
-      const entry = { target, contentRect: { x: 0, y: 0, top: 0, left: 0, right: 320, bottom: height, width: 320, height } } as ResizeObserverEntry;
+      const size = { blockSize: height, inlineSize: 320 };
+      const entry = {
+        target,
+        borderBoxSize: [size],
+        contentBoxSize: [size],
+        contentRect: { x: 0, y: 0, top: 0, left: 0, right: 320, bottom: height, width: 320, height },
+      } as unknown as ResizeObserverEntry;
       for (const observer of observers) if (observer.targets.has(target)) observer.callback([entry], observer as unknown as ResizeObserver);
     };
 
@@ -151,36 +174,48 @@ describe("CatalogPanel", () => {
       render(<CatalogPanel symbols={catalog} standard="free" onInsert={vi.fn()} />);
       tree = screen.getByRole("tree");
       let scrollTop = 0;
+      let dispatchedScroll = false;
       const scrollTo = vi.fn(({ top }: ScrollToOptions) => {
-        scrollTop = Math.max(0, top ?? 0);
+        const nextScrollTop = Math.max(0, top ?? 0);
+        if (nextScrollTop === scrollTop) return;
+        scrollTop = nextScrollTop;
+        if (!dispatchedScroll) {
+          dispatchedScroll = true;
+          queueMicrotask(() => tree!.dispatchEvent(new Event("scroll")));
+        }
       });
       Object.defineProperties(tree, {
         clientHeight: { configurable: true, get: () => viewportHeight },
         scrollHeight: { configurable: true, get: () => 6_200 },
+        offsetHeight: { configurable: true, get: () => viewportHeight },
         scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
         scrollTo: { configurable: true, value: scrollTo },
       });
       await waitFor(() => expect(observers.some((observer) => observer.targets.has(tree!))).toBe(true));
       act(() => emitResize(tree!, viewportHeight));
+      const initialRows = tree.querySelectorAll<HTMLElement>("[data-index]");
+      act(() => emitResize(initialRows[0], 44));
+      act(() => emitResize(initialRows[1], 76));
       scrollTo.mockClear();
 
       const first = screen.getByRole("treeitem", { name: "Equipamentos" });
       first.focus();
       fireEvent.keyDown(first, { key: "End" });
       await waitFor(() => expect(scrollTo).toHaveBeenCalled());
-      expect(tree.scrollTop).toBeGreaterThan(0);
-      fireEvent.change(screen.getByRole("searchbox", { name: "Pesquisar símbolos" }), { target: { value: "scroll 9" } });
       const finalRow = await screen.findByRole("treeitem", { name: /Bomba scroll 9/ });
       await waitFor(() => expect(finalRow).toHaveFocus());
-      act(() => {
-        scrollTop = 0; // The browser clamps its scroll position when the filtered content shrinks.
-        fireEvent.scroll(tree!);
-      });
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+      const finalContainer = finalRow.closest<HTMLElement>("[data-index]");
+      expect(finalContainer).not.toBeNull();
+      act(() => emitResize(finalContainer!, 76));
 
-      const categoryBeforeResize = screen.getByRole("treeitem", { name: "Equipamentos" });
-      fireEvent.keyDown(categoryBeforeResize, { key: "ArrowDown" });
+      scrollTo.mockClear();
+      fireEvent.keyDown(finalRow, { key: "ArrowUp" });
+      const previousRow = await screen.findByRole("treeitem", { name: /Bomba scroll 8/ });
+      await waitFor(() => expect(previousRow).toHaveFocus());
+      scrollTo.mockClear();
+      fireEvent.keyDown(previousRow, { key: "ArrowDown" });
       await waitFor(() => expect(screen.getByRole("treeitem", { name: /Bomba scroll 9/ })).toHaveFocus());
+      expect(scrollTo).not.toHaveBeenCalled();
 
       viewportHeight = 280;
       act(() => emitResize(tree!, viewportHeight));

@@ -170,6 +170,9 @@ describe("createCatalogIndex", () => {
 
   it("rejeita aliases vazios e tamanhos não finitos", () => {
     expect(() => createCatalogIndex([{ ...localCatalog[0], aliases: [""] }])).toThrow("aliases");
+    let aliasError: unknown;
+    try { parseCatalogSymbol({ ...localCatalog[0], aliases: ["x".repeat(100_000)] }); } catch (error) { aliasError = error; }
+    expect(aliasError).toMatchObject({ path: ["aliases", 0] });
     expect(() => createCatalogIndex([{
       ...localCatalog[0],
       defaultSize: { width: Number.NaN, height: 64 },

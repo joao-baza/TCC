@@ -63,15 +63,18 @@ export function CatalogPanel(props: CatalogPanelProps) {
   const virtualItems = virtualizer.getVirtualItems().filter((item) => rows[item.index] !== undefined);
   const visibleItems = virtualItems.length > 0 ? virtualItems : estimatedVisibleItems(rows);
   const totalSize = virtualizer.getTotalSize() || estimatedTotalSize(rows);
+  const activeRowRemoved = activeId !== undefined && !rows.some((row) => row.id === activeId);
+  const shouldRecoverTreeFocus = activeRowRemoved
+    && scrollElement?.contains(document.activeElement)
+    && document.activeElement?.id === `${panelId}-${activeId}`;
 
   useLayoutEffect(() => { virtualizer.measure(); }, [virtualizer, rows]);
   useEffect(() => {
-    setActiveId((current) => {
-      if (current === undefined || rows.some((row) => row.id === current)) return current ?? rows[0]?.id;
-      setPendingFocusId(rows[0]?.id);
-      return rows[0]?.id;
-    });
-  }, [rows]);
+    if (activeId === undefined) { setActiveId(rows[0]?.id); return; }
+    if (!activeRowRemoved) return;
+    setActiveId(rows[0]?.id);
+    setPendingFocusId(shouldRecoverTreeFocus ? rows[0]?.id : undefined);
+  }, [activeId, activeRowRemoved, rows, shouldRecoverTreeFocus]);
   useLayoutEffect(() => {
     if (!pendingFocusId) return;
     const button = document.getElementById(`${panelId}-${pendingFocusId}`) as HTMLButtonElement | null;
@@ -96,7 +99,8 @@ export function CatalogPanel(props: CatalogPanelProps) {
     if (!row) return;
     setActiveId(row.id);
     setPendingFocusId(row.id);
-    virtualizer.scrollToIndex(index, { align: "auto" });
+    const range = virtualizer.range;
+    if (!range || index < range.startIndex || index > range.endIndex) virtualizer.scrollToIndex(index, { align: "auto" });
   };
   const onRowKeyDown = (event: KeyboardEvent<HTMLButtonElement>, row: CatalogRow, index: number) => {
     const target = event.key === "ArrowDown" ? index + 1
@@ -128,7 +132,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
   return (
     <section aria-label="Catálogo de símbolos P&ID" className="space-y-3">
       <div className="flex gap-2">
-        <input aria-label="Pesquisar símbolos" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Pesquisar símbolos" className="min-h-11 flex-1 rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+        <input aria-label="Pesquisar símbolos" type="search" value={query} onChange={(event) => { setPendingFocusId(undefined); setQuery(event.target.value); }} placeholder="Pesquisar símbolos" className="min-h-11 flex-1 rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         {query !== "" && <button type="button" onClick={() => setQuery("")} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Limpar busca</button>}
       </div>
       {sourceFilters.length > 0 && <div aria-label="Fontes do catálogo" className="flex gap-2">
