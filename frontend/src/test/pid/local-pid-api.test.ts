@@ -7,13 +7,17 @@ import {
 } from "@/features/pid/api/contracts";
 import {
   LocalPidApi,
+  localPidCleanupScanLimit,
   localPidSerializedByteLimit,
   type LocalPidExclusiveLock,
   type LocalPidRuntime,
 } from "@/features/pid/api/local-pid-api";
 import {
+  PidServicesError,
+  createBrowserExclusiveLock,
   createBrowserLocalPidRuntime,
   createPidServices,
+  isPidServicesError,
 } from "@/features/pid/api/pid-services";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -263,7 +267,7 @@ describe("LocalPidApi", () => {
     changed.metadata.title = "Não deve reviver";
 
     const [deletion, save] = await Promise.allSettled([
-      api.softDelete(diagramId, created.editToken),
+      api.softDelete(diagramId, created.editToken, created.revision),
       secondApi.save(diagramId, created.editToken, changed, created.revision),
     ]);
 
@@ -279,17 +283,100 @@ describe("LocalPidApi", () => {
   it("restaura dentro de 30 dias e elimina definitivamente registro expirado", async () => {
     const active = createHarness();
     const created = await active.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
-    await active.api.softDelete(diagramId, created.editToken);
+    expect(await active.api.softDelete(diagramId, created.editToken, created.revision)).toBe(2);
     active.setNow("2026-09-08T12:00:00.000Z");
-    await active.api.restore(diagramId, created.editToken);
+    expect(await active.api.restore(diagramId, created.editToken, 2)).toBe(3);
     await expect(active.api.open(diagramId, created.editToken)).resolves.toMatchObject({ scope: "edit", revision: 3 });
 
     const expired = createHarness();
     const expiredCreated = await expired.api.create({ title: "Expirado", standard: "iso", participantName: "Ana" });
-    await expired.api.softDelete(diagramId, expiredCreated.editToken);
+    await expired.api.softDelete(diagramId, expiredCreated.editToken, expiredCreated.revision);
     expired.setNow("2026-09-08T12:00:00.001Z");
-    await expect(expired.api.restore(diagramId, expiredCreated.editToken)).rejects.toMatchObject({ code: "RESTORE_EXPIRED" });
+    await expect(expired.api.restore(diagramId, expiredCreated.editToken, 2)).rejects.toMatchObject({ code: "RESTORE_EXPIRED" });
     expect(expired.storage.getItem(storageKey)).toBeNull();
+  });
+
+  it("rejeita exclusão obsoleta apó gravação ou rotação mais nova", async () => {
+    const saved = createHarness();
+    const savedCreated = await saved.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    await saved.api.save(diagramId, savedCreated.editToken, savedCreated.document, savedCreated.revision);
+    await expect(saved.api.softDelete(diagramId, savedCreated.editToken, savedCreated.revision))
+      .rejects.toMatchObject({ code: "CONFLICT" });
+
+    const rotated = createHarness();
+    const rotatedCreated = await rotated.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    await rotated.api.regenerate(diagramId, rotatedCreated.editToken, "view", rotatedCreated.revision);
+    await expect(rotated.api.softDelete(diagramId, rotatedCreated.editToken, rotatedCreated.revision))
+      .rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("serializa nova exclusão e restauração concorrentes nas duas ordens", async () => {
+    const deleteFirst = createHarness();
+    const firstCreated = await deleteFirst.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const deletedRevision = await deleteFirst.api.softDelete(
+      diagramId,
+      firstCreated.editToken,
+      firstCreated.revision,
+    );
+    expect(await deleteFirst.api.softDelete(diagramId, firstCreated.editToken, deletedRevision)).toBe(3);
+    await expect(deleteFirst.secondApi.restore(diagramId, firstCreated.editToken, deletedRevision))
+      .rejects.toMatchObject({ code: "CONFLICT" });
+
+    const restoreFirst = createHarness();
+    const secondCreated = await restoreFirst.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const secondDeletedRevision = await restoreFirst.api.softDelete(
+      diagramId,
+      secondCreated.editToken,
+      secondCreated.revision,
+    );
+    expect(await restoreFirst.api.restore(diagramId, secondCreated.editToken, secondDeletedRevision)).toBe(3);
+    await expect(restoreFirst.secondApi.softDelete(diagramId, secondCreated.editToken, secondDeletedRevision))
+      .rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("limpa proativamente apenas exclusões expiradas do namespace", async () => {
+    const harness = createHarness();
+    const created = await harness.api.create({ title: "Expirado", standard: "iso", participantName: "Ana" });
+    await harness.api.softDelete(diagramId, created.editToken, created.revision);
+    const expired = JSON.parse(harness.storage.getItem(storageKey)!);
+    const recentId = "20000000-0000-4000-8000-000000000002";
+    const activeId = "30000000-0000-4000-8000-000000000003";
+    const corruptId = "40000000-0000-4000-8000-000000000004";
+    const newId = "50000000-0000-4000-8000-000000000005";
+    const cloneFor = (id: string, deletedAt: string | null) => JSON.stringify({
+      ...expired,
+      diagramId: id,
+      deletedAt,
+      document: { ...expired.document, id },
+    });
+    harness.storage.setItem(`dcou.pid.local.v1.${recentId}`, cloneFor(recentId, "2026-08-20T12:00:00.000Z"));
+    harness.storage.setItem(`dcou.pid.local.v1.${activeId}`, cloneFor(activeId, null));
+    harness.storage.setItem(`dcou.pid.local.v1.${corruptId}`, "{corrompido");
+    harness.storage.setItem("outra.aplicacao", "preservar");
+    harness.setNow("2026-09-09T12:00:00.000Z");
+    harness.runtime.generateUuid = () => newId;
+
+    await harness.api.create({ title: "Novo", standard: "iso", participantName: "Ana" });
+
+    expect(harness.storage.getItem(storageKey)).toBeNull();
+    expect(harness.storage.getItem(`dcou.pid.local.v1.${recentId}`)).not.toBeNull();
+    expect(harness.storage.getItem(`dcou.pid.local.v1.${activeId}`)).not.toBeNull();
+    expect(harness.storage.getItem(`dcou.pid.local.v1.${corruptId}`)).toBe("{corrompido");
+    expect(harness.storage.getItem("outra.aplicacao")).toBe("preservar");
+  });
+
+  it("limita cada varredura proativa a uma quantidade fixa de chaves", async () => {
+    const harness = createHarness();
+    for (let index = 0; index < localPidCleanupScanLimit + 3; index += 1) {
+      const id = `${String(index + 1).padStart(8, "0")}-0000-4000-8000-000000000000`;
+      harness.storage.setItem(`dcou.pid.local.v1.${id}`, "{corrompido");
+    }
+    const runExclusive = vi.spyOn(harness.lock, "runExclusive");
+    harness.runtime.generateUuid = () => "60000000-0000-4000-8000-000000000006";
+
+    await harness.api.create({ title: "Novo", standard: "iso", participantName: "Ana" });
+
+    expect(runExclusive).toHaveBeenCalledTimes(localPidCleanupScanLimit + 1);
   });
 
   it("rejeita id divergente e documento inválido ao gravar", async () => {
@@ -394,5 +481,107 @@ describe("composição de serviços P&ID", () => {
   it("seleciona local somente quando solicitado explicitamente e aceita dependências injetadas", () => {
     const { storage, runtime, lock } = createHarness();
     expect(createPidServices({ adapter: "local", storage, runtime, lock }).document).toBeInstanceOf(LocalPidApi);
+  });
+
+  it("expõe falhas de configuração e capacidades do navegador como erro tipado", () => {
+    const adapterError = (() => {
+      try {
+        createPidServices(undefined);
+      } catch (error) {
+        return error;
+      }
+    })();
+    expect(adapterError).toBeInstanceOf(PidServicesError);
+    expect(isPidServicesError(adapterError)).toBe(true);
+    expect(adapterError).toMatchObject({ code: "ADAPTER_NOT_CONFIGURED" });
+
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, "locks");
+    Object.defineProperty(navigator, "locks", { configurable: true, value: undefined });
+    try {
+      expect(() => createBrowserExclusiveLock()).toThrowError(PidServicesError);
+      expect(() => createBrowserExclusiveLock()).toThrowError(
+        "Web Locks indisponível para o adaptador P&ID local.",
+      );
+    } finally {
+      if (descriptor) Object.defineProperty(navigator, "locks", descriptor);
+      else Reflect.deleteProperty(navigator, "locks");
+    }
+
+    const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: undefined });
+    try {
+      expect(() => createPidServices({ adapter: "local" })).toThrow(expect.objectContaining({
+        name: "PidServicesError",
+        code: "STORAGE_UNAVAILABLE",
+      }));
+    } finally {
+      if (storageDescriptor) Object.defineProperty(globalThis, "localStorage", storageDescriptor);
+      else Reflect.deleteProperty(globalThis, "localStorage");
+    }
+
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    Object.defineProperty(globalThis, "crypto", { configurable: true, value: undefined });
+    try {
+      expect(() => createPidServices({
+        adapter: "local",
+        storage: new MemoryStorage(),
+        lock: new SerialExclusiveLock(),
+      })).toThrow(expect.objectContaining({
+        name: "PidServicesError",
+        code: "CRYPTO_UNAVAILABLE",
+      }));
+    } finally {
+      if (cryptoDescriptor) Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      else Reflect.deleteProperty(globalThis, "crypto");
+    }
+  });
+
+  it("serializa duas instâncias de lock do navegador pelo mesmo gerenciador", async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, "locks");
+    const tails = new Map<string, Promise<void>>();
+    const manager = {
+      request: async <T>(
+        name: string,
+        _options: LockOptions,
+        callback: () => Promise<T>,
+      ): Promise<T> => {
+        const previous = tails.get(name) ?? Promise.resolve();
+        let release!: () => void;
+        const current = new Promise<void>((resolve) => { release = resolve; });
+        const tail = previous.then(() => current);
+        tails.set(name, tail);
+        await previous;
+        try {
+          return await callback();
+        } finally {
+          release();
+          if (tails.get(name) === tail) tails.delete(name);
+        }
+      },
+    };
+    Object.defineProperty(navigator, "locks", { configurable: true, value: manager });
+    try {
+      const first = createBrowserExclusiveLock();
+      const second = createBrowserExclusiveLock();
+      const events: string[] = [];
+      let releaseFirst!: () => void;
+      const gate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+      const firstOperation = first.runExclusive("diagrama", async () => {
+        events.push("primeiro-início");
+        await gate;
+        events.push("primeiro-fim");
+      });
+      const secondOperation = second.runExclusive("diagrama", async () => {
+        events.push("segundo");
+      });
+
+      await vi.waitFor(() => expect(events).toEqual(["primeiro-início"]));
+      releaseFirst();
+      await Promise.all([firstOperation, secondOperation]);
+      expect(events).toEqual(["primeiro-início", "primeiro-fim", "segundo"]);
+    } finally {
+      if (descriptor) Object.defineProperty(navigator, "locks", descriptor);
+      else Reflect.deleteProperty(navigator, "locks");
+    }
   });
 });

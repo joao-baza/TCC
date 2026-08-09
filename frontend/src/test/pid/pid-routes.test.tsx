@@ -1,7 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter, matchRoutes } from "react-router-dom";
+import { afterEach, vi } from "vitest";
 
 import { routes } from "@/app/router";
+
+afterEach(() => vi.restoreAllMocks());
 
 it.each(["/pid", "/pid/7c1fdcea-c47a-49d2-b16f-22c30da1b3cb"])(
   "declara a rota focada %s",
@@ -37,4 +40,23 @@ it("oferece o card P&ID no acesso rápido", async () => {
   expect(
     within(quickAccess!).getByRole("link", { name: "Ferramentas P&ID" }),
   ).toHaveAttribute("href", "/pid");
+});
+
+it("mostra orientação focada quando falta uma capacidade do runtime local", async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(navigator, "locks");
+  Object.defineProperty(navigator, "locks", { configurable: true, value: undefined });
+  try {
+    const router = createMemoryRouter(routes, { initialEntries: ["/pid"] });
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole("heading", { name: "Editor P&ID indisponível" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Web Locks indisponível para o adaptador P&ID local.",
+    );
+    expect(screen.getByText(/Use um navegador atualizado/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
+  } finally {
+    if (descriptor) Object.defineProperty(navigator, "locks", descriptor);
+    else Reflect.deleteProperty(navigator, "locks");
+  }
 });

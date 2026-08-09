@@ -77,8 +77,8 @@ export interface PidDocumentPort {
     scope: AccessScope,
     expectedRevision: number,
   ): Promise<RegeneratedPidToken>;
-  softDelete(diagramId: string, editToken: string): Promise<void>;
-  restore(diagramId: string, editToken: string): Promise<void>;
+  softDelete(diagramId: string, editToken: string, expectedRevision: number): Promise<number>;
+  restore(diagramId: string, editToken: string, expectedRevision: number): Promise<number>;
 }
 
 export interface CatalogSymbolManifest {

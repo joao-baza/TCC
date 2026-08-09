@@ -15,6 +15,7 @@ import {
 
 const storagePrefix = "dcou.pid.local.v1.";
 const restoreWindowMs = 30 * 24 * 60 * 60 * 1_000;
+export const localPidCleanupScanLimit = 32;
 /** Local-only stage limit. It bounds parsing and stays below common browser origin quotas. */
 export const localPidSerializedByteLimit = 5 * 1024 * 1024;
 const uuidSchema = z.string().uuid();
@@ -52,6 +53,8 @@ export interface LocalPidExclusiveLock {
 }
 
 export class LocalPidApi implements PidDocumentPort {
+  private cleanupCursor = 0;
+
   constructor(
     private readonly storage: Storage,
     private readonly runtime: LocalPidRuntime,
@@ -61,6 +64,7 @@ export class LocalPidApi implements PidDocumentPort {
   async create(input: CreatePidInput): Promise<CreatedPidDiagram> {
     const parsedInput = createInputSchema.safeParse(input);
     if (!parsedInput.success) throw new PidDocumentError("INVALID_INPUT", { cause: parsedInput.error });
+    await this.cleanupExpiredRecords();
 
     const diagramId = this.generateUuid();
     const { first: readToken, second: editToken } = this.generateDistinctTokens();
@@ -178,35 +182,72 @@ export class LocalPidApi implements PidDocumentPort {
     });
   }
 
-  async softDelete(diagramId: string, editToken: string): Promise<void> {
+  async softDelete(diagramId: string, editToken: string, expectedRevision: number): Promise<number> {
     this.assertAccessDiagramId(diagramId);
+    if (!revisionSchema.safeParse(expectedRevision).success) throw new PidDocumentError("INVALID_INPUT");
     return this.exclusiveLock.runExclusive(this.storageKey(diagramId), async () => {
       const editDigest = await this.digestAccessToken(editToken);
       const record = this.readRecordForAccess(diagramId);
       authorizeEdit(record, editDigest);
-      if (record.deletedAt) return;
+      if (record.revision !== expectedRevision) throw new PidDocumentError("CONFLICT");
+      const revision = record.revision + 1;
       this.writeRecord({
         ...record,
-        revision: record.revision + 1,
-        deletedAt: this.nowIso(),
+        revision,
+        deletedAt: record.deletedAt ?? this.nowIso(),
       });
+      return revision;
     });
   }
 
-  async restore(diagramId: string, editToken: string): Promise<void> {
+  async restore(diagramId: string, editToken: string, expectedRevision: number): Promise<number> {
     this.assertAccessDiagramId(diagramId);
+    if (!revisionSchema.safeParse(expectedRevision).success) throw new PidDocumentError("INVALID_INPUT");
     return this.exclusiveLock.runExclusive(this.storageKey(diagramId), async () => {
       const editDigest = await this.digestAccessToken(editToken);
       const record = this.readRecordForAccess(diagramId);
       authorizeEdit(record, editDigest);
-      if (!record.deletedAt) return;
-      const elapsed = this.now().getTime() - new Date(record.deletedAt).getTime();
-      if (elapsed > restoreWindowMs) {
-        this.removeRecord(diagramId);
-        throw new PidDocumentError("RESTORE_EXPIRED");
+      if (record.revision !== expectedRevision) throw new PidDocumentError("CONFLICT");
+      if (record.deletedAt) {
+        const elapsed = this.now().getTime() - new Date(record.deletedAt).getTime();
+        if (elapsed > restoreWindowMs) {
+          this.removeRecord(diagramId);
+          throw new PidDocumentError("RESTORE_EXPIRED");
+        }
       }
-      this.writeRecord({ ...record, revision: record.revision + 1, deletedAt: null });
+      const revision = record.revision + 1;
+      this.writeRecord({ ...record, revision, deletedAt: null });
+      return revision;
     });
+  }
+
+  private async cleanupExpiredRecords(): Promise<void> {
+    const length = this.storageLength();
+    if (length === 0) {
+      this.cleanupCursor = 0;
+      return;
+    }
+    const scanCount = Math.min(length, localPidCleanupScanLimit);
+    const candidates: string[] = [];
+    for (let offset = 0; offset < scanCount; offset += 1) {
+      const key = this.storageKeyAt((this.cleanupCursor + offset) % length);
+      if (key?.startsWith(storagePrefix)) candidates.push(key);
+    }
+    this.cleanupCursor = (this.cleanupCursor + scanCount) % length;
+
+    for (const key of candidates) {
+      await this.exclusiveLock.runExclusive(key, async () => {
+        const serialized = this.readStorageKey(key);
+        if (serialized === null || exceedsSerializedLimit(serialized)) return;
+        const parsed = storedRecordSchema.safeParse(parseJson(serialized));
+        if (!parsed.success) return;
+        const diagramId = key.slice(storagePrefix.length);
+        if (parsed.data.diagramId !== diagramId || parsed.data.document.id !== diagramId) return;
+        if (!parsed.data.deletedAt) return;
+        const elapsed = this.now().getTime() - new Date(parsed.data.deletedAt).getTime();
+        if (elapsed > restoreWindowMs) this.removeStorageKey(key);
+      });
+    }
   }
 
   private generateUuid(): string {
@@ -286,8 +327,28 @@ export class LocalPidApi implements PidDocumentPort {
   }
 
   private readSerialized(diagramId: string): string | null {
+    return this.readStorageKey(this.storageKey(diagramId));
+  }
+
+  private readStorageKey(key: string): string | null {
     try {
-      return this.storage.getItem(this.storageKey(diagramId));
+      return this.storage.getItem(key);
+    } catch (error) {
+      throw new PidDocumentError("STORAGE_UNAVAILABLE", { cause: error });
+    }
+  }
+
+  private storageLength(): number {
+    try {
+      return this.storage.length;
+    } catch (error) {
+      throw new PidDocumentError("STORAGE_UNAVAILABLE", { cause: error });
+    }
+  }
+
+  private storageKeyAt(index: number): string | null {
+    try {
+      return this.storage.key(index);
     } catch (error) {
       throw new PidDocumentError("STORAGE_UNAVAILABLE", { cause: error });
     }
@@ -311,8 +372,12 @@ export class LocalPidApi implements PidDocumentPort {
   }
 
   private removeRecord(diagramId: string): void {
+    this.removeStorageKey(this.storageKey(diagramId));
+  }
+
+  private removeStorageKey(key: string): void {
     try {
-      this.storage.removeItem(this.storageKey(diagramId));
+      this.storage.removeItem(key);
     } catch (error) {
       throw new PidDocumentError("STORAGE_UNAVAILABLE", { cause: error });
     }
@@ -388,6 +453,14 @@ function utf8ByteLength(value: string): number {
 function exceedsSerializedLimit(value: string): boolean {
   return value.length > localPidSerializedByteLimit
     || utf8ByteLength(value) > localPidSerializedByteLimit;
+}
+
+function parseJson(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
 }
 
 function encodeBase64Url(bytes: Uint8Array): string {

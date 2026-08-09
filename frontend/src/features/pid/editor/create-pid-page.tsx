@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useBlocker } from "react-router-dom";
 import { z } from "zod";
 
 import { isPidDocumentError, type CreatedPidDiagram } from "../api/contracts";
@@ -23,6 +23,8 @@ export function CreatePidPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [statusIsError, setStatusIsError] = useState(false);
   const submitting = useRef(false);
+  const navigationLocked = Boolean(created && !confirmed);
+  const navigationBlocker = useBlocker(navigationLocked);
 
   useEffect(() => {
     if (!created || confirmed) return;
@@ -33,6 +35,10 @@ export function CreatePidPage() {
     window.addEventListener("beforeunload", protectCapability);
     return () => window.removeEventListener("beforeunload", protectCapability);
   }, [confirmed, created]);
+
+  useEffect(() => {
+    if (confirmed && navigationBlocker.state === "blocked") navigationBlocker.proceed();
+  }, [confirmed, navigationBlocker]);
 
   const reportStatus = (message: string, isError = false) => {
     setStatus(message);
@@ -96,8 +102,6 @@ export function CreatePidPage() {
       reportStatus("Não foi possível copiar automaticamente. Selecione o link e copie manualmente.", true);
     }
   };
-
-  const navigationLocked = Boolean(created && !confirmed);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-6 md:p-8">
@@ -209,6 +213,39 @@ export function CreatePidPage() {
         <button className="w-fit text-sm font-medium underline opacity-50" disabled type="button">Voltar ao DCOU</button>
       ) : (
         <Link className="w-fit text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
+      )}
+      {navigationBlocker.state === "blocked" && (
+        <section
+          aria-labelledby="pid-leave-title"
+          aria-describedby="pid-leave-description"
+          aria-modal="true"
+          className="fixed inset-x-4 bottom-4 z-50 mx-auto grid max-w-lg gap-4 rounded-lg border bg-background p-5 shadow-lg"
+          role="alertdialog"
+        >
+          <h2 className="text-lg font-semibold" id="pid-leave-title">
+            Link de edição ainda não confirmado
+          </h2>
+          <p id="pid-leave-description">
+            Se sair agora, você pode perder o único link com permissão para editar este diagrama.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              autoFocus
+              className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
+              onClick={() => navigationBlocker.reset()}
+              type="button"
+            >
+              Permanecer nesta página
+            </button>
+            <button
+              className="rounded-md border px-4 py-2"
+              onClick={() => navigationBlocker.proceed()}
+              type="button"
+            >
+              Sair desta página
+            </button>
+          </div>
+        </section>
       )}
     </main>
   );

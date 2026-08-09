@@ -52,13 +52,38 @@ function services(documentPort: Partial<PidDocumentPort> = {}): PidServices {
 }
 
 function renderCreate(pidServices = services()) {
-  return render(
-    <PidServicesProvider services={pidServices}>
-      <MemoryRouter>
+  const router = createMemoryRouter([{
+    path: "*",
+    element: (
+      <PidServicesProvider services={pidServices}>
         <CreatePidPage />
-      </MemoryRouter>
-    </PidServicesProvider>,
-  );
+      </PidServicesProvider>
+    ),
+  }], { initialEntries: ["/pid"] });
+  return render(<RouterProvider router={router} />);
+}
+
+function renderCreateDataRouter(pidServices = services()) {
+  const router = createMemoryRouter([
+    { path: "/", element: <h1>Início</h1> },
+    {
+      path: "/pid",
+      element: (
+        <PidServicesProvider services={pidServices}>
+          <CreatePidPage />
+        </PidServicesProvider>
+      ),
+    },
+  ], { initialEntries: ["/", "/pid"], initialIndex: 1 });
+  render(<RouterProvider router={router} />);
+  return router;
+}
+
+async function createDiagram() {
+  fireEvent.change(screen.getByLabelText("Título do diagrama"), { target: { value: "Utilidades" } });
+  fireEvent.change(screen.getByLabelText("Seu nome"), { target: { value: "Ana" } });
+  fireEvent.click(screen.getByRole("button", { name: "Criar diagrama" }));
+  await screen.findByLabelText("Link de edição");
 }
 
 describe("CreatePidPage", () => {
@@ -215,6 +240,35 @@ describe("CreatePidPage", () => {
       if (previousClipboard) Object.defineProperty(navigator, "clipboard", previousClipboard);
       else Reflect.deleteProperty(navigator, "clipboard");
     }
+  });
+
+  it("bloqueia o voltar do Router e respeita as escolhas de permanecer e sair", async () => {
+    const router = renderCreateDataRouter();
+    await createDiagram();
+
+    await router.navigate(-1);
+    expect(router.state.location.pathname).toBe("/pid");
+    expect(await screen.findByRole("alertdialog", { name: "Link de edição ainda não confirmado" }))
+      .toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Permanecer nesta página" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/pid");
+
+    await router.navigate(-1);
+    fireEvent.click(await screen.findByRole("button", { name: "Sair desta página" }));
+    expect(await screen.findByRole("heading", { name: "Início" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  it("permite voltar normalmente depois da confirmação da capacidade", async () => {
+    const router = renderCreateDataRouter();
+    await createDiagram();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Copiei o link de edição" }));
+
+    await router.navigate(-1);
+
+    expect(await screen.findByRole("heading", { name: "Início" })).toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 });
 

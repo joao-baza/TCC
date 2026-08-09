@@ -47,4 +47,12 @@ describe("configuração rastreada do adaptador P&ID", () => {
     expect(viteConfig).toContain("loadEnv");
     expect(viteConfig).toContain("Adaptador P&ID não configurado");
   });
+
+  it("documenta build local explícito e produção fail-closed", () => {
+    const readme = read("README.md");
+    expect(readme).toContain("npm run build:local");
+    expect(readme).toContain("VITE_PID_ADAPTER=local npm run build");
+    expect(readme).toContain("Adaptador P&ID não configurado");
+    expect(readme).not.toMatch(/```bash\s*\ncd frontend\s*\nnpm run build\s*\n```/);
+  });
 });

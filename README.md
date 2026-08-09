@@ -204,12 +204,23 @@ cd frontend
 npm test
 ```
 
-Build the frontend before publishing or validating production output:
+Build the frontend for the current local P&ID stage:
 
 ```bash
 cd frontend
-npm run build
+npm run build:local
 ```
+
+The local helper supplies `VITE_PID_ADAPTER=local` explicitly. Other build
+entrypoints must do the same instead of relying on a production environment
+file:
+
+```bash
+VITE_PID_ADAPTER=local npm run build
+```
+
+Production builds are fail-closed: if `VITE_PID_ADAPTER` is absent or has an
+unsupported value, Vite stops with `Adaptador P&ID não configurado`.
 
 Run the local preview used by Playwright:
 
@@ -280,7 +291,7 @@ The installer build flow is:
 
 ```bash
 cd frontend
-npm run build
+npm run build:local
 
 cd ../desktop
 npm run dist:local

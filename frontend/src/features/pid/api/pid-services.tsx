@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
+import { Link, useRouteError } from "react-router-dom";
 
 import type {
   PidCatalogPort,
@@ -11,7 +12,34 @@ import {
   type LocalPidRuntime,
 } from "./local-pid-api";
 
-const adapterConfigurationError = "Adaptador P&ID não configurado";
+const pidServicesErrorMessages = Object.freeze({
+  ADAPTER_NOT_CONFIGURED: "Adaptador P&ID não configurado",
+  CRYPTO_UNAVAILABLE: "Runtime criptográfico indisponível para o adaptador P&ID local.",
+  LOCKS_UNAVAILABLE: "Web Locks indisponível para o adaptador P&ID local.",
+  STORAGE_UNAVAILABLE: "Armazenamento local indisponível para o adaptador P&ID.",
+} as const);
+
+export type PidServicesErrorCode = keyof typeof pidServicesErrorMessages;
+
+export class PidServicesError extends Error {
+  constructor(
+    public readonly code: PidServicesErrorCode,
+    options?: ErrorOptions,
+  ) {
+    super(pidServicesErrorMessages[code], options);
+    this.name = "PidServicesError";
+  }
+}
+
+export function isPidServicesError(value: unknown): value is PidServicesError {
+  if (value instanceof PidServicesError) return true;
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as { name?: unknown; code?: unknown; message?: unknown };
+  return candidate.name === "PidServicesError"
+    && typeof candidate.code === "string"
+    && Object.hasOwn(pidServicesErrorMessages, candidate.code)
+    && candidate.message === pidServicesErrorMessages[candidate.code as PidServicesErrorCode];
+}
 const PidServicesContext = createContext<PidServices | null>(null);
 
 export interface CreatePidServicesOptions {
@@ -47,11 +75,28 @@ export function PidServicesBoundary({ children }: { children: ReactNode }) {
   return <PidServicesProvider services={configured!}>{children}</PidServicesProvider>;
 }
 
+export function PidRouteErrorPage() {
+  const error = useRouteError();
+  const message = isPidServicesError(error)
+    ? error.message
+    : "O editor P&ID não pôde ser iniciado neste navegador.";
+  return (
+    <main className="mx-auto grid min-h-screen max-w-2xl content-center gap-4 p-6">
+      <h1 className="text-3xl font-semibold">Editor P&ID indisponível</h1>
+      <p role="alert">{message}</p>
+      <p className="text-sm text-muted-foreground">
+        Use um navegador atualizado e permita armazenamento local, criptografia segura e Web Locks para esta página.
+      </p>
+      <Link className="w-fit text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
+    </main>
+  );
+}
+
 export function createPidServices(options: CreatePidServicesOptions | string | undefined): PidServices {
   const normalized = typeof options === "object" && options !== null
     ? options
     : { adapter: options };
-  if (normalized.adapter !== "local") throw new Error(adapterConfigurationError);
+  if (normalized.adapter !== "local") throw new PidServicesError("ADAPTER_NOT_CONFIGURED");
 
   const storage = normalized.storage ?? browserStorage();
   const runtime = normalized.runtime ?? createBrowserLocalPidRuntime();
@@ -64,9 +109,14 @@ export function createPidServices(options: CreatePidServicesOptions | string | u
 }
 
 export function createBrowserLocalPidRuntime(): LocalPidRuntime {
-  const runtimeCrypto = globalThis.crypto;
+  let runtimeCrypto: Crypto | undefined;
+  try {
+    runtimeCrypto = globalThis.crypto;
+  } catch (error) {
+    throw new PidServicesError("CRYPTO_UNAVAILABLE", { cause: error });
+  }
   if (!runtimeCrypto?.randomUUID || !runtimeCrypto.getRandomValues || !runtimeCrypto.subtle) {
-    throw new Error("Runtime criptográfico indisponível para o adaptador P&ID local.");
+    throw new PidServicesError("CRYPTO_UNAVAILABLE");
   }
   return {
     generateUuid: () => runtimeCrypto.randomUUID(),
@@ -83,7 +133,7 @@ export function createBrowserLocalPidRuntime(): LocalPidRuntime {
 export function createBrowserExclusiveLock(): LocalPidExclusiveLock {
   const locks = globalThis.navigator?.locks;
   if (!locks?.request) {
-    throw new Error("Web Locks indisponível para o adaptador P&ID local.");
+    throw new PidServicesError("LOCKS_UNAVAILABLE");
   }
   return {
     runExclusive: async (key, operation) => await locks.request(
@@ -95,8 +145,14 @@ export function createBrowserExclusiveLock(): LocalPidExclusiveLock {
 }
 
 function browserStorage(): Storage {
-  if (!globalThis.localStorage) throw new Error("Armazenamento local indisponível para o adaptador P&ID.");
-  return globalThis.localStorage;
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) throw new PidServicesError("STORAGE_UNAVAILABLE");
+    return storage;
+  } catch (error) {
+    if (isPidServicesError(error)) throw error;
+    throw new PidServicesError("STORAGE_UNAVAILABLE", { cause: error });
+  }
 }
 
 const unavailableCatalog: PidCatalogPort = {

@@ -7,7 +7,7 @@ import { ComponentsPage } from "@/features/components/components-page";
 import { FlowPage } from "@/features/flow/flow-page";
 import { GlossaryPage } from "@/features/glossary/glossary-page";
 import { HomePage } from "@/features/home/home-page";
-import { PidServicesBoundary } from "@/features/pid/api/pid-services";
+import { PidRouteErrorPage, PidServicesBoundary } from "@/features/pid/api/pid-services";
 import {
   PipingConnectionsTab,
   PipingPage,
@@ -60,6 +60,7 @@ export const routes = [
       {
         path: "pid",
         element: <PidServicesLayout />,
+        errorElement: <PidRouteErrorPage />,
         children: [
           { index: true, element: <CreatePidPage /> },
           { path: ":diagramId", element: <PidEditorPage /> },
