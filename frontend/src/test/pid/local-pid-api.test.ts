@@ -160,7 +160,12 @@ describe("LocalPidApi", () => {
   it("nega tokens errados, ausentes e revogados com o mesmo erro compartilhado", async () => {
     const { api } = createHarness();
     const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
-    const newReadToken = await api.regenerate(diagramId, created.editToken, "view");
+    const regenerated = await api.regenerate(
+      diagramId,
+      created.editToken,
+      "view",
+      created.revision,
+    );
 
     for (const token of ["", tokenForSeed(99), created.readToken]) {
       await expect(api.open(diagramId, token)).rejects.toMatchObject({
@@ -169,7 +174,8 @@ describe("LocalPidApi", () => {
         message: "Acesso ao diagrama negado.",
       });
     }
-    await expect(api.open(diagramId, newReadToken)).resolves.toMatchObject({ scope: "view", revision: 2 });
+    expect(regenerated.revision).toBe(2);
+    await expect(api.open(diagramId, regenerated.token)).resolves.toMatchObject({ scope: "view", revision: 2 });
   });
 
   it("expõe erro compartilhado com type guard estável", () => {
@@ -185,7 +191,7 @@ describe("LocalPidApi", () => {
 
     await expect(api.open(diagramId, created.readToken)).resolves.toMatchObject({ scope: "view" });
     await expect(api.save(diagramId, created.readToken, created.document, 1)).rejects.toMatchObject({ code: "ACCESS_DENIED" });
-    await expect(api.regenerate(diagramId, created.readToken, "edit")).rejects.toMatchObject({ code: "ACCESS_DENIED" });
+    await expect(api.regenerate(diagramId, created.readToken, "edit", created.revision)).rejects.toMatchObject({ code: "ACCESS_DENIED" });
   });
 
   it("faz uma de duas gravações concorrentes vencer e rejeita a revisão obsoleta", async () => {
@@ -214,17 +220,40 @@ describe("LocalPidApi", () => {
     const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
 
     const results = await Promise.allSettled([
-      api.regenerate(diagramId, created.editToken, "edit"),
-      secondApi.regenerate(diagramId, created.editToken, "edit"),
+      api.regenerate(diagramId, created.editToken, "edit", created.revision),
+      secondApi.regenerate(diagramId, created.editToken, "edit", created.revision),
     ]);
 
-    const fulfilled = results.filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled");
+    const fulfilled = results.filter((result) => result.status === "fulfilled");
     const rejected = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
     expect(fulfilled).toHaveLength(1);
     expect(rejected).toHaveLength(1);
     expect(rejected[0].reason).toMatchObject({ code: "ACCESS_DENIED" });
-    await expect(api.open(diagramId, fulfilled[0].value)).resolves.toMatchObject({ scope: "edit", revision: 2 });
+    expect(fulfilled[0].value.revision).toBe(2);
+    await expect(api.open(diagramId, fulfilled[0].value.token)).resolves.toMatchObject({ scope: "edit", revision: 2 });
     await expect(api.open(diagramId, created.editToken)).rejects.toMatchObject({ code: "ACCESS_DENIED" });
+  });
+
+  it("faz uma de duas rotações concorrentes de leitura vencer sem devolver token inválido", async () => {
+    const { api, secondApi } = createHarness();
+    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+
+    const results = await Promise.allSettled([
+      api.regenerate(diagramId, created.editToken, "view", created.revision),
+      secondApi.regenerate(diagramId, created.editToken, "view", created.revision),
+    ]);
+
+    const fulfilled = results.filter((result) => result.status === "fulfilled");
+    const rejected = results.filter((result) => result.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason).toMatchObject({ code: "CONFLICT" });
+    expect(fulfilled[0].value.revision).toBe(2);
+    await expect(api.open(diagramId, fulfilled[0].value.token)).resolves.toMatchObject({
+      scope: "view",
+      revision: 2,
+    });
+    await expect(api.open(diagramId, created.readToken)).rejects.toMatchObject({ code: "ACCESS_DENIED" });
   });
 
   it("impede gravação concorrente de desfazer exclusão", async () => {

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -6,8 +6,12 @@ const repositoryRoot = resolve(process.cwd(), "..");
 const read = (path: string) => readFileSync(resolve(repositoryRoot, path), "utf8");
 
 describe("configuração rastreada do adaptador P&ID", () => {
-  it.each(["development", "test", "production"])("seleciona local explicitamente no modo %s", (mode) => {
+  it.each(["development", "test"])("seleciona local explicitamente no modo %s", (mode) => {
     expect(read(`frontend/.env.${mode}`)).toMatch(/^VITE_PID_ADAPTER=local\s*$/m);
+  });
+
+  it("não embute seleção local no ambiente de produção", () => {
+    expect(existsSync(resolve(repositoryRoot, "frontend/.env.production"))).toBe(false);
   });
 
   it("documenta a seleção no exemplo de ambiente", () => {
@@ -25,6 +29,17 @@ describe("configuração rastreada do adaptador P&ID", () => {
   it("fornece local explicitamente no build do compose", () => {
     const compose = read("deploy/docker-compose.yaml");
     expect(compose).toMatch(/tcc-frontend:[\s\S]*args:\s*\n\s*VITE_PID_ADAPTER: local/);
+  });
+
+  it("fornece local explicitamente nos builds locais e de CI", () => {
+    expect(read("frontend/scripts/build-local.mjs")).toContain('VITE_PID_ADAPTER: "local"');
+    expect(read("frontend/package.json")).toContain('"build:local": "node scripts/build-local.mjs"');
+    expect(read("desktop/package.json")).toContain("npm --prefix ../frontend run build:local");
+    expect(read(".github/workflows/ci.yml")).toContain("npm run build:local");
+    expect(read(".github/workflows/desktop-publish.yml")).toContain("npm run build:local");
+    for (const workflow of [".github/workflows/ci.yml", ".github/workflows/docker-publish.yml"]) {
+      expect(read(workflow)).toMatch(/file: deploy\/Dockerfile\.frontend[\s\S]*build-args:\s*\|\s*\n\s*VITE_PID_ADAPTER=local/);
+    }
   });
 
   it("mantém validação de build sem fallback para valor ausente ou não suportado", () => {

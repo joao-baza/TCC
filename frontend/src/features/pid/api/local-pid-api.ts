@@ -10,6 +10,7 @@ import {
   type CreatePidInput,
   type OpenedPidDiagram,
   type PidDocumentPort,
+  type RegeneratedPidToken,
 } from "./contracts";
 
 const storagePrefix = "dcou.pid.local.v1.";
@@ -152,21 +153,28 @@ export class LocalPidApi implements PidDocumentPort {
     });
   }
 
-  async regenerate(diagramId: string, editToken: string, scope: AccessScope): Promise<string> {
+  async regenerate(
+    diagramId: string,
+    editToken: string,
+    scope: AccessScope,
+    expectedRevision: number,
+  ): Promise<RegeneratedPidToken> {
     this.assertAccessDiagramId(diagramId);
     if (scope !== "view" && scope !== "edit") throw new PidDocumentError("INVALID_INPUT");
+    if (!revisionSchema.safeParse(expectedRevision).success) throw new PidDocumentError("INVALID_INPUT");
 
     return this.exclusiveLock.runExclusive(this.storageKey(diagramId), async () => {
       const editDigest = await this.digestAccessToken(editToken);
       const record = this.readRecordForAccess(diagramId);
       authorizeEdit(record, editDigest);
       if (record.deletedAt) throw new PidDocumentError("DOCUMENT_DELETED");
+      if (record.revision !== expectedRevision) throw new PidDocumentError("CONFLICT");
       const { token, digest } = await this.generateReplacementToken(record);
       const revision = record.revision + 1;
       this.writeRecord(scope === "view"
         ? { ...record, revision, readTokenDigest: digest }
         : { ...record, revision, editTokenDigest: digest });
-      return token;
+      return { token, revision };
     });
   }
 

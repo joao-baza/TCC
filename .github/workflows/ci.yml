@@ -74,7 +74,7 @@ jobs:
 
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      - run: npm run build:local
 
   frontend-e2e:
     runs-on: ubuntu-latest
@@ -92,7 +92,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:local
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --project=chromium
 
@@ -125,7 +125,7 @@ jobs:
 
       - name: Build frontend bundle
         working-directory: frontend
-        run: npm ci && npm run build
+        run: npm ci && npm run build:local
 
       - name: Install desktop dependencies
         working-directory: desktop
@@ -176,6 +176,8 @@ jobs:
         with:
           context: .
           file: deploy/Dockerfile.frontend
+          build-args: |
+            VITE_PID_ADAPTER=local
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -247,7 +249,7 @@ jobs:
 
       - name: Build frontend bundle
         working-directory: frontend
-        run: npm ci && npm run build
+        run: npm ci && npm run build:local
 
       - name: Install desktop dependencies
         working-directory: desktop
@@ -318,7 +320,7 @@ jobs:
 
       - name: Build frontend bundle
         working-directory: frontend
-        run: npm run build
+        run: npm run build:local
 
       - name: Install desktop dependencies
         working-directory: desktop
@@ -379,7 +381,7 @@ jobs:
 
       - name: Build frontend bundle
         working-directory: frontend
-        run: npm ci && npm run build
+        run: npm ci && npm run build:local
 
       - name: Install desktop dependencies
         working-directory: desktop

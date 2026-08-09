@@ -62,11 +62,21 @@ export interface OpenedPidDiagram {
   revision: number;
 }
 
+export interface RegeneratedPidToken {
+  token: string;
+  revision: number;
+}
+
 export interface PidDocumentPort {
   create(input: CreatePidInput): Promise<CreatedPidDiagram>;
   open(diagramId: string, token: string): Promise<OpenedPidDiagram>;
   save(diagramId: string, token: string, document: PidDocument, expectedRevision: number): Promise<number>;
-  regenerate(diagramId: string, editToken: string, scope: AccessScope): Promise<string>;
+  regenerate(
+    diagramId: string,
+    editToken: string,
+    scope: AccessScope,
+    expectedRevision: number,
+  ): Promise<RegeneratedPidToken>;
   softDelete(diagramId: string, editToken: string): Promise<void>;
   restore(diagramId: string, editToken: string): Promise<void>;
 }
