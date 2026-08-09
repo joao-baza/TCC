@@ -192,6 +192,10 @@ python -m pid.catalog.validator \
   and `REDIS_URL` must be percent-encoded, and the encoded URL credentials must
   remain consistent with the corresponding plain password variables. Never
   place a real secret in committed examples.
+- With `PID_ENABLED=false`, the deploy script selects
+  `deploy/docker-compose.disabled.yaml`; PostgreSQL, Redis, and P&ID secrets are
+  not required or deployed. Enabling P&ID selects the full compose file and
+  validates every infrastructure variable before any Swarm mutation.
 - Four sanitized SVG symbols created for this project are redistributed from
   `frontend/public/pid/symbols/`. Their active catalog metadata, provenance, and
   license attribution are defined in
