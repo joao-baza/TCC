@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -58,7 +58,9 @@ describe("inspetor contextual P&ID", () => {
     expect(onCommand).not.toHaveBeenCalled();
     expect(screen.getAllByText(/inteiro positivo/i).length).toBeGreaterThanOrEqual(1);
 
-    rerender(<PropertiesInspector document={documentFixture()} selection={[ids.port]} editable onCommand={onCommand} commandError="A capacidade foi excedida." />);
+    rerender(<PropertiesInspector document={documentFixture()} selection={[ids.port]} editable onCommand={() => ({ ok: false, field: "capacity", message: "A capacidade foi excedida." })} />);
+    fireEvent.change(capacity, { target: { value: "2" } });
+    fireEvent.blur(capacity);
     expect(screen.getAllByText("A capacidade foi excedida.").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
   });
@@ -95,6 +97,20 @@ describe("inspetor contextual P&ID", () => {
 
     rerender(<PropertiesInspector {...props} selection={[ids.node]} />);
     expect(screen.queryByText(/inteiro positivo/i)).not.toBeInTheDocument();
+  });
+
+  it("limpa o erro local quando o valor é corrigido para o original persistido", () => {
+    render(<PropertiesInspector document={documentFixture()} selection={[ids.port]} editable onCommand={vi.fn()} />);
+    const capacity = screen.getByLabelText("Capacidade");
+    fireEvent.change(capacity, { target: { value: "0" } });
+    fireEvent.blur(capacity);
+    expect(capacity).toHaveAttribute("aria-invalid", "true");
+
+    fireEvent.change(capacity, { target: { value: "1" } });
+    fireEvent.blur(capacity);
+    expect(capacity).toHaveAttribute("aria-invalid", "false");
+    expect(screen.queryByText(/inteiro positivo/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 });
 
@@ -161,6 +177,39 @@ describe("integração do inspetor no studio", () => {
       1,
     ), { timeout: 2_000 });
   });
+
+  it("associa ao campo a rejeição real do comando e não agenda autosave", async () => {
+    const save = vi.fn();
+    const services: PidServices = {
+      document: {
+        create: vi.fn(),
+        open: vi.fn().mockResolvedValue({ scope: "edit", document: overloadedEditorDocument(), revision: 1 }),
+        save,
+        regenerate: vi.fn(),
+        softDelete: vi.fn(),
+        restore: vi.fn(),
+      },
+      catalog: { list: vi.fn() },
+      collaboration: { connect: vi.fn() },
+    };
+    const router = createMemoryRouter([{ path: "/pid/:diagramId", element: <PidEditorPage /> }], {
+      initialEntries: [`/pid/${ids.document}#access=edit-token`],
+    });
+    render(<PidServicesProvider services={services}><RouterProvider router={router} /></PidServicesProvider>);
+
+    fireEvent.click(await screen.findByRole("button", { name: /focar: a capacidade da porta foi excedida/i }));
+    const direction = screen.getByLabelText("Direção");
+    fireEvent.change(direction, { target: { value: "input" } });
+    fireEvent.blur(direction);
+
+    await waitFor(() => expect(direction).toHaveAttribute("aria-invalid", "true"));
+    const errorId = direction.getAttribute("aria-describedby");
+    expect(errorId).toBeTruthy();
+    const inlineError = document.getElementById(errorId!);
+    expect(inlineError).toHaveTextContent(/comando|violação|melhora/i);
+    expect(within(screen.getByRole("region", { name: "Inspetor" })).getByRole("status")).toHaveTextContent(inlineError!.textContent ?? "");
+    expect(save).not.toHaveBeenCalled();
+  });
 });
 
 function documentFixture(): PidDocument {
@@ -212,5 +261,38 @@ function editorDocument(): PidDocument {
   document.edges = {};
   document.annotations = {};
   document.groups = {};
+  return document;
+}
+
+function overloadedEditorDocument(): PidDocument {
+  const document = editorDocument();
+  const sourcePort = "30000000-0000-4000-8000-000000000001";
+  const firstTank = "20000000-0000-4000-8000-000000000002";
+  const secondTank = "20000000-0000-4000-8000-000000000003";
+  const firstInlet = "30000000-0000-4000-8000-000000000003";
+  const firstOutlet = "30000000-0000-4000-8000-000000000004";
+  const secondInlet = "30000000-0000-4000-8000-000000000005";
+  const secondOutlet = "30000000-0000-4000-8000-000000000006";
+  document.nodes[firstTank] = {
+    ...document.nodes[ids.node], id: firstTank, symbolKey: "project.tank.storage", x: 260, tag: "T-1", label: "Tanque 1",
+  };
+  document.nodes[secondTank] = {
+    ...document.nodes[ids.node], id: secondTank, symbolKey: "project.tank.storage", x: 520, tag: "T-2", label: "Tanque 2",
+  };
+  document.ports[sourcePort] = { ...document.ports[ids.port], id: sourcePort, templateKey: "discharge", capacity: 1 };
+  document.ports[firstInlet] = { id: firstInlet, nodeId: firstTank, templateKey: "inlet", direction: "input", connectionClass: "process", capacity: 2 };
+  document.ports[firstOutlet] = { id: firstOutlet, nodeId: firstTank, templateKey: "outlet", direction: "output", connectionClass: "process", capacity: 1 };
+  document.ports[secondInlet] = { id: secondInlet, nodeId: secondTank, templateKey: "inlet", direction: "input", connectionClass: "process", capacity: 2 };
+  document.ports[secondOutlet] = { id: secondOutlet, nodeId: secondTank, templateKey: "outlet", direction: "output", connectionClass: "process", capacity: 1 };
+  document.edges = {
+    "40000000-0000-4000-8000-000000000002": {
+      id: "40000000-0000-4000-8000-000000000002", sourcePortId: sourcePort, targetPortId: firstInlet,
+      connectionClass: "process", route: [], tag: "L-1", label: "Linha 1", properties: {},
+    },
+    "40000000-0000-4000-8000-000000000003": {
+      id: "40000000-0000-4000-8000-000000000003", sourcePortId: sourcePort, targetPortId: secondInlet,
+      connectionClass: "process", route: [], tag: "L-2", label: "Linha 2", properties: {},
+    },
+  };
   return document;
 }

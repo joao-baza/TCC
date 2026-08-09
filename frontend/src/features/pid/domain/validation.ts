@@ -13,7 +13,7 @@ export interface ValidationIssue {
 
 export interface ValidateDocumentOptions {
   /** Snapshot do catálogo usado pelo documento; habilita regras dependentes do símbolo. */
-  readonly catalog?: readonly CatalogSymbol[];
+  readonly catalog: readonly CatalogSymbol[];
 }
 
 const elementMaps = new Set(["nodes", "ports", "edges", "annotations", "groups"]);
@@ -24,12 +24,19 @@ const elementMaps = new Set(["nodes", "ports", "edges", "annotations", "groups"]
  */
 export function validateDocument(
   value: unknown,
-  options: ValidateDocumentOptions = {},
+  options: ValidateDocumentOptions,
 ): readonly ValidationIssue[] {
   try {
     const coreIssues = assertDocumentInvariants(value).map((issue) => fromInvariantIssue(issue));
+    if (!options || !Array.isArray(options.catalog)) {
+      return freezeSortedIssues([...coreIssues, {
+        code: "catalog.context-required",
+        severity: "error",
+        message: "O catálogo validado é obrigatório para validar o documento.",
+      }]);
+    }
     const schemaInvalid = coreIssues.some(({ code }) => code.startsWith("schema."));
-    const catalogIssues = !schemaInvalid && options.catalog && isDocument(value)
+    const catalogIssues = !schemaInvalid && isDocument(value)
       ? validateCatalogRules(value, options.catalog)
       : [];
     return freezeSortedIssues([...coreIssues, ...catalogIssues]);
@@ -56,7 +63,16 @@ function validateCatalogRules(
 
   for (const node of Object.values(document.nodes)) {
     const symbol = symbols.get(node.symbolKey);
-    if (!symbol) continue;
+    if (!symbol) {
+      issues.push({
+        code: "catalog.symbol-missing",
+        severity: "error",
+        elementId: node.id,
+        field: "symbolKey",
+        message: `O símbolo ${node.symbolKey} não existe no catálogo validado.`,
+      });
+      continue;
+    }
     if (!isCatalogSymbolCompatible(document.metadata.standard, symbol.standards)) {
       issues.push({
         code: "standard.mixed",

@@ -7,9 +7,12 @@ export interface PropertiesInspectorProps {
   readonly document: PidDocument;
   readonly selection: readonly string[];
   readonly editable: boolean;
-  readonly onCommand: (command: PidCommand) => void | boolean;
-  readonly commandError?: string | null;
+  readonly onCommand: (command: PidCommand) => void | InspectorCommandResult;
 }
+
+export type InspectorCommandResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly field: string; readonly message: string };
 
 type FieldValue = string | number | PidProperties;
 
@@ -18,7 +21,6 @@ export function PropertiesInspector({
   selection,
   editable,
   onCommand,
-  commandError,
 }: PropertiesInspectorProps) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [announcement, setAnnouncement] = useState("");
@@ -30,10 +32,19 @@ export function PropertiesInspector({
   }, [selectedId]);
 
   const commit = (field: string, value: FieldValue, previous: FieldValue) => {
-    if (!selectedId || !editable || sameValue(value, previous)) return;
+    if (!selectedId || !editable) return;
+    if (sameValue(value, previous)) {
+      setFieldErrors((current) => omitField(current, field));
+      setAnnouncement("");
+      return;
+    }
     try {
-      const accepted = onCommand(patchElement(selectedId, { [field]: value }));
-      if (accepted === false) return;
+      const result = onCommand(patchElement(selectedId, { [field]: value }));
+      if (result?.ok === false) {
+        setFieldErrors((current) => ({ ...current, [result.field]: result.message }));
+        setAnnouncement(result.message);
+        return;
+      }
       setFieldErrors((current) => omitField(current, field));
       setAnnouncement(`${fieldLabel(field)} atualizado.`);
     } catch (reason) {
@@ -99,9 +110,8 @@ export function PropertiesInspector({
       <PropertiesField value={selected.value.properties} {...common} />
     </FieldGroup>}
     {selectedId && !selected && <p role="alert">O elemento selecionado não existe mais.</p>}
-    {commandError && <p className="pid-inspector-field-error" role="alert">{commandError}</p>}
     <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-      {commandError ?? announcement}
+      {announcement}
     </div>
   </div>;
 }
@@ -176,7 +186,15 @@ function SelectField({ label, field, value, options, editable, errors, commit }:
   const error = errors[field];
   return <label className="pid-inspector-field" htmlFor={id}>
     <span>{label}</span>
-    <select id={id} key={`${field}:${value}`} defaultValue={value} disabled={!editable} onBlur={(event) => commit(field, event.currentTarget.value, value)}>
+    <select
+      id={id}
+      key={`${field}:${value}`}
+      defaultValue={value}
+      disabled={!editable}
+      aria-invalid={Boolean(error)}
+      aria-describedby={error ? `${id}-error` : undefined}
+      onBlur={(event) => commit(field, event.currentTarget.value, value)}
+    >
       {options.map(([option, text]) => <option key={option} value={option}>{text}</option>)}
     </select>
     <FieldError id={`${id}-error`} message={error} />

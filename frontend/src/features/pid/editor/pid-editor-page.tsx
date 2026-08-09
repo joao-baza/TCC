@@ -20,7 +20,7 @@ import {
 } from "./editor-toolbar";
 import { createEditorStore, type EditorStore } from "./editor-store";
 import { ShareDialog } from "./share-dialog";
-import { PropertiesInspector } from "./properties-inspector";
+import { PropertiesInspector, type InspectorCommandResult } from "./properties-inspector";
 import { StatusBar } from "./status-bar";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-shortcuts";
@@ -161,6 +161,22 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     catch (reason) { setOperationError(reason instanceof Error ? reason.message : "A operação não pôde ser concluída."); return false; }
   }, [autosave, editable]);
   const dispatch = useCallback((command: PidCommand) => mutate(() => store.dispatch(command)), [mutate, store]);
+  const dispatchInspector = useCallback((command: PidCommand): InspectorCommandResult => {
+    const field = inspectorCommandField(command);
+    if (!editable || lifecycleRef.current !== "active") {
+      return { ok: false, field, message: "A edição não está disponível neste momento." };
+    }
+    try {
+      store.dispatch(command);
+      autosave.markLocalChange();
+      setOperationError(null);
+      return { ok: true };
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "A operação não pôde ser concluída.";
+      setOperationError(message);
+      return { ok: false, field, message };
+    }
+  }, [autosave, editable, store]);
   const copy = useCallback((): boolean => {
     if (!selectionCapabilities.canCopy) return false;
     try {
@@ -287,7 +303,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       <aside role="region" aria-label="Inspetor" className="pid-studio-panel pid-inspector-panel">
         <button type="button" aria-expanded={!inspectorCollapsed} onClick={() => setInspectorCollapsed((value) => !value)}>{inspectorCollapsed ? "Abrir inspetor" : "Fechar inspetor"}</button>
         {!inspectorCollapsed && <div className="pid-inspector-content">
-          <PropertiesInspector document={editor.document} selection={editor.selection} editable={editorEnabled} onCommand={dispatch} commandError={operationError} />
+          <PropertiesInspector document={editor.document} selection={editor.selection} editable={editorEnabled} onCommand={dispatchInspector} />
           <ValidationPanel issues={validationIssues} onFocusElement={focusValidationIssue} />
         </div>}
       </aside>
@@ -303,4 +319,9 @@ function canvasCenter(viewport: { x: number; y: number; zoom: number }) {
 
 function standardLabel(standard: string): string {
   return standard === "isa" ? "ISA" : standard === "iso" ? "ISO" : "Livre";
+}
+
+function inspectorCommandField(command: PidCommand): string {
+  if (command.type !== "element.patch") return "properties";
+  return Object.keys(command.patch)[0] ?? "properties";
 }

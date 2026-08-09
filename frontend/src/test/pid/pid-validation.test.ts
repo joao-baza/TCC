@@ -81,9 +81,21 @@ describe("validação estruturada P&ID", () => {
   });
 
   it("converte uma entrada fora do schema em erro sem lançar exceção", () => {
-    expect(() => validateDocument({ schemaVersion: 999 })).not.toThrow();
-    expect(validateDocument({ schemaVersion: 999 })).toEqual(expect.arrayContaining([
+    expect(() => validateDocument({ schemaVersion: 999 }, { catalog })).not.toThrow();
+    expect(validateDocument({ schemaVersion: 999 }, { catalog })).toEqual(expect.arrayContaining([
       expect.objectContaining({ severity: "error" }),
+    ]));
+  });
+
+  it("torna o catálogo obrigatório também na fronteira de runtime", () => {
+    expect(validateDocument(baseDocument(), undefined as never)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "catalog.context-required", severity: "error" }),
+    ]));
+  });
+
+  it("bloqueia quando o catálogo não resolve um símbolo canônico", () => {
+    expect(validateDocument(baseDocument(), { catalog: [] })).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "catalog.symbol-missing", elementId: ids.pump, severity: "error" }),
     ]));
   });
 });
