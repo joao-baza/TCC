@@ -74,6 +74,9 @@ jobs:
 
       - run: npm ci
       - run: npm test
+      - name: Run isolated P&ID performance benchmark
+        run: npm run benchmark:pid
+        timeout-minutes: 2
       - run: npm run build:local
 
   frontend-e2e:
@@ -94,7 +97,10 @@ jobs:
       - run: npm ci
       - run: npm run build:local
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e -- --project=chromium
+      - name: Run frontend E2E tests
+        run: npm run test:e2e -- --project=chromium
+        env:
+          VITE_PID_ADAPTER: local
 
   desktop-smoke:
     runs-on: ubuntu-latest
