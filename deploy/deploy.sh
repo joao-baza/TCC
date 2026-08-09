@@ -37,8 +37,8 @@ pid_enabled="$(
     | LC_ALL=C tr '[:upper:]' '[:lower:]'
 )"
 case "$pid_enabled" in
-  1|true|yes|on) pid_enabled="true" ;;
-  ""|0|false|no|off) pid_enabled="false" ;;
+  ""|1|true|yes|on) pid_enabled="true" ;;
+  0|false|no|off) pid_enabled="false" ;;
   *)
     echo "PID_ENABLED deve ser um valor booleano reconhecido." >&2
     exit 1

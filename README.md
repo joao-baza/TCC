@@ -195,7 +195,10 @@ python -m pid.catalog.validator \
 - With `PID_ENABLED=false`, the deploy script selects
   `deploy/docker-compose.disabled.yaml`; PostgreSQL, Redis, and P&ID secrets are
   not required or deployed. Enabling P&ID selects the full compose file and
-  validates every infrastructure variable before any Swarm mutation.
+  validates every infrastructure variable before any Swarm mutation. For
+  compatibility with deployments created before the flag existed, omitting
+  `PID_ENABLED` also selects the full compose file; disable it explicitly when
+  the remote adapter is unavailable.
 - Four sanitized SVG symbols created for this project are redistributed from
   `frontend/public/pid/symbols/`. Their active catalog metadata, provenance, and
   license attribution are defined in
