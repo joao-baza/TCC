@@ -12,6 +12,7 @@ import {
   type PidCommand,
 } from "../domain/commands";
 import type { ConnectionClass } from "../domain/model";
+import { validateDocument } from "../domain/validation";
 import { DocumentActionsMenu } from "./document-actions-menu";
 import { copyEditorSelection, pasteEditorFragment, type EditorClipboardFragment } from "./editor-clipboard";
 import {
@@ -19,9 +20,11 @@ import {
 } from "./editor-toolbar";
 import { createEditorStore, type EditorStore } from "./editor-store";
 import { ShareDialog } from "./share-dialog";
+import { PropertiesInspector } from "./properties-inspector";
 import { StatusBar } from "./status-bar";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-shortcuts";
+import { ValidationPanel } from "./validation-panel";
 
 const catalogIndex = createCatalogIndex(localCatalog);
 
@@ -142,6 +145,10 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     [editor.document, editor.selection],
   );
   const selectionCapabilities = lifecycle === "active" ? activeSelectionCapabilities : BLOCKED_SELECTION_CAPABILITIES;
+  const validationIssues = useMemo(
+    () => validateDocument(editor.document, { catalog: localCatalog }),
+    [editor.document],
+  );
   const canvasSelection: PidCanvasSelection = useMemo(() => ({
     nodeIds: editor.selection.filter((id) => Boolean(editor.document.nodes[id])),
     edgeIds: editor.selection.filter((id) => Boolean(editor.document.edges[id])),
@@ -184,6 +191,10 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const align = useCallback((axis: Parameters<EditorToolbarActions["align"]>[0]) => selectionCapabilities.canAlign && dispatch(alignSelection(positionedSelectionIds, axis)), [dispatch, positionedSelectionIds, selectionCapabilities.canAlign]);
   const annotation = useCallback(() => dispatch(insertAnnotation("Nova anotação", canvasCenter(editor.viewport))), [dispatch, editor.viewport]);
   const viewport = useCallback((type: PidCanvasViewportAction["type"]) => setViewportAction((current) => ({ type, nonce: (current?.nonce ?? 0) + 1 })), []);
+  const focusValidationIssue = useCallback((elementId: string) => {
+    store.setSelection([elementId]);
+    setAnnouncement("Elemento afetado pela validação selecionado no inspetor.");
+  }, [store]);
 
   const toolbarActions: EditorToolbarActions = {
     undo: () => { undo(); }, redo: () => { redo(); }, deleteSelection: () => { remove(); }, duplicate: () => { duplicate(); },
@@ -275,7 +286,10 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       </section>
       <aside role="region" aria-label="Inspetor" className="pid-studio-panel pid-inspector-panel">
         <button type="button" aria-expanded={!inspectorCollapsed} onClick={() => setInspectorCollapsed((value) => !value)}>{inspectorCollapsed ? "Abrir inspetor" : "Fechar inspetor"}</button>
-        {!inspectorCollapsed && <div><h2>Inspetor</h2><p>Selecione um elemento para editar suas propriedades.</p></div>}
+        {!inspectorCollapsed && <div className="pid-inspector-content">
+          <PropertiesInspector document={editor.document} selection={editor.selection} editable={editorEnabled} onCommand={dispatch} commandError={operationError} />
+          <ValidationPanel issues={validationIssues} onFocusElement={focusValidationIssue} />
+        </div>}
       </aside>
     </div>
     <StatusBar state={editor} saveState={autosave.state} onRetry={!autosave.conflict && autosave.state === "Não salvo" ? autosave.retry : undefined} />
