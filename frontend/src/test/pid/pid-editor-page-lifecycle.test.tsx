@@ -240,4 +240,30 @@ describe("studio focado P&ID", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
     expect(save).toHaveBeenCalledOnce();
   });
+
+  it("preserva a revisão restaurada e recupera sem repetir o CAS quando a primeira reabertura falha", async () => {
+    const open = vi.fn()
+      .mockResolvedValueOnce({ scope: "edit", document, revision: 1 })
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ scope: "edit", document, revision: 4 });
+    const restore = vi.fn().mockResolvedValue(4);
+    const pidServices = services({ open, restore });
+    mount(pidServices);
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    fireEvent.change(screen.getByLabelText("Digite Utilidades para confirmar"), { target: { value: "Utilidades" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Restaurar diagrama" })).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Restaurar diagrama" }));
+    expect(await screen.findByText("O diagrama foi restaurado, mas não foi possível recarregá-lo.")).toBeInTheDocument();
+    expect(restore).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar recuperar diagrama" }));
+    await waitFor(() => expect(screen.getByTestId("pid-canvas")).toBeInTheDocument());
+
+    expect(restore).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
+    await waitFor(() => expect(pidServices.document.save).toHaveBeenCalledWith(diagramId, "edit-token", expect.any(Object), 4));
+  });
 });

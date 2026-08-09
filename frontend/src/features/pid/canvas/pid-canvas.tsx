@@ -116,6 +116,7 @@ function PidCanvasInner({
   const isControlledRef = useRef(isControlled);
   const editableRef = useRef(editable);
   const activeConnectionClassRef = useRef(activeConnectionClass);
+  const additiveSelectionIntentRef = useRef(false);
   const pointerDraggingRef = useRef(false);
   const draggingNodeIdsRef = useRef<ReadonlySet<string>>(new Set());
   const [keyboardSourcePortId, setKeyboardSourcePortId] = useState<string | null>(null);
@@ -243,7 +244,12 @@ function PidCanvasInner({
           if (change.type === "select" && change.selected) selected.add(change.id);
           else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
         }
-        return { nodeIds: [...selected], edgeIds: current.edgeIds, ...selectionAnnotations(current.annotationIds ?? []) };
+        const preserveAnnotations = additiveSelectionIntentRef.current
+          || !changes.some((change) => change.type === "select" && change.selected);
+        return {
+          nodeIds: [...selected], edgeIds: current.edgeIds,
+          ...selectionAnnotations(preserveAnnotations ? current.annotationIds ?? [] : []),
+        };
       });
     }
     const selectionNormalizedChanges = isControlledRef.current
@@ -306,7 +312,12 @@ function PidCanvasInner({
           if (change.type === "select" && change.selected) selected.add(change.id);
           else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
         }
-        return { nodeIds: current.nodeIds, edgeIds: [...selected], ...selectionAnnotations(current.annotationIds ?? []) };
+        const preserveAnnotations = additiveSelectionIntentRef.current
+          || !changes.some((change) => change.type === "select" && change.selected);
+        return {
+          nodeIds: current.nodeIds, edgeIds: [...selected],
+          ...selectionAnnotations(preserveAnnotations ? current.annotationIds ?? [] : []),
+        };
       });
     }
     const normalized = isControlledRef.current
@@ -382,6 +393,9 @@ function PidCanvasInner({
       data-keyboard-source-port={keyboardSourcePortId ?? ""}
       className={`relative h-[640px] min-h-[320px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${className ?? ""}`}
       style={{ height: "640px" }}
+      onPointerDownCapture={(event) => { additiveSelectionIntentRef.current = event.ctrlKey || event.metaKey; }}
+      onClickCapture={(event) => { additiveSelectionIntentRef.current = event.ctrlKey || event.metaKey; }}
+      onKeyDownCapture={(event) => { additiveSelectionIntentRef.current = event.ctrlKey || event.metaKey; }}
     >
       <ReactFlow<EquipmentFlowNode, ProcessFlowEdge>
         nodes={nodes}

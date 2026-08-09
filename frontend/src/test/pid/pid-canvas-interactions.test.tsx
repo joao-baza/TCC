@@ -50,6 +50,48 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [], edgeIds: [], annotationIds: [annotationId] });
     expect(annotation).toHaveAttribute("aria-pressed", "true");
   });
+  it("limpa anotações na seleção simples de nó ou aresta", async () => {
+    const initial = documentWithAnnotationAndEdge();
+    const onSelectionChange = vi.fn();
+    render(<PidCanvas document={initial} catalog={localCatalog} editable onCommand={vi.fn()} onSelectionChange={onSelectionChange} />);
+    const annotation = screen.getByRole("button", { name: "Anotação: Nota operacional" });
+
+    fireEvent.click(annotation);
+    fireEvent.click(screen.getByRole("button", { name: "Bomba P-1" }));
+    await waitFor(() => expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [ids.pump], edgeIds: [] }));
+    expect(annotation).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(annotation);
+    fireEvent.click(screen.getByTestId("process-edge-40000000-0000-4000-8000-000000000001"));
+    await waitFor(() => expect(onSelectionChange).toHaveBeenLastCalledWith({
+      nodeIds: [], edgeIds: ["40000000-0000-4000-8000-000000000001"],
+    }));
+    expect(annotation).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("preserva anotação ao adicionar nó ou aresta com Ctrl/Cmd", async () => {
+    const initial = documentWithAnnotationAndEdge();
+    const onSelectionChange = vi.fn();
+    render(<PidCanvas document={initial} catalog={localCatalog} editable onCommand={vi.fn()} onSelectionChange={onSelectionChange} />);
+    const annotation = screen.getByRole("button", { name: "Anotação: Nota operacional" });
+    fireEvent.click(annotation);
+
+    fireEvent.keyDown(document, { key: "Control", code: "ControlLeft" });
+    fireEvent.click(screen.getByRole("button", { name: "Bomba P-1" }), { ctrlKey: true });
+    fireEvent.keyUp(document, { key: "Control", code: "ControlLeft" });
+    await waitFor(() => expect(onSelectionChange).toHaveBeenLastCalledWith({
+      nodeIds: [ids.pump], edgeIds: [], annotationIds: ["60000000-0000-4000-8000-000000000001"],
+    }));
+
+    fireEvent.keyDown(document, { key: "Control", code: "ControlLeft" });
+    fireEvent.click(screen.getByTestId("process-edge-40000000-0000-4000-8000-000000000001"), { ctrlKey: true });
+    fireEvent.keyUp(document, { key: "Control", code: "ControlLeft" });
+    await waitFor(() => expect(onSelectionChange).toHaveBeenLastCalledWith({
+      nodeIds: [ids.pump], edgeIds: ["40000000-0000-4000-8000-000000000001"],
+      annotationIds: ["60000000-0000-4000-8000-000000000001"],
+    }));
+    expect(annotation).toHaveAttribute("aria-pressed", "true");
+  });
   it("não clobbera a posição transiente quando outro trecho do documento muda durante o drag", async () => {
     const onCommand = vi.fn();
     const initial = interactionDocument();
@@ -411,6 +453,21 @@ function interactionDocument(): PidDocument {
     [ids.utilityTarget]: makePort(ids.utilityTarget, ids.tank, "utility-in", "input", "utility"),
   };
   return makeDocument(nodes, ports, {});
+}
+
+function documentWithAnnotationAndEdge(): PidDocument {
+  const document = interactionDocument();
+  const annotationId = "60000000-0000-4000-8000-000000000001";
+  const edgeId = "40000000-0000-4000-8000-000000000001";
+  document.annotations[annotationId] = {
+    id: annotationId, kind: "text", text: "Nota operacional", x: 120, y: 80,
+    width: 180, height: 56, rotation: 0, properties: {},
+  };
+  document.edges[edgeId] = {
+    id: edgeId, sourcePortId: ids.pumpOut, targetPortId: ids.tankIn,
+    connectionClass: "process", route: [], tag: "", label: "", properties: {},
+  };
+  return document;
 }
 
 function largeDocument(): PidDocument {

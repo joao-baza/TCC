@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { isPidDocumentError, type PidDocumentPort } from "../api/contracts";
 
-export function DocumentActionsMenu({ documentPort, diagramId, editToken, revision, title, deleted, onBeforeDelete, onDeleted, onDeleteFailed, onBeforeRestore, onRestored, onRestoreFailed, onAnnouncement }: {
+export function DocumentActionsMenu({ documentPort, diagramId, editToken, revision, title, deleted, onBeforeDelete, onDeleted, onDeleteFailed, onBeforeRestore, onRestoreConfirmed, onRestored, onRestoreFailed, onAnnouncement }: {
   readonly documentPort: PidDocumentPort;
   readonly diagramId: string;
   readonly editToken: string;
@@ -13,6 +13,7 @@ export function DocumentActionsMenu({ documentPort, diagramId, editToken, revisi
   readonly onDeleted: (revision: number) => void;
   readonly onDeleteFailed: (revision: number) => void;
   readonly onBeforeRestore: () => void;
+  readonly onRestoreConfirmed: (revision: number) => void;
   readonly onRestored: (revision: number) => Promise<void>;
   readonly onRestoreFailed: () => void;
   readonly onAnnouncement: (message: string) => void;
@@ -22,6 +23,7 @@ export function DocumentActionsMenu({ documentPort, diagramId, editToken, revisi
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmedRestoreRevision, setConfirmedRestoreRevision] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const activeRef = useRef(true);
@@ -50,20 +52,28 @@ export function DocumentActionsMenu({ documentPort, diagramId, editToken, revisi
   };
   const restore = async () => {
     setBusy(true); setError(null);
-    onBeforeRestore();
+    let confirmedRevision = confirmedRestoreRevision;
+    if (confirmedRevision === null) onBeforeRestore();
     try {
-      const next = await documentPort.restore(diagramId, editToken, revision);
+      if (confirmedRevision === null) {
+        confirmedRevision = await documentPort.restore(diagramId, editToken, revision);
+        if (!activeRef.current) return;
+        setConfirmedRestoreRevision(confirmedRevision);
+        onRestoreConfirmed(confirmedRevision);
+      }
+      await onRestored(confirmedRevision);
       if (!activeRef.current) return;
-      await onRestored(next);
-      if (!activeRef.current) return;
+      setConfirmedRestoreRevision(null);
       onAnnouncement("Diagrama restaurado.");
     } catch (reason) {
       if (!activeRef.current) return;
-      onRestoreFailed();
-      fail(reason, "Não foi possível restaurar o diagrama.");
+      if (confirmedRevision === null) onRestoreFailed();
+      fail(reason, confirmedRevision === null
+        ? "Não foi possível restaurar o diagrama."
+        : "O diagrama foi restaurado, mas não foi possível recarregá-lo.");
     } finally { if (activeRef.current) setBusy(false); }
   };
-  if (deleted) return <div><button type="button" disabled={busy} onClick={() => void restore()}>Restaurar diagrama</button>{error && <p role="alert">{error}</p>}</div>;
+  if (deleted) return <div><button type="button" disabled={busy} onClick={() => void restore()}>{confirmedRestoreRevision === null ? "Restaurar diagrama" : "Tentar recuperar diagrama"}</button>{error && <p role="alert">{error}</p>}</div>;
   return <div className="pid-document-actions">
     <button ref={menuTriggerRef} type="button" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>Ações do documento</button>
     {menuOpen && <div role="menu"><button role="menuitem" type="button" onClick={() => setConfirming(true)}>Excluir diagrama</button></div>}

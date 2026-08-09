@@ -14,7 +14,9 @@ import {
 import type { ConnectionClass } from "../domain/model";
 import { DocumentActionsMenu } from "./document-actions-menu";
 import { copyEditorSelection, pasteEditorFragment, type EditorClipboardFragment } from "./editor-clipboard";
-import { EditorToolbar, getEditorSelectionCapabilities, type EditorToolbarActions } from "./editor-toolbar";
+import {
+  EditorToolbar, getEditorPositionedSelectionIds, getEditorSelectionCapabilities, type EditorToolbarActions,
+} from "./editor-toolbar";
 import { createEditorStore, type EditorStore } from "./editor-store";
 import { ShareDialog } from "./share-dialog";
 import { StatusBar } from "./status-bar";
@@ -95,8 +97,7 @@ function EditorStudio({ diagramId, session }: { diagramId: string; session: Edit
   const autosave = useEditorAutosave({ diagramId, editToken, revision, store, documentPort, editable, onRevision: setRevision });
   const editorEnabled = editable && lifecycle === "active";
   const selectedNodeIds = editor.selection.filter((id) => Boolean(editor.document.nodes[id]));
-  const selectedAnnotationIds = editor.selection.filter((id) => Boolean(editor.document.annotations[id]));
-  const positionedSelectionIds = [...selectedNodeIds, ...selectedAnnotationIds];
+  const positionedSelectionIds = getEditorPositionedSelectionIds(editor.document, editor.selection);
   const activeSelectionCapabilities = useMemo(
     () => getEditorSelectionCapabilities(editor.document, editor.selection),
     [editor.document, editor.selection],
@@ -190,6 +191,11 @@ function EditorStudio({ diagramId, session }: { diagramId: string; session: Edit
     setLifecycle("restoring");
     setOperationError(null);
   }, []);
+  const restoreConfirmed = useCallback((nextRevision: number) => {
+    setRevision(nextRevision);
+    lifecycleRef.current = "restoring";
+    setLifecycle("restoring");
+  }, []);
   const restoredSuccessfully = useCallback(async (nextRevision: number) => {
     const remote = await documentPort.open(diagramId, editToken);
     if (remote.scope !== "edit") throw new Error("A restauração não devolveu acesso de edição ao diagrama.");
@@ -212,7 +218,7 @@ function EditorStudio({ diagramId, session }: { diagramId: string; session: Edit
       <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} connectionClass={connectionClass} actions={toolbarActions} />
       {editable && <div className="pid-studio-document-controls">
         {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
-        <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={lifecycle === "deleted" || lifecycle === "restoring"} onBeforeDelete={beforeDelete} onDeleted={deletedSuccessfully} onDeleteFailed={deleteFailed} onBeforeRestore={beforeRestore} onRestored={restoredSuccessfully} onRestoreFailed={restoreFailed} onAnnouncement={setAnnouncement} />
+        <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={lifecycle === "deleted" || lifecycle === "restoring"} onBeforeDelete={beforeDelete} onDeleted={deletedSuccessfully} onDeleteFailed={deleteFailed} onBeforeRestore={beforeRestore} onRestoreConfirmed={restoreConfirmed} onRestored={restoredSuccessfully} onRestoreFailed={restoreFailed} onAnnouncement={setAnnouncement} />
       </div>}
     </header>
     <div className={`pid-studio-workspace ${catalogCollapsed ? "pid-catalog-collapsed" : ""} ${inspectorCollapsed ? "pid-inspector-collapsed" : ""}`}>
