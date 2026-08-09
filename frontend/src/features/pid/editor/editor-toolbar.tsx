@@ -93,6 +93,7 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
     <Tool label="Ajustar diagrama à tela" onClick={actions.fit} />
     <Tool label="Aumentar zoom" onClick={actions.zoomIn} />
     <Tool label="Diminuir zoom" onClick={actions.zoomOut} />
+    <Tool label="Exportar" disabled onClick={() => {}} />
   </div>;
 }
 

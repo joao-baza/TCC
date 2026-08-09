@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { Link, useBlocker, useLocation, useParams } from "react-router-dom";
 
 import { isPidDocumentError, type OpenedPidDiagram } from "../api/contracts";
@@ -7,6 +7,7 @@ import { PidCanvas, type PidCanvasSelection, type PidCanvasViewportAction } from
 import { createCatalogIndex } from "../catalog/catalog-index";
 import { CatalogPanel } from "../catalog/catalog-panel";
 import { localCatalog } from "../catalog/fixtures/catalog";
+import { createLocalCollaboration } from "../collaboration/local-collaboration";
 import {
   alignSelection, deleteSelection, groupSelection, insertAnnotation, insertSymbol, rotateSelection,
   type PidCommand,
@@ -23,6 +24,7 @@ import { ShareDialog } from "./share-dialog";
 import { PropertiesInspector, type InspectorCommandResult } from "./properties-inspector";
 import { StatusBar } from "./status-bar";
 import { useEditorAutosave } from "./use-editor-autosave";
+import { MINIMUM_EDIT_VIEWPORT_WIDTH, useEditCapability } from "./use-edit-capability";
 import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-shortcuts";
 import { ValidationPanel } from "./validation-panel";
 
@@ -120,7 +122,8 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const { store, opened } = session;
   const subscribe = useCallback((notify: () => void) => store.subscribe(() => notify()), [store]);
   const editor = useSyncExternalStore(subscribe, store.getState, store.getState);
-  const editable = opened.scope === "edit";
+  const { editable, viewportWidth } = useEditCapability(opened.scope);
+  const compactReadOnly = viewportWidth < MINIMUM_EDIT_VIEWPORT_WIDTH;
   const [revision, setRevision] = useState(opened.revision);
   const [editToken, setEditToken] = useState(session.routeToken);
   const [lifecycle, setLifecycle] = useState<EditorLifecycle>("active");
@@ -139,10 +142,34 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     revision,
     store,
     documentPort,
-    editable,
+    editable: opened.scope === "edit",
     getPersistenceBlock: persistenceBlockFor,
     onRevision: setRevision,
   });
+  const collaboration = useMemo(() => createLocalCollaboration({
+    participant: { id: `local:${diagramId}`, name: "Você", color: "#57b9d6", local: true },
+  }), [diagramId]);
+  const subscribeCollaboration = useCallback(
+    (notify: () => void) => collaboration.subscribe(notify),
+    [collaboration],
+  );
+  const collaborationSnapshot = useSyncExternalStore(
+    subscribeCollaboration,
+    collaboration.getSnapshot,
+    collaboration.getSnapshot,
+  );
+  useEffect(() => collaboration.connect(), [collaboration]);
+  useEffect(() => collaboration.subscribeDocument((update) => {
+    if (update.origin !== "remote") return;
+    store.replace(update.document, "remote");
+    setRevision(update.revision);
+    autosave.resumeRemote(update.revision);
+  }), [autosave, collaboration, store]);
+  useEffect(() => {
+    if (autosave.conflict) collaboration.setStatus("reconnecting");
+    else if (autosave.state !== "Sincronizado") collaboration.setStatus("unsaved");
+    else collaboration.setStatus("synced");
+  }, [autosave.conflict, autosave.state, collaboration]);
   useEffect(() => registerNavigationGuard(autosave.flush), [autosave.flush, registerNavigationGuard]);
   useEffect(() => {
     if (!editable || autosave.state === "Sincronizado") return;
@@ -160,7 +187,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     () => getEditorSelectionCapabilities(editor.document, editor.selection),
     [editor.document, editor.selection],
   );
-  const selectionCapabilities = lifecycle === "active" ? activeSelectionCapabilities : BLOCKED_SELECTION_CAPABILITIES;
+  const selectionCapabilities = editorEnabled ? activeSelectionCapabilities : BLOCKED_SELECTION_CAPABILITIES;
   const validationIssues = useMemo(
     () => validateDocument(editor.document, { catalog: localCatalog }),
     [editor.document],
@@ -298,21 +325,27 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
       <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} connectionClass={connectionClass} actions={toolbarActions} />
-      {editable && <div className="pid-studio-document-controls">
-        {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
-        <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={lifecycle === "deleted" || lifecycle === "restoring"} onBeforeDelete={beforeDelete} onDeleted={deletedSuccessfully} onDeleteFailed={deleteFailed} onBeforeRestore={beforeRestore} onRestoreConfirmed={restoreConfirmed} onRestored={restoredSuccessfully} onRestoreFailed={restoreFailed} onAnnouncement={setAnnouncement} />
-      </div>}
+      <div className="pid-studio-session-controls">
+        <div className="pid-collaboration-summary" aria-label="Colaboração local">
+          <span>{collaborationSnapshot.label}</span>
+          <span role="status">{collaborationStatusLabel(collaborationSnapshot.status)}</span>
+          <div role="group" aria-label="Participantes">{collaborationSnapshot.participants.map((participant) => <span key={participant.id} style={{ "--participant-color": participant.color } as CSSProperties}>{participant.name}</span>)}</div>
+        </div>
+        {editable && <div className="pid-studio-document-controls">
+          {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
+          <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={lifecycle === "deleted" || lifecycle === "restoring"} onBeforeDelete={beforeDelete} onDeleted={deletedSuccessfully} onDeleteFailed={deleteFailed} onBeforeRestore={beforeRestore} onRestoreConfirmed={restoreConfirmed} onRestored={restoredSuccessfully} onRestoreFailed={restoreFailed} onAnnouncement={setAnnouncement} />
+        </div>}
+      </div>
     </header>
-    <div className={`pid-studio-workspace ${catalogCollapsed ? "pid-catalog-collapsed" : ""} ${inspectorCollapsed ? "pid-inspector-collapsed" : ""}`}>
-      <aside role="region" aria-label="Catálogo de símbolos" className="pid-studio-panel pid-catalog-panel">
+    <div className={`pid-studio-workspace ${!editorEnabled ? "pid-workspace-readonly" : ""} ${catalogCollapsed ? "pid-catalog-collapsed" : ""} ${inspectorCollapsed ? "pid-inspector-collapsed" : ""}`}>
+      {compactReadOnly && <p className="pid-compact-readonly-notice" role="status">Edição disponível em telas a partir de 768 px</p>}
+      {editorEnabled && <aside role="region" aria-label="Catálogo de símbolos" className="pid-studio-panel pid-catalog-panel">
         <button type="button" aria-expanded={!catalogCollapsed} onClick={() => setCatalogCollapsed((value) => !value)}>{catalogCollapsed ? "Abrir catálogo" : "Fechar catálogo"}</button>
-        {!catalogCollapsed && (editorEnabled
-          ? <CatalogPanel index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} />
-          : <p>{editable ? "O catálogo fica bloqueado enquanto o diagrama está indisponível." : "O catálogo está reservado neste acesso de visualização."}</p>)}
-      </aside>
+        {!catalogCollapsed && <CatalogPanel index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} />}
+      </aside>}
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
         {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
-          : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editable} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => store.setSelection([...nodeIds, ...edgeIds, ...annotationIds])} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}
+          : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editorEnabled} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => store.setSelection([...nodeIds, ...edgeIds, ...annotationIds])} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}
         {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}
       </section>
@@ -340,4 +373,11 @@ function standardLabel(standard: string): string {
 function inspectorCommandField(command: PidCommand): string {
   if (command.type !== "element.patch") return "properties";
   return Object.keys(command.patch)[0] ?? "properties";
+}
+
+function collaborationStatusLabel(status: "connecting" | "synced" | "reconnecting" | "unsaved"): string {
+  if (status === "connecting") return "Conectando";
+  if (status === "reconnecting") return "Reconectando";
+  if (status === "unsaved") return "Não salvo";
+  return "Sincronizado";
 }
