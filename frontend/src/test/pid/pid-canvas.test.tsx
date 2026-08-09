@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { StrictMode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   createPidMoveCommand,
@@ -16,6 +16,11 @@ import { createCatalogIndex } from "@/features/pid/catalog/catalog-index";
 import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
 import type { PidDocument } from "@/features/pid/domain/model";
 import { orthogonalPath } from "@/features/pid/canvas/process-edge";
+import { installPidCanvasGeometryHarness } from "./pid-canvas-harness";
+
+let restoreCanvasGeometry: () => void;
+beforeAll(() => { restoreCanvasGeometry = installPidCanvasGeometryHarness(); });
+afterAll(() => restoreCanvasGeometry());
 
 const ids = {
   document: "10000000-0000-4000-8000-000000000001",
@@ -297,6 +302,8 @@ describe("PidCanvas", () => {
     dispatchFlowMouseEvent(pump, "mousedown", { button: 0, buttons: 1, clientX: 100, clientY: 80 });
     dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 96, clientY: 80 });
     dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 128, clientY: 112 });
+    await waitFor(() => expect(pump.style.transform).toBe("translate(128px,112px)"));
+    expect(onCommand).not.toHaveBeenCalled();
     dispatchFlowMouseEvent(window, "mouseup", { button: 0, clientX: 128, clientY: 112 });
 
     await waitFor(() => expect(onCommand).toHaveBeenCalledTimes(1));
@@ -460,10 +467,10 @@ describe("PidCanvas", () => {
   });
 
   it.each([
-    [0, "left", 100 / 3, "rotate(0deg)"],
-    [90, "top", 200 / 3, "rotate(90deg)"],
-    [180, "right", 200 / 3, "rotate(180deg)"],
-    [270, "bottom", 100 / 3, "rotate(270deg)"],
+    [0, "left", 22, "rotate(0deg)"],
+    [90, "top", 70, "rotate(90deg)"],
+    [180, "right", 70, "rotate(180deg)"],
+    [270, "bottom", 22, "rotate(270deg)"],
   ] as const)("rotaciona somente a arte e move a porta assimétrica em %i°", async (
     rotation,
     position,
@@ -481,7 +488,7 @@ describe("PidCanvas", () => {
 
     const handle = screen.getByLabelText(/Criar conexão pela porta de entrada suction/i);
     expect(handle).toHaveAttribute("data-handlepos", position);
-    expect(handle.style[position]).toBe("0%");
+    expect(handle.style[position]).toBe("0px");
     if (position === "left" || position === "right") {
       expect(Number.parseFloat(handle.style.top)).toBeCloseTo(offset);
     } else {
@@ -494,7 +501,7 @@ describe("PidCanvas", () => {
 
   it("mantém os módulos de domínio livres de React e @xyflow/react", () => {
     const domainRoot = resolve(process.cwd(), "src/features/pid/domain");
-    for (const file of ["model.ts", "projection.ts", "graph-operations.ts", "commands.ts", "command-reducers.ts"]) {
+    for (const file of ["model.ts", "projection.ts", "geometry.ts", "graph-operations.ts", "commands.ts", "command-reducers.ts"]) {
       const source = readFileSync(resolve(domainRoot, file), "utf8");
       expect(source).not.toMatch(/@xyflow\/react|from ["']react["']/);
     }

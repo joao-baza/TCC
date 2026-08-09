@@ -179,6 +179,13 @@ describe("createCatalogIndex", () => {
     }])).toThrow("tamanho");
   });
 
+  it("rejeita dimensões padrão que sobrepõem alvos de portas do mesmo lado", () => {
+    expect(() => parseCatalogSymbol({
+      ...localCatalog[2],
+      defaultSize: { width: 72, height: 56 },
+    })).toThrow("44px");
+  });
+
   it.each([
     ["versão em branco", { catalogVersion: "  " }, "versão de catálogo", ["catalogVersion"]],
     ["fonte sem nome", { source: { ...localCatalog[0].source, sourceName: " " } }, "proveniência", ["source", "sourceName"]],

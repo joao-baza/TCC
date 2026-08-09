@@ -1,14 +1,18 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
 import type { PidNode, PidPort, PortDirection } from "../domain/model";
+import type { PidNodeFlowGeometry, PidPortFlowGeometry } from "../domain/geometry";
 
 export type EquipmentNodeData = Record<string, unknown> & {
   readonly equipment: PidNode;
   readonly ports: readonly PidPort[];
   readonly symbol?: CatalogSymbol;
   readonly editable: boolean;
+  readonly geometry: PidNodeFlowGeometry;
+  readonly portGeometries: ReadonlyMap<string, PidPortFlowGeometry>;
+  readonly onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void;
 };
 
 export type EquipmentFlowNode = Node<EquipmentNodeData, "equipment">;
@@ -20,7 +24,9 @@ const directionLabel: Record<PortDirection, string> = {
 };
 
 function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<EquipmentFlowNode>) {
-  const { equipment, ports, symbol, editable } = data;
+  const { equipment, ports, symbol, editable, portGeometries, onPortKey } = data;
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => setImageFailed(false), [symbol?.assetUrl]);
   const title = [equipment.label || symbol?.name || "Equipamento", equipment.tag].filter(Boolean).join(" ");
 
   return (
@@ -37,12 +43,13 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
           className="flex min-h-0 max-h-full max-w-full flex-1 items-center justify-center"
           style={{ transform: `rotate(${equipment.rotation}deg)` }}
         >
-          {symbol ? (
+          {symbol && !imageFailed ? (
             <img
               src={symbol.assetUrl}
               alt=""
               draggable={false}
               className="min-h-0 max-h-full max-w-full object-contain"
+              onError={() => setImageFailed(true)}
             />
           ) : (
             <div className="flex min-h-10 w-full items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-center text-[10px] text-slate-500">
@@ -59,7 +66,8 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
       </div>
 
       {ports.map((port, index) => {
-        const geometry = getPortHandleGeometry(port, index, ports, equipment.rotation);
+        const geometry = portGeometries.get(port.id);
+        if (!geometry) return null;
         const portText = `Porta de ${directionLabel[port.direction]} ${port.templateKey}`;
         const style = normalizedPortStyle(geometry);
         if (!editable) {
@@ -69,6 +77,7 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
               className="absolute block size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-700 bg-white"
               style={style}
               title={portText}
+              role="img"
             >
               <span className="sr-only">{portText}</span>
             </span>
@@ -79,12 +88,20 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
             key={port.id}
             id={port.id}
             type={port.direction === "input" ? "target" : "source"}
-            position={geometry.position}
+            position={geometry.position as Position}
             isConnectable={isConnectable}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== " " && event.key !== "Escape") return;
+              event.preventDefault();
+              event.stopPropagation();
+              onPortKey(port.id, event.key);
+            }}
             aria-label={`Criar conexão pela porta de ${directionLabel[port.direction]} ${port.templateKey}`}
             title={portText}
             className="!size-11 !border-slate-700 !bg-transparent after:absolute after:left-1/2 after:top-1/2 after:size-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-blue-600"
-            style={{ ...style, width: 44, height: 44 }}
+            style={{ ...style, width: geometry.targetSize, height: geometry.targetSize }}
           />
         );
       })}
@@ -92,58 +109,13 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
   );
 }
 
-export function getPortHandleGeometry(
-  port: PidPort,
-  index: number,
-  ports: readonly PidPort[],
-  rotation = 0,
-): { position: Position; x: number; y: number } {
-  const side = sideForDirection(port.direction);
-  const sameSide = ports.filter((candidate) => sideForDirection(candidate.direction) === side);
-  const sideIndex = sameSide.findIndex((candidate) => candidate === ports[index]);
-  const offset = (sideIndex + 1) / (sameSide.length + 1);
-  const base = port.direction === "input"
-    ? { x: 0, y: offset }
-    : port.direction === "output"
-      ? { x: 1, y: offset }
-      : { x: offset, y: 1 };
-  const point = rotateNormalizedPoint(base, rotation);
-  return { ...point, position: positionForPoint(point) };
-}
-
 function normalizedPortStyle(
-  geometry: { position: Position; x: number; y: number },
-): { left?: string; right?: string; top?: string; bottom?: string } {
-  if (geometry.position === Position.Left) return { left: "0%", top: `${geometry.y * 100}%` };
-  if (geometry.position === Position.Right) return { right: "0%", top: `${geometry.y * 100}%` };
-  if (geometry.position === Position.Top) return { left: `${geometry.x * 100}%`, top: "0%" };
-  return { left: `${geometry.x * 100}%`, bottom: "0%" };
-}
-
-function rotateNormalizedPoint(point: { x: number; y: number }, rotation: number): { x: number; y: number } {
-  switch (((rotation % 360) + 360) % 360) {
-    case 90:
-      return { x: 1 - point.y, y: point.x };
-    case 180:
-      return { x: 1 - point.x, y: 1 - point.y };
-    case 270:
-      return { x: point.y, y: 1 - point.x };
-    default:
-      return point;
-  }
-}
-
-function positionForPoint(point: { x: number; y: number }): Position {
-  if (point.x === 0) return Position.Left;
-  if (point.x === 1) return Position.Right;
-  if (point.y === 0) return Position.Top;
-  return Position.Bottom;
-}
-
-function sideForDirection(direction: PortDirection): Position {
-  if (direction === "input") return Position.Left;
-  if (direction === "output") return Position.Right;
-  return Position.Bottom;
+  geometry: PidPortFlowGeometry,
+): { left?: number; right?: number; top?: number; bottom?: number } {
+  if (geometry.position === Position.Left) return { left: 0, top: geometry.y };
+  if (geometry.position === Position.Right) return { right: 0, top: geometry.y };
+  if (geometry.position === Position.Top) return { left: geometry.x, top: 0 };
+  return { left: geometry.x, bottom: 0 };
 }
 
 export const EquipmentNode = memo(EquipmentNodeComponent);

@@ -52,7 +52,7 @@ const localCatalogSymbols = [
     category: "Válvulas",
     assetUrl: "/pid/symbols/valve.svg",
     viewBox: "0 0 120 80",
-    defaultSize: { width: 72, height: 56 },
+    defaultSize: { width: 72, height: 96 },
     portTemplates: [
       { key: "inlet", direction: "input", connectionClass: "process", capacity: 1 },
       { key: "outlet", direction: "output", connectionClass: "process", capacity: 1 },

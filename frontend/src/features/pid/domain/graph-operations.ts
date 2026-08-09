@@ -1,9 +1,11 @@
 import type { PidDocument, PidGroup, PidNode, PidPort } from "./model";
+import { getPidNodeFlowGeometry } from "./geometry";
 
 export interface PidGraphIndex {
   readonly portsByNode: ReadonlyMap<string, readonly PidPort[]>;
   readonly connectionCountByPort: ReadonlyMap<string, number>;
   readonly groupsByNode: ReadonlyMap<string, readonly string[]>;
+  readonly edgePairKeys: ReadonlySet<string>;
 }
 
 export interface PortConnectionRejection {
@@ -12,10 +14,17 @@ export interface PortConnectionRejection {
   readonly path: readonly (string | number)[];
 }
 
+export interface PortConnectionValidation {
+  readonly index: PidGraphIndex;
+  readonly getRejection: (sourcePortId: string, targetPortId: string) => PortConnectionRejection | null;
+  readonly isValid: (sourcePortId: string, targetPortId: string) => boolean;
+}
+
 export function buildGraphIndex(document: PidDocument): PidGraphIndex {
   const portsByNode = new Map<string, PidPort[]>();
   const connectionCountByPort = new Map<string, number>();
   const groupsByNode = new Map<string, string[]>();
+  const edgePairKeys = new Set<string>();
 
   for (const port of Object.values(document.ports)) {
     const ports = portsByNode.get(port.nodeId);
@@ -23,6 +32,7 @@ export function buildGraphIndex(document: PidDocument): PidGraphIndex {
     else portsByNode.set(port.nodeId, [port]);
   }
   for (const edge of Object.values(document.edges)) {
+    edgePairKeys.add(connectionPairKey(edge.sourcePortId, edge.targetPortId));
     connectionCountByPort.set(
       edge.sourcePortId,
       (connectionCountByPort.get(edge.sourcePortId) ?? 0) + 1,
@@ -40,7 +50,7 @@ export function buildGraphIndex(document: PidDocument): PidGraphIndex {
     }
   }
 
-  return { portsByNode, connectionCountByPort, groupsByNode };
+  return { portsByNode, connectionCountByPort, groupsByNode, edgePairKeys };
 }
 
 /** Shared candidate policy used by command reducers and UI adapters. */
@@ -48,6 +58,7 @@ export function getPortConnectionRejection(
   document: PidDocument,
   sourcePortId: string,
   targetPortId: string,
+  index: PidGraphIndex = buildGraphIndex(document),
 ): PortConnectionRejection | null {
   const source = document.ports[sourcePortId];
   const target = document.ports[targetPortId];
@@ -66,7 +77,6 @@ export function getPortConnectionRejection(
   if (source.connectionClass !== target.connectionClass) {
     return rejection("connection.class", "A classe das portas deve ser compatível.", ["ports"]);
   }
-  const index = buildGraphIndex(document);
   for (const port of [source, target]) {
     if ((index.connectionCountByPort.get(port.id) ?? 0) >= port.capacity) {
       return rejection(
@@ -76,12 +86,28 @@ export function getPortConnectionRejection(
       );
     }
   }
-  if (Object.values(document.edges).some(
-    (edge) => edge.sourcePortId === source.id && edge.targetPortId === target.id,
-  )) {
+  if (index.edgePairKeys.has(connectionPairKey(source.id, target.id))) {
     return rejection("connection.duplicate", "A mesma conexão não pode ser criada mais de uma vez.", ["edges"]);
   }
   return null;
+}
+
+export function createPortConnectionValidation(
+  document: PidDocument,
+  buildIndex: (document: PidDocument) => PidGraphIndex = buildGraphIndex,
+): PortConnectionValidation {
+  const index = buildIndex(document);
+  const getRejection = (sourcePortId: string, targetPortId: string) => getPortConnectionRejection(
+    document,
+    sourcePortId,
+    targetPortId,
+    index,
+  );
+  return {
+    index,
+    getRejection,
+    isValid: (sourcePortId, targetPortId) => getRejection(sourcePortId, targetPortId) === null,
+  };
 }
 
 function rejection(
@@ -92,28 +118,19 @@ function rejection(
   return { code, message, path };
 }
 
-export function boundsForNodes(nodes: readonly PidNode[]): Pick<PidGroup, "x" | "y" | "width" | "height"> {
-  const nodeBounds = nodes.map(rotatedNodeBounds);
+export function boundsForNodes(
+  nodes: readonly PidNode[],
+  ports: readonly PidPort[] = [],
+): Pick<PidGroup, "x" | "y" | "width" | "height"> {
+  const nodeBounds = nodes.map((node) => getPidNodeFlowGeometry(
+    node,
+    ports.filter((port) => port.nodeId === node.id),
+  ).bounds);
   const x = Math.min(...nodeBounds.map((bounds) => bounds.x));
   const y = Math.min(...nodeBounds.map((bounds) => bounds.y));
   const right = Math.max(...nodeBounds.map((bounds) => bounds.x + bounds.width));
   const bottom = Math.max(...nodeBounds.map((bounds) => bounds.y + bounds.height));
   return { x, y, width: right - x, height: bottom - y };
-}
-
-function rotatedNodeBounds(node: PidNode): Pick<PidNode, "x" | "y" | "width" | "height"> {
-  const quarterTurns = Math.abs(node.rotation / 90) % 2;
-  if (quarterTurns === 0) {
-    return { x: node.x, y: node.y, width: node.width, height: node.height };
-  }
-  const width = node.height;
-  const height = node.width;
-  return {
-    x: node.x + (node.width - width) / 2,
-    y: node.y + (node.height - height) / 2,
-    width,
-    height,
-  };
 }
 
 export function recalculateGroupBounds(document: PidDocument): PidDocument {
@@ -128,7 +145,7 @@ export function recalculateGroupBounds(document: PidDocument): PidDocument {
       delete groups[groupId];
       continue;
     }
-    const bounds = boundsForNodes(members);
+    const bounds = boundsForNodes(members, Object.values(document.ports));
     if (group.x !== bounds.x
       || group.y !== bounds.y
       || group.width !== bounds.width
@@ -138,6 +155,10 @@ export function recalculateGroupBounds(document: PidDocument): PidDocument {
     }
   }
   return groups === document.groups ? document : { ...document, groups };
+}
+
+function connectionPairKey(sourcePortId: string, targetPortId: string): string {
+  return `${sourcePortId}\u0000${targetPortId}`;
 }
 
 export function hasSelectableElement(document: PidDocument, id: string): boolean {

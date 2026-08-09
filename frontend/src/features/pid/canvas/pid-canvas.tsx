@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
+  applyNodeChanges,
   ConnectionMode,
   Controls,
-  MarkerType,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
   SelectionMode,
+  useEdgesState,
+  useNodesState,
   type Connection,
   type EdgeTypes,
   type EdgeChange,
@@ -19,10 +21,11 @@ import "@xyflow/react/dist/style.css";
 import type { CatalogIndex } from "../catalog/catalog-index";
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
 import { deleteSelection, type PidCommand } from "../domain/commands";
-import type { PidDocument, PidPort } from "../domain/model";
-import { getPortConnectionRejection, uniqueIds } from "../domain/graph-operations";
-import { projectPidDocument } from "../domain/projection";
-import { EquipmentNode, getPortHandleGeometry, type EquipmentFlowNode } from "./equipment-node";
+import { canonicalPositionFromFlow, type PidNodeFlowGeometry } from "../domain/geometry";
+import type { PidDocument } from "../domain/model";
+import { createPortConnectionValidation, getPortConnectionRejection, type PidGraphIndex, uniqueIds } from "../domain/graph-operations";
+import { EquipmentNode, type EquipmentFlowNode } from "./equipment-node";
+import { projectPidCanvasDocument } from "./flow-projection";
 import { ProcessEdge, type ProcessFlowEdge } from "./process-edge";
 
 const nodeTypes = { equipment: EquipmentNode } satisfies NodeTypes;
@@ -39,6 +42,7 @@ export interface PidCanvasProps {
   readonly editable: boolean;
   readonly onCommand: (command: PidCommand) => void;
   readonly onSelectionChange?: (selection: PidCanvasSelection) => void;
+  readonly selection?: PidCanvasSelection;
   readonly className?: string;
 }
 
@@ -50,81 +54,80 @@ export function PidCanvas(props: PidCanvasProps) {
   );
 }
 
-function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionChange, className }: PidCanvasProps) {
-  const [selection, setSelection] = useState<PidCanvasSelection>({ nodeIds: [], edgeIds: [] });
-  const selectionRef = useRef(selection);
-  const notifiedSelectionRef = useRef(selection);
-  const projection = useMemo(() => projectPidDocument(document), [document]);
+function PidCanvasInner({
+  document,
+  catalog,
+  editable,
+  onCommand,
+  onSelectionChange,
+  selection: controlledSelection,
+  className,
+}: PidCanvasProps) {
+  const initialSelection = controlledSelection ?? { nodeIds: [], edgeIds: [] };
+  const [selection, setSelection] = useState<PidCanvasSelection>(initialSelection);
+  const selectionRef = useRef(initialSelection);
+  const notifiedSelectionRef = useRef(initialSelection);
+  const documentRef = useRef(document);
+  const onCommandRef = useRef(onCommand);
+  const editableRef = useRef(editable);
+  const pointerDraggingRef = useRef(false);
+  const draggingNodeIdsRef = useRef<ReadonlySet<string>>(new Set());
+  const [keyboardSourcePortId, setKeyboardSourcePortId] = useState<string | null>(null);
+  const keyboardSourcePortRef = useRef<string | null>(null);
+  const [connectionAnnouncement, setConnectionAnnouncement] = useState("");
+  documentRef.current = document;
+  onCommandRef.current = onCommand;
+  editableRef.current = editable;
+  const connectionValidation = useMemo(() => createPortConnectionValidation(document), [document]);
+  const connectionValidationRef = useRef(connectionValidation);
+  connectionValidationRef.current = connectionValidation;
   const symbols = useMemo(() => resolveCatalog(catalog, document), [catalog, document.metadata.standard]);
-  const portsByNode = useMemo(() => {
-    const result = new Map<string, PidPort[]>();
-    for (const port of projection.ports) {
-      const ports = result.get(port.nodeId);
-      if (ports) ports.push(port);
-      else result.set(port.nodeId, [port]);
+  const updateKeyboardSourcePort = useCallback((portId: string | null) => {
+    keyboardSourcePortRef.current = portId;
+    setKeyboardSourcePortId(portId);
+  }, []);
+  const handlePortKey = useCallback((portId: string, key: "Enter" | " " | "Escape") => {
+    if (!editableRef.current) return;
+    if (key === "Escape") {
+      updateKeyboardSourcePort(null);
+      setConnectionAnnouncement("Conexão por teclado cancelada.");
+      return;
     }
-    return result;
-  }, [projection.ports]);
-
-  const nodes = useMemo<EquipmentFlowNode[]>(() => projection.nodes.map((node) => {
-    const ports = portsByNode.get(node.id) ?? [];
-    return {
-      id: node.id,
-      type: "equipment",
-      position: { x: node.x, y: node.y },
-      width: node.width,
-      height: node.height,
-      initialWidth: node.width,
-      initialHeight: node.height,
-      handles: ports.map((port, index) => {
-        const geometry = getPortHandleGeometry(port, index, ports, node.rotation);
-        return {
-          id: port.id,
-          type: port.direction === "input" ? "target" as const : "source" as const,
-          position: geometry.position,
-          x: geometry.x * node.width - 22,
-          y: geometry.y * node.height - 22,
-          width: 44,
-          height: 44,
-        };
-      }),
-      draggable: editable,
-      connectable: editable,
-      deletable: editable,
-      selectable: true,
-      selected: selection.nodeIds.includes(node.id),
-      domAttributes: { "aria-pressed": selection.nodeIds.includes(node.id) },
-      ariaRole: "button",
-      ariaLabel: [node.label || symbols.get(node.symbolKey)?.name || "Equipamento", node.tag].filter(Boolean).join(" "),
-      data: {
-        equipment: node,
-        ports,
-        symbol: symbols.get(node.symbolKey),
-        editable,
-      },
-    };
-  }), [editable, portsByNode, projection.nodes, selection.nodeIds, symbols]);
-
-  const edges = useMemo<ProcessFlowEdge[]>(() => projection.edges.flatMap((edge) => {
-    const source = document.ports[edge.sourcePortId];
-    const target = document.ports[edge.targetPortId];
-    if (!source || !target) return [];
-    return [{
-      id: edge.id,
-      type: "process" as const,
-      source: source.nodeId,
-      target: target.nodeId,
-      sourceHandle: source.id,
-      targetHandle: target.id,
-      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-      selectable: true,
-      deletable: editable,
-      reconnectable: false,
-      selected: selection.edgeIds.includes(edge.id),
-      ariaLabel: [edge.tag, edge.label].filter(Boolean).join(" ") || `Conexão ${edge.id}`,
-      data: { processEdge: edge, route: edge.route, editable },
-    }];
-  }), [document.ports, editable, projection.edges, selection.edgeIds]);
+    const sourcePortId = keyboardSourcePortRef.current;
+    const currentDocument = documentRef.current;
+    const port = currentDocument.ports[portId];
+    if (!port) {
+      updateKeyboardSourcePort(null);
+      return;
+    }
+    if (!sourcePortId) {
+      updateKeyboardSourcePort(portId);
+      setConnectionAnnouncement(`Porta ${port.templateKey} selecionada como origem.`);
+      return;
+    }
+    const normalized = normalizePidConnection(currentDocument, {
+      sourceHandle: sourcePortId,
+      targetHandle: portId,
+    });
+    const rejection = normalized
+      ? connectionValidationRef.current.getRejection(normalized.sourcePortId, normalized.targetPortId)
+      : { message: "As duas portas da conexão devem existir." };
+    if (!normalized || rejection) {
+      setConnectionAnnouncement(`Conexão inválida: ${rejection?.message}`);
+      return;
+    }
+    onCommandRef.current({ type: "ports.connect", ...normalized });
+    updateKeyboardSourcePort(null);
+    setConnectionAnnouncement("Conexão criada com sucesso.");
+  }, [updateKeyboardSourcePort]);
+  const projection = useMemo(
+    () => projectPidCanvasDocument(document, symbols, editable, handlePortKey),
+    [document, editable, handlePortKey, symbols],
+  );
+  const [nodes, setNodes] = useNodesState<EquipmentFlowNode>(projection.nodes);
+  const [edges, setEdges, onFlowEdgesChange] = useEdgesState<ProcessFlowEdge>(projection.edges);
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
 
   const commitSelection = useCallback((update: (current: PidCanvasSelection) => PidCanvasSelection) => {
     const current = selectionRef.current;
@@ -139,33 +142,77 @@ function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionCha
     onSelectionChange?.(selection);
   }, [onSelectionChange, selection]);
   useEffect(() => {
+    if (!controlledSelection || sameSelection(selectionRef.current, controlledSelection)) return;
+    selectionRef.current = controlledSelection;
+    notifiedSelectionRef.current = controlledSelection;
+    setSelection(controlledSelection);
+  }, [controlledSelection]);
+  useEffect(() => {
     commitSelection((current) => ({
       nodeIds: current.nodeIds.filter((id) => Boolean(document.nodes[id])),
       edgeIds: current.edgeIds.filter((id) => Boolean(document.edges[id])),
     }));
   }, [commitSelection, document.edges, document.nodes]);
+  useEffect(() => {
+    const transientNodeIds = pointerDraggingRef.current ? draggingNodeIdsRef.current : undefined;
+    setNodes((current) => reconcileNodes(current, projection.nodes, transientNodeIds));
+    setEdges((current) => reconcileEdges(current, projection.edges));
+  }, [projection, setEdges, setNodes]);
+  useEffect(() => {
+    const selectedNodes = new Set(selection.nodeIds);
+    const selectedEdges = new Set(selection.edgeIds);
+    setNodes((current) => current.map((node) => {
+      const selected = selectedNodes.has(node.id);
+      return node.selected === selected && node.domAttributes?.["aria-pressed"] === selected
+        ? node
+        : { ...node, selected, domAttributes: { ...node.domAttributes, "aria-pressed": selected } };
+    }));
+    setEdges((current) => current.map((edge) => edge.selected === selectedEdges.has(edge.id)
+      ? edge
+      : { ...edge, selected: selectedEdges.has(edge.id) }));
+  }, [selection, setEdges, setNodes]);
   const handleNodesChange = useCallback((changes: NodeChange<EquipmentFlowNode>[]) => {
-    if (!changes.some((change) => change.type === "select" || change.type === "remove")) return;
-    commitSelection((current) => {
-      const selected = new Set(current.nodeIds);
-      for (const change of changes) {
-        if (change.type === "select" && change.selected) selected.add(change.id);
-        else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
-      }
-      return { nodeIds: [...selected], edgeIds: current.edgeIds };
-    });
-  }, [commitSelection]);
+    setNodes((current) => applyNodeChanges(changes, current));
+    if (changes.some((change) => change.type === "select" || change.type === "remove")) {
+      commitSelection((current) => {
+        const selected = new Set(current.nodeIds);
+        for (const change of changes) {
+          if (change.type === "select" && change.selected) selected.add(change.id);
+          else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
+        }
+        return { nodeIds: [...selected], edgeIds: current.edgeIds };
+      });
+    }
+    if (!editableRef.current || pointerDraggingRef.current) return;
+    const positionChange = changes.find(
+      (change): change is Extract<NodeChange<EquipmentFlowNode>, { type: "position" }> => (
+        change.type === "position" && Boolean(change.position)
+      ),
+    );
+    if (!positionChange?.position) return;
+    const flowNode = nodesRef.current.find(({ id }) => id === positionChange.id);
+    const command = createPidMoveCommand(
+      documentRef.current,
+      positionChange.id,
+      positionChange.position,
+      selectionRef.current.nodeIds,
+      flowNode?.data.geometry,
+    );
+    if (command) onCommandRef.current(command);
+  }, [commitSelection, setNodes]);
   const handleEdgesChange = useCallback((changes: EdgeChange<ProcessFlowEdge>[]) => {
-    if (!changes.some((change) => change.type === "select" || change.type === "remove")) return;
-    commitSelection((current) => {
-      const selected = new Set(current.edgeIds);
-      for (const change of changes) {
-        if (change.type === "select" && change.selected) selected.add(change.id);
-        else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
-      }
-      return { nodeIds: current.nodeIds, edgeIds: [...selected] };
-    });
-  }, [commitSelection]);
+    onFlowEdgesChange(changes);
+    if (changes.some((change) => change.type === "select" || change.type === "remove")) {
+      commitSelection((current) => {
+        const selected = new Set(current.edgeIds);
+        for (const change of changes) {
+          if (change.type === "select" && change.selected) selected.add(change.id);
+          else if (change.type === "select" || change.type === "remove") selected.delete(change.id);
+        }
+        return { nodeIds: current.nodeIds, edgeIds: [...selected] };
+      });
+    }
+  }, [commitSelection, onFlowEdgesChange]);
 
   const normalizeConnection = useCallback(
     (connection: ProcessFlowEdge | Connection) => normalizePidConnection(document, connection),
@@ -173,17 +220,23 @@ function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionCha
   );
   const isValidConnection = useCallback((connection: ProcessFlowEdge | Connection) => {
     const normalized = normalizeConnection(connection);
-    return normalized !== null && isPidConnectionValid(document, normalized.sourcePortId, normalized.targetPortId);
-  }, [document, normalizeConnection]);
+    return normalized !== null && connectionValidation.isValid(normalized.sourcePortId, normalized.targetPortId);
+  }, [connectionValidation, normalizeConnection]);
   const handleConnect = useCallback((connection: Connection) => {
     if (!editable) return;
-    const command = pidConnectionCommand(document, connection);
+    const command = pidConnectionCommand(document, connection, connectionValidation.index);
     if (command) onCommand(command);
-  }, [document, editable, onCommand]);
+  }, [connectionValidation.index, document, editable, onCommand]);
+  const handleDragStart = useCallback((_event: MouseEvent | TouchEvent, node: EquipmentFlowNode, movedNodes: EquipmentFlowNode[]) => {
+    pointerDraggingRef.current = true;
+    draggingNodeIdsRef.current = new Set((movedNodes.length > 0 ? movedNodes : [node]).map(({ id }) => id));
+  }, []);
   const handleDragStop = useCallback((_event: MouseEvent | TouchEvent, node: EquipmentFlowNode, movedNodes: EquipmentFlowNode[]) => {
+    pointerDraggingRef.current = false;
+    draggingNodeIdsRef.current = new Set();
     if (!editable) return;
     const selectedIds = movedNodes.map(({ id }) => id).filter((id) => document.nodes[id]);
-    const command = createPidMoveCommand(document, node.id, node.position, selectedIds);
+    const command = createPidMoveCommand(document, node.id, node.position, selectedIds, node.data.geometry);
     if (command) onCommand(command);
   }, [document.nodes, editable, onCommand]);
   const handleDelete = useCallback(({ nodes: deletedNodes, edges: deletedEdges }: {
@@ -199,6 +252,7 @@ function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionCha
     <div
       data-testid="pid-canvas"
       data-editable={String(editable)}
+      data-keyboard-source-port={keyboardSourcePortId ?? ""}
       className={`h-[640px] min-h-[320px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${className ?? ""}`}
       style={{ height: "640px" }}
     >
@@ -223,6 +277,7 @@ function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionCha
         deleteKeyCode={editable ? ["Backspace", "Delete"] : null}
         isValidConnection={isValidConnection}
         onConnect={handleConnect}
+        onNodeDragStart={handleDragStart}
         onNodeDragStop={handleDragStop}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
@@ -233,6 +288,9 @@ function PidCanvasInner({ document, catalog, editable, onCommand, onSelectionCha
         <Controls showInteractive={false} />
         <MiniMap pannable zoomable ariaLabel="Minimapa do diagrama P&ID" />
       </ReactFlow>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {connectionAnnouncement}
+      </div>
     </div>
   );
 }
@@ -260,16 +318,22 @@ export function normalizePidConnection(
   return { sourcePortId: source.id, targetPortId: target.id };
 }
 
-export function isPidConnectionValid(document: PidDocument, sourcePortId: string, targetPortId: string): boolean {
-  return getPortConnectionRejection(document, sourcePortId, targetPortId) === null;
+export function isPidConnectionValid(
+  document: PidDocument,
+  sourcePortId: string,
+  targetPortId: string,
+  index?: PidGraphIndex,
+): boolean {
+  return getPortConnectionRejection(document, sourcePortId, targetPortId, index) === null;
 }
 
 export function pidConnectionCommand(
   document: PidDocument,
   connection: { readonly sourceHandle?: string | null; readonly targetHandle?: string | null },
+  index?: PidGraphIndex,
 ): Extract<PidCommand, { type: "ports.connect" }> | null {
   const normalized = normalizePidConnection(document, connection);
-  if (!normalized || !isPidConnectionValid(document, normalized.sourcePortId, normalized.targetPortId)) return null;
+  if (!normalized || !isPidConnectionValid(document, normalized.sourcePortId, normalized.targetPortId, index)) return null;
   return { type: "ports.connect", ...normalized };
 }
 
@@ -278,10 +342,12 @@ export function createPidMoveCommand(
   draggedNodeId: string,
   position: { readonly x: number; readonly y: number },
   selectedNodeIds: readonly string[],
+  geometry?: PidNodeFlowGeometry,
 ): Extract<PidCommand, { type: "selection.move" }> | null {
   const canonical = document.nodes[draggedNodeId];
   if (!canonical) return null;
-  const delta = { x: position.x - canonical.x, y: position.y - canonical.y };
+  const canonicalPosition = geometry ? canonicalPositionFromFlow(canonical, geometry, position) : position;
+  const delta = { x: canonicalPosition.x - canonical.x, y: canonicalPosition.y - canonical.y };
   if (delta.x === 0 && delta.y === 0) return null;
   const selected = uniqueIds(selectedNodeIds.filter((id) => document.nodes[id]));
   const ids = selected.includes(draggedNodeId) ? selected : [draggedNodeId];
@@ -293,4 +359,49 @@ function sameSelection(left: PidCanvasSelection, right: PidCanvasSelection): boo
     && left.edgeIds.length === right.edgeIds.length
     && left.nodeIds.every((id, index) => id === right.nodeIds[index])
     && left.edgeIds.every((id, index) => id === right.edgeIds[index]);
+}
+
+function reconcileNodes(
+  current: EquipmentFlowNode[],
+  canonical: EquipmentFlowNode[],
+  transientNodeIds?: ReadonlySet<string>,
+): EquipmentFlowNode[] {
+  const currentById = new Map(current.map((node) => [node.id, node]));
+  let changed = current.length !== canonical.length;
+  const next = canonical.map((node) => {
+    const existing = currentById.get(node.id);
+    if (!existing) { changed = true; return node; }
+    const preserveTransientPosition = transientNodeIds?.has(node.id) === true;
+    if (existing.data === node.data
+      && (preserveTransientPosition
+        || (existing.position.x === node.position.x && existing.position.y === node.position.y))
+      && existing.width === node.width
+      && existing.height === node.height
+      && existing.draggable === node.draggable
+      && existing.connectable === node.connectable) return existing;
+    changed = true;
+    return {
+      ...node,
+      position: preserveTransientPosition ? existing.position : node.position,
+      selected: existing.selected,
+      domAttributes: { ...node.domAttributes, "aria-pressed": Boolean(existing.selected) },
+    };
+  });
+  return changed ? next : current;
+}
+
+function reconcileEdges(current: ProcessFlowEdge[], canonical: ProcessFlowEdge[]): ProcessFlowEdge[] {
+  const currentById = new Map(current.map((edge) => [edge.id, edge]));
+  let changed = current.length !== canonical.length;
+  const next = canonical.map((edge) => {
+    const existing = currentById.get(edge.id);
+    if (!existing) { changed = true; return edge; }
+    if (existing.data === edge.data
+      && existing.source === edge.source
+      && existing.target === edge.target
+      && existing.deletable === edge.deletable) return existing;
+    changed = true;
+    return { ...edge, selected: existing.selected };
+  });
+  return changed ? next : current;
 }

@@ -1,28 +1,5 @@
 import "@testing-library/jest-dom/vitest";
 
-if (!globalThis.ResizeObserver) {
-  globalThis.ResizeObserver = class ResizeObserver {
-    readonly #callback: ResizeObserverCallback;
-
-    constructor(callback: ResizeObserverCallback) {
-      this.#callback = callback;
-    }
-
-    observe(target: Element) {
-      if (target.classList.contains("react-flow__node")) return;
-      this.#callback([{
-        target,
-        contentRect: target.getBoundingClientRect(),
-        borderBoxSize: [],
-        contentBoxSize: [],
-        devicePixelContentBoxSize: [],
-      }] as unknown as ResizeObserverEntry[], this);
-    }
-    unobserve() {}
-    disconnect() {}
-  };
-}
-
 if (!globalThis.DOMMatrixReadOnly) {
   globalThis.DOMMatrixReadOnly = class DOMMatrixReadOnly {
     readonly m22 = 1;
@@ -33,18 +10,6 @@ if (!globalThis.DOMMatrixReadOnly) {
 if (!Element.prototype.getAnimations) {
   Element.prototype.getAnimations = () => [];
 }
-
-const nativeGetBoundingClientRect = Element.prototype.getBoundingClientRect;
-Element.prototype.getBoundingClientRect = function getBoundingClientRect() {
-  const measured = nativeGetBoundingClientRect.call(this);
-  if (measured.width || measured.height || !(this instanceof HTMLElement)) return measured;
-  const canvas = this.closest<HTMLElement>("[data-testid='pid-canvas']");
-  if (!canvas) return measured;
-  const pixelSize = (value: string) => value.endsWith("px") ? Number.parseFloat(value) : 0;
-  const width = pixelSize(this.style.width) || pixelSize(canvas.style.width) || 1024;
-  const height = pixelSize(this.style.height) || pixelSize(canvas.style.height) || 640;
-  return DOMRect.fromRect({ x: 0, y: 0, width, height });
-};
 
 if (!window.matchMedia) {
   window.matchMedia = (query: string) =>

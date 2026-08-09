@@ -101,7 +101,10 @@ export function applyCommand(
     };
     const allocator = createIdAllocator(canonicalDocument, runtime.generateId);
     let next = reduceCommand(canonicalDocument, command, allocator);
-    next = recalculateGroupBounds(next);
+    // A metadata-only rename must not be accepted merely because the generic
+    // bounds normalizer happened to repair an unrelated imported violation.
+    // Spatial/structural commands still normalize groups before validation.
+    if (command.type !== "document.rename") next = recalculateGroupBounds(next);
     next = {
       ...next,
       metadata: {

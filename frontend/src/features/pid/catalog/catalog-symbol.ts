@@ -2,6 +2,7 @@ import type { CatalogSymbol as InsertionCatalogSymbol } from "../domain/command-
 import { parsePidProperties } from "../domain/schema";
 import type { PidStandard } from "../domain/model";
 import type { ReadonlyPidProperties } from "../domain/command-contract";
+import { minimumNodeSizeForPorts } from "../domain/geometry";
 
 export type CatalogSourceKind = "project";
 
@@ -101,6 +102,14 @@ export function parseCatalogSymbol(value: unknown): CatalogSymbol {
     if (!portKeyPattern.test(port.key)) fail("catalog.port.key", ["portTemplates", index, "key"], "A key da porta deve ser ASCII minúscula canônica.");
     ports.add(normalized);
   });
+  const minimumSize = minimumNodeSizeForPorts(portTemplates);
+  if (defaultSize.width < minimumSize.width || defaultSize.height < minimumSize.height) {
+    fail(
+      "catalog.default-size.ports",
+      ["defaultSize"],
+      `O tamanho padrão precisa acomodar alvos de porta de 44px sem sobreposição (${minimumSize.width}x${minimumSize.height}).`,
+    );
+  }
   const properties = Object.hasOwn(root, "properties") ? parseProperties(read(root, "properties", ["properties"]), state) : undefined;
   return Object.freeze({
     key, name, aliases: Object.freeze([...aliases]), category, assetUrl, viewBox, defaultSize, portTemplates, standards: symbolStandards,
