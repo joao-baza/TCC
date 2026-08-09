@@ -118,7 +118,10 @@ function toIndexedSymbol(symbol: CatalogSymbol): IndexedSymbol {
     standards: Object.freeze([...symbol.standards]) as unknown as PidStandard[],
     defaultSize: Object.freeze({ ...symbol.defaultSize }),
     portTemplates: Object.freeze(symbol.portTemplates.map((port) => Object.freeze({ ...port }))) as CatalogSymbol["portTemplates"],
-    source: Object.freeze({ ...symbol.source }),
+    source: Object.freeze({
+      ...symbol.source,
+      license: Object.freeze({ ...symbol.source.license }),
+    }) as CatalogSymbol["source"],
     properties: symbol.properties === undefined
       ? undefined
       : freezeCatalogValue(symbol.properties) as CatalogSymbol["properties"],

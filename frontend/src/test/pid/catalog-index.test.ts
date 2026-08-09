@@ -69,6 +69,25 @@ describe("createCatalogIndex", () => {
       .toBe("original");
   });
 
+  it("desanexa e congela a licença aninhada da proveniência", () => {
+    const source = [{
+      ...localCatalog[0],
+      source: {
+        ...localCatalog[0].source,
+        license: { ...localCatalog[0].source.license },
+      },
+    }];
+    const index = createCatalogIndex(source);
+    (source[0].source.license as { name: string }).name = "Corrompida";
+    const returnedLicense = index.search("bomba", { standard: "free" })[0].source.license;
+
+    expect(returnedLicense.name).toBe("Projeto original - uso no DCOU");
+    expect(Object.isFrozen(returnedLicense)).toBe(true);
+    expect(() => { (returnedLicense as { name: string }).name = "Mutada"; }).toThrow();
+    expect(index.search("bomba", { standard: "free" })[0].source.license.name)
+      .toBe("Projeto original - uso no DCOU");
+  });
+
   it("rejeita chaves repetidas e símbolos sem portas", () => {
     expect(() => createCatalogIndex([...localCatalog, localCatalog[0]])).toThrow("duplicada");
     expect(() => createCatalogIndex([{ ...localCatalog[0], portTemplates: [] }])).toThrow("porta");
