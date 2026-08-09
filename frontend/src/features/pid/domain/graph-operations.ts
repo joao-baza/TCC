@@ -38,11 +38,27 @@ export function buildGraphIndex(document: PidDocument): PidGraphIndex {
 }
 
 export function boundsForNodes(nodes: readonly PidNode[]): Pick<PidGroup, "x" | "y" | "width" | "height"> {
-  const x = Math.min(...nodes.map((node) => node.x));
-  const y = Math.min(...nodes.map((node) => node.y));
-  const right = Math.max(...nodes.map((node) => node.x + node.width));
-  const bottom = Math.max(...nodes.map((node) => node.y + node.height));
+  const nodeBounds = nodes.map(rotatedNodeBounds);
+  const x = Math.min(...nodeBounds.map((bounds) => bounds.x));
+  const y = Math.min(...nodeBounds.map((bounds) => bounds.y));
+  const right = Math.max(...nodeBounds.map((bounds) => bounds.x + bounds.width));
+  const bottom = Math.max(...nodeBounds.map((bounds) => bounds.y + bounds.height));
   return { x, y, width: right - x, height: bottom - y };
+}
+
+function rotatedNodeBounds(node: PidNode): Pick<PidNode, "x" | "y" | "width" | "height"> {
+  const quarterTurns = Math.abs(node.rotation / 90) % 2;
+  if (quarterTurns === 0) {
+    return { x: node.x, y: node.y, width: node.width, height: node.height };
+  }
+  const width = node.height;
+  const height = node.width;
+  return {
+    x: node.x + (node.width - width) / 2,
+    y: node.y + (node.height - height) / 2,
+    width,
+    height,
+  };
 }
 
 export function recalculateGroupBounds(document: PidDocument): PidDocument {

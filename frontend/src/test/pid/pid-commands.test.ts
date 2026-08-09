@@ -453,17 +453,17 @@ describe("comandos canônicos P&ID", () => {
     expect(document.groups[groupId]).toBeUndefined();
   });
 
-  it("rotaciona os membros de um grupo e mantém seus bounds canônicos", () => {
+  it("rotaciona os membros de um grupo e recalcula seus bounds visuais", () => {
     const base = connectedGroup();
     const group = Object.values(base.groups)[0];
     const rotated = applyCommand(base, rotateSelection([group.id], 90), deterministicContext(430));
 
     expect(group.memberIds.every((id) => rotated.nodes[id].rotation === 90)).toBe(true);
     expect(rotated.groups[group.id]).toMatchObject({
-      x: group.x,
-      y: group.y,
-      width: group.width,
-      height: group.height,
+      x: 16,
+      y: -16,
+      width: 264,
+      height: 96,
     });
   });
 
