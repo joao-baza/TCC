@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { Link, useRouteError } from "react-router-dom";
 
 import type {
@@ -77,16 +77,25 @@ export function PidServicesBoundary({ children }: { children: ReactNode }) {
 
 export function PidRouteErrorPage() {
   const error = useRouteError();
-  const message = isPidServicesError(error)
-    ? error.message
-    : "O editor P&ID não pôde ser iniciado neste navegador.";
+  const capabilityError = isPidServicesError(error);
+  useEffect(() => {
+    if (!capabilityError) console.error("Falha inesperada na rota P&ID.", error);
+  }, [capabilityError, error]);
   return (
     <main className="mx-auto grid min-h-screen max-w-2xl content-center gap-4 p-6">
       <h1 className="text-3xl font-semibold">Editor P&ID indisponível</h1>
-      <p role="alert">{message}</p>
-      <p className="text-sm text-muted-foreground">
-        Use um navegador atualizado e permita armazenamento local, criptografia segura e Web Locks para esta página.
+      <p role="alert">
+        {capabilityError ? error.message : "Não foi possível abrir o editor P&ID."}
       </p>
+      {capabilityError ? (
+        <p className="text-sm text-muted-foreground">
+          Use um navegador atualizado e permita armazenamento local, criptografia segura e Web Locks para esta página.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Tente recarregar a página. Se o problema continuar, volte ao início e tente novamente mais tarde.
+        </p>
+      )}
       <Link className="w-fit text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
     </main>
   );

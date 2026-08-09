@@ -3,6 +3,7 @@ import { RouterProvider, createMemoryRouter, matchRoutes } from "react-router-do
 import { afterEach, vi } from "vitest";
 
 import { routes } from "@/app/router";
+import { PidRouteErrorPage } from "@/features/pid/api/pid-services";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -60,3 +61,24 @@ it("mostra orientação focada quando falta uma capacidade do runtime local", as
     else Reflect.deleteProperty(navigator, "locks");
   }
 });
+
+it("mostra recuperação neutra e preserva diagnóstico para erro desconhecido", async () => {
+  const failure = new Error("falha interna inesperada");
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const router = createMemoryRouter([{
+    path: "/pid",
+    element: <UnexpectedPidFailure error={failure} />,
+    errorElement: <PidRouteErrorPage />,
+  }], { initialEntries: ["/pid"] });
+
+  render(<RouterProvider router={router} />);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível abrir o editor P&ID.");
+  expect(screen.getByText(/Tente recarregar a página/i)).toBeInTheDocument();
+  expect(screen.queryByText(/Use um navegador atualizado/i)).not.toBeInTheDocument();
+  expect(consoleError).toHaveBeenCalledWith("Falha inesperada na rota P&ID.", failure);
+});
+
+function UnexpectedPidFailure({ error }: { error: Error }): never {
+  throw error;
+}

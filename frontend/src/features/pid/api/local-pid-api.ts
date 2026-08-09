@@ -14,6 +14,8 @@ import {
 } from "./contracts";
 
 const storagePrefix = "dcou.pid.local.v1.";
+const cleanupCursorKey = `${storagePrefix}cleanup-cursor`;
+const cleanupLockKey = `${storagePrefix}cleanup-lock`;
 const restoreWindowMs = 30 * 24 * 60 * 60 * 1_000;
 export const localPidCleanupScanLimit = 32;
 /** Local-only stage limit. It bounds parsing and stays below common browser origin quotas. */
@@ -27,6 +29,10 @@ const createInputSchema = z.object({
 }).strict();
 const sha256DigestSchema = z.string().regex(/^[0-9a-f]{64}$/i);
 const generatedTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
+const cleanupCursorSchema = z.object({
+  version: z.literal(1),
+  lastKey: z.string().nullable(),
+}).strict();
 const storedRecordSchema = z.object({
   version: z.literal(1),
   revision: revisionSchema,
@@ -53,8 +59,6 @@ export interface LocalPidExclusiveLock {
 }
 
 export class LocalPidApi implements PidDocumentPort {
-  private cleanupCursor = 0;
-
   constructor(
     private readonly storage: Storage,
     private readonly runtime: LocalPidRuntime,
@@ -222,18 +226,21 @@ export class LocalPidApi implements PidDocumentPort {
   }
 
   private async cleanupExpiredRecords(): Promise<void> {
-    const length = this.storageLength();
-    if (length === 0) {
-      this.cleanupCursor = 0;
-      return;
-    }
-    const scanCount = Math.min(length, localPidCleanupScanLimit);
-    const candidates: string[] = [];
-    for (let offset = 0; offset < scanCount; offset += 1) {
-      const key = this.storageKeyAt((this.cleanupCursor + offset) % length);
-      if (key?.startsWith(storagePrefix)) candidates.push(key);
-    }
-    this.cleanupCursor = (this.cleanupCursor + scanCount) % length;
+    const candidates = await this.exclusiveLock.runExclusive(cleanupLockKey, async () => {
+      const keys = this.pidRecordKeys();
+      const cursor = this.readCleanupCursor();
+      const firstAfterCursor = cursor === null
+        ? 0
+        : keys.findIndex((key) => key > cursor);
+      const start = firstAfterCursor < 0 ? 0 : firstAfterCursor;
+      const count = Math.min(keys.length, localPidCleanupScanLimit);
+      const selected = Array.from(
+        { length: count },
+        (_, offset) => keys[(start + offset) % keys.length],
+      );
+      if (selected.length > 0) this.writeCleanupCursor(selected.at(-1)!);
+      return selected;
+    });
 
     for (const key of candidates) {
       await this.exclusiveLock.runExclusive(key, async () => {
@@ -247,6 +254,32 @@ export class LocalPidApi implements PidDocumentPort {
         const elapsed = this.now().getTime() - new Date(parsed.data.deletedAt).getTime();
         if (elapsed > restoreWindowMs) this.removeStorageKey(key);
       });
+    }
+  }
+
+  private pidRecordKeys(): string[] {
+    const keys: string[] = [];
+    const length = this.storageLength();
+    for (let index = 0; index < length; index += 1) {
+      const key = this.storageKeyAt(index);
+      if (!key?.startsWith(storagePrefix) || key === cleanupCursorKey) continue;
+      if (uuidSchema.safeParse(key.slice(storagePrefix.length)).success) keys.push(key);
+    }
+    return keys.sort();
+  }
+
+  private readCleanupCursor(): string | null {
+    const serialized = this.readStorageKey(cleanupCursorKey);
+    if (serialized === null) return null;
+    const parsed = cleanupCursorSchema.safeParse(parseJson(serialized));
+    return parsed.success ? parsed.data.lastKey : null;
+  }
+
+  private writeCleanupCursor(lastKey: string | null): void {
+    try {
+      this.storage.setItem(cleanupCursorKey, JSON.stringify({ version: 1, lastKey }));
+    } catch (error) {
+      throw new PidDocumentError("STORAGE_UNAVAILABLE", { cause: error });
     }
   }
 

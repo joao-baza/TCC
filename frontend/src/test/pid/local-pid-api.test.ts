@@ -24,6 +24,12 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const diagramId = "10000000-0000-4000-8000-000000000001";
 const storageKey = `dcou.pid.local.v1.${diagramId}`;
+const cleanupCursorKey = "dcou.pid.local.v1.cleanup-cursor";
+const cleanupLockKey = "dcou.pid.local.v1.cleanup-lock";
+
+function candidateId(index: number): string {
+  return `${(0xa0000000 + index).toString(16)}-0000-4000-8000-000000000000`;
+}
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -376,7 +382,68 @@ describe("LocalPidApi", () => {
 
     await harness.api.create({ title: "Novo", standard: "iso", participantName: "Ana" });
 
-    expect(runExclusive).toHaveBeenCalledTimes(localPidCleanupScanLimit + 1);
+    expect(runExclusive).toHaveBeenCalledTimes(localPidCleanupScanLimit + 2);
+  });
+
+  it("persiste o cursor entre reconstruções e alcança registros expirados no fim do namespace", async () => {
+    const harness = createHarness();
+    const created = await harness.api.create({ title: "Modelo", standard: "iso", participantName: "Ana" });
+    await harness.api.softDelete(diagramId, created.editToken, created.revision);
+    const deleted = JSON.parse(harness.storage.getItem(storageKey)!);
+    harness.storage.removeItem(storageKey);
+
+    for (let index = 0; index < localPidCleanupScanLimit + 5; index += 1) {
+      harness.storage.setItem(`outra.aplicacao.${index.toString().padStart(2, "0")}`, "preservar");
+    }
+    for (let index = 0; index < localPidCleanupScanLimit * 2 + 1; index += 1) {
+      harness.storage.setItem(`dcou.pid.local.v1.${candidateId(index)}`, "{corrompido");
+    }
+    const expiredTailId = "ffffffff-0000-4000-8000-000000000000";
+    harness.storage.setItem(`dcou.pid.local.v1.${expiredTailId}`, JSON.stringify({
+      ...deleted,
+      diagramId: expiredTailId,
+      document: { ...deleted.document, id: expiredTailId },
+    }));
+    harness.storage.setItem(cleanupCursorKey, "cursor-corrompido");
+    harness.setNow("2026-09-09T12:00:00.000Z");
+
+    for (let pass = 0; pass < 3; pass += 1) {
+      harness.runtime.generateUuid = () => `${(0xe1000000 + pass).toString(16)}-0000-4000-8000-000000000000`;
+      const reconstructed = new LocalPidApi(harness.storage, harness.runtime, harness.lock);
+      await reconstructed.create({ title: `Novo ${pass}`, standard: "iso", participantName: "Ana" });
+    }
+
+    expect(harness.storage.getItem(`dcou.pid.local.v1.${expiredTailId}`)).toBeNull();
+    expect(() => JSON.parse(harness.storage.getItem(cleanupCursorKey)!)).not.toThrow();
+    expect(harness.storage.getItem("outra.aplicacao.00")).toBe("preservar");
+    expect(harness.storage.getItem(`dcou.pid.local.v1.${candidateId(0)}`)).toBe("{corrompido");
+  });
+
+  it("coordena o avanço do cursor entre duas abas", async () => {
+    const harness = createHarness();
+    const candidateKeys = new Set<string>();
+    for (let index = 0; index < localPidCleanupScanLimit * 2; index += 1) {
+      const key = `dcou.pid.local.v1.${candidateId(index)}`;
+      candidateKeys.add(key);
+      harness.storage.setItem(key, "{corrompido");
+    }
+    const runExclusive = vi.spyOn(harness.lock, "runExclusive");
+    const firstRuntime = { ...harness.runtime, generateUuid: () => "f1000000-0000-4000-8000-000000000000" };
+    const secondRuntime = { ...harness.runtime, generateUuid: () => "f2000000-0000-4000-8000-000000000000" };
+    const firstTab = new LocalPidApi(harness.storage, firstRuntime, harness.lock);
+    const secondTab = new LocalPidApi(harness.storage, secondRuntime, harness.lock);
+
+    await Promise.all([
+      firstTab.create({ title: "Aba 1", standard: "iso", participantName: "Ana" }),
+      secondTab.create({ title: "Aba 2", standard: "iso", participantName: "Bia" }),
+    ]);
+
+    const inspected = runExclusive.mock.calls
+      .map(([key]) => key)
+      .filter((key) => candidateKeys.has(key));
+    expect(inspected).toHaveLength(localPidCleanupScanLimit * 2);
+    expect(new Set(inspected)).toHaveLength(localPidCleanupScanLimit * 2);
+    expect(runExclusive.mock.calls.filter(([key]) => key === cleanupLockKey)).toHaveLength(2);
   });
 
   it("rejeita id divergente e documento inválido ao gravar", async () => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import {
   MemoryRouter,
   Route,
@@ -269,6 +269,34 @@ describe("CreatePidPage", () => {
 
     expect(await screen.findByRole("heading", { name: "Início" })).toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("contém o foco, torna o fundo inerte e trata Escape como permanência", async () => {
+    const router = renderCreateDataRouter();
+    await createDiagram();
+    const origin = screen.getByRole("checkbox", { name: "Copiei o link de edição" });
+    origin.focus();
+    expect(origin).toHaveFocus();
+
+    await act(async () => { await router.navigate(-1); });
+
+    const dialog = await screen.findByRole("alertdialog", {
+      name: "Link de edição ainda não confirmado",
+    });
+    const stay = screen.getByRole("button", { name: "Permanecer nesta página" });
+    await waitFor(() => expect(stay).toHaveFocus());
+    expect(dialog).toContainElement(stay);
+    const inertBackground = origin.closest("[data-base-ui-inert]");
+    expect(inertBackground).not.toBeNull();
+    fireEvent.click(globalThis.document.querySelector('[data-slot="alert-dialog-overlay"]')!);
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/pid");
+
+    fireEvent.keyDown(stay, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/pid");
+    expect(origin).toHaveFocus();
   });
 });
 

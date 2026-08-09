@@ -2,6 +2,17 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useBlocker } from "react-router-dom";
 import { z } from "zod";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { isPidDocumentError, type CreatedPidDiagram } from "../api/contracts";
 import { usePidServices } from "../api/pid-services";
 
@@ -23,6 +34,7 @@ export function CreatePidPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [statusIsError, setStatusIsError] = useState(false);
   const submitting = useRef(false);
+  const stayButton = useRef<HTMLButtonElement>(null);
   const navigationLocked = Boolean(created && !confirmed);
   const navigationBlocker = useBlocker(navigationLocked);
 
@@ -101,6 +113,10 @@ export function CreatePidPage() {
     } catch {
       reportStatus("Não foi possível copiar automaticamente. Selecione o link e copie manualmente.", true);
     }
+  };
+
+  const proceedBlockedNavigation = () => {
+    if (navigationBlocker.state === "blocked") navigationBlocker.proceed();
   };
 
   return (
@@ -214,39 +230,27 @@ export function CreatePidPage() {
       ) : (
         <Link className="w-fit text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
       )}
-      {navigationBlocker.state === "blocked" && (
-        <section
-          aria-labelledby="pid-leave-title"
-          aria-describedby="pid-leave-description"
-          aria-modal="true"
-          className="fixed inset-x-4 bottom-4 z-50 mx-auto grid max-w-lg gap-4 rounded-lg border bg-background p-5 shadow-lg"
-          role="alertdialog"
-        >
-          <h2 className="text-lg font-semibold" id="pid-leave-title">
-            Link de edição ainda não confirmado
-          </h2>
-          <p id="pid-leave-description">
-            Se sair agora, você pode perder o único link com permissão para editar este diagrama.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <button
-              autoFocus
-              className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
-              onClick={() => navigationBlocker.reset()}
-              type="button"
-            >
-              Permanecer nesta página
-            </button>
-            <button
-              className="rounded-md border px-4 py-2"
-              onClick={() => navigationBlocker.proceed()}
-              type="button"
-            >
+      <AlertDialog
+        open={navigationBlocker.state === "blocked"}
+        onOpenChange={(open) => {
+          if (!open && navigationBlocker.state === "blocked") navigationBlocker.reset();
+        }}
+      >
+        <AlertDialogContent initialFocus={stayButton}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Link de edição ainda não confirmado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se sair agora, você pode perder o único link com permissão para editar este diagrama.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel ref={stayButton}>Permanecer nesta página</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedBlockedNavigation}>
               Sair desta página
-            </button>
-          </div>
-        </section>
-      )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
