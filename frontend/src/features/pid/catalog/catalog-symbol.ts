@@ -40,6 +40,9 @@ const maxValues = 20_000;
 const maxArrayLength = 2_000;
 const maxObjectKeys = 200;
 const maxSymbols = 500;
+const maxManifestBytes = 1_000_000;
+const maxStringLength = 500;
+const maxAliases = 64;
 const trustedManifests = new WeakSet<object>();
 const keyPattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)+$/;
 const portKeyPattern = /^[a-z][a-z0-9-]*$/;
@@ -59,7 +62,7 @@ export function parseCatalogSymbol(value: unknown): CatalogSymbol {
   if (!keyPattern.test(key)) fail("catalog.key.invalid", ["key"], "A key do símbolo deve ser ASCII minúscula e namespaced.");
   const name = nonBlank(string(root, "name", state, ["name"]), ["name"]);
   const aliases = strings(array(root, "aliases", state, ["aliases"]), state, ["aliases"]);
-  if (aliases.length === 0 || aliases.some((alias) => alias.trim() === "")) fail("catalog.aliases.invalid", ["aliases"], "aliases válidos são obrigatórios.");
+  if (aliases.length === 0 || aliases.length > maxAliases || aliases.some((alias) => alias.trim() === "")) fail("catalog.aliases.invalid", ["aliases"], "aliases válidos são obrigatórios.");
   const category = nonBlank(string(root, "category", state, ["category"]), ["category"]);
   const assetUrl = string(root, "assetUrl", state, ["assetUrl"]);
   validateAsset(assetUrl);
@@ -129,6 +132,7 @@ export function parseCatalogManifest(value: unknown): CatalogManifest {
 /** Decodes external text with inert JSON before applying the strict decoder. */
 export function parseCatalogManifestJson(text: string): CatalogManifest {
   if (typeof text !== "string") fail("catalog.json.type", [], "O manifesto JSON deve ser texto.");
+  if (new TextEncoder().encode(text).byteLength > maxManifestBytes) fail("catalog.json.budget", [], "O manifesto JSON excede o limite de bytes.");
   try { return parseCatalogManifest(JSON.parse(text)); }
   catch (error) { if (error instanceof CatalogValidationError) throw error; fail("catalog.json.invalid", [], "O manifesto JSON é inválido."); }
 }
@@ -209,7 +213,7 @@ function arrayValue(value: unknown, path: readonly (string | number)[], state: D
   } catch (error) { if (error instanceof CatalogValidationError) throw error; fail("catalog.read", path, "Não foi possível ler o array com segurança."); }
 }
 function read(root: Record<string, unknown>, key: string, path: readonly (string | number)[]): unknown { if (!Object.hasOwn(root, key)) fail("catalog.required", path, "Campo obrigatório ausente."); return root[key]; }
-function string(root: Record<string, unknown>, key: string, state: DecodeState, path: readonly (string | number)[]): string { consume(state, path); const value = read(root, key, path); if (typeof value !== "string") fail("catalog.string", path, "É esperado texto."); return value; }
+function string(root: Record<string, unknown>, key: string, state: DecodeState, path: readonly (string | number)[]): string { consume(state, path); const value = read(root, key, path); if (typeof value !== "string" || value.length > maxStringLength) fail("catalog.string", path, "É esperado texto dentro do limite do catálogo."); return value; }
 function number(root: Record<string, unknown>, key: string, state: DecodeState, path: readonly (string | number)[]): number { consume(state, path); const value = read(root, key, path); if (typeof value !== "number" || !Number.isFinite(value)) fail("catalog.number", path, "É esperado número finito para o tamanho ou contrato do catálogo."); return value; }
 function strings(value: unknown[], state: DecodeState, path: readonly (string | number)[]): string[] { return value.map((item, index) => { consume(state, [...path, index]); if (typeof item !== "string") fail("catalog.string", [...path, index], "É esperado texto."); return item; }); }
 function nonBlank(value: string, path: readonly (string | number)[], message = "Texto não vazio é obrigatório."): string { if (value.trim() === "") fail("catalog.blank", path, message); return value; }

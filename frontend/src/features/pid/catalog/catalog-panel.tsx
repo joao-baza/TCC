@@ -60,13 +60,17 @@ export function CatalogPanel(props: CatalogPanelProps) {
     overscan: 6,
     initialRect: { width: 320, height: 360 },
   });
-  const virtualItems = virtualizer.getVirtualItems();
+  const virtualItems = virtualizer.getVirtualItems().filter((item) => rows[item.index] !== undefined);
   const visibleItems = virtualItems.length > 0 ? virtualItems : estimatedVisibleItems(rows);
   const totalSize = virtualizer.getTotalSize() || estimatedTotalSize(rows);
 
   useLayoutEffect(() => { virtualizer.measure(); }, [virtualizer, rows]);
   useEffect(() => {
-    setActiveId((current) => rows.some((row) => row.id === current) ? current : rows[0]?.id);
+    setActiveId((current) => {
+      if (current === undefined || rows.some((row) => row.id === current)) return current ?? rows[0]?.id;
+      setPendingFocusId(rows[0]?.id);
+      return rows[0]?.id;
+    });
   }, [rows]);
   useLayoutEffect(() => {
     if (!pendingFocusId) return;
@@ -93,7 +97,6 @@ export function CatalogPanel(props: CatalogPanelProps) {
     setActiveId(row.id);
     setPendingFocusId(row.id);
     virtualizer.scrollToIndex(index, { align: "auto" });
-    scrollElement?.scrollTo?.({ top: estimatedOffset(rows, index), behavior: "auto" });
   };
   const onRowKeyDown = (event: KeyboardEvent<HTMLButtonElement>, row: CatalogRow, index: number) => {
     const target = event.key === "ArrowDown" ? index + 1
@@ -165,7 +168,6 @@ function toRows(symbols: readonly CatalogSymbol[], collapsed: ReadonlySet<string
     return [{ kind: "category" as const, id: `category:${canonical}`, category }, ...(collapsed.has(canonical) ? [] : items.map((symbol) => ({ kind: "symbol" as const, id: `symbol:${symbol.key}`, category, symbol })) )];
   }));
 }
-function canonicalCategory(value: string): string { return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\s+/g, "-"); }
+function canonicalCategory(value: string): string { return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim().replace(/\s+/g, "-"); }
 function estimatedTotalSize(rows: readonly CatalogRow[]): number { return rows.reduce((total, row) => total + (row.kind === "category" ? 44 : 76), 0); }
-function estimatedOffset(rows: readonly CatalogRow[], index: number): number { return estimatedTotalSize(rows.slice(0, index)); }
 function estimatedVisibleItems(rows: readonly CatalogRow[]) { let start = 0; return rows.slice(0, 12).map((row, index) => { const item = { index, start }; start += row.kind === "category" ? 44 : 76; return item; }); }

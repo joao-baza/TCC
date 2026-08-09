@@ -23,15 +23,15 @@ export interface CatalogPortTemplate {
 }
 
 export interface CatalogSymbol {
-  key: string;
-  standards: readonly PidStandard[];
-  catalogVersion: string;
-  name: string;
-  defaultSize: Readonly<{ width: number; height: number }>;
-  portTemplates: readonly CatalogPortTemplate[];
-  tag?: string;
-  label?: string;
-  properties?: ReadonlyPidProperties;
+  readonly key: string;
+  readonly standards: readonly PidStandard[];
+  readonly catalogVersion: string;
+  readonly name: string;
+  readonly defaultSize: Readonly<{ readonly width: number; readonly height: number }>;
+  readonly portTemplates: readonly CatalogPortTemplate[];
+  readonly tag?: string;
+  readonly label?: string;
+  readonly properties?: ReadonlyPidProperties;
 }
 
 export type PidCommand =

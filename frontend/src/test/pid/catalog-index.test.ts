@@ -57,6 +57,7 @@ describe("createCatalogIndex", () => {
     expect(() => parseCatalogManifest([nested])).toThrow(CatalogValidationError);
     expect(reads).toBe(0);
     expect(() => parseCatalogManifestJson("[")).toThrow(CatalogValidationError);
+    expect(() => parseCatalogManifestJson(`"${"x".repeat(1_000_001)}"`)).toThrow("bytes");
   });
 
   it("encontra bomba por alias em português sem acento", () => {
