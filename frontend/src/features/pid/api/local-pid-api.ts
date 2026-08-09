@@ -31,7 +31,7 @@ const sha256DigestSchema = z.string().regex(/^[0-9a-f]{64}$/i);
 const generatedTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 const cleanupCursorSchema = z.object({
   version: z.literal(1),
-  lastKey: z.string().nullable(),
+  nextSlot: z.number().int().nonnegative().safe(),
 }).strict();
 const storedRecordSchema = z.object({
   version: z.literal(1),
@@ -226,60 +226,86 @@ export class LocalPidApi implements PidDocumentPort {
   }
 
   private async cleanupExpiredRecords(): Promise<void> {
-    const candidates = await this.exclusiveLock.runExclusive(cleanupLockKey, async () => {
-      const keys = this.pidRecordKeys();
+    await this.exclusiveLock.runExclusive(cleanupLockKey, async () => {
       const cursor = this.readCleanupCursor();
-      const firstAfterCursor = cursor === null
+      // Reserve the metadata slot before taking the snapshot. A quota failure
+      // is retried after expired records have been removed.
+      if (cursor === null) this.tryWriteCleanupCursor(0);
+
+      const snapshotLength = this.storageLength();
+      const start = snapshotLength === 0 ? 0 : (cursor ?? 0) % snapshotLength;
+      const count = Math.min(snapshotLength, localPidCleanupScanLimit);
+      const selected: Array<{ index: number; key: string }> = [];
+      for (let offset = 0; offset < count; offset += 1) {
+        const index = (start + offset) % snapshotLength;
+        const key = this.storageKeyAt(index);
+        if (key !== null) selected.push({ index, key });
+      }
+
+      const deletedIndices: number[] = [];
+      for (const { index, key } of selected) {
+        if (!this.isPidRecordStorageKey(key)) continue;
+        const deleted = await this.exclusiveLock.runExclusive(key, async () => (
+          this.removeStorageKeyIfExpired(key)
+        ));
+        if (deleted) deletedIndices.push(index);
+      }
+
+      const remainingLength = this.storageLength();
+      const originalNextSlot = count === snapshotLength
+        ? start
+        : (start + count) % snapshotLength;
+      // Storage removals shift every later slot one position to the left.
+      const shiftedNextSlot = originalNextSlot
+        - deletedIndices.filter((index) => index < originalNextSlot).length;
+      const nextSlot = remainingLength === 0
         ? 0
-        : keys.findIndex((key) => key > cursor);
-      const start = firstAfterCursor < 0 ? 0 : firstAfterCursor;
-      const count = Math.min(keys.length, localPidCleanupScanLimit);
-      const selected = Array.from(
-        { length: count },
-        (_, offset) => keys[(start + offset) % keys.length],
-      );
-      if (selected.length > 0) this.writeCleanupCursor(selected.at(-1)!);
-      return selected;
+        : ((shiftedNextSlot % remainingLength) + remainingLength) % remainingLength;
+      this.writeCleanupCursorWithRetry(nextSlot);
     });
-
-    for (const key of candidates) {
-      await this.exclusiveLock.runExclusive(key, async () => {
-        const serialized = this.readStorageKey(key);
-        if (serialized === null || exceedsSerializedLimit(serialized)) return;
-        const parsed = storedRecordSchema.safeParse(parseJson(serialized));
-        if (!parsed.success) return;
-        const diagramId = key.slice(storagePrefix.length);
-        if (parsed.data.diagramId !== diagramId || parsed.data.document.id !== diagramId) return;
-        if (!parsed.data.deletedAt) return;
-        const elapsed = this.now().getTime() - new Date(parsed.data.deletedAt).getTime();
-        if (elapsed > restoreWindowMs) this.removeStorageKey(key);
-      });
-    }
   }
 
-  private pidRecordKeys(): string[] {
-    const keys: string[] = [];
-    const length = this.storageLength();
-    for (let index = 0; index < length; index += 1) {
-      const key = this.storageKeyAt(index);
-      if (!key?.startsWith(storagePrefix) || key === cleanupCursorKey) continue;
-      if (uuidSchema.safeParse(key.slice(storagePrefix.length)).success) keys.push(key);
-    }
-    return keys.sort();
+  private isPidRecordStorageKey(key: string): boolean {
+    if (!key.startsWith(storagePrefix) || key === cleanupCursorKey) return false;
+    return uuidSchema.safeParse(key.slice(storagePrefix.length)).success;
   }
 
-  private readCleanupCursor(): string | null {
+  private removeStorageKeyIfExpired(key: string): boolean {
+    const serialized = this.readStorageKey(key);
+    if (serialized === null || exceedsSerializedLimit(serialized)) return false;
+    const parsed = storedRecordSchema.safeParse(parseJson(serialized));
+    if (!parsed.success) return false;
+    const diagramId = key.slice(storagePrefix.length);
+    if (parsed.data.diagramId !== diagramId || parsed.data.document.id !== diagramId) return false;
+    if (!parsed.data.deletedAt) return false;
+    const elapsed = this.now().getTime() - new Date(parsed.data.deletedAt).getTime();
+    if (elapsed <= restoreWindowMs) return false;
+    this.removeStorageKey(key);
+    return true;
+  }
+
+  private readCleanupCursor(): number | null {
     const serialized = this.readStorageKey(cleanupCursorKey);
     if (serialized === null) return null;
     const parsed = cleanupCursorSchema.safeParse(parseJson(serialized));
-    return parsed.success ? parsed.data.lastKey : null;
+    return parsed.success ? parsed.data.nextSlot : null;
   }
 
-  private writeCleanupCursor(lastKey: string | null): void {
+  private tryWriteCleanupCursor(nextSlot: number): unknown | null {
     try {
-      this.storage.setItem(cleanupCursorKey, JSON.stringify({ version: 1, lastKey }));
+      this.storage.setItem(cleanupCursorKey, JSON.stringify({ version: 1, nextSlot }));
+      return null;
     } catch (error) {
-      throw new PidDocumentError("STORAGE_UNAVAILABLE", { cause: error });
+      return error;
+    }
+  }
+
+  private writeCleanupCursorWithRetry(nextSlot: number): void {
+    const firstError = this.tryWriteCleanupCursor(nextSlot);
+    if (firstError === null) return;
+    const secondError = this.tryWriteCleanupCursor(nextSlot);
+    if (secondError !== null) {
+      throw new PidDocumentError("STORAGE_UNAVAILABLE", { cause: secondError });
     }
   }
 

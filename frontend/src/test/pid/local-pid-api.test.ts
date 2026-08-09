@@ -143,7 +143,8 @@ describe("LocalPidApi", () => {
     expect(created.readToken).toMatch(TOKEN_PATTERN);
     expect(created.editToken).toMatch(TOKEN_PATTERN);
     expect(created.readToken).not.toBe(created.editToken);
-    expect(storage.key(0)).toBe(storageKey);
+    expect(storage.getItem(cleanupCursorKey)).not.toBeNull();
+    expect(storage.getItem(storageKey)).not.toBeNull();
     const serialized = storage.getItem(storageKey)!;
     expect(serialized).not.toContain(created.readToken);
     expect(serialized).not.toContain(created.editToken);
@@ -378,25 +379,25 @@ describe("LocalPidApi", () => {
       harness.storage.setItem(`dcou.pid.local.v1.${id}`, "{corrompido");
     }
     const runExclusive = vi.spyOn(harness.lock, "runExclusive");
+    const storageKeyAt = vi.spyOn(harness.storage, "key");
     harness.runtime.generateUuid = () => "60000000-0000-4000-8000-000000000006";
 
     await harness.api.create({ title: "Novo", standard: "iso", participantName: "Ana" });
 
+    expect(storageKeyAt).toHaveBeenCalledTimes(localPidCleanupScanLimit);
     expect(runExclusive).toHaveBeenCalledTimes(localPidCleanupScanLimit + 2);
   });
 
-  it("persiste o cursor entre reconstruções e alcança registros expirados no fim do namespace", async () => {
+  it("persiste o cursor numérico entre reconstruções e alcança o fim sem enumerar toda a origem", async () => {
     const harness = createHarness();
     const created = await harness.api.create({ title: "Modelo", standard: "iso", participantName: "Ana" });
     await harness.api.softDelete(diagramId, created.editToken, created.revision);
     const deleted = JSON.parse(harness.storage.getItem(storageKey)!);
     harness.storage.removeItem(storageKey);
 
-    for (let index = 0; index < localPidCleanupScanLimit + 5; index += 1) {
-      harness.storage.setItem(`outra.aplicacao.${index.toString().padStart(2, "0")}`, "preservar");
-    }
-    for (let index = 0; index < localPidCleanupScanLimit * 2 + 1; index += 1) {
-      harness.storage.setItem(`dcou.pid.local.v1.${candidateId(index)}`, "{corrompido");
+    const unrelatedCount = 2_048;
+    for (let index = 0; index < unrelatedCount; index += 1) {
+      harness.storage.setItem(`outra.aplicacao.${index.toString().padStart(4, "0")}`, "preservar");
     }
     const expiredTailId = "ffffffff-0000-4000-8000-000000000000";
     harness.storage.setItem(`dcou.pid.local.v1.${expiredTailId}`, JSON.stringify({
@@ -406,17 +407,98 @@ describe("LocalPidApi", () => {
     }));
     harness.storage.setItem(cleanupCursorKey, "cursor-corrompido");
     harness.setNow("2026-09-09T12:00:00.000Z");
+    let randomSeed = 20;
+    harness.runtime.randomBytes = () => new Uint8Array(32).fill(randomSeed++);
 
-    for (let pass = 0; pass < 3; pass += 1) {
+    const storageKeyAt = vi.spyOn(harness.storage, "key");
+    const maxPasses = Math.ceil((unrelatedCount + localPidCleanupScanLimit * 2) / localPidCleanupScanLimit);
+    for (let pass = 0; pass < maxPasses; pass += 1) {
+      storageKeyAt.mockClear();
       harness.runtime.generateUuid = () => `${(0xe1000000 + pass).toString(16)}-0000-4000-8000-000000000000`;
       const reconstructed = new LocalPidApi(harness.storage, harness.runtime, harness.lock);
       await reconstructed.create({ title: `Novo ${pass}`, standard: "iso", participantName: "Ana" });
+      expect(storageKeyAt.mock.calls.length).toBeLessThanOrEqual(localPidCleanupScanLimit);
+      if (harness.storage.getItem(`dcou.pid.local.v1.${expiredTailId}`) === null) break;
     }
 
     expect(harness.storage.getItem(`dcou.pid.local.v1.${expiredTailId}`)).toBeNull();
-    expect(() => JSON.parse(harness.storage.getItem(cleanupCursorKey)!)).not.toThrow();
-    expect(harness.storage.getItem("outra.aplicacao.00")).toBe("preservar");
-    expect(harness.storage.getItem(`dcou.pid.local.v1.${candidateId(0)}`)).toBe("{corrompido");
+    expect(JSON.parse(harness.storage.getItem(cleanupCursorKey)!)).toEqual({
+      version: 1,
+      nextSlot: expect.any(Number),
+    });
+    expect(harness.storage.getItem("outra.aplicacao.0000")).toBe("preservar");
+    expect(harness.storage.getItem("outra.aplicacao.2047")).toBe("preservar");
+  });
+
+  it("remove o expirado antes de repetir a gravação do cursor quando a quota está cheia", async () => {
+    const harness = createHarness();
+    const created = await harness.api.create({ title: "Expirado", standard: "iso", participantName: "Ana" });
+    await harness.api.softDelete(diagramId, created.editToken, created.revision);
+    harness.storage.removeItem(cleanupCursorKey);
+    harness.setNow("2026-09-09T12:00:00.000Z");
+    harness.runtime.generateUuid = () => "d1000000-0000-4000-8000-000000000000";
+
+    const setItem = harness.storage.setItem.bind(harness.storage);
+    vi.spyOn(harness.storage, "setItem").mockImplementation((key, value) => {
+      if (key === cleanupCursorKey && harness.storage.getItem(storageKey) !== null) {
+        throw new DOMException("quota", "QuotaExceededError");
+      }
+      setItem(key, value);
+    });
+
+    const reconstructed = new LocalPidApi(harness.storage, harness.runtime, harness.lock);
+    await expect(reconstructed.create({ title: "Novo", standard: "iso", participantName: "Ana" }))
+      .resolves.toMatchObject({ diagramId: "d1000000-0000-4000-8000-000000000000" });
+    expect(harness.storage.getItem(storageKey)).toBeNull();
+    expect(JSON.parse(harness.storage.getItem(cleanupCursorKey)!)).toEqual({
+      version: 1,
+      nextSlot: expect.any(Number),
+    });
+
+    const unavailable = createHarness();
+    const unavailableCreated = await unavailable.api.create({
+      title: "Expirado",
+      standard: "iso",
+      participantName: "Ana",
+    });
+    await unavailable.api.softDelete(diagramId, unavailableCreated.editToken, unavailableCreated.revision);
+    unavailable.storage.removeItem(cleanupCursorKey);
+    unavailable.setNow("2026-09-09T12:00:00.000Z");
+    const unavailableSetItem = unavailable.storage.setItem.bind(unavailable.storage);
+    vi.spyOn(unavailable.storage, "setItem").mockImplementation((key, value) => {
+      if (key === cleanupCursorKey) throw new DOMException("quota", "QuotaExceededError");
+      unavailableSetItem(key, value);
+    });
+
+    await expect(unavailable.api.create({ title: "Novo", standard: "iso", participantName: "Ana" }))
+      .rejects.toMatchObject({ code: "STORAGE_UNAVAILABLE" });
+    expect(unavailable.storage.getItem(storageKey)).toBeNull();
+  });
+
+  it("recalcula o próximo slot quando a exclusão desloca os índices da origem", async () => {
+    const harness = createHarness();
+    const created = await harness.api.create({ title: "Modelo", standard: "iso", participantName: "Ana" });
+    await harness.api.softDelete(diagramId, created.editToken, created.revision);
+    const deleted = JSON.parse(harness.storage.getItem(storageKey)!);
+    const expiredId = "b1000000-0000-4000-8000-000000000000";
+
+    harness.storage.clear();
+    harness.storage.setItem(`dcou.pid.local.v1.${expiredId}`, JSON.stringify({
+      ...deleted,
+      diagramId: expiredId,
+      document: { ...deleted.document, id: expiredId },
+    }));
+    for (let index = 0; index < 40; index += 1) {
+      harness.storage.setItem(`outra.aplicacao.${index.toString().padStart(2, "0")}`, "preservar");
+    }
+    harness.storage.setItem(cleanupCursorKey, JSON.stringify({ version: 1, nextSlot: 0 }));
+    harness.setNow("2026-09-09T12:00:00.000Z");
+    harness.runtime.generateUuid = () => "b2000000-0000-4000-8000-000000000000";
+
+    await harness.api.create({ title: "Novo", standard: "iso", participantName: "Ana" });
+
+    expect(harness.storage.getItem(`dcou.pid.local.v1.${expiredId}`)).toBeNull();
+    expect(JSON.parse(harness.storage.getItem(cleanupCursorKey)!)).toEqual({ version: 1, nextSlot: 31 });
   });
 
   it("coordena o avanço do cursor entre duas abas", async () => {
@@ -465,7 +547,8 @@ describe("LocalPidApi", () => {
       standard: "iso",
       participantName: "Ana",
     })).rejects.toMatchObject({ code: "DOCUMENT_TOO_LARGE" });
-    expect(setItem).not.toHaveBeenCalled();
+    expect(setItem).toHaveBeenCalledWith(cleanupCursorKey, expect.any(String));
+    expect(storage.getItem(storageKey)).toBeNull();
   });
 
   it("converte armazenamento corrompido, leitura e quota em erros tipados", async () => {
