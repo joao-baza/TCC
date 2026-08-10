@@ -483,6 +483,68 @@ fi
     ]
 
 
+def test_deploy_accepts_configured_postgres_node_before_build_or_mutation(
+    tmp_path,
+):
+    project, script = _copy_deploy_script(tmp_path)
+    values = _complete_deploy_environment()
+    (project / ".env").write_text(
+        "".join(f"{name}={value}\n" for name, value in values.items()),
+        encoding="utf-8",
+    )
+    (project / "deploy" / "docker-compose.yaml").write_text(
+        "services: {}\n", encoding="utf-8"
+    )
+    binary_dir = tmp_path / "bin"
+    binary_dir.mkdir()
+    docker_log = tmp_path / "docker.log"
+    _write_executable(
+        binary_dir / "docker",
+        """#!/bin/sh
+printf '%s\n' "$*" >> "$DOCKER_LOG"
+if [ "$1 $2" = "info --format" ]; then
+  printf 'active\n'
+elif [ "$1 $2" = "node ls" ]; then
+  printf 'worker-node-02\npostgres-node-01\n'
+elif [ "$1 $2" = "network ls" ]; then
+  printf 'SJNet\n'
+elif [ "$1 $2" = "image inspect" ]; then
+  exit 1
+fi
+""",
+    )
+    environment = os.environ.copy()
+    environment.update(
+        DOCKER_LOG=str(docker_log),
+        SKIP_BUILD="1",
+        STACK_NAME="tcc",
+        IMAGE_NAME="tcc-api:latest",
+        FRONTEND_IMAGE_NAME="tcc-frontend:latest",
+        NETWORK_NAME="SJNet",
+        PATH=f"{binary_dir}:{environment['PATH']}",
+    )
+
+    result = subprocess.run(
+        ["bash", str(script)],
+        cwd=tmp_path,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "POSTGRES_NODE_HOSTNAME" not in result.stderr
+    assert docker_log.read_text(encoding="utf-8").splitlines() == [
+        "info --format {{.Swarm.LocalNodeState}}",
+        "node ls --format {{.Hostname}}",
+        "network ls --format {{.Name}}",
+        "stack ls --format {{.Name}}",
+        "image inspect tcc-api:latest",
+        "image inspect tcc-frontend:latest",
+    ]
+
+
 def test_deploy_rejects_inactive_swarm_before_node_lookup_or_mutation(tmp_path):
     project, script = _copy_deploy_script(tmp_path)
     values = _complete_deploy_environment()

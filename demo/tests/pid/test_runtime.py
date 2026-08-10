@@ -276,3 +276,31 @@ async def test_runtime_close_disposes_engine_when_redis_close_fails():
 
     assert redis.close_calls == 1
     assert engine.dispose_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_runtime_close_propagates_engine_failure_after_closing_redis():
+    engine = InstrumentedEngine(
+        dispose_error=RuntimeError("database dispose failed")
+    )
+    redis = InstrumentedRedis()
+
+    with pytest.raises(RuntimeError, match="database dispose failed"):
+        await _runtime(engine, redis).close()
+
+    assert redis.close_calls == 1
+    assert engine.dispose_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_runtime_close_preserves_first_failure_when_both_cleanups_fail():
+    engine = InstrumentedEngine(
+        dispose_error=RuntimeError("database dispose failed")
+    )
+    redis = InstrumentedRedis(close_error=RuntimeError("redis close failed"))
+
+    with pytest.raises(RuntimeError, match="redis close failed"):
+        await _runtime(engine, redis).close()
+
+    assert redis.close_calls == 1
+    assert engine.dispose_calls == 1
