@@ -74,9 +74,6 @@ export function getPortConnectionRejection(
   if (source.direction === "input" || target.direction === "output") {
     return rejection("connection.direction", "A direção das portas é incompatível com a conexão.", ["ports"]);
   }
-  if (source.connectionClass !== target.connectionClass) {
-    return rejection("connection.class", "A classe das portas deve ser compatível.", ["ports"]);
-  }
   for (const port of [source, target]) {
     if ((index.connectionCountByPort.get(port.id) ?? 0) >= port.capacity) {
       return rejection(
