@@ -143,7 +143,7 @@ export const pidMetadataSchema: z.ZodType<PidDocument["metadata"]> = z.object({
   catalogVersion: nonBlankStringSchema,
   createdAt: z.string().datetime({ offset: true }),
   updatedAt: z.string().datetime({ offset: true }),
-  utilityCategories: z.array(utilityCategorySchema),
+  utilityCategories: z.array(utilityCategorySchema).default([]),
 }).strict();
 
 export const pidDocumentSchema: z.ZodType<PidDocument> = z.object({
