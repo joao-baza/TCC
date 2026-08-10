@@ -8,6 +8,7 @@ import {
 } from "../catalog/sanitized-svg-asset";
 import { getPidNodeGeometry, getPidPortAnchorGeometry, type PidFlowPosition } from "../domain/geometry";
 import type { PidAnnotation, PidDocument, PidEdge, PidGroup, PidNode, Point } from "../domain/model";
+import { lineStyleAttributes } from "../canvas/line-rendering";
 
 export type PidExportBackground = "white" | "transparent";
 
@@ -115,15 +116,16 @@ function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: Pi
   const points = orthogonalPoints(source, edge.route, target);
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${number(point.x)} ${number(point.y)}`).join(" ");
   const arrow = closedArrowPoints(points);
-  const stroke = edge.connectionClass === "signal" ? "#64748b" : "#475569";
+  const attrs = lineStyleAttributes(edge.lineStyle);
   const arrowMarkup = arrow.length === 3
-    ? `<polygon id="pid-arrow-${edgeIndex}" data-arrow-for="${attribute(edge.id)}" points="${arrow.map((point) => `${number(point.x)},${number(point.y)}`).join(" ")}" fill="${stroke}" stroke="${stroke}" stroke-width="1" stroke-linejoin="round"/>`
+    ? `<polygon id="pid-arrow-${edgeIndex}" data-arrow-for="${attribute(edge.id)}" points="${arrow.map((point) => `${number(point.x)},${number(point.y)}`).join(" ")}" fill="${attrs.stroke}" stroke="${attrs.stroke}" stroke-width="1" stroke-linejoin="round"/>`
     : "";
+  const dashAttr = attrs.strokeDasharray ? ` stroke-dasharray="${attrs.strokeDasharray}"` : "";
   const label = [edge.tag, edge.label].filter(Boolean).join(" ");
   const midpoint = pathMidpoint(points);
   const labelY = midpoint.y - 5;
   return {
-    markup: `<g data-element-id="${attribute(edge.id)}"><path d="${attribute(path)}" fill="none" stroke="${stroke}"${edge.connectionClass === "signal" ? ' stroke-dasharray="6 4"' : ""}/>${arrowMarkup}${label ? `<text x="${number(midpoint.x)}" y="${number(labelY)}" text-anchor="middle" fill="#334155" stroke="none" font-size="11">${text(label)}</text>` : ""}</g>`,
+    markup: `<g data-element-id="${attribute(edge.id)}"><path d="${attribute(path)}" fill="none" stroke="${attrs.stroke}" stroke-width="${attrs.strokeWidth}"${dashAttr}/>${arrowMarkup}${label ? `<text x="${number(midpoint.x)}" y="${number(labelY)}" text-anchor="middle" fill="#334155" stroke="none" font-size="11">${text(label)}</text>` : ""}</g>`,
     bounds: unionBounds([pointsBounds(points, 1), pointsBounds(arrow, 1)]),
     labelBounds: label ? centeredTextBounds(label, midpoint.x, labelY, 11) : undefined,
   };
