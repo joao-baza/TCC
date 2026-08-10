@@ -27,6 +27,7 @@ function createPopulatedDocument(): PidDocument {
       catalogVersion: "local-v1",
       createdAt: "2026-08-09T12:00:00.000Z",
       updatedAt: "2026-08-09T12:00:00.000Z",
+      utilityCategories: [],
     },
     nodes: {
       [ids.node]: {
@@ -391,5 +392,56 @@ describe("documento canônico P&ID", () => {
       path: ["nodes", ids.node, "properties", "rows", 19, 4978],
       message: expect.stringMatching(/100\.000/i),
     }));
+  });
+
+  it("aceita documento legado sem utilityCategories no metadata", () => {
+    const document = createPopulatedDocument();
+    const legacy = JSON.parse(JSON.stringify(document)) as typeof document;
+    delete (legacy.metadata as Record<string, unknown>).utilityCategories;
+
+    const parsed = parsePidDocument(legacy);
+    expect(parsed.metadata.utilityCategories).toEqual([]);
+  });
+
+  it("aceita utilityCategoryId opcional nas arestas", () => {
+    const document = createPopulatedDocument();
+    const withCategory = {
+      ...document,
+      metadata: {
+        ...document.metadata,
+        utilityCategories: [{ id: "c0000000-0000-4000-8000-000000000001", name: "Vapor", color: "#ef4444" }],
+      },
+      edges: {
+        [ids.edge]: {
+          ...document.edges[ids.edge],
+          connectionClass: "utility" as const,
+          utilityCategoryId: "c0000000-0000-4000-8000-000000000001",
+        },
+      },
+    };
+
+    const parsed = parsePidDocument(withCategory);
+    expect(parsed.edges[ids.edge].utilityCategoryId).toBe("c0000000-0000-4000-8000-000000000001");
+    expect(parsed.metadata.utilityCategories).toHaveLength(1);
+  });
+
+  it("rejeita utilityCategoryId com UUID inválido", () => {
+    const document = createPopulatedDocument();
+    const invalid = {
+      ...document,
+      metadata: {
+        ...document.metadata,
+        utilityCategories: [],
+      },
+      edges: {
+        [ids.edge]: {
+          ...document.edges[ids.edge],
+          connectionClass: "utility" as const,
+          utilityCategoryId: "not-a-uuid",
+        },
+      },
+    };
+
+    expect(() => parsePidDocument(invalid)).toThrow();
   });
 });

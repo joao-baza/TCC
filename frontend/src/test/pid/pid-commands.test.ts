@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DomainCommandError,
+  addUtilityCategory,
   alignSelection,
   applyCommand,
   assertDocumentInvariants,
@@ -14,6 +15,7 @@ import {
   insertSymbol,
   moveSelection,
   patchElement,
+  removeUtilityCategory,
   renameDocument,
   rotateSelection,
   type CatalogSymbol,
@@ -741,4 +743,118 @@ describe("comandos canônicos P&ID", () => {
     expect(document.metadata.title).toBe("Referência 49");
     expect(tick).toBe(100);
   });
+
+  it("adiciona e remove categoria de utilidade", () => {
+    const context = deterministicContext(5000);
+    let document = applyCommand(emptyDocument(), addUtilityCategory("Vapor", "red"), context);
+
+    expect(document.metadata.utilityCategories).toHaveLength(1);
+    const category = document.metadata.utilityCategories[0];
+    expect(category.name).toBe("Vapor");
+    expect(category.color).toBe("#ef4444");
+    expect(category.id).toMatch(UUID_PATTERN);
+
+    document = applyCommand(document, removeUtilityCategory(category.id), context);
+    expect(document.metadata.utilityCategories).toHaveLength(0);
+  });
+
+  it("removeCategory limpa utilityCategoryId das arestas órfãs", () => {
+    const context = deterministicContext(5100);
+    let document = applyCommand(emptyDocument(), addUtilityCategory("Água", "blue"), context);
+    const categoryId = document.metadata.utilityCategories[0].id;
+
+    document = applyCommand(document, insertSymbol({
+      ...symbol,
+      key: "utility-source",
+      portTemplates: [{ key: "out", direction: "output", connectionClass: "utility", capacity: 1 }],
+    }, { x: 0, y: 0 }), context);
+    document = applyCommand(document, insertSymbol({
+      ...symbol,
+      key: "utility-target",
+      portTemplates: [{ key: "in", direction: "input", connectionClass: "utility", capacity: 1 }],
+    }, { x: 200, y: 0 }), context);
+
+    const [nodeA, nodeB] = Object.values(document.nodes);
+    const sourcePort = Object.values(document.ports).find(p => p.nodeId === nodeA.id && p.direction === "output")!;
+    const targetPort = Object.values(document.ports).find(p => p.nodeId === nodeB.id && p.direction === "input")!;
+    document = applyCommand(document, connectPorts(sourcePort.id, targetPort.id), context);
+
+    const edgeId = Object.keys(document.edges)[0];
+    document = applyCommand(document, patchElement(edgeId, { utilityCategoryId: categoryId }), context);
+    expect(document.edges[edgeId].utilityCategoryId).toBe(categoryId);
+
+    document = applyCommand(document, removeUtilityCategory(categoryId), context);
+    expect(document.edges[edgeId].utilityCategoryId).toBeUndefined();
+  });
+
+  it("addCategory usa slate como fallback para cor inválida", () => {
+    const context = deterministicContext(5200);
+    const document = applyCommand(emptyDocument(), addUtilityCategory("Teste", "cor-que-nao-existe"), context);
+
+    expect(document.metadata.utilityCategories[0].color).toBe("#64748b");
+  });
+
+  it("invariante avisa sobre utilityCategoryId em aresta não-utility", () => {
+    const baseDoc = parsePidDocument(createPopulatedValidDocument());
+    const edgeId = Object.keys(baseDoc.edges)[0];
+    const badDoc = parsePidDocument({
+      ...baseDoc,
+      metadata: {
+        ...baseDoc.metadata,
+        utilityCategories: [{ id: "c0000000-0000-4000-8000-000000000099", name: "X", color: "#ef4444" }],
+      },
+      edges: {
+        ...baseDoc.edges,
+        [edgeId]: {
+          ...baseDoc.edges[edgeId],
+          utilityCategoryId: "c0000000-0000-4000-8000-000000000099",
+        },
+      },
+    });
+
+    const issues = assertDocumentInvariants(badDoc);
+    const utilityIssues = issues.filter(i => i.key === "utility.category");
+    expect(utilityIssues).toHaveLength(1);
+    expect(utilityIssues[0].severity).toBe("warning");
+  });
+});
+
+function createPopulatedValidDocument(): PidDocument {
+  return {
+    schemaVersion: 1,
+    id: "d0000000-0000-4000-8000-000000000001",
+    metadata: {
+      title: "Test", standard: "free", catalogVersion: "local-v1",
+      createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+      utilityCategories: [],
+    },
+    nodes: {
+      "n0000000-0000-4000-8000-000000000001": {
+        id: "n0000000-0000-4000-8000-000000000001", symbolKey: "a", catalogVersion: "local-v1",
+        x: 0, y: 0, width: 100, height: 100, rotation: 0, tag: "", label: "", properties: {},
+      },
+    },
+    ports: {
+      "p0000000-0000-4000-8000-000000000001": {
+        id: "p0000000-0000-4000-8000-000000000001", nodeId: "n0000000-0000-4000-8000-000000000001",
+        templateKey: "a", direction: "output", connectionClass: "process", capacity: 1,
+      },
+      "p0000000-0000-4000-8000-000000000002": {
+        id: "p0000000-0000-4000-8000-000000000002", nodeId: "n0000000-0000-4000-8000-000000000001",
+        templateKey: "b", direction: "input", connectionClass: "process", capacity: 1,
+      },
+    },
+    edges: {
+      "e0000000-0000-4000-8000-000000000001": {
+        id: "e0000000-0000-4000-8000-000000000001",
+        sourcePortId: "p0000000-0000-4000-8000-000000000001",
+        targetPortId: "p0000000-0000-4000-8000-000000000002",
+        connectionClass: "process", lineStyle: "solid-thick", route: [],
+        tag: "", label: "", properties: {},
+      },
+    },
+    annotations: {},
+    groups: {},
+  };
+}
 });
