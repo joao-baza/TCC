@@ -28,7 +28,7 @@ type FormField = "title" | "participantName";
 type FormErrors = Partial<Record<FormField, string>>;
 
 export function CreatePidPage() {
-  const { document: documentPort } = usePidServices();
+  const { document: documentPort, recent } = usePidServices();
   const [errors, setErrors] = useState<FormErrors>({});
   const [created, setCreated] = useState<CreatedPidDiagram | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -92,6 +92,12 @@ export function CreatePidPage() {
     try {
       const result = await documentPort.create(parsed.data);
       setCreated(result);
+      recent.upsert({
+        diagramId: result.diagramId,
+        title: result.document.metadata.title,
+        scope: "edit",
+        url: result.editUrl,
+      });
       setConfirmed(false);
       reportStatus("Diagrama criado. Guarde os links de acesso antes de abrir ou sair desta página.");
     } catch (error) {

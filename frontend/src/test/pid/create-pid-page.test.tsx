@@ -118,6 +118,12 @@ describe("CreatePidPage", () => {
       title: "Utilidades",
       participantName: "Ana",
     });
+    expect(pidServices.recent.upsert).toHaveBeenCalledWith({
+      diagramId,
+      title: "Utilidades",
+      scope: "edit",
+      url: `https://dcou.test/pid/${diagramId}#access=edit-token`,
+    });
     expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
   });
 
@@ -318,6 +324,12 @@ describe("PidEditorPage", () => {
     expect(await screen.findByRole("heading", { name: "Utilidades" })).toBeInTheDocument();
     expect(screen.getByText("Acesso de edição")).toBeInTheDocument();
     expect(pidServices.document.open).toHaveBeenCalledWith(diagramId, "edit-token");
+    expect(pidServices.recent.upsert).toHaveBeenCalledWith({
+      diagramId,
+      title: "Utilidades",
+      scope: "edit",
+      url: `/pid/${diagramId}#access=edit-token`,
+    });
   });
 
   it("reabre quando UUID ou fragmento mudam e mostra erro tipado", async () => {
@@ -335,6 +347,12 @@ describe("PidEditorPage", () => {
     }], { initialEntries: [`/pid/${diagramId}#access=read-token`] });
     render(<RouterProvider router={router} />);
     expect(await screen.findByText("Acesso de visualização")).toBeInTheDocument();
+    expect(pidServices.recent.upsert).toHaveBeenCalledWith({
+      diagramId,
+      title: "Utilidades",
+      scope: "view",
+      url: `/pid/${diagramId}#access=read-token`,
+    });
 
     await router.navigate(`/pid/${diagramId}#access=revoked`);
     expect(await screen.findByRole("alert")).toHaveTextContent("Acesso ao diagrama negado.");

@@ -17,6 +17,7 @@ import {
   alignSelection, deleteSelection, groupSelection, insertAnnotation, insertSymbol, rotateSelection,
   type PidCommand,
 } from "../domain/commands";
+import type { ConnectionClass } from "../domain/model";
 import { validateDocument } from "../domain/validation";
 import { downloadBlob, pidExportFilename } from "../export/download";
 import { renderPidPng } from "../export/render-png";
@@ -70,9 +71,10 @@ const BLOCKED_SELECTION_CAPABILITIES = Object.freeze({
 });
 
 export function PidEditorPage() {
-  const { document: documentPort } = usePidServices();
+  const { document: documentPort, recent } = usePidServices();
   const { diagramId = "" } = useParams();
-  const { hash } = useLocation();
+  const location = useLocation();
+  const { hash } = location;
   const [session, setSession] = useState<EditorSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [navigationError, setNavigationError] = useState<string | null>(null);
@@ -110,6 +112,12 @@ export function PidEditorPage() {
       try {
         const opened = await documentPort.open(diagramId, token);
         if (!active) return;
+        recent.upsert({
+          diagramId,
+          title: opened.document.metadata.title,
+          scope: opened.scope,
+          url: `${location.pathname}${location.hash}`,
+        });
         setSession({ diagramId, opened, routeToken: token, store: createEditorStore(opened.document) });
       } catch (reason) {
         if (!active) return;
@@ -117,7 +125,7 @@ export function PidEditorPage() {
       }
     })();
     return () => { active = false; };
-  }, [diagramId, documentPort, token]);
+  }, [diagramId, documentPort, location.hash, location.pathname, recent, token]);
 
   if (!session) return <main className="pid-editor-loading"><h1>Editor P&amp;ID</h1>{error
     ? <p role="alert">{error}</p>
