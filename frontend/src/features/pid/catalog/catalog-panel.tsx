@@ -28,7 +28,7 @@ type CatalogRow =
   | { readonly kind: "symbol"; readonly id: string; readonly category: string; readonly symbol: CatalogSymbol };
 
 export function CatalogPanel(props: CatalogPanelProps) {
-  const { standard, onInsert, source, initialSource, onSourceChange, category, sourceFilters = ["project"] } = props;
+  const { standard, onInsert, source, initialSource, onSourceChange, category, sourceFilters = [] } = props;
   const inputSymbols = props.index === undefined ? props.symbols : undefined;
   const generatedIndex = useMemo(
     () => inputSymbols === undefined ? undefined : createCatalogIndex(inputSymbols),
@@ -136,7 +136,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
         {query !== "" && <button type="button" onClick={() => setQuery("")} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Limpar busca</button>}
       </div>
       {sourceFilters.length > 0 && <div aria-label="Fontes do catálogo" className="flex gap-2">
-        {sourceFilters.map((sourceKind) => <button type="button" key={sourceKind} aria-pressed={selectedSource === sourceKind} onClick={() => changeSource(selectedSource === sourceKind ? undefined : sourceKind)} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Fonte: {sourceKind === "project" ? "Projeto" : sourceKind}</button>)}
+        {sourceFilters.map((sourceKind) => <button type="button" key={sourceKind} aria-pressed={selectedSource === sourceKind} onClick={() => changeSource(selectedSource === sourceKind ? undefined : sourceKind)} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Fonte: {sourceKind === "project" ? "Projeto" : "Draw.io"}</button>)}
       </div>}
       {rows.length === 0 ? <p role="status" className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Nenhum símbolo encontrado.</p> : (
         <div ref={setScrollElement} role="tree" aria-label="Símbolos disponíveis" className="max-h-[360px] overflow-auto rounded-md border" style={{ minHeight: 160 }}>

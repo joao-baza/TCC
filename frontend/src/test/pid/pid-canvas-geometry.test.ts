@@ -23,7 +23,7 @@ import { assertDocumentInvariants } from "@/features/pid/domain/commands";
 
 const node: PidNode = {
   id: "node",
-  symbolKey: "project.valve.control",
+  symbolKey: "drawio.pid.valves.ball-valve",
   catalogVersion: "local-v1",
   x: 10,
   y: 20,
@@ -64,7 +64,7 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
     expect(boundsForNodes([rotated])).toEqual(expected);
   });
 
-  it("mantém bounds canônicos e escalona apenas alvos interativos de nó legado", () => {
+  it("mantém bounds e âncoras canônicas em nó legado", () => {
     const legacy = { ...node, width: 40, height: 40 };
     const legacyPorts = ports(3);
     const geometry = getPidNodeGeometry(legacy);
@@ -81,11 +81,49 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
 
     expect(geometry.bounds).toEqual({ x: legacy.x, y: legacy.y, width: 40, height: 40 });
     expect(anchors.map(({ y }) => y)).toEqual([10, 20, 30]);
-    expect(handles.every(({ position, targetSize }) => position === Position.Left && targetSize === 44)).toBe(true);
-    for (let index = 1; index < handles.length; index += 1) {
-      expect(handles[index].targetRect.y).toBeGreaterThanOrEqual(
-        handles[index - 1].targetRect.y + handles[index - 1].targetRect.height,
+    expect(handles.every(({ position }) => position === Position.Left)).toBe(true);
+  });
+
+  it("mantém o centro dos alvos derivados sobre a âncora canônica do símbolo", () => {
+    const canonical = getPidNodeGeometry(node);
+    const derivedPorts = ports(3);
+    const interaction = getPidCanvasInteractionGeometry(canonical, derivedPorts);
+
+    derivedPorts.forEach((port, index) => {
+      const anchor = getPidPortAnchorGeometry(canonical, port, index, derivedPorts);
+      const target = getPidPortHitTargetGeometry(
+        interaction,
+        canonical,
+        anchor,
+        port,
+        index,
+        derivedPorts,
       );
+
+      expect({ x: target.x, y: target.y }).toEqual({
+        x: interaction.canonicalRect.x + anchor.x,
+        y: interaction.canonicalRect.y + anchor.y,
+      });
+    });
+  });
+
+  it("reduz alvos adjacentes somente o necessário para não sobrepor portas", () => {
+    const compactNode = { ...node, width: 40, height: 40 };
+    const compactPorts = ports(3);
+    const canonical = getPidNodeGeometry(compactNode);
+    const interaction = getPidCanvasInteractionGeometry(canonical, compactPorts);
+    const targets = compactPorts.map((port, index) => getPidPortHitTargetGeometry(
+      interaction,
+      canonical,
+      getPidPortAnchorGeometry(canonical, port, index, compactPorts),
+      port,
+      index,
+      compactPorts,
+    ));
+
+    expect(targets.every(({ targetSize }) => targetSize < 44 && targetSize >= 8)).toBe(true);
+    for (let index = 1; index < targets.length; index += 1) {
+      expect(targets[index].targetRect.y).toBeGreaterThanOrEqual(targets[index - 1].targetRect.y + targets[index - 1].targetRect.height);
     }
   });
 
@@ -116,7 +154,7 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
     expect(assertDocumentInvariants(grouped).filter(({ code }) => code === "group.bounds")).toEqual([]);
   });
 
-  it("mantém todos os alvos de perímetro sem interseção em símbolos reais e legados", () => {
+  it("mantém todos os alvos do catálogo sobre as âncoras dos símbolos", () => {
     const fixtures = [
       ...localCatalog.map((symbol, fixtureIndex) => ({
         node: { ...node, id: `node-${fixtureIndex}`, symbolKey: symbol.key, width: symbol.defaultSize.width, height: symbol.defaultSize.height },
@@ -151,13 +189,15 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
         ));
         expect(interaction.canonicalRect.width).toBe(canonical.bounds.width);
         expect(interaction.canonicalRect.height).toBe(canonical.bounds.height);
-        for (let left = 0; left < targets.length; left += 1) {
-          for (let right = left + 1; right < targets.length; right += 1) {
-            expect(rectanglesIntersect(targets[left].targetRect, targets[right].targetRect),
-              `${fixture.node.symbolKey} ${rotation}°: ${fixture.ports[left].templateKey}/${fixture.ports[right].templateKey}`)
-              .toBe(false);
-          }
-        }
+        expect(targets.map(({ x, y }) => ({ x, y }))).toEqual(
+          fixture.ports.map((port, index) => {
+            const anchor = getPidPortAnchorGeometry(canonical, port, index, fixture.ports);
+            return {
+              x: interaction.canonicalRect.x + anchor.x,
+              y: interaction.canonicalRect.y + anchor.y,
+            };
+          }),
+        );
       }
     }
   });
@@ -229,11 +269,4 @@ function validationDocument(): PidDocument {
     annotations: {},
     groups: {},
   };
-}
-
-function rectanglesIntersect(left: { x: number; y: number; width: number; height: number }, right: { x: number; y: number; width: number; height: number }): boolean {
-  return left.x < right.x + right.width
-    && left.x + left.width > right.x
-    && left.y < right.y + right.height
-    && left.y + left.height > right.y;
 }

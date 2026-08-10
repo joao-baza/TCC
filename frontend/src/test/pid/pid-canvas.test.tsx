@@ -16,6 +16,8 @@ import { createCatalogIndex } from "@/features/pid/catalog/catalog-index";
 import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
 import type { PidDocument } from "@/features/pid/domain/model";
 import { orthogonalPath } from "@/features/pid/canvas/process-edge";
+import { getPidCanvasInteractionGeometry } from "@/features/pid/canvas/port-hit-target";
+import { getPidNodeGeometry, getPidPortAnchorGeometry } from "@/features/pid/domain/geometry";
 import { installPidCanvasGeometryHarness } from "./pid-canvas-harness";
 
 let restoreCanvasGeometry: () => void;
@@ -57,7 +59,7 @@ function pumpDocument(): PidDocument {
     nodes: {
       [ids.pump]: {
         id: ids.pump,
-        symbolKey: "project.pump.centrifugal",
+        symbolKey: "drawio.pid.pumps.centrifugal-pump-1",
         catalogVersion: "local-v1",
         x: 100,
         y: 80,
@@ -99,7 +101,7 @@ function connectionDocument(): PidDocument {
   document.nodes[ids.tank] = {
     ...document.nodes[ids.pump],
     id: ids.tank,
-    symbolKey: "project.tank.storage",
+    symbolKey: "drawio.pid.vessels.tank",
     x: 360,
     label: "Tanque",
     tag: "T-101",
@@ -107,7 +109,7 @@ function connectionDocument(): PidDocument {
   document.nodes[ids.instrument] = {
     ...document.nodes[ids.pump],
     id: ids.instrument,
-    symbolKey: "project.instrument.flow-indicator",
+    symbolKey: "drawio.pid.instruments.flow-indicator",
     x: 620,
     label: "Indicador",
     tag: "FI-101",
@@ -190,7 +192,10 @@ describe("PidCanvas", () => {
       expect(body).not.toHaveClass("border", "bg-white", "shadow-sm", "rounded-lg", "p-2");
       expect(body).not.toHaveClass("outline-blue-600");
       expect(caption).toHaveClass("opacity-0");
-      expect(screen.getByLabelText(/Porta de saída/i)).toBeInTheDocument();
+      const outputHandle = screen.getByLabelText(/Criar conexão pela porta de saída/i);
+      expect(outputHandle).toHaveClass("!border-transparent");
+      expect(outputHandle).toHaveStyle({ width: "44px", height: "44px" });
+      expect(outputHandle).toHaveClass("after:size-2", "after:border", "after:border-slate-700");
 
       fireEvent.click(node);
 
@@ -502,14 +507,13 @@ describe("PidCanvas", () => {
   });
 
   it.each([
-    [0, "left", 48, "rotate(0deg)"],
-    [90, "top", 96, "rotate(90deg)"],
-    [180, "right", 96, "rotate(180deg)"],
-    [270, "bottom", 48, "rotate(270deg)"],
+    [0, "left", "rotate(0deg)"],
+    [90, "top", "rotate(90deg)"],
+    [180, "right", "rotate(180deg)"],
+    [270, "bottom", "rotate(270deg)"],
   ] as const)("rotaciona somente a arte e move a porta assimétrica em %i°", async (
     rotation,
     position,
-    offset,
     artworkTransform,
   ) => {
     const document = pumpDocument();
@@ -521,14 +525,16 @@ describe("PidCanvas", () => {
     };
     render(<PidCanvas document={document} catalog={localCatalog} editable onCommand={vi.fn()} />);
 
+    const nodePorts = Object.values(document.ports).filter(({ nodeId }) => nodeId === ids.pump);
+    const portIndex = nodePorts.findIndex(({ id }) => id === ids.suction);
+    const geometry = getPidNodeGeometry(document.nodes[ids.pump]);
+    const interaction = getPidCanvasInteractionGeometry(geometry, nodePorts);
+    const anchor = getPidPortAnchorGeometry(geometry, document.ports[ids.suction], portIndex, nodePorts);
     const handle = screen.getByLabelText(/Criar conexão pela porta de entrada suction/i);
     expect(handle).toHaveAttribute("data-handlepos", position);
-    expect(handle.style[position]).toBe("0px");
-    if (position === "left" || position === "right") {
-      expect(Number.parseFloat(handle.style.top)).toBeCloseTo(offset);
-    } else {
-      expect(Number.parseFloat(handle.style.left)).toBeCloseTo(offset);
-    }
+    expect(Number.parseFloat(handle.style.left)).toBeCloseTo(interaction.canonicalRect.x + anchor.x);
+    expect(Number.parseFloat(handle.style.top)).toBeCloseTo(interaction.canonicalRect.y + anchor.y);
+    expect(handle.style.transform).toBe("translate(-50%, -50%)");
     expect(screen.getByTestId(`equipment-artwork-${ids.pump}`)).toHaveStyle({ transform: artworkTransform });
     expect(screen.getByTestId(`equipment-caption-${ids.pump}`)).not.toHaveAttribute("style");
     expect(screen.getByText("Bomba P-101")).toBeInTheDocument();

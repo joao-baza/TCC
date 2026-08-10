@@ -83,6 +83,10 @@ export const pidPortSchema: z.ZodType<PidPort> = z.object({
   direction: z.enum(["input", "output", "bidirectional"]),
   connectionClass: z.enum(["process", "utility", "signal"]),
   capacity: positiveIntegerSchema,
+  anchor: z.object({
+    x: finiteNumberSchema.min(0).max(1),
+    y: finiteNumberSchema.min(0).max(1),
+  }).strict().optional(),
 }).strict();
 
 export const pidEdgeSchema: z.ZodType<PidEdge> = z.object({

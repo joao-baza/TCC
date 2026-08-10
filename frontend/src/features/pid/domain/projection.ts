@@ -48,7 +48,7 @@ function cloneNode(node: PidNode): PidNode {
 }
 
 function clonePort(port: PidPort): PidPort {
-  return { ...port };
+  return { ...port, ...(port.anchor === undefined ? {} : { anchor: { ...port.anchor } }) };
 }
 
 function cloneEdge(edge: PidEdge): PidEdge {

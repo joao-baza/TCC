@@ -41,9 +41,16 @@ export function getPidNodeGeometry(node: PidNode): PidNodeGeometry {
 /** Canonical anchors are fractions of modeled side lengths; DOM target size never participates. */
 export function getCanonicalPortAnchorLayout(
   size: Readonly<{ width: number; height: number }>,
-  ports: readonly Pick<PidPort, "direction">[],
+  ports: readonly Pick<PidPort, "direction" | "anchor">[],
 ): readonly PidPortAnchorGeometry[] {
   return ports.map((port, index) => {
+    if (port.anchor !== undefined) {
+      return {
+        position: sideForAnchor(port.anchor, port.direction),
+        x: port.anchor.x * size.width,
+        y: port.anchor.y * size.height,
+      };
+    }
     const side = sideForDirection(port.direction);
     const sameSideIndexes = ports
       .map((candidate, candidateIndex) => sideForDirection(candidate.direction) === side ? candidateIndex : -1)
@@ -54,6 +61,19 @@ export function getCanonicalPortAnchorLayout(
     if (side === "right") return { position: side, x: size.width, y: offset * size.height };
     return { position: side, x: offset * size.width, y: size.height };
   });
+}
+
+function sideForAnchor(anchor: Readonly<{ x: number; y: number }>, direction: PortDirection): PidFlowPosition {
+  const distances: readonly [PidFlowPosition, number][] = [
+    ["left", anchor.x],
+    ["right", 1 - anchor.x],
+    ["top", anchor.y],
+    ["bottom", 1 - anchor.y],
+  ];
+  const minimum = Math.min(...distances.map(([, distance]) => distance));
+  const closest = distances.filter(([, distance]) => Math.abs(distance - minimum) < Number.EPSILON);
+  const directional = sideForDirection(direction);
+  return closest.some(([side]) => side === directional) ? directional : closest[0][0];
 }
 
 export function getPidPortAnchorGeometry(

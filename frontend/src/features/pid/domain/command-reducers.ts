@@ -137,6 +137,7 @@ function insertCatalogSymbol(
       direction: template.direction,
       connectionClass: template.connectionClass,
       capacity: template.capacity,
+      ...(template.anchor === undefined ? {} : { anchor: { ...template.anchor } }),
     };
   }
   return {

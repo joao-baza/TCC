@@ -20,6 +20,8 @@ export interface CatalogPortTemplate {
   readonly direction: PortDirection;
   readonly connectionClass: ConnectionClass;
   readonly capacity: number;
+  /** Normalized Draw.io connection constraint within the unrotated symbol. */
+  readonly anchor?: Readonly<Point>;
 }
 
 export interface CatalogSymbol {

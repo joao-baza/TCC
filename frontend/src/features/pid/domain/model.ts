@@ -38,6 +38,8 @@ export interface PidPort {
   direction: PortDirection;
   connectionClass: ConnectionClass;
   capacity: number;
+  /** Normalized anchor within the unrotated equipment bounds. */
+  anchor?: Point;
 }
 
 export interface PidEdge {

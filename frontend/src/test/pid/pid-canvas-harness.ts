@@ -60,10 +60,10 @@ function handleRect(handle: HTMLElement): DOMRect {
   const parent = node ? nodeRect(node) : DOMRect.fromRect();
   const width = pixels(handle.style.width) || 44;
   const height = pixels(handle.style.height) || 44;
-  const centerX = handle.style.right
+  const centerX = handle.style.right.endsWith("px")
     ? parent.width - pixels(handle.style.right)
     : pixels(handle.style.left);
-  const centerY = handle.style.bottom
+  const centerY = handle.style.bottom.endsWith("px")
     ? parent.height - pixels(handle.style.bottom)
     : pixels(handle.style.top);
   return DOMRect.fromRect({

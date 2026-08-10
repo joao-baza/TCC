@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { projectPidCanvasDocument } from "@/features/pid/canvas/flow-projection";
-import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
 import type { PidDocument } from "@/features/pid/domain/model";
 import { validateDocument } from "@/features/pid/domain/validation";
 import { renderPidSvg } from "@/features/pid/export/render-svg";
@@ -10,6 +9,7 @@ import {
   createPidPerformanceDocument,
   onPidPerformancePortKey,
   pidPerformanceAssets,
+  pidPerformanceCatalog,
   pidPerformanceEdgeCount,
   pidPerformanceNodeCount,
   pidPerformanceSymbols,
@@ -19,7 +19,7 @@ describe("carga de referência do editor P&ID", () => {
   it("preserva volume, cardinalidade e correção na carga de referência", async () => {
     const document = createPidPerformanceDocument();
     const projection = projectPidCanvasDocument(document, pidPerformanceSymbols, true, onPidPerformancePortKey);
-    const issues = validateDocument(document, { catalog: localCatalog });
+    const issues = validateDocument(document, { catalog: pidPerformanceCatalog });
     const svg = await renderPidSvg(document, pidPerformanceAssets);
 
     expect(Object.keys(document.nodes)).toHaveLength(pidPerformanceNodeCount);
@@ -46,7 +46,7 @@ async function cardinality(nodeCount: number): Promise<Record<string, number>> {
   const instrumentation = instrumentRecordReads(createPidPerformanceDocument(nodeCount));
   const { document } = instrumentation;
   const projection = projectPidCanvasDocument(document, pidPerformanceSymbols, true, onPidPerformancePortKey);
-  const issues = validateDocument(document, { catalog: localCatalog });
+  const issues = validateDocument(document, { catalog: pidPerformanceCatalog });
   const svg = await renderPidSvg(document, pidPerformanceAssets);
   expect(issues).toEqual([]);
   return {

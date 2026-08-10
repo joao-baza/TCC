@@ -125,7 +125,7 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
             }}
             aria-label={`Criar conexão pela porta de ${directionLabel[port.direction]} ${port.templateKey}`}
             title={portText}
-            className="!size-11 !border-slate-700 !bg-transparent after:absolute after:left-1/2 after:top-1/2 after:size-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-blue-600"
+            className="!border-transparent !bg-transparent after:absolute after:left-1/2 after:top-1/2 after:size-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-slate-700 after:bg-white focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-blue-600"
             style={{ ...style, width: geometry.targetSize, height: geometry.targetSize }}
           />
         );
@@ -136,8 +136,16 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
 
 function normalizedPortStyle(
   geometry: PidPortHitTargetGeometry,
-): { left?: number | string; right?: number | string; top?: number | string; bottom?: number | string } {
-  if (geometry.exactAnchor) return { left: geometry.x, top: geometry.y, right: "auto", bottom: "auto" };
+): { left?: number | string; right?: number | string; top?: number | string; bottom?: number | string; transform?: string } {
+  if (geometry.exactAnchor) {
+    return {
+      left: geometry.x,
+      top: geometry.y,
+      right: "auto",
+      bottom: "auto",
+      transform: "translate(-50%, -50%)",
+    };
+  }
   if (geometry.position === Position.Left) return { left: 0, top: geometry.y };
   if (geometry.position === Position.Right) return { right: 0, top: geometry.y };
   if (geometry.position === Position.Top) return { left: geometry.x, top: 0 };

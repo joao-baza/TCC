@@ -8,6 +8,7 @@ import type { PidPort } from "../domain/model";
 
 export const PID_PORT_TARGET_SIZE = 44;
 export const PID_PORT_TARGET_GAP = 4;
+export const PID_PORT_MARKER_SIZE = 8;
 
 export interface PidCanvasInteractionGeometry {
   readonly bounds: PidRect;
@@ -17,6 +18,7 @@ export interface PidCanvasInteractionGeometry {
 export interface PidPortHitTargetGeometry extends PidPortAnchorGeometry {
   readonly targetSize: number;
   readonly targetRect: PidRect;
+  readonly exactAnchor: boolean;
 }
 
 /**
@@ -77,43 +79,44 @@ export function getPidPortHitTargetGeometry(
   targetSize = PID_PORT_TARGET_SIZE,
   gap = PID_PORT_TARGET_GAP,
 ): PidPortHitTargetGeometry {
-  const anchors = ports.map((candidate, candidateIndex) => getPidPortAnchorGeometry(
-    canonical,
-    candidate,
-    candidateIndex,
-    ports,
-  ));
-  const sideAxis = anchor.position === "left" || anchor.position === "right" ? "y" : "x";
-  const sameSideIndexes = anchors
-    .map((candidate, candidateIndex) => ({ candidate, candidateIndex }))
-    .filter(({ candidate }) => candidate.position === anchor.position)
-    .sort((left, right) => left.candidate[sideAxis] - right.candidate[sideAxis])
-    .map(({ candidateIndex }) => candidateIndex);
-  const actualIndex = ports[index]?.id === port.id ? index : ports.findIndex(({ id }) => id === port.id);
-  const sideIndex = Math.max(0, sameSideIndexes.indexOf(actualIndex));
-  const sideLength = anchor.position === "left" || anchor.position === "right"
-    ? interaction.bounds.height
-    : interaction.bounds.width;
-  const span = Math.max(0, sameSideIndexes.length - 1) * (targetSize + gap);
-  const offset = (sideLength - span) / 2 + sideIndex * (targetSize + gap);
-  const point = anchor.position === "left"
-    ? { x: 0, y: offset }
-    : anchor.position === "right"
-      ? { x: interaction.bounds.width, y: offset }
-      : anchor.position === "top"
-        ? { x: offset, y: 0 }
-        : { x: offset, y: interaction.bounds.height };
+  const point = {
+    x: canonical.bounds.x - interaction.bounds.x + anchor.x,
+    y: canonical.bounds.y - interaction.bounds.y + anchor.y,
+  };
+  const effectiveTargetSize = adjacentTargetSize(canonical, anchor, port, index, ports, targetSize, gap);
   return {
     position: anchor.position,
     ...point,
-    targetSize,
+    targetSize: effectiveTargetSize,
+    exactAnchor: true,
     targetRect: {
-      x: point.x - targetSize / 2,
-      y: point.y - targetSize / 2,
-      width: targetSize,
-      height: targetSize,
+      x: point.x - effectiveTargetSize / 2,
+      y: point.y - effectiveTargetSize / 2,
+      width: effectiveTargetSize,
+      height: effectiveTargetSize,
     },
   };
+}
+
+function adjacentTargetSize(
+  canonical: PidNodeGeometry,
+  anchor: PidPortAnchorGeometry,
+  port: PidPort,
+  index: number,
+  ports: readonly PidPort[],
+  targetSize: number,
+  gap: number,
+): number {
+  const actualIndex = ports[index]?.id === port.id ? index : ports.findIndex(({ id }) => id === port.id);
+  const axis = anchor.position === "left" || anchor.position === "right" ? "y" : "x";
+  const nearest = ports.reduce((distance, candidate, candidateIndex) => {
+    if (candidateIndex === actualIndex) return distance;
+    const candidateAnchor = getPidPortAnchorGeometry(canonical, candidate, candidateIndex, ports);
+    if (candidateAnchor.position !== anchor.position) return distance;
+    return Math.min(distance, Math.abs(candidateAnchor[axis] - anchor[axis]));
+  }, Number.POSITIVE_INFINITY);
+  if (!Number.isFinite(nearest)) return targetSize;
+  return Math.min(targetSize, Math.max(PID_PORT_MARKER_SIZE, nearest - gap));
 }
 
 function requiredPerimeterLength(count: number, targetSize: number, gap: number): number {

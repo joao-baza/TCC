@@ -60,11 +60,11 @@ describe("createCatalogIndex", () => {
     expect(() => parseCatalogManifestJson(`"${"x".repeat(1_000_001)}"`)).toThrow("bytes");
   });
 
-  it("encontra bomba por alias em português sem acento", () => {
+  it("encontra bomba centrífuga pelo nome do Draw.io", () => {
     const index = createCatalogIndex(localCatalog);
 
-    expect(index.search("bomba centrifuga", { standard: "free" }).map((item) => item.key))
-      .toContain("project.pump.centrifugal");
+    expect(index.search("centrifugal pump", { standard: "free" }).map((item) => item.key))
+      .toContain("drawio.pid.pumps.centrifugal-pump-1");
   });
 
   it("publica fixtures profundamente congeladas", () => {
@@ -80,22 +80,17 @@ describe("createCatalogIndex", () => {
     expect(Object.isFrozen(symbol.source.license)).toBe(true);
   });
 
-  it("não mistura símbolos exclusivos ISA e ISO", () => {
+  it("publica apenas símbolos explicitamente livres", () => {
     const index = createCatalogIndex(localCatalog);
 
-    expect(index.search("", { standard: "isa" }).every((item) => item.standards.includes("isa")))
-      .toBe(true);
-    expect(index.search("", { standard: "iso" }).every((item) => item.standards.includes("iso")))
-      .toBe(true);
+    expect(index.search("", { standard: "free" })).toHaveLength(547);
+    expect(index.search("", { standard: "free" }).every((item) => item.standards.length === 1
+      && item.standards[0] === "free")).toBe(true);
   });
 
-  it("libera ativos aprovados apenas ISO em documentos Free, mas não os mistura em ISA", () => {
-    const isoOnly = { ...localCatalog[1], key: "project.iso-only.tank", standards: ["iso"] as const };
-    const index = createCatalogIndex([isoOnly]);
-    expect(index.search("", { standard: "free" }).map((symbol) => symbol.key)).toEqual([isoOnly.key]);
-    expect(index.search("", { standard: "isa" })).toEqual([]);
-    const document = createEmptyDocument({ title: "Livre", standard: "free" });
-    expect(() => applyCommand(document, insertSymbol(index.search("", { standard: "free" })[0], { x: 0, y: 0 }))).not.toThrow();
+  it("rejeita classificações normativas antigas no catálogo", () => {
+    expect(() => parseCatalogSymbol({ ...localCatalog[0], standards: ["iso"] })).toThrow("normas");
+    expect(() => parseCatalogSymbol({ ...localCatalog[0], standards: ["isa"] })).toThrow("normas");
   });
 
   it.each(localCatalog.flatMap((symbol) => symbol.standards.map((standard) => [symbol, standard] as const)))(
@@ -115,11 +110,11 @@ describe("createCatalogIndex", () => {
   it("prioriza nome e alias exatos antes de correspondências parciais", () => {
     const index = createCatalogIndex([
       ...localCatalog,
-      { ...localCatalog[0], key: "project.fixture.pump", name: "Bomba auxiliar", aliases: ["bomba"] },
+      { ...localCatalog[0], key: "drawio.fixture.agitator", name: "Agitador auxiliar", aliases: ["agitator"] },
     ]);
 
-    expect(index.search("bomba", { standard: "free" }).map((item) => item.key).slice(0, 2))
-      .toEqual(["project.fixture.pump", "project.pump.centrifugal"]);
+    expect(index.search("agitator", { standard: "free" }).map((item) => item.key).slice(0, 2))
+      .toEqual(["drawio.fixture.agitator", "drawio.pid.agitators.agitator-anchor"]);
   });
 
   it("protege o índice contra mutações do chamador", () => {
@@ -127,7 +122,7 @@ describe("createCatalogIndex", () => {
     const index = createCatalogIndex(source);
     source[0] = { ...source[0], name: "Corrompido" };
 
-    const result = index.search("bomba", { standard: "free" });
+    const result = index.search("", { standard: "free" });
     expect(result[0].name).not.toBe("Corrompido");
     expect(Object.isFrozen(result[0])).toBe(true);
   });
@@ -140,7 +135,7 @@ describe("createCatalogIndex", () => {
     const index = createCatalogIndex(source);
     (source[0].properties?.configuration as { mode: string }).mode = "corrompido";
 
-    expect((index.search("bomba", { standard: "free" })[0].properties?.configuration as { mode: string }).mode)
+    expect((index.search("agitator", { standard: "free" })[0].properties?.configuration as { mode: string }).mode)
       .toBe("original");
   });
 
@@ -154,13 +149,13 @@ describe("createCatalogIndex", () => {
     }];
     const index = createCatalogIndex(source);
     (source[0].source.license as { name: string }).name = "Corrompida";
-    const returnedLicense = index.search("bomba", { standard: "free" })[0].source.license;
+    const returnedLicense = index.search("agitator", { standard: "free" })[0].source.license;
 
-    expect(returnedLicense.name).toBe("Projeto original - uso no DCOU");
+    expect(returnedLicense.name).toBe("Apache-2.0");
     expect(Object.isFrozen(returnedLicense)).toBe(true);
     expect(() => { (returnedLicense as { name: string }).name = "Mutada"; }).toThrow();
-    expect(index.search("bomba", { standard: "free" })[0].source.license.name)
-      .toBe("Projeto original - uso no DCOU");
+    expect(index.search("agitator", { standard: "free" })[0].source.license.name)
+      .toBe("Apache-2.0");
   });
 
   it("rejeita chaves repetidas e símbolos sem portas", () => {
@@ -201,7 +196,7 @@ describe("createCatalogIndex", () => {
     ["chave de porta normalizada duplicada", {
       portTemplates: [
         { ...localCatalog[0].portTemplates[0], key: "signal" },
-        { ...localCatalog[0].portTemplates[1], key: " SIGNAL " },
+        { ...localCatalog[0].portTemplates[0], key: " SIGNAL " },
       ],
     }, "porta duplicada", ["portTemplates", 1, "key"]],
   ])("rejeita %s", (_label, patch, message, path) => {
@@ -218,7 +213,7 @@ describe("createCatalogIndex", () => {
   it("não ordena nem classifica novamente uma busca vazia em catálogo grande", () => {
     const catalog = Array.from({ length: 400 }, (_, index) => ({
       ...localCatalog[0],
-      key: `project.synthetic.item${String(400 - index).padStart(3, "0")}`,
+      key: `drawio.synthetic.item${String(400 - index).padStart(3, "0")}`,
       name: `Bomba ${index}`,
       aliases: [`pump ${index}`],
     }));

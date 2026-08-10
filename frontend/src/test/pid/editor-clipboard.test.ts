@@ -16,8 +16,8 @@ function connectedDocument() {
   document = applyCommand(document, insertSymbol(localCatalog[0], { x: 0, y: 0 }), { generateId });
   document = applyCommand(document, insertSymbol(localCatalog[2], { x: 180, y: 0 }), { generateId });
   const nodes = Object.keys(document.nodes);
-  const source = Object.values(document.ports).find((port) => port.nodeId === nodes[0] && port.direction === "output")!;
-  const target = Object.values(document.ports).find((port) => port.nodeId === nodes[1] && port.direction === "input")!;
+  const source = Object.values(document.ports).find((port) => port.nodeId === nodes[0])!;
+  const target = Object.values(document.ports).find((port) => port.nodeId === nodes[1])!;
   document = applyCommand(document, { type: "ports.connect", sourcePortId: source.id, targetPortId: target.id }, { generateId });
   document = applyCommand(document, { type: "selection.group", ids: nodes }, { generateId });
   return document;

@@ -244,8 +244,9 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     const signalTarget = screen.getByRole("button", { name: /entrada signal/i });
     const processRect = processTarget.getBoundingClientRect();
     const signalRect = signalTarget.getBoundingClientRect();
-    expect(processRect.width).toBe(44);
-    expect(signalRect.width).toBe(44);
+    expect(processRect.width).toBeGreaterThanOrEqual(8);
+    expect(processRect.width).toBeLessThanOrEqual(44);
+    expect(signalRect.width).toBe(processRect.width);
     expect(Math.max(processRect.top, signalRect.top)).toBeGreaterThanOrEqual(
       Math.min(processRect.bottom, signalRect.bottom),
     );
@@ -465,10 +466,10 @@ function documentById(id: string | null): string {
 
 function interactionDocument(): PidDocument {
   const nodes: Record<string, PidNode> = {
-    [ids.pump]: makeNode(ids.pump, "project.pump.centrifugal", 100, 80, 96, 64, "Bomba", "P-1"),
-    [ids.tank]: makeNode(ids.tank, "project.tank.storage", 360, 80, 80, 72, "Tanque", "T-1"),
-    [ids.valve]: makeNode(ids.valve, "project.valve.control", 240, 240, 72, 56, "Válvula", "XV-1"),
-    [ids.instrument]: makeNode(ids.instrument, "project.instrument.flow-indicator", 480, 240, 56, 56, "Instrumento", "FI-1"),
+    [ids.pump]: makeNode(ids.pump, "drawio.pid.pumps.centrifugal-pump-1", 100, 80, 96, 64, "Bomba", "P-1"),
+    [ids.tank]: makeNode(ids.tank, "drawio.pid.vessels.tank", 360, 80, 80, 72, "Tanque", "T-1"),
+    [ids.valve]: makeNode(ids.valve, "drawio.pid.valves.ball-valve", 240, 240, 72, 56, "Válvula", "XV-1"),
+    [ids.instrument]: makeNode(ids.instrument, "drawio.pid.instruments.flow-indicator", 480, 240, 56, 56, "Instrumento", "FI-1"),
   };
   const ports: Record<string, PidPort> = {
     [ids.pumpOut]: makePort(ids.pumpOut, ids.pump, "out", "output", "process"),
@@ -503,7 +504,7 @@ function largeDocument(): PidDocument {
   const edges: Record<string, PidEdge> = {};
   for (let index = 0; index < 500; index += 1) {
     const id = `node-${index}`;
-    nodes[id] = makeNode(id, "project.pump.centrifugal", (index % 25) * 140, Math.floor(index / 25) * 100, 96, 64, "", `N-${index}`);
+    nodes[id] = makeNode(id, "drawio.pid.pumps.centrifugal-pump-1", (index % 25) * 140, Math.floor(index / 25) * 100, 96, 64, "", `N-${index}`);
     ports[`in-${index}`] = makePort(`in-${index}`, id, "in", "input", "process");
     ports[`out-${index}`] = makePort(`out-${index}`, id, "out", "output", "process");
   }

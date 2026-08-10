@@ -4,7 +4,7 @@ import type { PidStandard } from "../domain/model";
 import type { ReadonlyPidProperties } from "../domain/command-contract";
 import { getCanonicalPortAnchorLayout } from "../domain/geometry";
 
-export type CatalogSourceKind = "project";
+export type CatalogSourceKind = "project" | "drawio";
 
 export interface CatalogProvenance {
   readonly sourceKind: CatalogSourceKind;
@@ -37,10 +37,10 @@ export class CatalogValidationError extends TypeError {
 
 interface DecodeState { values: number; readonly active: WeakSet<object>; }
 const maxDepth = 32;
-const maxValues = 20_000;
+const maxValues = 100_000;
 const maxArrayLength = 2_000;
 const maxObjectKeys = 200;
-const maxSymbols = 500;
+const maxSymbols = 1_000;
 const maxManifestBytes = 1_000_000;
 const maxStringLength = 500;
 const maxAliases = 64;
@@ -48,9 +48,10 @@ const trustedManifests = new WeakSet<object>();
 const keyPattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)+$/;
 const portKeyPattern = /^[a-z][a-z0-9-]*$/;
 const assetOrigin = "https://catalog.local";
-const standards = new Set<PidStandard>(["free", "isa", "iso"]);
+const standards = new Set<PidStandard>(["free"]);
 const directions = new Set(["input", "output", "bidirectional"]);
 const connectionClasses = new Set(["process", "utility", "signal"]);
+const sourceKinds = new Set<CatalogSourceKind>(["project", "drawio"]);
 
 /** Decodes unknown manifest data into one immutable, domain-compatible snapshot. */
 export function parseCatalogSymbol(value: unknown): CatalogSymbol {
@@ -81,10 +82,11 @@ export function parseCatalogSymbol(value: unknown): CatalogSymbol {
   const symbolStandards = Object.freeze(standardsValue as PidStandard[]);
   const catalogVersion = nonBlank(string(root, "catalogVersion", state, ["catalogVersion"]), ["catalogVersion"], "A versão de catálogo é obrigatória.");
   const sourceValue = record(read(root, "source", ["source"]), ["source"], state, ["sourceKind", "sourceName", "license", "attribution"], ["sourceKind", "sourceName", "license", "attribution"]);
-  if (string(sourceValue, "sourceKind", state, ["source", "sourceKind"]) !== "project") fail("catalog.source.kind", ["source", "sourceKind"], "A fonte do catálogo não é suportada.");
+  const sourceKind = string(sourceValue, "sourceKind", state, ["source", "sourceKind"]);
+  if (!sourceKinds.has(sourceKind as CatalogSourceKind)) fail("catalog.source.kind", ["source", "sourceKind"], "A fonte do catálogo não é suportada.");
   const licenseValue = record(read(sourceValue, "license", ["source", "license"]), ["source", "license"], state, ["name", "reference"], ["name", "reference"]);
   const source = Object.freeze({
-    sourceKind: "project" as const,
+    sourceKind: sourceKind as CatalogSourceKind,
     sourceName: nonBlank(string(sourceValue, "sourceName", state, ["source", "sourceName"]), ["source", "sourceName"], "A proveniência exige o nome da fonte."),
     license: Object.freeze({
       name: nonBlank(string(licenseValue, "name", state, ["source", "license", "name"]), ["source", "license", "name"], "A proveniência exige a licença."),
@@ -160,7 +162,7 @@ export function isTrustedCatalogManifest(value: unknown): value is CatalogManife
 
 function parsePort(value: unknown, state: DecodeState, index: number) {
   const path = ["portTemplates", index] as const;
-  const source = record(value, path, state, ["key", "direction", "connectionClass", "capacity"], ["key", "direction", "connectionClass", "capacity"]);
+  const source = record(value, path, state, ["key", "direction", "connectionClass", "capacity", "anchor"], ["key", "direction", "connectionClass", "capacity"]);
   const key = string(source, "key", state, [...path, "key"]);
   const direction = string(source, "direction", state, [...path, "direction"]);
   if (!directions.has(direction)) fail("catalog.port.direction", [...path, "direction"], "A direção da porta é inválida.");
@@ -168,7 +170,15 @@ function parsePort(value: unknown, state: DecodeState, index: number) {
   if (!connectionClasses.has(connectionClass)) fail("catalog.port.class", [...path, "connectionClass"], "A classe de conexão é inválida.");
   const capacity = number(source, "capacity", state, [...path, "capacity"]);
   if (!Number.isInteger(capacity) || capacity <= 0) fail("catalog.port.capacity", [...path, "capacity"], "A porta deve ter capacidade inteira positiva.");
-  return Object.freeze({ key, direction: direction as "input" | "output" | "bidirectional", connectionClass: connectionClass as "process" | "utility" | "signal", capacity });
+  let anchor: Readonly<{ x: number; y: number }> | undefined;
+  if (Object.hasOwn(source, "anchor")) {
+    const anchorValue = record(read(source, "anchor", [...path, "anchor"]), [...path, "anchor"], state, ["x", "y"], ["x", "y"]);
+    const x = number(anchorValue, "x", state, [...path, "anchor", "x"]);
+    const y = number(anchorValue, "y", state, [...path, "anchor", "y"]);
+    if (x < 0 || x > 1 || y < 0 || y > 1) fail("catalog.port.anchor", [...path, "anchor"], "A âncora da porta deve ser normalizada entre zero e um.");
+    anchor = Object.freeze({ x, y });
+  }
+  return Object.freeze({ key, direction: direction as "input" | "output" | "bidirectional", connectionClass: connectionClass as "process" | "utility" | "signal", capacity, ...(anchor === undefined ? {} : { anchor }) });
 }
 
 function parseProperties(value: unknown, state: DecodeState): ReadonlyPidProperties {

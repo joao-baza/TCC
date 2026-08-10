@@ -114,10 +114,10 @@ function doubleOverloadedDocument(): PidDocument {
     properties: {},
   });
   draft.nodes = {
-    [overloadedIds.firstPump]: node(overloadedIds.firstPump, "project.pump.centrifugal", 20, "P-1"),
-    [overloadedIds.secondPump]: node(overloadedIds.secondPump, "project.pump.centrifugal", 20, "P-2"),
-    [overloadedIds.firstTank]: node(overloadedIds.firstTank, "project.tank.storage", 300, "T-1"),
-    [overloadedIds.secondTank]: node(overloadedIds.secondTank, "project.tank.storage", 520, "T-2"),
+    [overloadedIds.firstPump]: node(overloadedIds.firstPump, "drawio.pid.pumps.centrifugal-pump-1", 20, "P-1"),
+    [overloadedIds.secondPump]: node(overloadedIds.secondPump, "drawio.pid.pumps.centrifugal-pump-1", 20, "P-2"),
+    [overloadedIds.firstTank]: node(overloadedIds.firstTank, "drawio.pid.vessels.tank", 300, "T-1"),
+    [overloadedIds.secondTank]: node(overloadedIds.secondTank, "drawio.pid.vessels.tank", 520, "T-2"),
   };
   draft.ports = {
     [overloadedIds.firstDischarge]: { id: overloadedIds.firstDischarge, nodeId: overloadedIds.firstPump, templateKey: "discharge", direction: "output", connectionClass: "process", capacity: 1 },
@@ -149,7 +149,7 @@ function documentWithWarnings(): PidDocument {
   draft.metadata.standard = "free";
   draft.nodes[overloadedIds.firstPump] = {
     id: overloadedIds.firstPump,
-    symbolKey: "project.pump.centrifugal",
+    symbolKey: "drawio.pid.pumps.centrifugal-pump-1",
     catalogVersion: draft.metadata.catalogVersion,
     x: 20,
     y: 40,

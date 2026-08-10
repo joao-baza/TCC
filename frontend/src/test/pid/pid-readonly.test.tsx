@@ -400,7 +400,7 @@ describe("capacidade responsiva de edição", () => {
     try {
       const nodeId = "50000000-0000-4000-8000-000000000001";
       const withNode = { ...documentFixture, nodes: {
-        [nodeId]: { id: nodeId, symbolKey: "project.pump.centrifugal", catalogVersion: "local-v1", x: 0, y: 0, width: 96, height: 64, rotation: 0, tag: "P-1", label: "Bomba", properties: {} },
+        [nodeId]: { id: nodeId, symbolKey: "drawio.pid.pumps.centrifugal-pump-1", catalogVersion: "local-v1", x: 0, y: 0, width: 96, height: 64, rotation: 0, tag: "P-1", label: "Bomba", properties: {} },
       } };
       mount(services("view", { open: vi.fn().mockResolvedValue({ scope: "view", document: withNode, revision: 1 }) }));
       const png = await screen.findByRole("button", { name: "Exportar PNG" });
@@ -430,7 +430,7 @@ describe("capacidade responsiva de edição", () => {
     try {
       const nodeId = "50000000-0000-4000-8000-000000000002";
       const withNode = { ...documentFixture, nodes: {
-        [nodeId]: { id: nodeId, symbolKey: "project.tank.storage", catalogVersion: "local-v1", x: 0, y: 0, width: 80, height: 72, rotation: 0, tag: "T-1", label: "Tanque", properties: {} },
+        [nodeId]: { id: nodeId, symbolKey: "drawio.pid.vessels.tank", catalogVersion: "local-v1", x: 0, y: 0, width: 80, height: 72, rotation: 0, tag: "T-1", label: "Tanque", properties: {} },
       } };
       mount(services("view", { open: vi.fn().mockResolvedValue({ scope: "view", document: withNode, revision: 1 }) }));
       const svg = await screen.findByRole("button", { name: "Exportar SVG" });
@@ -454,7 +454,7 @@ describe("capacidade responsiva de edição", () => {
     try {
       const nodeId = "50000000-0000-4000-8000-000000000003";
       const withNode = { ...documentFixture, nodes: {
-        [nodeId]: { id: nodeId, symbolKey: "project.instrument.flow-indicator", catalogVersion: "local-v1", x: 0, y: 0, width: 56, height: 56, rotation: 0, tag: "FI-1", label: "Indicador", properties: {} },
+        [nodeId]: { id: nodeId, symbolKey: "drawio.pid.instruments.flow-indicator", catalogVersion: "local-v1", x: 0, y: 0, width: 56, height: 56, rotation: 0, tag: "FI-1", label: "Indicador", properties: {} },
       } };
       const mounted = mount(services("view", { open: vi.fn().mockResolvedValue({ scope: "view", document: withNode, revision: 1 }) }));
       fireEvent.click(await screen.findByRole("button", { name: "Exportar SVG" }));

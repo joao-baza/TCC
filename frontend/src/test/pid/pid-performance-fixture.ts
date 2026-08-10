@@ -5,8 +5,17 @@ import { createEmptyDocument } from "@/features/pid/domain/schema";
 
 export const pidPerformanceNodeCount = 500;
 export const pidPerformanceEdgeCount = pidPerformanceNodeCount * 2;
-export const pidPerformanceSymbol = localCatalog.find(({ key }) => key === "project.pump.centrifugal")!;
-export const pidPerformanceSymbols = new Map([[pidPerformanceSymbol.key, pidPerformanceSymbol]]);
+export const pidPerformanceSymbol = localCatalog.find(({ key }) => key === "drawio.pid.pumps.centrifugal-pump-1")!;
+export const pidPerformanceCatalog = [{
+  ...pidPerformanceSymbol,
+  portTemplates: [
+    { key: "suction", direction: "input" as const, connectionClass: "process" as const, capacity: 1 },
+    { key: "discharge", direction: "output" as const, connectionClass: "process" as const, capacity: 1 },
+    { key: "suction-aux", direction: "input" as const, connectionClass: "process" as const, capacity: 1 },
+    { key: "discharge-aux", direction: "output" as const, connectionClass: "process" as const, capacity: 1 },
+  ],
+}];
+export const pidPerformanceSymbols = new Map([[pidPerformanceSymbol.key, pidPerformanceCatalog[0]]]);
 export const pidPerformanceAssets = new Map([[pidPerformanceSymbol.key, sanitizePidSvgAsset(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><circle cx="60" cy="40" r="20" fill="none" stroke="currentColor"/></svg>',
 )]]);

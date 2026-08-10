@@ -1,4 +1,3 @@
-import { isCatalogSymbolCompatible } from "../domain/catalog-compatibility";
 import type { PidStandard } from "../domain/model";
 import { CatalogValidationError, parseCatalogManifest, type CatalogSourceKind, type CatalogSymbol } from "./catalog-symbol";
 
@@ -34,18 +33,12 @@ export function createCatalogIndex(input: unknown): CatalogIndex {
     name: normalizeCatalogText(symbol.name),
     aliases: Object.freeze(symbol.aliases.map(normalizeCatalogText)),
     category: normalizeCatalogText(symbol.category),
-  })).sort((left, right) => compareKey(left.symbol.key, right.symbol.key)));
-  const byStandard = new Map<PidStandard, readonly IndexedSymbol[]>([
-    ["free", symbols],
-    ["isa", Object.freeze(symbols.filter(({ symbol }) => isCatalogSymbolCompatible("isa", symbol.standards)))],
-    ["iso", Object.freeze(symbols.filter(({ symbol }) => isCatalogSymbolCompatible("iso", symbol.standards)))],
-  ]);
-
+  })).sort((left, right) => compareSource(left.symbol.source.sourceKind, right.symbol.source.sourceKind)
+    || compareKey(left.symbol.key, right.symbol.key)));
   return Object.freeze({
     search(query: string, filters: CatalogSearchFilters): readonly CatalogSymbol[] {
-      const base = byStandard.get(filters.standard) ?? [];
       const category = filters.category === undefined ? undefined : normalizeCatalogText(filters.category);
-      const compatible = base.filter((entry) => (filters.source === undefined || entry.symbol.source.sourceKind === filters.source)
+      const compatible = symbols.filter((entry) => (filters.source === undefined || entry.symbol.source.sourceKind === filters.source)
         && (category === undefined || entry.category === category));
       if (query.trim() === "") return Object.freeze(compatible.map(({ symbol }) => symbol));
       const normalized = normalizeCatalogText(query);
@@ -70,4 +63,9 @@ function rank(entry: IndexedSymbol, query: string): number | null {
 
 function compareKey(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function compareSource(left: CatalogSourceKind, right: CatalogSourceKind): number {
+  const priority: Readonly<Record<CatalogSourceKind, number>> = { project: 0, drawio: 1 };
+  return priority[left] - priority[right];
 }

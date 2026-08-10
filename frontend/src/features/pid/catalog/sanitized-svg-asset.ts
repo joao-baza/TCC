@@ -12,11 +12,12 @@ export type PidAssetFetcher = (url: string) => Promise<PidAssetFetchResponse>;
 
 const trustedAssets = new WeakSet<object>();
 const browserAssetCache = new Map<string, Promise<SanitizedPidSvgAsset>>();
-const allowedElements = new Set(["g", "path", "line", "circle", "rect", "polygon", "polyline", "ellipse"]);
+const allowedElements = new Set(["g", "path", "line", "circle", "rect", "polygon", "polyline", "ellipse", "text"]);
 const allowedAttributes = new Set([
   "cx", "cy", "d", "fill", "fill-opacity", "fill-rule", "height", "opacity", "points", "r", "rx", "ry",
   "stroke", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "stroke-opacity", "stroke-width", "transform",
   "width", "x", "x1", "x2", "y", "y1", "y2",
+  "dominant-baseline", "font-size", "text-anchor",
 ]);
 const safePaint = /^(?:none|currentColor|#[0-9a-fA-F]{3,8})$/;
 const safeNumberList = /^[-+\d.eE, ()]+$/;
@@ -67,8 +68,13 @@ async function fetchAndSanitize(url: string, fetcher: PidAssetFetcher): Promise<
 
 function serializeSanitizedNode(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) {
-    if (node.textContent?.trim()) throw new Error("Texto não permitido em ativo SVG.");
-    return "";
+    const value = node.textContent ?? "";
+    if (node.parentElement?.localName !== "text") {
+      if (value.trim()) throw new Error("Texto não permitido em ativo SVG.");
+      return "";
+    }
+    if (value.length > 64 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value)) throw new Error("Rótulo SVG inválido.");
+    return escapeText(value);
   }
   if (node.nodeType !== Node.ELEMENT_NODE) throw new Error("Conteúdo não permitido em ativo SVG.");
   const element = node as Element;
@@ -85,9 +91,11 @@ function validateSanitizedAttribute(name: string, value: string): void {
   if (!allowedAttributes.has(name)) throw new Error(`Atributo SVG não permitido: ${name}.`);
   if ((name === "fill" || name === "stroke") && !safePaint.test(value)) throw new Error(`Valor SVG não permitido em ${name}.`);
   if (name === "transform" && !/^(?:(?:translate|rotate|scale|matrix)\([-+\d.eE, ]+\)\s*)+$/.test(value)) throw new Error("Transformação SVG não permitida.");
-  if (name !== "d" && name !== "fill" && name !== "stroke" && name !== "fill-rule" && name !== "stroke-linecap" && name !== "stroke-linejoin" && name !== "transform" && !safeNumberList.test(value)) throw new Error(`Valor SVG não permitido em ${name}.`);
+  if (name !== "d" && name !== "fill" && name !== "stroke" && name !== "fill-rule" && name !== "stroke-linecap" && name !== "stroke-linejoin" && name !== "transform" && name !== "text-anchor" && name !== "dominant-baseline" && !safeNumberList.test(value)) throw new Error(`Valor SVG não permitido em ${name}.`);
   if (name === "d" && !/^[MmZzLlHhVvCcSsQqTtAa0-9+\-.,\sEe]+$/.test(value)) throw new Error("Path SVG não permitido.");
   if ((name === "fill-rule" || name === "stroke-linecap" || name === "stroke-linejoin") && !/^(?:nonzero|evenodd|butt|round|square|miter|bevel)$/.test(value)) throw new Error(`Valor SVG não permitido em ${name}.`);
+  if (name === "text-anchor" && !/^(?:start|middle|end)$/.test(value)) throw new Error("Alinhamento de texto SVG não permitido.");
+  if (name === "dominant-baseline" && !/^(?:auto|middle|hanging)$/.test(value)) throw new Error("Baseline de texto SVG não permitida.");
 }
 
 function canonicalViewBox(value: string | null): string {
@@ -98,6 +106,9 @@ function canonicalViewBox(value: string | null): string {
 
 function escapeAttribute(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+function escapeText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 function canonicalNumber(value: number): string { return String(Object.is(value, -0) ? 0 : Math.round(value * 1_000_000) / 1_000_000); }
 function compare(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }

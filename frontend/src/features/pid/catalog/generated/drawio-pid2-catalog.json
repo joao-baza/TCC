@@ -1,0 +1,4984 @@
+[
+  {
+    "key": "drawio.pid2.instruments.computer-function-control-room",
+    "name": "Computer Function (control room)",
+    "aliases": [
+      "computer function (control room)",
+      "computer function control room"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-computer-function-control-room.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "n-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0
+        }
+      },
+      {
+        "key": "n-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0
+        }
+      },
+      {
+        "key": "s-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 1
+        }
+      },
+      {
+        "key": "s-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.computer-function-field",
+    "name": "Computer Function (field)",
+    "aliases": [
+      "computer function (field)",
+      "computer function field"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-computer-function-field.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "n-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0
+        }
+      },
+      {
+        "key": "n-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0
+        }
+      },
+      {
+        "key": "s-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 1
+        }
+      },
+      {
+        "key": "s-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.computer-function-inaccessible",
+    "name": "Computer Function (inaccessible)",
+    "aliases": [
+      "computer function (inaccessible)",
+      "computer function inaccessible"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-computer-function-inaccessible.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "n-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0
+        }
+      },
+      {
+        "key": "n-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0
+        }
+      },
+      {
+        "key": "s-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 1
+        }
+      },
+      {
+        "key": "s-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.computer-function-local-panel",
+    "name": "Computer Function (local panel)",
+    "aliases": [
+      "computer function (local panel)",
+      "computer function local panel"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-computer-function-local-panel.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "n-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0
+        }
+      },
+      {
+        "key": "n-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0
+        }
+      },
+      {
+        "key": "s-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 1
+        }
+      },
+      {
+        "key": "s-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.discrete-instrument-control-room",
+    "name": "Discrete Instrument (control room)",
+    "aliases": [
+      "discrete instrument (control room)",
+      "discrete instrument control room"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-discrete-instrument-control-room.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "inner-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.145,
+          "y": 0.145
+        }
+      },
+      {
+        "key": "inner-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.145,
+          "y": 0.855
+        }
+      },
+      {
+        "key": "inner-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.855,
+          "y": 0.145
+        }
+      },
+      {
+        "key": "inner-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.855,
+          "y": 0.855
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.discrete-instrument-field",
+    "name": "Discrete Instrument (field)",
+    "aliases": [
+      "discrete instrument (field)",
+      "discrete instrument field"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-discrete-instrument-field.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "inner-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.145,
+          "y": 0.145
+        }
+      },
+      {
+        "key": "inner-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.145,
+          "y": 0.855
+        }
+      },
+      {
+        "key": "inner-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.855,
+          "y": 0.145
+        }
+      },
+      {
+        "key": "inner-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.855,
+          "y": 0.855
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.discrete-instrument-inaccessible",
+    "name": "Discrete Instrument (inaccessible)",
+    "aliases": [
+      "discrete instrument (inaccessible)",
+      "discrete instrument inaccessible"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-discrete-instrument-inaccessible.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "inner-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.145,
+          "y": 0.145
+        }
+      },
+      {
+        "key": "inner-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.145,
+          "y": 0.855
+        }
+      },
+      {
+        "key": "inner-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.855,
+          "y": 0.145
+        }
+      },
+      {
+        "key": "inner-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.855,
+          "y": 0.855
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.discrete-instrument-local-panel",
+    "name": "Discrete Instrument (local panel)",
+    "aliases": [
+      "discrete instrument (local panel)",
+      "discrete instrument local panel"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-discrete-instrument-local-panel.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "inner-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.145,
+          "y": 0.145
+        }
+      },
+      {
+        "key": "inner-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.145,
+          "y": 0.855
+        }
+      },
+      {
+        "key": "inner-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.855,
+          "y": 0.145
+        }
+      },
+      {
+        "key": "inner-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.855,
+          "y": 0.855
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.indicator-control",
+    "name": "Indicator (Control)",
+    "aliases": [
+      "indicator (control)",
+      "indicator control"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-indicator-control.svg",
+    "viewBox": "0 0 50 100",
+    "defaultSize": {
+      "width": 50,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.indicator-function",
+    "name": "Indicator (Function)",
+    "aliases": [
+      "indicator (function)",
+      "indicator function"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-indicator-function.svg",
+    "viewBox": "0 0 50 100",
+    "defaultSize": {
+      "width": 50,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.indicator-instrument",
+    "name": "Indicator (Instrument)",
+    "aliases": [
+      "indicator (instrument)",
+      "indicator instrument"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-indicator-instrument.svg",
+    "viewBox": "0 0 50 100",
+    "defaultSize": {
+      "width": 50,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.indicator-plc",
+    "name": "Indicator (PLC)",
+    "aliases": [
+      "indicator (plc)",
+      "indicator plc"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-indicator-plc.svg",
+    "viewBox": "0 0 50 100",
+    "defaultSize": {
+      "width": 50,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.logic-control-room",
+    "name": "Logic (control room)",
+    "aliases": [
+      "logic (control room)",
+      "logic control room"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-logic-control-room.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "inner-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.25
+        }
+      },
+      {
+        "key": "inner-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.75
+        }
+      },
+      {
+        "key": "inner-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0.25
+        }
+      },
+      {
+        "key": "inner-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0.75
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.logic-field",
+    "name": "Logic (field)",
+    "aliases": [
+      "logic (field)",
+      "logic field"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-logic-field.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "inner-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.25
+        }
+      },
+      {
+        "key": "inner-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.75
+        }
+      },
+      {
+        "key": "inner-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0.25
+        }
+      },
+      {
+        "key": "inner-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0.75
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.logic-inaccessible",
+    "name": "Logic (inaccessible)",
+    "aliases": [
+      "logic (inaccessible)",
+      "logic inaccessible"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-logic-inaccessible.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "inner-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.25
+        }
+      },
+      {
+        "key": "inner-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.75
+        }
+      },
+      {
+        "key": "inner-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0.25
+        }
+      },
+      {
+        "key": "inner-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0.75
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.logic-local-panel",
+    "name": "Logic (local panel)",
+    "aliases": [
+      "logic (local panel)",
+      "logic local panel"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-logic-local-panel.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "inner-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.25
+        }
+      },
+      {
+        "key": "inner-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.75
+        }
+      },
+      {
+        "key": "inner-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0.25
+        }
+      },
+      {
+        "key": "inner-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.75,
+          "y": 0.75
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.programmable-logic-control-control-room",
+    "name": "Programmable Logic Control (control room)",
+    "aliases": [
+      "programmable logic control (control room)",
+      "programmable logic control control room"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-programmable-logic-control-control-room.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "nw-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "sw-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "key": "ne-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "key": "se-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.programmable-logic-control-field",
+    "name": "Programmable Logic Control (field)",
+    "aliases": [
+      "programmable logic control (field)",
+      "programmable logic control field"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-programmable-logic-control-field.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "nw-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "sw-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "key": "ne-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "key": "se-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.programmable-logic-control-inaccessible",
+    "name": "Programmable Logic Control (inaccessible)",
+    "aliases": [
+      "programmable logic control (inaccessible)",
+      "programmable logic control inaccessible"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-programmable-logic-control-inaccessible.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "nw-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "sw-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "key": "ne-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "key": "se-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.programmable-logic-control-local-panel",
+    "name": "Programmable Logic Control (local panel)",
+    "aliases": [
+      "programmable logic control (local panel)",
+      "programmable logic control local panel"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-programmable-logic-control-local-panel.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "nw-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "sw-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "key": "ne-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "key": "se-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.shared-control-display-in-dcs-control-room",
+    "name": "Shared Control/Display in DCS (control room)",
+    "aliases": [
+      "shared control/display in dcs (control room)",
+      "shared control display in dcs control room"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-shared-control-display-in-dcs-control-room.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "nw-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "sw-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "key": "ne-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "key": "se-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.shared-control-display-in-dcs-field",
+    "name": "Shared Control/Display in DCS (field)",
+    "aliases": [
+      "shared control/display in dcs (field)",
+      "shared control display in dcs field"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-shared-control-display-in-dcs-field.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "nw-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "sw-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "key": "ne-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "key": "se-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.shared-control-display-in-dcs-inaccessible",
+    "name": "Shared Control/Display in DCS (inaccessible)",
+    "aliases": [
+      "shared control/display in dcs (inaccessible)",
+      "shared control display in dcs inaccessible"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-shared-control-display-in-dcs-inaccessible.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "nw-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "sw-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "key": "ne-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "key": "se-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.instruments.shared-control-display-in-dcs-local-panel",
+    "name": "Shared Control/Display in DCS (local panel)",
+    "aliases": [
+      "shared control/display in dcs (local panel)",
+      "shared control display in dcs local panel"
+    ],
+    "category": "Instrumentação",
+    "assetUrl": "/pid/symbols/drawio-pid2-instruments-shared-control-display-in-dcs-local-panel.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "nw-5",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "sw-6",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "key": "ne-7",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "key": "se-8",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.column",
+    "name": "Column",
+    "aliases": [
+      "column"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-column.svg",
+    "viewBox": "0 0 50 120",
+    "defaultSize": {
+      "width": 50,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.column-bubble-cap-trays",
+    "name": "Column (Bubble Cap Trays)",
+    "aliases": [
+      "column (bubble cap trays)",
+      "column bubble cap trays"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-column-bubble-cap-trays.svg",
+    "viewBox": "0 0 50 120",
+    "defaultSize": {
+      "width": 50,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.column-fixed-bed",
+    "name": "Column (Fixed Bed)",
+    "aliases": [
+      "column (fixed bed)",
+      "column fixed bed"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-column-fixed-bed.svg",
+    "viewBox": "0 0 50 180",
+    "defaultSize": {
+      "width": 40,
+      "height": 144
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.column-fixed-bed-spray-nozzle",
+    "name": "Column (Fixed Bed, Spray Nozzle)",
+    "aliases": [
+      "column (fixed bed, spray nozzle)",
+      "column fixed bed spray nozzle"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-column-fixed-bed-spray-nozzle.svg",
+    "viewBox": "0 0 50 180",
+    "defaultSize": {
+      "width": 40,
+      "height": 144
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.column-fluidized-bed",
+    "name": "Column (Fluidized Bed)",
+    "aliases": [
+      "column (fluidized bed)",
+      "column fluidized bed"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-column-fluidized-bed.svg",
+    "viewBox": "0 0 50 120",
+    "defaultSize": {
+      "width": 50,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.column-staggered-baffle-trays",
+    "name": "Column (Staggered Baffle Trays)",
+    "aliases": [
+      "column (staggered baffle trays)",
+      "column staggered baffle trays"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-column-staggered-baffle-trays.svg",
+    "viewBox": "0 0 50 120",
+    "defaultSize": {
+      "width": 50,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.column-tray",
+    "name": "Column (Tray)",
+    "aliases": [
+      "column (tray)",
+      "column tray"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-column-tray.svg",
+    "viewBox": "0 0 50 120",
+    "defaultSize": {
+      "width": 50,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.column-valve-trays",
+    "name": "Column (Valve Trays)",
+    "aliases": [
+      "column (valve trays)",
+      "column valve trays"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-column-valve-trays.svg",
+    "viewBox": "0 0 50 120",
+    "defaultSize": {
+      "width": 50,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "n",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.conveyor",
+    "name": "Conveyor",
+    "aliases": [
+      "conveyor"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-conveyor.svg",
+    "viewBox": "0 0 200 50",
+    "defaultSize": {
+      "width": 160,
+      "height": 40
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.misc.fan",
+    "name": "Fan",
+    "aliases": [
+      "fan"
+    ],
+    "category": "Equipamentos diversos",
+    "assetUrl": "/pid/symbols/drawio-pid2-misc-fan.svg",
+    "viewBox": "0 0 50 50",
+    "defaultSize": {
+      "width": 50,
+      "height": 50
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.angle-blowdown-valve",
+    "name": "Angle Blowdown Valve",
+    "aliases": [
+      "angle blowdown valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-angle-blowdown-valve.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.angle-globe-valve",
+    "name": "Angle Globe Valve",
+    "aliases": [
+      "angle globe valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-angle-globe-valve.svg",
+    "viewBox": "0 0 100 80",
+    "defaultSize": {
+      "width": 100,
+      "height": 80
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.angle-globe-valve-manual",
+    "name": "Angle Globe Valve (Manual)",
+    "aliases": [
+      "angle globe valve (manual)",
+      "angle globe valve manual"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-angle-globe-valve-manual.svg",
+    "viewBox": "0 0 100 120",
+    "defaultSize": {
+      "width": 100,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.angle-valve",
+    "name": "Angle Valve",
+    "aliases": [
+      "angle valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-angle-valve.svg",
+    "viewBox": "0 0 100 80",
+    "defaultSize": {
+      "width": 100,
+      "height": 80
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.angle-valve-manual",
+    "name": "Angle Valve (Manual)",
+    "aliases": [
+      "angle valve (manual)",
+      "angle valve manual"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-angle-valve-manual.svg",
+    "viewBox": "0 0 100 120",
+    "defaultSize": {
+      "width": 100,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.auto-recirculation-valve",
+    "name": "Auto Recirculation Valve",
+    "aliases": [
+      "auto recirculation valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-auto-recirculation-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.ball-valve",
+    "name": "Ball Valve",
+    "aliases": [
+      "ball valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-ball-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.butterfly-valve",
+    "name": "Butterfly Valve",
+    "aliases": [
+      "butterfly valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-butterfly-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.check-valve",
+    "name": "Check Valve",
+    "aliases": [
+      "check valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-check-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve",
+    "name": "Gate Valve",
+    "aliases": [
+      "gate valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-balanced-diaphragm",
+    "name": "Gate Valve (Balanced Diaphragm)",
+    "aliases": [
+      "gate valve (balanced diaphragm)",
+      "gate valve balanced diaphragm"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-balanced-diaphragm.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-diaphragm",
+    "name": "Gate Valve (Diaphragm)",
+    "aliases": [
+      "gate valve (diaphragm)",
+      "gate valve diaphragm"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-diaphragm.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-digital",
+    "name": "Gate Valve (Digital)",
+    "aliases": [
+      "gate valve (digital)",
+      "gate valve digital"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-digital.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-double-acting-cylinder",
+    "name": "Gate Valve (Double Acting Cylinder)",
+    "aliases": [
+      "gate valve (double acting cylinder)",
+      "gate valve double acting cylinder"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-double-acting-cylinder.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-electro-hydraulic",
+    "name": "Gate Valve (Electro-Hydraulic)",
+    "aliases": [
+      "gate valve (electro-hydraulic)",
+      "gate valve electro hydraulic"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-electro-hydraulic.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-key",
+    "name": "Gate Valve (Key)",
+    "aliases": [
+      "gate valve (key)",
+      "gate valve key"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-key.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-manual",
+    "name": "Gate Valve (Manual)",
+    "aliases": [
+      "gate valve (manual)",
+      "gate valve manual"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-manual.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-motor",
+    "name": "Gate Valve (Motor)",
+    "aliases": [
+      "gate valve (motor)",
+      "gate valve motor"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-motor.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-pilot",
+    "name": "Gate Valve (Pilot)",
+    "aliases": [
+      "gate valve (pilot)",
+      "gate valve pilot"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-pilot.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-powered",
+    "name": "Gate Valve (Powered)",
+    "aliases": [
+      "gate valve (powered)",
+      "gate valve powered"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-powered.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-single-acting-cylinder",
+    "name": "Gate Valve (Single Acting Cylinder)",
+    "aliases": [
+      "gate valve (single acting cylinder)",
+      "gate valve single acting cylinder"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-single-acting-cylinder.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-solenoid",
+    "name": "Gate Valve (Solenoid)",
+    "aliases": [
+      "gate valve (solenoid)",
+      "gate valve solenoid"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-solenoid.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-solenoid-with-manual-reset",
+    "name": "Gate Valve (Solenoid With Manual Reset)",
+    "aliases": [
+      "gate valve (solenoid with manual reset)",
+      "gate valve solenoid with manual reset"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-solenoid-with-manual-reset.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-spring",
+    "name": "Gate Valve (Spring)",
+    "aliases": [
+      "gate valve (spring)",
+      "gate valve spring"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-spring.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.gate-valve-weight",
+    "name": "Gate Valve (Weight)",
+    "aliases": [
+      "gate valve (weight)",
+      "gate valve weight"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-gate-valve-weight.svg",
+    "viewBox": "0 0 100 100",
+    "defaultSize": {
+      "width": 100,
+      "height": 100
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.globe-valve",
+    "name": "Globe Valve",
+    "aliases": [
+      "globe valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-globe-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.integrated-block-and-bleed-valve",
+    "name": "Integrated Block and Bleed Valve",
+    "aliases": [
+      "integrated block and bleed valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-integrated-block-and-bleed-valve.svg",
+    "viewBox": "0 0 100 130",
+    "defaultSize": {
+      "width": 92.307692,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.integrated-block-and-bleed-valve-manual",
+    "name": "Integrated Block and Bleed Valve (Manual)",
+    "aliases": [
+      "integrated block and bleed valve (manual)",
+      "integrated block and bleed valve manual"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-integrated-block-and-bleed-valve-manual.svg",
+    "viewBox": "0 0 100 170",
+    "defaultSize": {
+      "width": 70.588235,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.needle-valve",
+    "name": "Needle Valve",
+    "aliases": [
+      "needle valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-needle-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.normally-closed-ball-valve",
+    "name": "Normally Closed Ball Valve",
+    "aliases": [
+      "normally closed ball valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-normally-closed-ball-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.normally-closed-gate-valve",
+    "name": "Normally Closed Gate Valve",
+    "aliases": [
+      "normally closed gate valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-normally-closed-gate-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.plug-valve",
+    "name": "Plug Valve",
+    "aliases": [
+      "plug valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-plug-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.self-draining-valve",
+    "name": "Self Draining Valve",
+    "aliases": [
+      "self draining valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-self-draining-valve.svg",
+    "viewBox": "0 0 100 60",
+    "defaultSize": {
+      "width": 100,
+      "height": 60
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.symbol-3-way-valve",
+    "name": "3 Way Valve",
+    "aliases": [
+      "3 way valve",
+      "symbol 3 way valve"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-symbol-3-way-valve.svg",
+    "viewBox": "0 0 100 80",
+    "defaultSize": {
+      "width": 100,
+      "height": 80
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  },
+  {
+    "key": "drawio.pid2.valves.symbol-3-way-valve-manual",
+    "name": "3 Way Valve (Manual)",
+    "aliases": [
+      "3 way valve (manual)",
+      "symbol 3 way valve manual"
+    ],
+    "category": "Válvulas",
+    "assetUrl": "/pid/symbols/drawio-pid2-valves-symbol-3-way-valve-manual.svg",
+    "viewBox": "0 0 100 120",
+    "defaultSize": {
+      "width": 100,
+      "height": 120
+    },
+    "portTemplates": [
+      {
+        "key": "w",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "e",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 1,
+          "y": 0.65
+        }
+      },
+      {
+        "key": "s",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        }
+      },
+      {
+        "key": "signal",
+        "direction": "bidirectional",
+        "connectionClass": "signal",
+        "capacity": 8,
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        }
+      }
+    ],
+    "standards": [
+      "free"
+    ],
+    "catalogVersion": "local-v1",
+    "source": {
+      "sourceKind": "drawio",
+      "sourceName": "Draw.io P&ID",
+      "license": {
+        "name": "Apache-2.0",
+        "reference": "https://github.com/jgraph/drawio/blob/a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb/LICENSE"
+      },
+      "attribution": "Draw.io P&ID pid2 shape, commit a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb."
+    }
+  }
+]

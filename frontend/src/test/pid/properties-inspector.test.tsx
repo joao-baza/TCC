@@ -236,7 +236,7 @@ describe("integração do inspetor no studio", () => {
     render(<PidServicesProvider services={services}><RouterProvider router={router} /></PidServicesProvider>);
 
     await screen.findByRole("button", { name: "Bomba P-1" });
-    fireEvent.click(await screen.findByRole("button", { name: /focar: a porta obrigatória suction está desconectada/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /focar: a porta obrigatória sw está desconectada/i }));
     expect(screen.getByRole("heading", { name: "Porta" })).toBeInTheDocument();
 
     const capacity = screen.getByLabelText("Capacidade");
@@ -320,19 +320,20 @@ function documentFixture(): PidDocument {
 
 function editorDocument(): PidDocument {
   const document = documentFixture();
-  document.nodes[ids.node].symbolKey = "project.pump.centrifugal";
+  document.nodes[ids.node].symbolKey = "drawio.pid.pumps.cavity-pump";
   document.ports = {
     "30000000-0000-4000-8000-000000000002": {
       id: "30000000-0000-4000-8000-000000000002",
       nodeId: ids.node,
-      templateKey: "suction",
-      direction: "input",
+      templateKey: "sw",
+      direction: "bidirectional",
       connectionClass: "process",
       capacity: 1,
     },
     [ids.port]: {
       ...document.ports[ids.port],
-      templateKey: "discharge",
+      templateKey: "se",
+      direction: "bidirectional",
     },
   };
   document.edges = {};
@@ -351,10 +352,10 @@ function overloadedEditorDocument(): PidDocument {
   const secondInlet = "30000000-0000-4000-8000-000000000005";
   const secondOutlet = "30000000-0000-4000-8000-000000000006";
   document.nodes[firstTank] = {
-    ...document.nodes[ids.node], id: firstTank, symbolKey: "project.tank.storage", x: 260, tag: "T-1", label: "Tanque 1",
+    ...document.nodes[ids.node], id: firstTank, symbolKey: "drawio.pid.vessels.tank", x: 260, tag: "T-1", label: "Tanque 1",
   };
   document.nodes[secondTank] = {
-    ...document.nodes[ids.node], id: secondTank, symbolKey: "project.tank.storage", x: 520, tag: "T-2", label: "Tanque 2",
+    ...document.nodes[ids.node], id: secondTank, symbolKey: "drawio.pid.vessels.tank", x: 520, tag: "T-2", label: "Tanque 2",
   };
   document.ports[sourcePort] = { ...document.ports[ids.port], id: sourcePort, templateKey: "discharge", capacity: 1 };
   document.ports[firstInlet] = { id: firstInlet, nodeId: firstTank, templateKey: "inlet", direction: "input", connectionClass: "process", capacity: 2 };
