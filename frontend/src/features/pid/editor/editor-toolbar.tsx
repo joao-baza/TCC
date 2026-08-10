@@ -26,6 +26,26 @@ export {
   getEditorPositionedSelectionIds,
 } from "./editor-toolbar-utils";
 
+function IconButton({ label, shortcut, disabled, onClick, iconClass, children }: {
+  label: string;
+  shortcut?: string;
+  disabled?: boolean;
+  onClick: () => void;
+  iconClass: string;
+  children: React.ReactNode;
+}) {
+  const button = <Button variant="ghost" size="icon-sm" disabled={disabled} onClick={onClick} aria-label={label}>
+    {children}
+  </Button>;
+
+  return <Tooltip>
+    <TooltipTrigger render={disabled ? <span>{button}</span> : button}>
+      {children}
+    </TooltipTrigger>
+    <TooltipContent>{label}{shortcut ? ` (${shortcut})` : ""}</TooltipContent>
+  </Tooltip>;
+}
+
 export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions, iconSize = "md" }: {
   readonly editable: boolean;
   readonly capabilities: EditorToolbarActions extends infer _ ? import("./editor-toolbar-utils").EditorSelectionCapabilities : never;
@@ -49,91 +69,26 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
 
   return <div role="toolbar" aria-label="Ferramentas do editor P&ID" className="pid-editor-toolbar inline-flex items-center gap-0.5">
     {editable && <>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canUndo} onClick={actions.undo} aria-label="Desfazer" />}>
-          <Undo2 className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Desfazer</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canRedo} onClick={actions.redo} aria-label="Refazer" />}>
-          <Redo2 className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Refazer</TooltipContent>
-      </Tooltip>
+      <IconButton label="Desfazer" shortcut="Ctrl+Z" disabled={!canUndo} onClick={actions.undo} iconClass={cls}><Undo2 className={cls} /></IconButton>
+      <IconButton label="Refazer" shortcut="Ctrl+Shift+Z" disabled={!canRedo} onClick={actions.redo} iconClass={cls}><Redo2 className={cls} /></IconButton>
       <Separator />
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canDelete} onClick={actions.deleteSelection} aria-label="Excluir seleção" />}>
-          <Trash2 className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Excluir seleção</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canDuplicate} onClick={actions.duplicate} aria-label="Duplicar" />}>
-          <CopyPlus className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Duplicar</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canCopy} onClick={actions.copy} aria-label="Copiar" />}>
-          <Copy className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Copiar</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canPaste} onClick={actions.paste} aria-label="Colar" />}>
-          <ClipboardPaste className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Colar</TooltipContent>
-      </Tooltip>
+      <IconButton label="Excluir seleção" shortcut="Delete" disabled={!capabilities.canDelete} onClick={actions.deleteSelection} iconClass={cls}><Trash2 className={cls} /></IconButton>
+      <IconButton label="Duplicar" shortcut="Ctrl+D" disabled={!capabilities.canDuplicate} onClick={actions.duplicate} iconClass={cls}><CopyPlus className={cls} /></IconButton>
+      <IconButton label="Copiar" shortcut="Ctrl+C" disabled={!capabilities.canCopy} onClick={actions.copy} iconClass={cls}><Copy className={cls} /></IconButton>
+      <IconButton label="Colar" shortcut="Ctrl+V" disabled={!canPaste} onClick={actions.paste} iconClass={cls}><ClipboardPaste className={cls} /></IconButton>
       <Separator />
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canRotate} onClick={() => actions.rotate(90)} aria-label="Girar 90°" />}>
-          <RotateCw className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Girar 90°</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canRotate} onClick={() => actions.rotate(-90)} aria-label="Girar -90°" />}>
-          <RotateCcw className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Girar -90°</TooltipContent>
-      </Tooltip>
+      <IconButton label="Girar 90°" shortcut="Ctrl+]" disabled={!capabilities.canRotate} onClick={() => actions.rotate(90)} iconClass={cls}><RotateCw className={cls} /></IconButton>
+      <IconButton label="Girar -90°" shortcut="Ctrl+[" disabled={!capabilities.canRotate} onClick={() => actions.rotate(-90)} iconClass={cls}><RotateCcw className={cls} /></IconButton>
       <AlignedSelect capabilities={capabilities} actions={actions} cls={cls} />
       <Separator />
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canGroup} onClick={actions.group} aria-label="Agrupar" />}>
-          <Group className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Agrupar</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={actions.insertAnnotation} aria-label="Adicionar anotação" />}>
-          <StickyNote className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Adicionar anotação</TooltipContent>
-      </Tooltip>
+      <IconButton label="Agrupar" shortcut="Ctrl+G" disabled={!capabilities.canGroup} onClick={actions.group} iconClass={cls}><Group className={cls} /></IconButton>
+      <IconButton label="Adicionar anotação" shortcut="Ctrl+Shift+A" onClick={actions.insertAnnotation} iconClass={cls}><StickyNote className={cls} /></IconButton>
       <ConnectionClassSelect connectionClass={connectionClass} actions={actions} />
     </>}
     <Separator />
-    <Tooltip>
-      <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={actions.fit} aria-label="Ajustar diagrama à tela" />}>
-        <Maximize2 className={cls} />
-      </TooltipTrigger>
-      <TooltipContent>Ajustar diagrama à tela</TooltipContent>
-    </Tooltip>
-    <Tooltip>
-      <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={actions.zoomIn} aria-label="Aumentar zoom" />}>
-        <ZoomIn className={cls} />
-      </TooltipTrigger>
-      <TooltipContent>Aumentar zoom</TooltipContent>
-    </Tooltip>
-    <Tooltip>
-      <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={actions.zoomOut} aria-label="Diminuir zoom" />}>
-        <ZoomOut className={cls} />
-      </TooltipTrigger>
-      <TooltipContent>Diminuir zoom</TooltipContent>
-    </Tooltip>
+    <IconButton label="Ajustar diagrama à tela" onClick={actions.fit} iconClass={cls}><Maximize2 className={cls} /></IconButton>
+    <IconButton label="Aumentar zoom" onClick={actions.zoomIn} iconClass={cls}><ZoomIn className={cls} /></IconButton>
+    <IconButton label="Diminuir zoom" onClick={actions.zoomOut} iconClass={cls}><ZoomOut className={cls} /></IconButton>
     <Separator />
     <div role="group" aria-label="Exportação" className="inline-flex items-center gap-0.5">
       <label className="inline-flex items-center gap-1 cursor-pointer">
@@ -149,18 +104,8 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
           <option value="transparent">Transparente</option>
         </select>
       </label>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canExport || exporting} onClick={onExportSvg} aria-label="Exportar SVG" />}>
-          <FileImage className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Exportar SVG</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canExport || exporting} onClick={onExportPng} aria-label="Exportar PNG" />}>
-          <ImageDown className={cls} />
-        </TooltipTrigger>
-        <TooltipContent>Exportar PNG</TooltipContent>
-      </Tooltip>
+      <IconButton label="Exportar SVG" disabled={!canExport || exporting} onClick={onExportSvg} iconClass={cls}><FileImage className={cls} /></IconButton>
+      <IconButton label="Exportar PNG" disabled={!canExport || exporting} onClick={onExportPng} iconClass={cls}><ImageDown className={cls} /></IconButton>
     </div>
     {exporting && <span role="status">Preparando exportação…</span>}
     {exportErrors.length > 0 && <div role="group" aria-label="Erros que bloqueiam a exportação" aria-live="assertive" className="pid-export-errors"><p>Corrija os erros antes de exportar:</p><ul>{exportErrors.map((message, index) => <li key={`${index}:${message}`}>{message}</li>)}</ul></div>}

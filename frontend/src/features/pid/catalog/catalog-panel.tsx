@@ -136,7 +136,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
     <section aria-label="Catálogo de símbolos P&ID" className="flex flex-col gap-3 min-h-0">
       <div className="flex gap-2">
         {headerAction}
-        <input aria-label="Pesquisar símbolos" type="search" value={query} onChange={(event) => { setPendingFocusId(undefined); setQuery(event.target.value); }} placeholder="Pesquisar símbolos" className="min-h-11 flex-1 rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+        <input aria-label="Pesquisar símbolos" type="search" value={query} onChange={(event) => { setPendingFocusId(undefined); setQuery(event.target.value); }} placeholder="Pesquisar símbolos" className="min-h-11 flex-1 rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:border-ring" />
         {query !== "" && <button type="button" onClick={() => setQuery("")} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Limpar busca</button>}
       </div>
       {sourceFilters.length > 0 && <div aria-label="Fontes do catálogo" className="flex gap-2">
