@@ -506,14 +506,14 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
           } index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} thumbSize={settings.catalogThumbSize} />
           <CatalogZoomSlider value={settings.catalogThumbSize} onChange={(value) => updateSetting("catalogThumbSize", value)} />
         </ScrollArea>}
-        {catalogCollapsed && <Tooltip>
+        {catalogCollapsed && <div className="flex-1 flex items-center justify-center"><Tooltip>
           <TooltipTrigger render={
             <Button variant="ghost" size="icon-sm" aria-label="Abrir catálogo" onClick={() => setCatalogCollapsed(false)}>
               <PanelLeftOpen className="size-4" />
             </Button>
           } />
           <TooltipContent>Abrir catálogo</TooltipContent>
-        </Tooltip>}
+        </Tooltip></div>}
       </aside>}
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
         {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
@@ -524,20 +524,28 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}
       </section>
       <aside role="region" aria-label="Inspetor" className="pid-studio-panel pid-inspector-panel">
-        <Tooltip>
+        {inspectorCollapsed ? <div className="flex-1 flex items-center justify-center"><Tooltip>
           <TooltipTrigger render={
-            <Button variant="ghost" size="icon-sm" aria-expanded={!inspectorCollapsed} aria-label={inspectorCollapsed ? "Abrir inspetor" : "Fechar inspetor"} onClick={() => {
-              if (!inspectorCollapsed && prepareInspectorDrafts().hasUnresolvedDrafts) {
+            <Button variant="ghost" size="icon-sm" aria-label="Abrir inspetor" onClick={() => setInspectorCollapsed(false)}>
+              <PanelRightOpen className="size-4" />
+            </Button>
+          } />
+          <TooltipContent>Abrir inspetor</TooltipContent>
+        </Tooltip></div>
+        : <><Tooltip>
+          <TooltipTrigger render={
+            <Button variant="ghost" size="icon-sm" aria-expanded={!inspectorCollapsed} aria-label="Fechar inspetor" onClick={() => {
+              if (prepareInspectorDrafts().hasUnresolvedDrafts) {
                 setAnnouncement("Corrija o rascunho no inspetor antes de fechá-lo.");
                 return;
               }
-              setInspectorCollapsed((v) => !v);
+              setInspectorCollapsed(true);
             }}>
-              {inspectorCollapsed ? <PanelRightOpen className="size-4" /> : <PanelRightClose className="size-4" />}
+              <PanelRightClose className="size-4" />
             </Button>
           } />
-          <TooltipContent>{inspectorCollapsed ? "Abrir inspetor" : "Fechar inspetor"}</TooltipContent>
-        </Tooltip>
+          <TooltipContent>Fechar inspetor</TooltipContent>
+        </Tooltip></>}
         {!inspectorCollapsed && <ScrollArea className="flex-1 min-h-0">
           <div className="pid-inspector-content">
             <PropertiesInspector ref={inspectorRef} document={editor.document} selection={editor.selection} editable={editorEnabled} commitAllowed={editLease && lifecycle === "active"} onCommand={dispatchInspector} onDraftStateChange={setHasInspectorDrafts} />
