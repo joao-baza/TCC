@@ -2,9 +2,11 @@ import {
   commandError,
   DomainCommandError,
   invariantIssue,
+  type AddUtilityCategoryCommand,
   type CatalogSymbol,
   type CommandContext,
   type PidCommand,
+  type RemoveUtilityCategoryCommand,
 } from "./command-contract";
 import { createIdAllocator, reduceCommand } from "./command-reducers";
 import { buildGraphIndex, recalculateGroupBounds } from "./graph-operations";
@@ -80,6 +82,17 @@ export const patchElement = (id: string, patch: Record<string, unknown>): PidCom
 });
 
 export const renameDocument = (title: string): PidCommand => ({ type: "document.rename", title });
+
+export const addUtilityCategory = (name: string, color: string): AddUtilityCategoryCommand => ({
+  type: "utility.addCategory",
+  name,
+  color,
+});
+
+export const removeUtilityCategory = (categoryId: string): RemoveUtilityCategoryCommand => ({
+  type: "utility.removeCategory",
+  categoryId,
+});
 
 /**
  * Applies one immutable command. Canonical command outputs are cached by object

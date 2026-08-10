@@ -23,6 +23,7 @@ import type {
 } from "./model";
 import { DEFAULT_LINE_STYLE } from "./line-style";
 import { parsePidProperties, pidPointSchema } from "./schema";
+import { UTILITY_COLOR_PALETTE, type UtilityCategory } from "./utility-category";
 
 export function reduceCommand(
   document: PidDocument,
@@ -52,6 +53,39 @@ export function reduceCommand(
       return patchDocumentElement(document, command.id, command.patch);
     case "document.rename":
       return renamePidDocument(document, command.title);
+    case "utility.addCategory": {
+      const hexColor = UTILITY_COLOR_PALETTE[command.color] ?? UTILITY_COLOR_PALETTE.slate;
+      const category: UtilityCategory = {
+        id: crypto.randomUUID(),
+        name: command.name,
+        color: hexColor,
+      };
+      return {
+        ...document,
+        metadata: {
+          ...document.metadata,
+          utilityCategories: [...document.metadata.utilityCategories, category],
+        },
+      };
+    }
+    case "utility.removeCategory": {
+      const newEdges: Record<string, PidEdge> = {};
+      for (const [id, edge] of Object.entries(document.edges)) {
+        if (edge.utilityCategoryId === command.categoryId) {
+          newEdges[id] = { ...edge, utilityCategoryId: undefined };
+        } else {
+          newEdges[id] = edge;
+        }
+      }
+      return {
+        ...document,
+        metadata: {
+          ...document.metadata,
+          utilityCategories: document.metadata.utilityCategories.filter(c => c.id !== command.categoryId),
+        },
+        edges: newEdges,
+      };
+    }
   }
 }
 
@@ -469,7 +503,7 @@ type ElementKind = "node" | "port" | "edge" | "annotation" | "group";
 const safePatchFields: Record<ElementKind, ReadonlySet<string>> = {
   node: new Set(["x", "y", "width", "height", "rotation", "tag", "label", "properties"]),
   port: new Set(["direction", "connectionClass", "capacity"]),
-  edge: new Set(["route", "tag", "label", "properties"]),
+  edge: new Set(["route", "tag", "label", "properties", "utilityCategoryId"]),
   annotation: new Set(["kind", "text", "x", "y", "width", "height", "rotation", "properties"]),
   group: new Set(["label", "properties"]),
 };

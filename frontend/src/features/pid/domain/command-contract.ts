@@ -36,6 +36,17 @@ export interface CatalogSymbol {
   readonly properties?: ReadonlyPidProperties;
 }
 
+export interface AddUtilityCategoryCommand {
+  type: "utility.addCategory";
+  name: string;
+  color: string;
+}
+
+export interface RemoveUtilityCategoryCommand {
+  type: "utility.removeCategory";
+  categoryId: string;
+}
+
 export type PidCommand =
   | { type: "symbol.insert"; symbol: CatalogSymbol; position: Point }
   | { type: "annotation.insert"; text: string; position: Point }
@@ -47,7 +58,9 @@ export type PidCommand =
   | { type: "selection.duplicate"; ids: string[]; offset: Point }
   | { type: "selection.delete"; ids: string[] }
   | { type: "element.patch"; id: string; patch: Record<string, unknown> }
-  | { type: "document.rename"; title: string };
+  | { type: "document.rename"; title: string }
+  | AddUtilityCategoryCommand
+  | RemoveUtilityCategoryCommand;
 
 export interface CommandContext {
   generateId?: () => string;
