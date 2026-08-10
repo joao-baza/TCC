@@ -621,7 +621,7 @@ describe("LocalPidApi", () => {
 });
 
 describe("composição de serviços P&ID", () => {
-  it.each([undefined, "", "remote", "LOCAL"])(
+  it.each([undefined, "", "LOCAL", "invalid"])(
     "recusa adaptador ausente ou não suportado: %s",
     (adapter) => expect(() => createPidServices(adapter)).toThrowError("Adaptador P&ID não configurado"),
   );

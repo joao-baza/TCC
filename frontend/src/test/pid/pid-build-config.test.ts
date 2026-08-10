@@ -12,7 +12,7 @@ describe("configuração rastreada do adaptador P&ID", () => {
 
   it("desabilita explicitamente P&ID no ambiente de produção", () => {
     expect(existsSync(resolve(repositoryRoot, "frontend/.env.production"))).toBe(true);
-    expect(read("frontend/.env.production")).toMatch(/^VITE_PID_ADAPTER=disabled\s*$/m);
+    expect(read("frontend/.env.production")).toMatch(/^VITE_PID_ADAPTER=remote\s*$/m);
   });
 
   it("documenta a seleção no exemplo de ambiente", () => {
