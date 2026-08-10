@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from pid.config import PidSettings
 from pid.database import create_pid_engine, create_session_factory
+from pid.ws.manager import ConnectionManager
 
 
 @dataclass
@@ -15,6 +16,7 @@ class PidRuntime:
     engine: AsyncEngine
     session_factory: async_sessionmaker[AsyncSession]
     redis: Redis
+    ws_manager: ConnectionManager
 
     @classmethod
     def from_settings(cls, settings: PidSettings) -> "PidRuntime":
@@ -22,10 +24,13 @@ class PidRuntime:
             raise ValueError("PID runtime requires validated database and Redis settings")
 
         engine = create_pid_engine(settings.database_url)
+        redis_client = Redis.from_url(settings.redis_url)
+        manager = ConnectionManager(redis_client)
         return cls(
             engine=engine,
             session_factory=create_session_factory(engine),
-            redis=Redis.from_url(settings.redis_url),
+            redis=redis_client,
+            ws_manager=manager,
         )
 
     async def check_ready(self) -> None:

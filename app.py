@@ -23,6 +23,7 @@ from routers import (
 from routers.i18n import translate_error_message, translate_validation_errors
 from pid.config import PidSettings
 from pid.runtime import PidRuntime
+from pid.ws.handler import pid_websocket_handler
 
 
 DEFAULT_CORS_ORIGINS = (
@@ -113,10 +114,13 @@ def create_app() -> FastAPI:
             return
 
         runtime = PidRuntime.from_settings(settings)
+        created_app.state.pid_ws_manager = runtime.ws_manager
+        await runtime.ws_manager.start()
         created_app.state.pid_runtime = runtime
         try:
             yield
         finally:
+            await runtime.ws_manager.stop()
             await runtime.close()
 
     created_app = FastAPI(
@@ -148,6 +152,7 @@ def create_app() -> FastAPI:
     created_app.include_router(pid_router.router)
     created_app.add_api_route("/health", health, methods=["GET"])
     created_app.add_api_route("/ready", ready, methods=["GET"])
+    created_app.add_api_websocket_route("/pid/ws/{diagram_id}", pid_websocket_handler)
     created_app.add_exception_handler(HTTPException, http_exception_handler)
     created_app.add_exception_handler(
         RequestValidationError, request_validation_exception_handler
