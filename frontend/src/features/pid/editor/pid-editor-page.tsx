@@ -7,6 +7,7 @@ import { usePidServices } from "../api/pid-services";
 import { PidCanvas, type PidCanvasSelection, type PidCanvasViewportAction } from "../canvas/pid-canvas";
 import { createCatalogIndex } from "../catalog/catalog-index";
 import { CatalogPanel } from "../catalog/catalog-panel";
+import { CatalogZoomSlider } from "../catalog/catalog-zoom-slider";
 import { localCatalog } from "../catalog/fixtures/catalog";
 import { createLocalCollaboration } from "../collaboration/local-collaboration";
 import {
@@ -135,7 +136,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const subscribe = useCallback((notify: () => void) => store.subscribe(() => notify()), [store]);
   const editor = useSyncExternalStore(subscribe, store.getState, store.getState);
   const { editable: capabilityEditable, viewportWidth } = useEditCapability(opened.scope);
-  const { settings } = usePidSettings();
+  const { settings, updateSetting } = usePidSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const textSizeClass = settings.textSize === "sm" ? "text-xs" : settings.textSize === "lg" ? "text-base" : "text-sm";
   const compactReadOnly = viewportWidth < MINIMUM_EDIT_VIEWPORT_WIDTH;
@@ -491,7 +492,10 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       {compactReadOnly && <p className="pid-compact-readonly-notice" role="status">Edição disponível em telas a partir de 768 px</p>}
       {editorEnabled && <aside role="region" aria-label="Catálogo de símbolos" className="pid-studio-panel pid-catalog-panel">
         <button type="button" aria-expanded={!catalogCollapsed} onClick={() => setCatalogCollapsed((value) => !value)}>{catalogCollapsed ? "Abrir catálogo" : "Fechar catálogo"}</button>
-        {!catalogCollapsed && <CatalogPanel index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} />}
+        {!catalogCollapsed && <>
+          <CatalogPanel index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} thumbSize={settings.catalogThumbSize} />
+          <CatalogZoomSlider value={settings.catalogThumbSize} onChange={(value) => updateSetting("catalogThumbSize", value)} />
+        </>}
       </aside>}
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
         {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>

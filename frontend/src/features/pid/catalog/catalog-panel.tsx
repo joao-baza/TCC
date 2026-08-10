@@ -19,6 +19,7 @@ type CatalogPanelCommonProps = {
   readonly onSourceChange?: (source: CatalogSourceKind | undefined) => void;
   readonly category?: string;
   readonly sourceFilters?: readonly CatalogSourceKind[];
+  readonly thumbSize?: number;
 };
 
 export type CatalogPanelProps = CatalogPanelCommonProps & CatalogInput;
@@ -28,7 +29,7 @@ type CatalogRow =
   | { readonly kind: "symbol"; readonly id: string; readonly category: string; readonly symbol: CatalogSymbol };
 
 export function CatalogPanel(props: CatalogPanelProps) {
-  const { standard, onInsert, source, initialSource, onSourceChange, category, sourceFilters = [] } = props;
+  const { standard, onInsert, source, initialSource, onSourceChange, category, sourceFilters = [], thumbSize } = props;
   const inputSymbols = props.index === undefined ? props.symbols : undefined;
   const generatedIndex = useMemo(
     () => inputSymbols === undefined ? undefined : createCatalogIndex(inputSymbols),
@@ -146,7 +147,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
               return <div key={row.id} ref={virtualizer.measureElement} data-index={virtualRow.index} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${virtualRow.start}px)` }}>
                 {row.kind === "category" ? <button id={`${panelId}-${row.id}`} role="treeitem" aria-level={1} aria-expanded={!collapsed.has(canonicalCategory(row.category))} tabIndex={activeId === row.id ? 0 : -1} onFocus={() => setActiveId(row.id)} onClick={() => toggleCategory(row.category)} onKeyDown={(event) => onRowKeyDown(event, row, virtualRow.index)} className="min-h-11 w-full px-3 text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">{row.category}</button>
                   : <button id={`${panelId}-${row.id}`} role="treeitem" aria-level={2} tabIndex={activeId === row.id ? 0 : -1} onFocus={() => setActiveId(row.id)} onClick={() => onInsert(row.symbol)} onKeyDown={(event) => onRowKeyDown(event, row, virtualRow.index)} className="flex min-h-[76px] w-full items-center gap-3 border-t px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                    <img src={row.symbol.assetUrl} alt="" loading="lazy" decoding="async" width={48} height={40} className="h-10 w-12 rounded bg-white object-contain" />
+                    <img src={row.symbol.assetUrl} alt="" loading="lazy" decoding="async" style={{ height: thumbSize ?? 40 }} className="rounded bg-white object-contain" />
                     <span className="min-w-0 flex-1"><span className="block font-medium">Inserir {row.symbol.name}</span><span className="block text-xs text-muted-foreground">{row.symbol.source.sourceName} · {row.symbol.standards.join(" / ")}</span></span>
                   </button>}
               </div>;
