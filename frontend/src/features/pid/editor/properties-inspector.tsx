@@ -226,6 +226,18 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       <SelectField label="Estilo de linha" field="lineStyle" value={selected.value.lineStyle}
         title={LINE_STYLE_INFO[selected.value.lineStyle as LineStyle].description}
         options={LINE_STYLES.map((style) => [style, LINE_STYLE_INFO[style].label] as const)} {...common} />
+      {selected.value.connectionClass === "utility" && (
+        <SelectField
+          label="Categoria"
+          field="utilityCategoryId"
+          value={selected.value.utilityCategoryId ?? ""}
+          options={[
+            ["", "Nenhuma"],
+            ...document.metadata.utilityCategories.map((c) => [c.id, c.name] as const),
+          ]}
+          {...common}
+        />
+      )}
       <PropertiesField value={selected.value.properties} {...common} />
     </FieldGroup>}
     {selected?.kind === "group" && <FieldGroup key={selected.value.id} title="Grupo" id={selected.value.id}>
@@ -398,7 +410,7 @@ function selectedFieldValues(selected: NonNullable<ReturnType<typeof resolveSele
         capacity: selected.value.capacity,
       };
     case "edge":
-      return { tag: selected.value.tag, label: selected.value.label, connectionClass: selected.value.connectionClass, lineStyle: selected.value.lineStyle, properties: selected.value.properties };
+      return { tag: selected.value.tag, label: selected.value.label, connectionClass: selected.value.connectionClass, lineStyle: selected.value.lineStyle, properties: selected.value.properties, utilityCategoryId: selected.value.utilityCategoryId ?? "" };
     case "group":
       return { label: selected.value.label, properties: selected.value.properties };
     case "annotation":
