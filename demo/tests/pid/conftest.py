@@ -11,6 +11,11 @@ from pid.database import create_pid_engine, create_session_factory
 from pid.services.diagram_service import DiagramService
 
 
+@pytest.fixture
+def token_pepper() -> str:
+    return "test-pepper-" + "x" * 24  # at least 32 chars
+
+
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 

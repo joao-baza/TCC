@@ -17,6 +17,13 @@ class CreatedDiagram:
     edit_token: str
 
 
+@dataclass(frozen=True)
+class OpenedDiagram:
+    scope: AccessScope
+    document: dict
+    revision: int
+
+
 class DiagramNotFoundError(LookupError):
     def __init__(self, diagram_id: UUID) -> None:
         super().__init__(f"diagram {diagram_id} not found")
@@ -94,6 +101,60 @@ class DiagramService:
                 token_hash,
             )
         return token.scope if token is not None else None
+
+    async def open_document(
+        self,
+        diagram_id: UUID,
+        plain_token: str,
+    ) -> OpenedDiagram | None:
+        scope = await self.authorize(diagram_id, plain_token)
+        if scope is None:
+            return None
+
+        from pid.repositories.snapshots import SnapshotRepository
+        snapshots = SnapshotRepository(self._session_factory)
+        result = await snapshots.load_latest_valid(diagram_id)
+        if result is None:
+            return None
+        document, revision = result
+        return OpenedDiagram(scope=scope, document=document, revision=revision)
+
+    async def save_document(
+        self,
+        diagram_id: UUID,
+        plain_token: str,
+        document: dict,
+        expected_revision: int,
+    ) -> int | None:
+        scope = await self.authorize(diagram_id, plain_token)
+        if scope is not AccessScope.EDIT:
+            return None
+
+        from pid.repositories.snapshots import SnapshotRepository
+        snapshots = SnapshotRepository(self._session_factory)
+        current_revision = await snapshots.get_latest_revision(diagram_id)
+        current = current_revision if current_revision is not None else 0
+
+        if current != expected_revision:
+            return None
+
+        new_revision = await snapshots.append(
+            diagram_id,
+            yjs_state=b"",
+            document_projection=document,
+            schema_version=1,
+            is_valid=True,
+        )
+
+        async with self._session_factory() as session:
+            async with session.begin():
+                from pid.repositories.diagrams import DiagramRepository
+                diagrams = DiagramRepository(session)
+                diagram = await diagrams.get_active(diagram_id, for_update=True)
+                if diagram is not None:
+                    diagram.updated_at = datetime.now(timezone.utc)
+
+        return new_revision
 
     async def regenerate_token(
         self,
