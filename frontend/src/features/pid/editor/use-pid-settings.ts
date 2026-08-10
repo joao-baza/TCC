@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type PidIconSize = "sm" | "md" | "lg";
 export type PidTextSize = "sm" | "md" | "lg";
@@ -39,32 +39,19 @@ function isValidThumbSize(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 24 && value <= 72;
 }
 
-const subscribers = new Set<() => void>();
-
-function subscribe(callback: () => void): () => void {
-  subscribers.add(callback);
-  return () => subscribers.delete(callback);
-}
-
-function writeSettings(settings: PidSettings): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  subscribers.forEach((subscriber) => subscriber());
-}
-
 export function usePidSettings() {
-  const settings = useSyncExternalStore(
-    subscribe,
-    readSettings,
-    () => DEFAULTS,
-  );
+  const [settings, setSettings] = useState<PidSettings>(readSettings);
 
   const updateSetting = useCallback(<K extends keyof PidSettings>(key: K, value: PidSettings[K]) => {
     const current = readSettings();
-    writeSettings({ ...current, [key]: value });
+    const next = { ...current, [key]: value };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setSettings(next);
   }, []);
 
   const resetSettings = useCallback(() => {
-    writeSettings({ ...DEFAULTS });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULTS));
+    setSettings({ ...DEFAULTS });
   }, []);
 
   return { settings, updateSetting, resetSettings } as const;
