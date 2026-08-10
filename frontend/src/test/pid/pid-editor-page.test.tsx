@@ -213,7 +213,7 @@ function studioDocument(): PidDocument {
       [ids.tankIn]: { id: ids.tankIn, nodeId: ids.tank, templateKey: "inlet", direction: "input", connectionClass: "process", capacity: 2 },
     },
     edges: {
-      [ids.edge]: { id: ids.edge, sourcePortId: ids.pumpOut, targetPortId: ids.tankIn, connectionClass: "process", route: [], tag: "L-1", label: "Processo", properties: {} },
+      [ids.edge]: { id: ids.edge, sourcePortId: ids.pumpOut, targetPortId: ids.tankIn, connectionClass: "process", lineStyle: "solid-thick", route: [], tag: "L-1", label: "Processo", properties: {} },
     },
     annotations: {},
     groups: {},

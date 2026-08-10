@@ -4,7 +4,7 @@ import { expect, it } from "vitest";
 
 import { App } from "@/app/app";
 import { createQuickAccess } from "@/features/home/home-page";
-import { pidRoute } from "@/features/pid/routing/pid-route-disabled";
+import { pidFocusedEditorRoute } from "@/features/pid/routing/pid-route-disabled";
 import { HomePage } from "@/features/home/home-page";
 import { createModuleRoutes } from "@/lib/routes";
 
@@ -31,7 +31,7 @@ it("torna a rota P&ID indisponível sem inicializar o adaptador local", async ()
   const router = createMemoryRouter([{
     path: "/",
     element: <App />,
-    children: [pidRoute],
+    children: [pidFocusedEditorRoute],
   }], {
     initialEntries: ["/pid/7c1fdcea-c47a-49d2-b16f-22c30da1b3cb#edit=fake-local-token"],
   });

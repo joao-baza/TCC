@@ -8,7 +8,7 @@ import { PidRouteErrorPage } from "@/features/pid/api/pid-services";
 afterEach(() => vi.restoreAllMocks());
 
 it.each(["/pid", "/pid/7c1fdcea-c47a-49d2-b16f-22c30da1b3cb"])(
-  "declara a rota focada %s",
+  "declara a rota P&ID %s",
   (path) => expect(matchRoutes(routes, path)).not.toBeNull(),
 );
 
@@ -18,17 +18,25 @@ it("oferece P&ID na navegação geral", async () => {
   expect(await screen.findByRole("link", { name: /Editor P&ID/i })).toHaveAttribute("href", "/pid");
 });
 
-it.each(["/pid", "/pid/7c1fdcea-c47a-49d2-b16f-22c30da1b3cb"])(
-  "renderiza o editor focado sem a barra lateral em %s",
-  async (path) => {
-    const router = createMemoryRouter(routes, { initialEntries: [path] });
-    render(<RouterProvider router={router} />);
+it("renderiza /pid dentro do layout geral com navegação lateral", async () => {
+  const router = createMemoryRouter(routes, { initialEntries: ["/pid"] });
+  render(<RouterProvider router={router} />);
 
-    expect(await screen.findByRole("heading", { name: "Editor P&ID" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
-    expect(screen.queryByRole("navigation", { name: /Navegação principal/i })).not.toBeInTheDocument();
-  },
-);
+  expect(await screen.findByRole("heading", { name: "Editor P&ID" })).toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: /Navegação principal/i })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Novo diagrama" })).toHaveAttribute("href", "/pid");
+});
+
+it("mantém o editor por UUID focado sem a barra lateral", async () => {
+  const router = createMemoryRouter(routes, {
+    initialEntries: ["/pid/7c1fdcea-c47a-49d2-b16f-22c30da1b3cb"],
+  });
+  render(<RouterProvider router={router} />);
+
+  expect(await screen.findByRole("heading", { name: "Editor P&ID" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
+  expect(screen.queryByRole("navigation", { name: /Navegação principal/i })).not.toBeInTheDocument();
+});
 
 it("oferece o card P&ID no acesso rápido", async () => {
   const router = createMemoryRouter(routes, { initialEntries: ["/"] });
@@ -56,6 +64,7 @@ it("mostra orientação focada quando falta uma capacidade do runtime local", as
     );
     expect(screen.getByText(/Use um navegador atualizado/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("navigation", { name: /Navegação principal/i })).toBeInTheDocument();
   } finally {
     if (descriptor) Object.defineProperty(navigator, "locks", descriptor);
     else Reflect.deleteProperty(navigator, "locks");

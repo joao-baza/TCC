@@ -67,6 +67,7 @@ function createPopulatedDocument(): PidDocument {
         sourcePortId: ids.sourcePort,
         targetPortId: ids.targetPort,
         connectionClass: "process",
+        lineStyle: "solid-thick",
         route: [{ x: 110, y: 20 }, { x: 180, y: 20 }],
         tag: "L-100",
         label: "Linha de processo",

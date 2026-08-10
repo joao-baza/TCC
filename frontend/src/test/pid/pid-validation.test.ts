@@ -153,7 +153,7 @@ function baseDocument(): PidDocument {
       [ids.tankIn]: { id: ids.tankIn, nodeId: ids.tank, templateKey: "in", direction: "input", connectionClass: "process", capacity: 2 },
     },
     edges: {
-      [ids.edge]: { id: ids.edge, sourcePortId: ids.pumpOut, targetPortId: ids.tankIn, connectionClass: "process", route: [], tag: "L-1", label: "Linha", properties: {} },
+      [ids.edge]: { id: ids.edge, sourcePortId: ids.pumpOut, targetPortId: ids.tankIn, connectionClass: "process", lineStyle: "solid-thick", route: [], tag: "L-1", label: "Linha", properties: {} },
     },
     annotations: {},
     groups: {},
