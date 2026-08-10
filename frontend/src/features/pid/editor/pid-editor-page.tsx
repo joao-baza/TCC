@@ -507,7 +507,9 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
 }
 
 function canvasCenter(viewport: { x: number; y: number; zoom: number }) {
-  return { x: (400 - viewport.x) / viewport.zoom, y: (300 - viewport.y) / viewport.zoom };
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  return { x: (w / 2 - viewport.x) / viewport.zoom, y: (h / 2 - viewport.y) / viewport.zoom };
 }
 
 
