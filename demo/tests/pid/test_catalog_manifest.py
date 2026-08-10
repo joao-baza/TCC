@@ -20,7 +20,7 @@ CATALOG_ROOT = ROOT / "pid" / "catalog"
 def valid_symbol() -> dict:
     return {
         "key": "iso:reactor:batch",
-        "standard": "iso",
+        "standard": "free",
         "catalogVersion": "0.1.0",
         "name": "Reator batelada",
         "aliases": ["batch reactor"],
@@ -54,7 +54,7 @@ def valid_symbol() -> dict:
 
 def valid_manifest(*symbols: dict) -> dict:
     return {
-        "standard": "iso",
+        "standard": "free",
         "version": "0.1.0",
         "status": "draft",
         "symbols": list(symbols) if symbols else [valid_symbol()],
@@ -81,7 +81,7 @@ def test_valid_manifest_has_canonical_sha256(tmp_path: Path) -> None:
             "symbols": [valid_symbol()],
             "status": "draft",
             "version": "0.1.0",
-            "standard": "iso",
+            "standard": "free",
         },
         indent=4,
         sort_keys=True,
@@ -372,23 +372,35 @@ def test_cli_reports_unsafe_json_without_traceback(
 
 def test_foundation_manifests_are_valid() -> None:
     expected = {
-        "isa": {
-            "standard": "isa",
-            "version": "0.1.0-foundation",
-            "status": "draft",
-            "symbols": [],
-        },
-        "iso": {
-            "standard": "iso",
+        "free": {
+            "standard": "free",
             "version": "0.1.0-foundation",
             "status": "draft",
             "symbols": [],
         },
     }
 
+    manifests = sorted((CATALOG_ROOT / "manifests").glob("*/*.json"))
+    assert [path.parent.name for path in manifests] == ["free"]
     for standard, manifest in expected.items():
         path = CATALOG_ROOT / "manifests" / standard / "foundation.json"
         assert validate_manifest(path).data == manifest
+
+
+@pytest.mark.parametrize("standard", ["isa", "iso"])
+def test_manifest_rejects_removed_standard(tmp_path: Path, standard: str) -> None:
+    path = write_manifest(
+        tmp_path / f"{standard}.json",
+        {
+            "standard": standard,
+            "version": "0.1.0-foundation",
+            "status": "draft",
+            "symbols": [],
+        },
+    )
+
+    with pytest.raises(CatalogValidationError, match="standard"):
+        validate_manifest(path)
 
 
 def test_sources_are_pinned_to_the_approved_inventory() -> None:

@@ -7,7 +7,7 @@
   "required": ["standard", "version", "status", "symbols"],
   "properties": {
     "standard": {
-      "enum": ["isa", "iso", "free"]
+      "enum": ["free"]
     },
     "version": {
       "type": "string",
@@ -64,7 +64,7 @@
       ],
       "properties": {
         "key": {"$ref": "#/$defs/nonEmptyString"},
-        "standard": {"enum": ["isa", "iso", "free"]},
+        "standard": {"enum": ["free"]},
         "catalogVersion": {"$ref": "#/$defs/nonEmptyString"},
         "name": {"$ref": "#/$defs/nonEmptyString"},
         "aliases": {

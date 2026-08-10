@@ -167,12 +167,11 @@ The hostnames in `.env.example`, such as `tcc-postgres` and `tcc-redis`, are
 service names for the production Swarm network. They are not substitutes for
 the localhost URLs above.
 
-Validate both draft catalog manifests independently:
+Validate the free draft catalog manifest:
 
 ```bash
 python -m pid.catalog.validator \
-  pid/catalog/manifests/isa/foundation.json \
-  pid/catalog/manifests/iso/foundation.json
+  pid/catalog/manifests/free/foundation.json
 ```
 
 ##### Configuration and operations reference

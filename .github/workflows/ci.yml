@@ -54,8 +54,7 @@ jobs:
       - name: Validate P&ID catalog manifests
         run: >-
           python -m pid.catalog.validator
-          pid/catalog/manifests/isa/foundation.json
-          pid/catalog/manifests/iso/foundation.json
+          pid/catalog/manifests/free/foundation.json
 
   frontend-test:
     runs-on: ubuntu-latest

@@ -66,8 +66,9 @@ def test_backend_ci_runs_pid_integrations_with_postgres_and_redis() -> None:
     assert "      - run: pytest -q\n" in backend_job
     assert "      - name: Validate P&ID catalog manifests\n" in backend_job
     assert "          python -m pid.catalog.validator\n" in backend_job
-    assert "          pid/catalog/manifests/isa/foundation.json\n" in backend_job
-    assert "          pid/catalog/manifests/iso/foundation.json\n" in backend_job
+    assert "          pid/catalog/manifests/free/foundation.json\n" in backend_job
+    assert "pid/catalog/manifests/isa/" not in backend_job
+    assert "pid/catalog/manifests/iso/" not in backend_job
 
 
 def test_readme_documents_the_pid_foundation_workflow_and_boundaries() -> None:
@@ -87,8 +88,7 @@ def test_readme_documents_the_pid_foundation_workflow_and_boundaries() -> None:
         "redis://127.0.0.1:56379/0",
         "alembic upgrade head",
         "python -m pid.catalog.validator",
-        "pid/catalog/manifests/isa/foundation.json",
-        "pid/catalog/manifests/iso/foundation.json",
+        "pid/catalog/manifests/free/foundation.json",
         "`/health`",
         "`/ready`",
         "single quotes",

@@ -38,11 +38,9 @@ def test_catalog_validation_accepts_free_standard() -> None:
         (ROOT / "pid/catalog/manifest.schema.json").read_text(encoding="utf-8")
     )
 
-    assert schema["properties"]["standard"]["enum"] == ["isa", "iso", "free"]
+    assert schema["properties"]["standard"]["enum"] == ["free"]
     assert schema["$defs"]["symbol"]["properties"]["standard"]["enum"] == [
-        "isa",
-        "iso",
-        "free",
+        "free"
     ]
 
 
