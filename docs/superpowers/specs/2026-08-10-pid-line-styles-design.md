@@ -140,4 +140,3 @@ Quando o usuário conecta duas portas, o `lineStyle` da aresta é definido como 
 
 - **Marcadores repetidos no canvas**: SVG `<marker-mid>` tem suporte limitado em alguns renderizadores. A implementação com `<pattern>` ou múltiplos segmentos precisa ser validada no React Flow.
 - **Curva senoidal para guided/unguided-wave**: performance com muitos edges pode degradar. Considerar simplificação se necessário.
-- **Migração de documentos existentes**: arestas já salvas não terão o campo `lineStyle`. O schema/default precisa tratar isso (fallback via `connectionClass`).
