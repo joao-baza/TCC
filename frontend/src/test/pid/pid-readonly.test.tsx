@@ -484,6 +484,7 @@ function services(scope: "view" | "edit", overrides: Partial<PidDocumentPort> = 
     },
     catalog: { list: vi.fn() },
     collaboration: { connect: vi.fn() },
+    recent: { list: vi.fn().mockReturnValue([]), upsert: vi.fn() },
   };
 }
 

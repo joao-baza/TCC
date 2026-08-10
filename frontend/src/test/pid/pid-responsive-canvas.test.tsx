@@ -95,6 +95,7 @@ function services(): PidServices {
       regenerate: vi.fn(), softDelete: vi.fn(), restore: vi.fn(),
     },
     catalog: { list: vi.fn() }, collaboration: { connect: vi.fn() },
+    recent: { list: vi.fn().mockReturnValue([]), upsert: vi.fn() },
   };
 }
 

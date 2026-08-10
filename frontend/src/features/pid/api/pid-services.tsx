@@ -4,6 +4,7 @@ import { Link, useRouteError } from "react-router-dom";
 import type {
   PidCatalogPort,
   PidCollaborationPort,
+  PidRecentDiagramsPort,
   PidServices,
 } from "./contracts";
 import {
@@ -11,6 +12,7 @@ import {
   type LocalPidExclusiveLock,
   type LocalPidRuntime,
 } from "./local-pid-api";
+import { LocalRecentPidDiagrams } from "../recent/recent-pid-diagrams";
 
 const pidServicesErrorMessages = Object.freeze({
   ADAPTER_NOT_CONFIGURED: "Adaptador P&ID não configurado",
@@ -49,6 +51,7 @@ export interface CreatePidServicesOptions {
   lock?: LocalPidExclusiveLock;
   catalog?: PidCatalogPort;
   collaboration?: PidCollaborationPort;
+  recent?: PidRecentDiagramsPort;
 }
 
 export interface PidServicesProviderProps {
@@ -114,6 +117,7 @@ export function createPidServices(options: CreatePidServicesOptions | string | u
     document: new LocalPidApi(storage, runtime, lock),
     catalog: normalized.catalog ?? unavailableCatalog,
     collaboration: normalized.collaboration ?? unavailableCollaboration,
+    recent: normalized.recent ?? new LocalRecentPidDiagrams(storage, runtime.now),
   };
 }
 

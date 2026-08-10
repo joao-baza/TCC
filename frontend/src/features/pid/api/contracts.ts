@@ -114,8 +114,29 @@ export interface PidCollaborationPort {
   connect(input: CollaborationInput): CollaborationSession;
 }
 
+export interface RecentPidDiagram {
+  diagramId: string;
+  title: string;
+  scope: AccessScope;
+  url: string;
+  lastOpenedAt: string;
+}
+
+export interface UpsertRecentPidDiagramInput {
+  diagramId: string;
+  title: string;
+  scope: AccessScope;
+  url: string;
+}
+
+export interface PidRecentDiagramsPort {
+  list(): RecentPidDiagram[];
+  upsert(input: UpsertRecentPidDiagramInput): void;
+}
+
 export interface PidServices {
   document: PidDocumentPort;
   catalog: PidCatalogPort;
   collaboration: PidCollaborationPort;
+  recent: PidRecentDiagramsPort;
 }

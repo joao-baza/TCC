@@ -229,6 +229,7 @@ describe("integração do inspetor no studio", () => {
       },
       catalog: { list: vi.fn() },
       collaboration: { connect: vi.fn() },
+      recent: { list: vi.fn().mockReturnValue([]), upsert: vi.fn() },
     };
     const router = createMemoryRouter([{ path: "/pid/:diagramId", element: <PidEditorPage /> }], {
       initialEntries: [`/pid/${ids.document}#access=edit-token`],
@@ -268,6 +269,7 @@ describe("integração do inspetor no studio", () => {
       },
       catalog: { list: vi.fn() },
       collaboration: { connect: vi.fn() },
+      recent: { list: vi.fn().mockReturnValue([]), upsert: vi.fn() },
     };
     const router = createMemoryRouter([{ path: "/pid/:diagramId", element: <PidEditorPage /> }], {
       initialEntries: [`/pid/${ids.document}#access=edit-token`],

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { AccessScope } from "../api/contracts";
+import type { AccessScope, PidRecentDiagramsPort } from "../api/contracts";
 
 export const recentPidDiagramsStorageKey = "dcou.pid.recent.v1";
 export const recentPidDiagramsLimit = 50;
@@ -36,7 +36,7 @@ export interface UpsertRecentPidDiagramInput {
   readonly url: string;
 }
 
-export class LocalRecentPidDiagrams {
+export class LocalRecentPidDiagrams implements PidRecentDiagramsPort {
   constructor(
     private readonly storage: Storage,
     private readonly now: () => Date,

@@ -46,6 +46,7 @@ function services(overrides: Partial<PidServices["document"]> = {}, scope: "view
     },
     catalog: { list: vi.fn() },
     collaboration: { connect: vi.fn() },
+    recent: { list: vi.fn().mockReturnValue([]), upsert: vi.fn() },
   };
 }
 

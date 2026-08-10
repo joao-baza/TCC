@@ -45,6 +45,7 @@ function services(documentPort: Partial<PidDocumentPort> = {}): PidServices {
     },
     catalog: { list: vi.fn() },
     collaboration: { connect: vi.fn() } as unknown as PidCollaborationPort,
+    recent: { list: vi.fn().mockReturnValue([]), upsert: vi.fn() },
   };
 }
 

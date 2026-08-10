@@ -631,6 +631,24 @@ describe("composição de serviços P&ID", () => {
     expect(createPidServices({ adapter: "local", storage, runtime, lock }).document).toBeInstanceOf(LocalPidApi);
   });
 
+  it("expõe o índice local de diagramas recentes no serviço P&ID", () => {
+    const { storage, runtime, lock } = createHarness();
+    const services = createPidServices({ adapter: "local", storage, runtime, lock });
+
+    services.recent.upsert({
+      diagramId,
+      title: "Utilidades",
+      scope: "edit",
+      url: `/pid/${diagramId}#access=edit-token`,
+    });
+
+    expect(services.recent.list()).toEqual([expect.objectContaining({
+      diagramId,
+      title: "Utilidades",
+      scope: "edit",
+    })]);
+  });
+
   it("expõe falhas de configuração e capacidades do navegador como erro tipado", () => {
     const adapterError = (() => {
       try {
