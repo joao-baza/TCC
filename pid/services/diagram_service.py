@@ -35,7 +35,6 @@ class DiagramService:
     async def create(
         self,
         title: str,
-        standard: PidStandard,
         catalog_version: str,
     ) -> CreatedDiagram:
         normalized_title = title.strip()
@@ -56,7 +55,7 @@ class DiagramService:
                     PidDiagram(
                         id=diagram_id,
                         title=normalized_title,
-                        standard=standard,
+                        standard=PidStandard.FREE,
                         catalog_version=catalog_version,
                         schema_version=1,
                     )

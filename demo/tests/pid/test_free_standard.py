@@ -1,6 +1,8 @@
 from pathlib import Path
 import json
 
+import pytest
+
 from pid.models import PidStandard
 from pid.repositories.diagrams import DiagramRepository
 from pid.services.diagram_service import DiagramService
@@ -9,8 +11,13 @@ from pid.services.diagram_service import DiagramService
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_pid_standard_exposes_free_value() -> None:
+def test_pid_standard_exposes_only_free() -> None:
+    assert list(PidStandard) == [PidStandard.FREE]
     assert PidStandard("free") is PidStandard.FREE
+    with pytest.raises(ValueError):
+        PidStandard("isa")
+    with pytest.raises(ValueError):
+        PidStandard("iso")
 
 
 def test_migrations_cover_fresh_and_existing_databases() -> None:
@@ -44,7 +51,6 @@ async def test_diagram_service_persists_free_standard(session_factory) -> None:
 
     created = await service.create(
         title="Fluxograma livre",
-        standard=PidStandard.FREE,
         catalog_version="local-v1",
     )
 

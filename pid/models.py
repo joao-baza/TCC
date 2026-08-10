@@ -22,8 +22,6 @@ class Base(DeclarativeBase):
 
 
 class PidStandard(str, enum.Enum):
-    ISA = "isa"
-    ISO = "iso"
     FREE = "free"
 
 

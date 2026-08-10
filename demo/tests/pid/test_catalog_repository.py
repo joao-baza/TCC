@@ -9,10 +9,10 @@ from pid.repositories.catalogs import CatalogHashConflict, CatalogRepository
 
 async def test_activate_catalog_version_is_idempotent(session_factory) -> None:
     repository = CatalogRepository(session_factory)
-    await repository.activate(PidStandard.ISO, "0.1.0", "a" * 64)
-    await repository.activate(PidStandard.ISO, "0.1.0", "a" * 64)
+    await repository.activate(PidStandard.FREE, "0.1.0", "a" * 64)
+    await repository.activate(PidStandard.FREE, "0.1.0", "a" * 64)
 
-    active = await repository.get(PidStandard.ISO, "0.1.0")
+    active = await repository.get(PidStandard.FREE, "0.1.0")
 
     assert active is not None
     assert active.manifest_hash == "a" * 64
@@ -31,7 +31,7 @@ async def test_concurrent_activation_with_same_hash_is_idempotent(
         if ready == 2:
             start.set()
         await start.wait()
-        await repository.activate(PidStandard.ISO, "0.1.0", "a" * 64)
+        await repository.activate(PidStandard.FREE, "0.1.0", "a" * 64)
 
     await asyncio.gather(activate(), activate())
 
@@ -39,7 +39,7 @@ async def test_concurrent_activation_with_same_hash_is_idempotent(
         active_versions = list(
             await session.scalars(
                 select(PidCatalogVersion).where(
-                    PidCatalogVersion.standard == PidStandard.ISO,
+                    PidCatalogVersion.standard == PidStandard.FREE,
                     PidCatalogVersion.version == "0.1.0",
                 )
             )
@@ -62,7 +62,7 @@ async def test_concurrent_activation_with_different_hashes_keeps_winner(
             start.set()
         await start.wait()
         await repository.activate(
-            PidStandard.ISO,
+            PidStandard.FREE,
             "0.1.0",
             manifest_hash,
         )
@@ -82,43 +82,29 @@ async def test_concurrent_activation_with_different_hashes_keeps_winner(
     assert len(conflicts) == 1
     assert isinstance(conflicts[0], CatalogHashConflict)
 
-    active = await repository.get(PidStandard.ISO, "0.1.0")
+    active = await repository.get(PidStandard.FREE, "0.1.0")
     assert active is not None
     assert active.manifest_hash == winners[0]
 
 
 async def test_activate_conflicting_hash_preserves_original(session_factory) -> None:
     repository = CatalogRepository(session_factory)
-    await repository.activate(PidStandard.ISO, "0.1.0", "a" * 64)
+    await repository.activate(PidStandard.FREE, "0.1.0", "a" * 64)
 
     with pytest.raises(CatalogHashConflict):
-        await repository.activate(PidStandard.ISO, "0.1.0", "b" * 64)
+        await repository.activate(PidStandard.FREE, "0.1.0", "b" * 64)
 
-    active = await repository.get(PidStandard.ISO, "0.1.0")
+    active = await repository.get(PidStandard.FREE, "0.1.0")
     assert active is not None
     assert active.manifest_hash == "a" * 64
-
-
-async def test_same_version_can_coexist_across_standards(session_factory) -> None:
-    repository = CatalogRepository(session_factory)
-    await repository.activate(PidStandard.ISA, "0.1.0", "a" * 64)
-    await repository.activate(PidStandard.ISO, "0.1.0", "b" * 64)
-
-    isa = await repository.get(PidStandard.ISA, "0.1.0")
-    iso = await repository.get(PidStandard.ISO, "0.1.0")
-
-    assert isa is not None
-    assert iso is not None
-    assert isa.manifest_hash == "a" * 64
-    assert iso.manifest_hash == "b" * 64
 
 
 async def test_activate_trims_version(session_factory) -> None:
     repository = CatalogRepository(session_factory)
 
-    await repository.activate(PidStandard.ISO, " 0.1.0 ", "a" * 64)
+    await repository.activate(PidStandard.FREE, " 0.1.0 ", "a" * 64)
 
-    assert await repository.get(PidStandard.ISO, "0.1.0") is not None
+    assert await repository.get(PidStandard.FREE, "0.1.0") is not None
 
 
 @pytest.mark.parametrize("version", ["", "   ", "\t\n"])
@@ -136,7 +122,7 @@ async def test_activate_rejects_blank_version_before_opening_session(
     repository = CatalogRepository(observed_session_factory)
 
     with pytest.raises(ValueError, match="version"):
-        await repository.activate(PidStandard.ISO, version, "a" * 64)
+        await repository.activate(PidStandard.FREE, version, "a" * 64)
 
     assert session_opened is False
 
@@ -165,6 +151,6 @@ async def test_activate_rejects_invalid_manifest_hash_before_opening_session(
     repository = CatalogRepository(observed_session_factory)
 
     with pytest.raises(ValueError, match="manifest_hash"):
-        await repository.activate(PidStandard.ISO, "0.1.0", manifest_hash)
+        await repository.activate(PidStandard.FREE, "0.1.0", manifest_hash)
 
     assert session_opened is False

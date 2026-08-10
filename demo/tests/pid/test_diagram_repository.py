@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import DBAPIError
 
-from pid.models import AccessScope, PidAccessToken, PidDiagram, PidStandard
+from pid.models import AccessScope, PidAccessToken, PidDiagram
 from pid.repositories.diagrams import DiagramRepository
 from pid.repositories.tokens import TokenRepository
 from pid.security import hash_secret
@@ -19,7 +19,6 @@ async def test_create_diagram_returns_uuid_and_two_plain_tokens(
     service = DiagramService(session_factory, token_pepper="p" * 32)
     created = await service.create(
         title="Linha de reação",
-        standard=PidStandard.ISO,
         catalog_version="0.1.0-foundation",
     )
 
@@ -41,7 +40,6 @@ async def test_create_persists_only_sha256_hmac_hashes(session_factory) -> None:
     service = DiagramService(session_factory, token_pepper=pepper)
     created = await service.create(
         title="Linha de reação",
-        standard=PidStandard.ISO,
         catalog_version="0.1.0-foundation",
     )
 
@@ -122,7 +120,6 @@ async def test_create_rolls_back_parent_when_token_insert_fails(
         with pytest.raises(DBAPIError):
             await service.create(
                 title=attempted_title,
-                standard=PidStandard.ISO,
                 catalog_version="0.1.0-foundation",
             )
     finally:
@@ -167,7 +164,6 @@ async def test_create_rejects_blank_title_before_opening_session(
     with pytest.raises(ValueError, match="title"):
         await service.create(
             title=" \t\n ",
-            standard=PidStandard.ISA,
             catalog_version="0.1.0-foundation",
         )
 
@@ -180,7 +176,6 @@ async def test_regenerate_view_token_revokes_previous_token(
     service = DiagramService(session_factory, token_pepper="p" * 32)
     created = await service.create(
         title="Teste",
-        standard=PidStandard.ISA,
         catalog_version="0.1.0-foundation",
     )
 
@@ -206,7 +201,6 @@ async def test_regenerate_missing_scope_creates_one_active_token(
     service = DiagramService(session_factory, token_pepper="p" * 32)
     created = await service.create(
         title="Teste",
-        standard=PidStandard.ISA,
         catalog_version="0.1.0-foundation",
     )
     async with session_factory() as session, session.begin():
@@ -263,7 +257,6 @@ async def test_regenerate_rejects_invalid_scope_without_changing_tokens(
     service = DiagramService(session_factory, token_pepper="p" * 32)
     created = await service.create(
         title="Teste",
-        standard=PidStandard.ISA,
         catalog_version="0.1.0-foundation",
     )
 
@@ -288,7 +281,6 @@ async def test_soft_delete_and_restore_require_active_edit_token(
     service = DiagramService(session_factory, token_pepper="p" * 32)
     created = await service.create(
         title="Teste",
-        standard=PidStandard.ISO,
         catalog_version="0.1.0-foundation",
     )
 
@@ -303,7 +295,6 @@ async def test_restore_refuses_diagram_deleted_more_than_thirty_days_ago(
     service = DiagramService(session_factory, token_pepper="p" * 32)
     created = await service.create(
         title="Teste",
-        standard=PidStandard.ISO,
         catalog_version="0.1.0-foundation",
     )
     deleted_at = datetime.now(timezone.utc) - timedelta(days=31)
@@ -329,7 +320,6 @@ async def test_restore_accepts_exact_thirty_day_cutoff(session_factory) -> None:
     service = DiagramService(session_factory, token_pepper="p" * 32)
     created = await service.create(
         title="Boundary",
-        standard=PidStandard.ISO,
         catalog_version="0.1.0-foundation",
     )
     cutoff = datetime.now(timezone.utc) - timedelta(days=30)
@@ -358,7 +348,6 @@ async def test_revoked_edit_token_cannot_delete_diagram(session_factory) -> None
     service = DiagramService(session_factory, token_pepper=pepper)
     created = await service.create(
         title="Teste",
-        standard=PidStandard.ISO,
         catalog_version="0.1.0-foundation",
     )
     async with session_factory() as session, session.begin():
