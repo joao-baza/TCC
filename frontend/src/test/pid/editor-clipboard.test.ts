@@ -63,6 +63,6 @@ describe("clipboard interno do editor P&ID", () => {
     const firstNode = Object.keys(document.nodes)[0];
     const fragment = copyEditorSelection(document, [firstNode]);
     expect(Object.keys(fragment.edges)).toHaveLength(0);
-    expect(() => pasteEditorFragment({ ...document, metadata: { ...document.metadata, standard: "isa" } }, fragment, { generateId: uuidFactory(300), offset: { x: 1, y: 1 } })).toThrow(/norma|compatível/i);
+    expect(() => pasteEditorFragment({ ...document, metadata: { ...document.metadata, standard: "isa" as never } }, fragment, { generateId: uuidFactory(300), offset: { x: 1, y: 1 } })).toThrow(/norma|compatível/i);
   });
 });

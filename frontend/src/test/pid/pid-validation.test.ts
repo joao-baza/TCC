@@ -18,7 +18,7 @@ const catalog: readonly CatalogSymbol[] = [
   {
     key: "test.pump",
     name: "Bomba",
-    standards: ["free", "isa"],
+    standards: ["free"],
     catalogVersion: "local-v1",
     defaultSize: { width: 96, height: 64 },
     portTemplates: [{ key: "out", direction: "output", connectionClass: "process", capacity: 1 }],
@@ -27,7 +27,7 @@ const catalog: readonly CatalogSymbol[] = [
   {
     key: "test.tank",
     name: "Tanque",
-    standards: ["free", "iso"],
+    standards: ["free"],
     catalogVersion: "local-v1",
     defaultSize: { width: 80, height: 72 },
     portTemplates: [{ key: "in", direction: "input", connectionClass: "process", capacity: 2 }],
@@ -42,7 +42,7 @@ describe("validação estruturada P&ID", () => {
     ["porta ausente", mutate((document) => { document.edges[ids.edge].sourcePortId = unknownId(2); })],
     ["classe incompatível", mutate((document) => { document.edges[ids.edge].connectionClass = "signal"; })],
     ["capacidade excedida", capacityExceeded()],
-    ["mistura de standard", mutate((document) => { document.metadata.standard = "iso"; })],
+    ["standard legado", mutate((document) => { document.metadata.standard = "iso" as never; })],
   ])("bloqueia %s", (_name, document) => {
     expect(validateDocument(document, { catalog }).some((issue) => issue.severity === "error")).toBe(true);
   });
