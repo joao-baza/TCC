@@ -18,6 +18,7 @@ from routers import (
     reactor,
     components_router,
     mass_balance,
+    pid as pid_router,
 )
 from routers.i18n import translate_error_message, translate_validation_errors
 from pid.config import PidSettings
@@ -144,6 +145,7 @@ def create_app() -> FastAPI:
     created_app.include_router(reactor.router)
     created_app.include_router(components_router.router)
     created_app.include_router(mass_balance.router)
+    created_app.include_router(pid_router.router)
     created_app.add_api_route("/health", health, methods=["GET"])
     created_app.add_api_route("/ready", ready, methods=["GET"])
     created_app.add_exception_handler(HTTPException, http_exception_handler)
