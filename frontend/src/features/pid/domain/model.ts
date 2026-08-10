@@ -1,6 +1,8 @@
+import type { LineStyle } from "./line-style";
+import type { UtilityCategory } from "./utility-category";
+
 export type PidStandard = "free";
 export type PortDirection = "input" | "output" | "bidirectional";
-import type { LineStyle } from "./line-style";
 
 export type ConnectionClass = "process" | "utility" | "signal";
 
@@ -54,6 +56,7 @@ export interface PidEdge {
   tag: string;
   label: string;
   properties: PidProperties;
+  utilityCategoryId?: string;
 }
 
 export interface PidAnnotation {
@@ -90,6 +93,7 @@ export interface PidDocument {
     catalogVersion: string;
     createdAt: string;
     updatedAt: string;
+    utilityCategories: UtilityCategory[];
   };
   nodes: Record<string, PidNode>;
   ports: Record<string, PidPort>;

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { LINE_STYLES } from "./line-style";
 
 import { LOCAL_PID_CATALOG_VERSION } from "./catalog-version";
+import { UTILITY_COLOR_PALETTE, type UtilityCategory } from "./utility-category";
 import type {
   PidAnnotation,
   PidDocument,
@@ -31,6 +32,12 @@ export class PidDocumentFactoryError extends Error {
     this.name = "PidDocumentFactoryError";
   }
 }
+
+const utilityCategorySchema: z.ZodType<UtilityCategory> = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+}).strict();
 
 const uuidSchema = z.string().uuid();
 const finiteNumberSchema = z.number().finite();
@@ -100,6 +107,7 @@ export const pidEdgeSchema: z.ZodType<PidEdge> = z.object({
   tag: z.string(),
   label: z.string(),
   properties: pidPropertiesSchema,
+  utilityCategoryId: z.string().uuid().optional(),
 }).strict();
 
 export const pidAnnotationSchema: z.ZodType<PidAnnotation> = z.object({
@@ -135,6 +143,7 @@ export const pidMetadataSchema: z.ZodType<PidDocument["metadata"]> = z.object({
   catalogVersion: nonBlankStringSchema,
   createdAt: z.string().datetime({ offset: true }),
   updatedAt: z.string().datetime({ offset: true }),
+  utilityCategories: z.array(utilityCategorySchema),
 }).strict();
 
 export const pidDocumentSchema: z.ZodType<PidDocument> = z.object({
@@ -460,6 +469,7 @@ export function createEmptyDocument(
       catalogVersion: normalizedCatalogVersion,
       createdAt: timestamp,
       updatedAt: timestamp,
+      utilityCategories: [],
     },
     nodes: {},
     ports: {},
