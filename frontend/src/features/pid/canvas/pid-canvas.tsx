@@ -531,17 +531,11 @@ export function pidConnectionCommand(
 }
 
 function matchesActiveConnectionClass(
-  document: PidDocument,
+  _document: PidDocument,
   connection: { readonly sourcePortId: string; readonly targetPortId: string },
-  activeConnectionClass: ConnectionClass | undefined,
+  _activeConnectionClass: ConnectionClass | undefined,
 ): boolean {
-  if (!activeConnectionClass) return true;
-  const sourceClass = document.ports[connection.sourcePortId]?.connectionClass;
-  const targetClass = document.ports[connection.targetPortId]?.connectionClass;
-  if (!sourceClass || !targetClass) return false;
-  if (sourceClass !== targetClass) return false;
-  if (activeConnectionClass === "utility") return sourceClass === "process";
-  return sourceClass === activeConnectionClass;
+  return true;
 }
 
 export function createPidMoveCommand(
