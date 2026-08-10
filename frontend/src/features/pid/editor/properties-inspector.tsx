@@ -190,7 +190,6 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       <h2 id="pid-inspector-heading">Inspetor</h2>
       {!editable && <span>Somente leitura</span>}
     </div>
-    {selection.length === 0 && <DocumentSummary document={document} />}
     {selection.length > 1 && <p>{selection.length} elementos selecionados. Selecione apenas um para editar propriedades.</p>}
     {selected?.kind === "node" && <FieldGroup key={selected.value.id} title="Equipamento" id={selected.value.id}>
       <TextField label="Tag" field="tag" value={selected.value.tag} {...common} />
@@ -356,15 +355,6 @@ function FieldGroup({ title, id, children }: { title: string; id: string; childr
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   return message ? <span id={id} className="pid-inspector-field-error">{message}</span> : null;
-}
-
-function DocumentSummary({ document }: { document: PidDocument }) {
-  const nodeCount = Object.keys(document.nodes).length;
-  return <dl className="pid-document-summary">
-    <div><dt>Título</dt><dd>{document.metadata.title}</dd></div>
-    <div><dt>Standard</dt><dd>Livre no documento</dd></div>
-    <div><dt>Conteúdo</dt><dd>{nodeCount} {nodeCount === 1 ? "equipamento" : "equipamentos"}, {Object.keys(document.edges).length} conexão(ões)</dd></div>
-  </dl>;
 }
 
 function resolveSelectedElement(document: PidDocument, id: string) {
