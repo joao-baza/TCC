@@ -4,7 +4,7 @@ import { expect, it } from "vitest";
 
 import { App } from "@/app/app";
 import { createQuickAccess } from "@/features/home/home-page";
-import { pidFocusedEditorRoute } from "@/features/pid/routing/pid-route-disabled";
+import { pidFocusedEditorRoute, pidRoute } from "@/features/pid/routing/pid-route-disabled";
 import { HomePage } from "@/features/home/home-page";
 import { createModuleRoutes } from "@/lib/routes";
 
@@ -41,4 +41,16 @@ it("torna a rota P&ID indisponível sem inicializar o adaptador local", async ()
   expect(await screen.findByRole("heading", { name: "Editor P&ID indisponível" })).toBeVisible();
   expect(screen.getByText(/não está habilitado nesta distribuição/i)).toBeVisible();
   expect(screen.queryByRole("button", { name: /Compartilhar/i })).not.toBeInTheDocument();
+});
+
+it("mantém Meus diagramas indisponível quando o adaptador está desabilitado", async () => {
+  const router = createMemoryRouter([{
+    path: "/",
+    element: <App />,
+    children: [pidRoute],
+  }], { initialEntries: ["/pid/meus-diagramas"] });
+
+  render(<RouterProvider router={router} />);
+
+  expect(await screen.findByRole("heading", { name: "Editor P&ID indisponível" })).toBeVisible();
 });

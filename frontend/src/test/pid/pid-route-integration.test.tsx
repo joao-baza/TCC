@@ -27,4 +27,15 @@ it("cria e abre um diagrama pelas rotas reais com o serviço local compartilhado
 
   expect(await screen.findByRole("heading", { name: "Utilidades" })).toBeInTheDocument();
   expect(screen.getByText("Acesso de edição")).toBeInTheDocument();
+
+  await router.navigate("/pid/meus-diagramas");
+
+  expect(await screen.findByRole("heading", { name: "Meus diagramas" })).toBeInTheDocument();
+  expect(screen.getByText("Utilidades")).toBeInTheDocument();
+  expect(screen.getByText(/Acesso de edição/i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("link", { name: "Abrir editor" }));
+
+  expect(await screen.findByRole("heading", { name: "Utilidades" })).toBeInTheDocument();
+  expect(screen.getByText("Acesso de edição")).toBeInTheDocument();
 });
