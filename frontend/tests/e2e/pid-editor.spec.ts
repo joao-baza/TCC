@@ -196,6 +196,45 @@ test("falha de PNG mantém a exportação SVG disponível", async ({ page }) => 
   expect((await downloadPromise).suggestedFilename()).toBe("fallback-png.svg");
 });
 
+test("toolbar usa botões com ícones e dropdowns", async ({ page }) => {
+  await createDiagram(page, "Toolbar UX");
+  const toolbar = page.getByRole("toolbar", { name: "Ferramentas do editor P&ID" });
+  await expect(toolbar.getByRole("button", { name: "Desfazer" })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Refazer" })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Exportar SVG" })).toBeVisible();
+  await expect(toolbar.getByLabelText("Tipo de linha de conexão")).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Linha de processo" })).toHaveCount(0);
+});
+
+test("abre diálogo de configurações e persiste após reload", async ({ page }) => {
+  await createDiagram(page, "Configurações");
+  await page.getByRole("button", { name: "Configurações" }).click();
+  await expect(page.getByRole("dialog", { name: "Configurações do editor P&ID" })).toBeVisible();
+  const largeButton = page.getByRole("dialog").getByRole("button", { name: "Grande" }).first();
+  await largeButton.click();
+  await expect(largeButton).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Fechar" }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "Configurações" }).click();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Grande" }).first()).toHaveAttribute("aria-pressed", "true");
+});
+
+test("slider de zoom do catálogo redimensiona miniaturas", async ({ page }) => {
+  await createDiagram(page, "Zoom catálogo");
+  await page.getByLabelText("Tamanho das miniaturas").fill("64");
+  const img = page.locator("[role='tree'] img").first();
+  await expect(img).toBeVisible();
+  const height = await img.evaluate((el) => (el as HTMLImageElement).height);
+  expect(height).toBe(64);
+});
+
+test("barra de status mostra contagem de validação dinâmica", async ({ page }) => {
+  await createDiagram(page, "Validação");
+  const footer = page.locator('footer[aria-label="Status do documento"]');
+  await expect(footer).toContainText("Avisos 0");
+  await expect(footer).toContainText("Erros 0");
+});
+
 async function createDiagram(page: Page, title: string): Promise<DiagramAccess> {
   await page.goto("/pid");
   await page.getByLabel("Título do diagrama").fill(title);
