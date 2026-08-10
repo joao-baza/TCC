@@ -143,7 +143,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
         {sourceFilters.map((sourceKind) => <button type="button" key={sourceKind} aria-pressed={selectedSource === sourceKind} onClick={() => changeSource(selectedSource === sourceKind ? undefined : sourceKind)} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Fonte: {sourceKind === "project" ? "Projeto" : "Draw.io"}</button>)}
       </div>}
       {rows.length === 0 ? <p role="status" className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Nenhum símbolo encontrado.</p> : (
-        <div ref={setScrollElement} role="tree" aria-label="Símbolos disponíveis" className="min-h-[160px] flex-1 overflow-auto rounded-md border" style={{ minHeight: 160 }}>
+        <div ref={setScrollElement} role="tree" aria-label="Símbolos disponíveis" className="min-h-[160px] flex-1 overflow-auto rounded-md border pid-scrollable" style={{ minHeight: 160 }}>
           <div style={{ height: totalSize, position: "relative" }}>
             {visibleItems.map((virtualRow) => {
               const row = rows[virtualRow.index];

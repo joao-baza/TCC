@@ -4,7 +4,6 @@ import { Link, useBlocker, useLocation, useParams } from "react-router-dom";
 import { PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { isPidDocumentError, type OpenedPidDiagram } from "../api/contracts";
 import { usePidServices } from "../api/pid-services";
@@ -487,7 +486,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <div className={`pid-studio-workspace ${!editorEnabled ? "pid-workspace-readonly" : ""} ${catalogCollapsed ? "pid-catalog-collapsed" : ""} ${inspectorCollapsed ? "pid-inspector-collapsed" : ""}`}>
       {compactReadOnly && <p className="pid-compact-readonly-notice" role="status">Edição disponível em telas a partir de 768 px</p>}
       {editorEnabled && <aside role="region" aria-label="Catálogo de símbolos" className="pid-studio-panel pid-catalog-panel">
-        {!catalogCollapsed && <ScrollArea className="flex-1 min-h-0">
+        {!catalogCollapsed && <>
           <CatalogPanel headerAction={
             <Tooltip>
               <TooltipTrigger render={
@@ -499,7 +498,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
             </Tooltip>
           } index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} thumbSize={settings.catalogThumbSize} />
           <CatalogZoomSlider value={settings.catalogThumbSize} onChange={(value) => updateSetting("catalogThumbSize", value)} />
-        </ScrollArea>}
+        </>}
         {catalogCollapsed && <div className="flex justify-center"><Tooltip>
           <TooltipTrigger render={
             <Button variant="ghost" size="icon-sm" aria-label="Abrir catálogo" onClick={() => setCatalogCollapsed(false)}>
@@ -540,12 +539,12 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
           } />
           <TooltipContent>Fechar inspetor</TooltipContent>
         </Tooltip></>}
-        {!inspectorCollapsed && <ScrollArea className="flex-1 min-h-0">
+        {!inspectorCollapsed && <div className="flex-1 min-h-0 overflow-auto pid-scrollable">
           <div className="pid-inspector-content">
             <PropertiesInspector ref={inspectorRef} document={editor.document} selection={editor.selection} editable={editorEnabled} commitAllowed={editLease && lifecycle === "active"} onCommand={dispatchInspector} onDraftStateChange={setHasInspectorDrafts} />
             <ValidationPanel issues={validationIssues} onFocusElement={focusValidationIssue} />
           </div>
-        </ScrollArea>}
+        </div>}
       </aside>
     </div>
     <StatusBar state={editor} saveState={autosave.state} validationCounts={validationCounts} onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />

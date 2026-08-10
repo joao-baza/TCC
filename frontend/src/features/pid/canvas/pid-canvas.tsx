@@ -3,7 +3,6 @@ import {
   Background,
   applyNodeChanges,
   ConnectionMode,
-  Controls,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -445,7 +444,6 @@ function PidCanvasInner({
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={16} size={1} />
-        <Controls showInteractive={false} />
         <MiniMap pannable zoomable ariaLabel="Minimapa do diagrama P&ID" />
       </ReactFlow>
       <div className="pid-canvas-annotations" aria-label="Anotações do diagrama">
