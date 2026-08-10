@@ -64,6 +64,14 @@ class RevisionResponse(BaseModel):
     revision: int
 
 
+class WsTicketRequest(BaseModel):
+    token: str
+
+
+class WsTicketResponse(BaseModel):
+    ticket: str
+
+
 def _resolve_token_pepper() -> str:
     pepper = os.getenv("PID_TOKEN_PEPPER", "")
     if not pepper or len(pepper) < 32:
@@ -194,3 +202,23 @@ async def restore_diagram(diagram_id: UUID, body: TokenActionRequest, request: R
     snapshots = _snapshots(request)
     revision = await snapshots.get_latest_revision(diagram_id)
     return RevisionResponse(revision=revision or 0)
+
+
+@router.post("/diagrams/{diagram_id}/ws-ticket", response_model=WsTicketResponse)
+async def create_ws_ticket(diagram_id: UUID, body: WsTicketRequest, request: Request):
+    service = _service(request)
+    scope = await service.authorize(diagram_id, body.token)
+    if scope is None:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    runtime = request.app.state.pid_runtime
+    if runtime is None or runtime.redis is None:
+        raise HTTPException(status_code=503, detail="PID not configured")
+
+    from pid.tickets import TicketPayload, TicketStore
+    from uuid import uuid4
+    store = TicketStore(runtime.redis)
+    ticket = await store.issue(
+        TicketPayload(diagram_id=diagram_id, token_id=uuid4(), scope=scope)
+    )
+    return WsTicketResponse(ticket=ticket)
