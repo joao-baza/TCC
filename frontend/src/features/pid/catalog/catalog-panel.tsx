@@ -151,7 +151,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
                  {row.kind === "category" ? <button id={`${panelId}-${row.id}`} role="treeitem" aria-level={1} aria-expanded={!collapsed.has(canonicalCategory(row.category))} tabIndex={activeId === row.id ? 0 : -1} onFocus={() => setActiveId(row.id)} onClick={() => toggleCategory(row.category)} onKeyDown={(event) => onRowKeyDown(event, row, virtualRow.index)} className="min-h-11 w-full px-3 text-left font-medium rounded-lg border border-border/60 bg-muted/40 mt-1 first:mt-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">{row.category}</button>
                   : <button id={`${panelId}-${row.id}`} role="treeitem" aria-level={2} tabIndex={activeId === row.id ? 0 : -1} onFocus={() => setActiveId(row.id)} onClick={() => onInsert(row.symbol)} onKeyDown={(event) => onRowKeyDown(event, row, virtualRow.index)} className="flex min-h-[76px] w-full items-center gap-3 border-t px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                     <img src={row.symbol.assetUrl} alt="" loading="lazy" decoding="async" style={{ height: thumbSize ?? 40, width: thumbSize ?? 40 }} className="rounded bg-white object-contain shrink-0" />
-                    <span className="min-w-0 flex-1"><span className="block font-medium">{row.symbol.name}</span><span className="block text-xs text-muted-foreground">{row.symbol.source.sourceName} · {row.symbol.standards.join(" / ")}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block font-medium">{row.symbol.name}</span></span>
                   </button>}
               </div>;
             })}

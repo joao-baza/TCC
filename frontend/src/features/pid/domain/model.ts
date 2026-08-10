@@ -94,9 +94,3 @@ export interface PidDocument {
   annotations: Record<string, PidAnnotation>;
   groups: Record<string, PidGroup>;
 }
-
-const STANDARD_LABELS: Record<PidStandard, string> = { free: "Livre" };
-
-export function standardLabel(standard: PidStandard): string {
-  return STANDARD_LABELS[standard] ?? standard;
-}
