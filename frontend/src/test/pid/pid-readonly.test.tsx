@@ -350,9 +350,8 @@ describe("capacidade responsiva de edição", () => {
     fireEvent.change(x, { target: { value: "" } });
     fireEvent.blur(x);
 
-    fireEvent.click(screen.getByRole("button", { name: "Linha de utilidade" }));
-    expect(screen.getByRole("button", { name: "Linha de processo" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Linha de utilidade" })).toHaveAttribute("aria-pressed", "false");
+    fireEvent.change(screen.getByLabelText("Tipo de linha de conexão"), { target: { value: "utility" } });
+    expect(screen.getByLabelText("Tipo de linha de conexão")).toHaveValue("process");
 
     fireEvent.click(screen.getByRole("button", { name: "Limpar seleção" }));
     expect(screen.getByLabelText("Posição X")).toHaveValue(null);

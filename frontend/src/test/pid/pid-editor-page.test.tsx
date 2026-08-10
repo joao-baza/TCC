@@ -56,9 +56,10 @@ describe("integração real do studio P&ID", () => {
     expect(screen.getByRole("button", { name: "Agrupar" })).toBeDisabled();
     expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
 
-    for (const label of ["Linha de utilidade", "Linha de sinal", "Linha de processo"]) {
-      fireEvent.click(screen.getByRole("button", { name: label }));
-      expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
+    const lineSelect = screen.getByLabelText("Tipo de linha de conexão");
+    for (const value of ["utility", "signal", "process"]) {
+      fireEvent.change(lineSelect, { target: { value } });
+      expect(lineSelect).toHaveValue(value);
     }
 
     fireEvent.click(screen.getByRole("button", { name: "Adicionar anotação" }));
