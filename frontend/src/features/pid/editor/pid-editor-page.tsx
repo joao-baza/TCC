@@ -42,6 +42,7 @@ import { useEditorAutosave } from "./use-editor-autosave";
 import { MINIMUM_EDIT_VIEWPORT_WIDTH, useEditCapability } from "./use-edit-capability";
 import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-shortcuts";
 import { ValidationPanel } from "./validation-panel";
+import { PidThemeProvider } from "./pid-theme-provider";
 import { usePidSettings } from "./use-pid-settings";
 
 const catalogIndex = createCatalogIndex(localCatalog);
@@ -474,7 +475,8 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     setLifecycle("deleted");
   }, []);
 
-  return <main className={cn("pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]", textSizeClass)}>
+  return <PidThemeProvider>
+    <main className={cn("pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]", textSizeClass)}>
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
@@ -542,7 +544,8 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <StatusBar state={editor} saveState={autosave.state} validationCounts={validationCounts} onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
     <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
     <PidSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-  </main>;
+  </main>
+  </PidThemeProvider>;
 }
 
 function canvasCenter(viewport: { x: number; y: number; zoom: number }) {
