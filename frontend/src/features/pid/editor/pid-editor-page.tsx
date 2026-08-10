@@ -13,6 +13,7 @@ import { CatalogPanel } from "../catalog/catalog-panel";
 import { CatalogZoomSlider } from "../catalog/catalog-zoom-slider";
 import { localCatalog } from "../catalog/fixtures/catalog";
 import { createLocalCollaboration } from "../collaboration/local-collaboration";
+import { createRemoteCollaboration } from "../collaboration/remote-collaboration";
 import {
   alignSelection, deleteSelection, groupSelection, insertAnnotation, insertSymbol, rotateSelection,
   type PidCommand,
@@ -185,9 +186,20 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     exportMountedRef.current = true;
     return () => { exportMountedRef.current = false; };
   }, []);
-  const collaboration = useMemo(() => createLocalCollaboration({
-    participant: { id: `local:${diagramId}`, name: "Você", color: "#57b9d6", local: true },
-  }), [diagramId]);
+  const collaboration = useMemo(() => {
+    const adapter = import.meta.env.VITE_PID_ADAPTER;
+    if (adapter === "remote") {
+      return createRemoteCollaboration({
+        diagramId,
+        token: session.routeToken,
+        participant: { id: `user:${diagramId}`, name: "Você", color: "#57b9d6", local: true },
+        baseUrl: window.location.origin,
+      });
+    }
+    return createLocalCollaboration({
+      participant: { id: `local:${diagramId}`, name: "Você", color: "#57b9d6", local: true },
+    });
+  }, [diagramId, session.routeToken]);
   const subscribeCollaboration = useCallback(
     (notify: () => void) => collaboration.subscribe(notify),
     [collaboration],
