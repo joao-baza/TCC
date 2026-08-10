@@ -20,8 +20,11 @@ import { loadPidSvgAssets, renderPidSvg, type PidExportBackground, type PidSvgAs
 import { DocumentActionsMenu } from "./document-actions-menu";
 import { copyEditorSelection, pasteEditorFragment, type EditorClipboardFragment } from "./editor-clipboard";
 import {
-  EditorToolbar, getEditorPositionedSelectionIds, getEditorSelectionCapabilities, type EditorToolbarActions,
+  EditorToolbar, type EditorToolbarActions,
 } from "./editor-toolbar";
+import {
+  getEditorPositionedSelectionIds, getEditorSelectionCapabilities,
+} from "./editor-toolbar-utils";
 import { createEditorStore, type EditorStore } from "./editor-store";
 import { ShareDialog } from "./share-dialog";
 import {
@@ -32,6 +35,7 @@ import { useEditorAutosave } from "./use-editor-autosave";
 import { MINIMUM_EDIT_VIEWPORT_WIDTH, useEditCapability } from "./use-edit-capability";
 import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-shortcuts";
 import { ValidationPanel } from "./validation-panel";
+import { usePidSettings } from "./use-pid-settings";
 
 const catalogIndex = createCatalogIndex(localCatalog);
 const persistenceBlockFor = (document: Parameters<typeof validateDocument>[0]): string | null => {
@@ -129,6 +133,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const subscribe = useCallback((notify: () => void) => store.subscribe(() => notify()), [store]);
   const editor = useSyncExternalStore(subscribe, store.getState, store.getState);
   const { editable: capabilityEditable, viewportWidth } = useEditCapability(opened.scope);
+  const { settings } = usePidSettings();
   const compactReadOnly = viewportWidth < MINIMUM_EDIT_VIEWPORT_WIDTH;
   const [editLease, setEditLease] = useState(capabilityEditable);
   const capabilityEditableRef = useRef(capabilityEditable);
@@ -464,7 +469,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
-      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} exportBackground={exportBackground} onExportBackgroundChange={setExportBackground} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} />
+      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} exportBackground={exportBackground} onExportBackgroundChange={setExportBackground} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} iconSize={settings.iconSize} />
       <div className="pid-studio-session-controls">
         <div className="pid-collaboration-summary" aria-label="Colaboração local">
           <span>{collaborationSnapshot.label}</span>

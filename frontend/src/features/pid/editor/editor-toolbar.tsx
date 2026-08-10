@@ -1,66 +1,34 @@
-import type { ConnectionClass, PidDocument } from "../domain/model";
+import {
+  Undo2, Redo2, Trash2, CopyPlus, Copy, ClipboardPaste,
+  RotateCw, RotateCcw, AlignJustify, Group, StickyNote,
+  GitBranch, Maximize2, ZoomIn, ZoomOut, FileImage, ImageDown,
+} from "lucide-react";
 
-export interface EditorSelectionCapabilities {
-  readonly canDelete: boolean;
-  readonly canCopy: boolean;
-  readonly canDuplicate: boolean;
-  readonly canRotate: boolean;
-  readonly canGroup: boolean;
-  readonly canAlign: boolean;
-}
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip, TooltipTrigger, TooltipContent,
+} from "@/components/ui/tooltip";
 
-export function getEditorSelectionCapabilities(
-  document: PidDocument,
-  selection: readonly string[],
-): EditorSelectionCapabilities {
-  const ids = [...new Set(selection)];
-  const nodeCount = ids.filter((id) => Boolean(document.nodes[id])).length;
-  const groupCount = ids.filter((id) => Boolean(document.groups[id])).length;
-  const annotationCount = ids.filter((id) => Boolean(document.annotations[id])).length;
-  const positionedCount = countResolvedPositionedElements(document, ids);
-  const copyable = nodeCount + annotationCount + groupCount > 0;
-  return Object.freeze({
-    canDelete: ids.some((id) => Boolean(document.nodes[id] || document.edges[id] || document.annotations[id] || document.groups[id] || document.ports[id])),
-    canCopy: copyable,
-    canDuplicate: copyable,
-    canRotate: positionedCount > 0,
-    canGroup: nodeCount > 0,
-    canAlign: positionedCount > 1,
-  });
-}
+import type { PidIconSize } from "./use-pid-settings";
+import type { ConnectionClass } from "../domain/model";
+import type { EditorToolbarActions } from "./editor-toolbar-utils";
 
-export function getEditorPositionedSelectionIds(
-  document: PidDocument,
-  selection: readonly string[],
-): string[] {
-  return [...new Set(selection)].filter((id) => Boolean(
-    document.nodes[id] || document.annotations[id] || document.groups[id],
-  ));
-}
+const ICON_CLASS: Record<PidIconSize, string> = {
+  sm: "size-3",
+  md: "size-4",
+  lg: "size-5",
+};
 
-function countResolvedPositionedElements(document: PidDocument, selection: readonly string[]): number {
-  const nodeIds = new Set<string>();
-  const annotationIds = new Set<string>();
-  for (const id of selection) {
-    if (document.nodes[id]) nodeIds.add(id);
-    else if (document.annotations[id]) annotationIds.add(id);
-    else document.groups[id]?.memberIds.forEach((memberId) => {
-      if (document.nodes[memberId]) nodeIds.add(memberId);
-    });
-  }
-  return nodeIds.size + annotationIds.size;
-}
+export {
+  type EditorSelectionCapabilities,
+  type EditorToolbarActions,
+  getEditorSelectionCapabilities,
+  getEditorPositionedSelectionIds,
+} from "./editor-toolbar-utils";
 
-export interface EditorToolbarActions {
-  undo(): void; redo(): void; deleteSelection(): void; duplicate(): void; copy(): void; paste(): void;
-  rotate(degrees: 90 | -90): void; align(axis: "left" | "center-x" | "right" | "top" | "center-y" | "bottom"): void;
-  group(): void; insertAnnotation(): void; fit(): void; zoomIn(): void; zoomOut(): void;
-  setConnectionClass(value: ConnectionClass): void;
-}
-
-export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions }: {
+export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions, iconSize = "md" }: {
   readonly editable: boolean;
-  readonly capabilities: EditorSelectionCapabilities;
+  readonly capabilities: EditorToolbarActions extends infer _ ? import("./editor-toolbar-utils").EditorSelectionCapabilities : never;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly canPaste: boolean;
@@ -73,53 +41,165 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
   readonly onExportPng: () => void;
   readonly connectionClass: ConnectionClass;
   readonly actions: EditorToolbarActions;
+  readonly iconSize?: PidIconSize;
 }) {
-  return <div role="toolbar" aria-label="Ferramentas do editor P&ID" className="pid-editor-toolbar">
+  const cls = ICON_CLASS[iconSize];
+
+  const Separator = () => <div className="mx-0.5 h-6 w-px bg-border" />;
+
+  return <div role="toolbar" aria-label="Ferramentas do editor P&ID" className="pid-editor-toolbar inline-flex items-center gap-0.5">
     {editable && <>
-      <Tool label="Desfazer" shortcut="Ctrl/Cmd+Z" disabled={!canUndo} onClick={actions.undo} />
-      <Tool label="Refazer" shortcut="Ctrl/Cmd+Shift+Z" disabled={!canRedo} onClick={actions.redo} />
-      <Tool label="Excluir seleção" shortcut="Delete" disabled={!capabilities.canDelete} onClick={actions.deleteSelection} />
-      <Tool label="Duplicar" shortcut="Ctrl/Cmd+D" disabled={!capabilities.canDuplicate} onClick={actions.duplicate} />
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canUndo} onClick={actions.undo} aria-label="Desfazer" />}>
+          <Undo2 className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Desfazer</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canRedo} onClick={actions.redo} aria-label="Refazer" />}>
+          <Redo2 className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Refazer</TooltipContent>
+      </Tooltip>
+      <Separator />
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canDelete} onClick={actions.deleteSelection} aria-label="Excluir seleção" />}>
+          <Trash2 className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Excluir seleção</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canDuplicate} onClick={actions.duplicate} aria-label="Duplicar" />}>
+          <CopyPlus className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Duplicar</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canCopy} onClick={actions.copy} aria-label="Copiar" />}>
+          <Copy className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Copiar</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canPaste} onClick={actions.paste} aria-label="Colar" />}>
+          <ClipboardPaste className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Colar</TooltipContent>
+      </Tooltip>
+      <Separator />
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canRotate} onClick={() => actions.rotate(90)} aria-label="Girar 90°" />}>
+          <RotateCw className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Girar 90°</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canRotate} onClick={() => actions.rotate(-90)} aria-label="Girar -90°" />}>
+          <RotateCcw className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Girar -90°</TooltipContent>
+      </Tooltip>
+      <AlignedSelect capabilities={capabilities} actions={actions} cls={cls} />
+      <Separator />
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!capabilities.canGroup} onClick={actions.group} aria-label="Agrupar" />}>
+          <Group className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Agrupar</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={actions.insertAnnotation} aria-label="Adicionar anotação" />}>
+          <StickyNote className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Adicionar anotação</TooltipContent>
+      </Tooltip>
+      <ConnectionClassSelect connectionClass={connectionClass} actions={actions} />
     </>}
-    <Tool label="Copiar" shortcut="Ctrl/Cmd+C" disabled={!capabilities.canCopy} onClick={actions.copy} />
-    {editable && <>
-      <Tool label="Colar" shortcut="Ctrl/Cmd+V" disabled={!canPaste} onClick={actions.paste} />
-      <Tool label="Girar 90°" shortcut="Ctrl/Cmd+]" disabled={!capabilities.canRotate} onClick={() => actions.rotate(90)} />
-      <Tool label="Girar -90°" shortcut="Ctrl/Cmd+[" disabled={!capabilities.canRotate} onClick={() => actions.rotate(-90)} />
-      <label className="pid-toolbar-select">Alinhar
-        <select aria-label="Alinhar seleção" disabled={!capabilities.canAlign} defaultValue="" onChange={(event) => { if (event.target.value) actions.align(event.target.value as Parameters<EditorToolbarActions["align"]>[0]); event.target.value = ""; }}>
-          <option value="">Escolher…</option><option value="left">Esquerda</option><option value="center-x">Centro horizontal</option><option value="right">Direita</option><option value="top">Topo</option><option value="center-y">Centro vertical</option><option value="bottom">Base</option>
-        </select>
-      </label>
-      <Tool label="Agrupar" shortcut="Ctrl/Cmd+G" disabled={!capabilities.canGroup} onClick={actions.group} />
-      <Tool label="Adicionar anotação" shortcut="Ctrl/Cmd+Shift+A" onClick={actions.insertAnnotation} />
-      <div role="group" aria-label="Tipo de linha" className="pid-toolbar-group">
-        {(["process", "utility", "signal"] as const).map((value) => <button key={value} type="button" aria-pressed={connectionClass === value} onClick={() => actions.setConnectionClass(value)}>Linha {value === "process" ? "de processo" : value === "utility" ? "de utilidade" : "de sinal"}</button>)}
-      </div>
-    </>}
-    <Tool label="Ajustar diagrama à tela" onClick={actions.fit} />
-    <Tool label="Aumentar zoom" onClick={actions.zoomIn} />
-    <Tool label="Diminuir zoom" onClick={actions.zoomOut} />
-    <div role="group" aria-label="Exportação" className="pid-toolbar-group">
-      <label className="pid-toolbar-select">Fundo
+    <Separator />
+    <Tooltip>
+      <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={actions.fit} aria-label="Ajustar diagrama à tela" />}>
+        <Maximize2 className={cls} />
+      </TooltipTrigger>
+      <TooltipContent>Ajustar diagrama à tela</TooltipContent>
+    </Tooltip>
+    <Tooltip>
+      <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={actions.zoomIn} aria-label="Aumentar zoom" />}>
+        <ZoomIn className={cls} />
+      </TooltipTrigger>
+      <TooltipContent>Aumentar zoom</TooltipContent>
+    </Tooltip>
+    <Tooltip>
+      <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={actions.zoomOut} aria-label="Diminuir zoom" />}>
+        <ZoomOut className={cls} />
+      </TooltipTrigger>
+      <TooltipContent>Diminuir zoom</TooltipContent>
+    </Tooltip>
+    <Separator />
+    <div role="group" aria-label="Exportação" className="inline-flex items-center gap-0.5">
+      <label className="inline-flex items-center gap-1 cursor-pointer">
+        <FileImage className={cls} />
         <select
           aria-label="Fundo da exportação"
           value={exportBackground}
           disabled={exporting}
           onChange={(event) => onExportBackgroundChange(event.target.value as "white" | "transparent")}
+          className="h-6 rounded border border-input bg-background px-1 text-xs"
         >
           <option value="white">Branco</option>
           <option value="transparent">Transparente</option>
         </select>
       </label>
-      <Tool label="Exportar SVG" disabled={!canExport || exporting} onClick={onExportSvg} />
-      <Tool label="Exportar PNG" disabled={!canExport || exporting} onClick={onExportPng} />
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canExport || exporting} onClick={onExportSvg} aria-label="Exportar SVG" />}>
+          <FileImage className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Exportar SVG</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" disabled={!canExport || exporting} onClick={onExportPng} aria-label="Exportar PNG" />}>
+          <ImageDown className={cls} />
+        </TooltipTrigger>
+        <TooltipContent>Exportar PNG</TooltipContent>
+      </Tooltip>
     </div>
     {exporting && <span role="status">Preparando exportação…</span>}
     {exportErrors.length > 0 && <div role="group" aria-label="Erros que bloqueiam a exportação" aria-live="assertive" className="pid-export-errors"><p>Corrija os erros antes de exportar:</p><ul>{exportErrors.map((message, index) => <li key={`${index}:${message}`}>{message}</li>)}</ul></div>}
   </div>;
 }
 
-function Tool({ label, shortcut, disabled, onClick }: { label: string; shortcut?: string; disabled?: boolean; onClick: () => void }) {
-  return <button type="button" title={shortcut ? `${label} (${shortcut})` : label} aria-label={label} disabled={disabled} onClick={onClick}>{label}{shortcut && <span className="sr-only">, atalho {shortcut}</span>}</button>;
+function AlignedSelect({ capabilities, actions, cls }: { capabilities: { canAlign: boolean }; actions: EditorToolbarActions; cls: string }) {
+  return <label className="inline-flex items-center gap-1 cursor-pointer" title={capabilities.canAlign ? "Alinhar seleção" : undefined}>
+    <AlignJustify className={cls} />
+    <select
+      aria-label="Alinhar seleção"
+      disabled={!capabilities.canAlign}
+      defaultValue=""
+      onChange={(event) => { if (event.target.value) actions.align(event.target.value as Parameters<EditorToolbarActions["align"]>[0]); event.target.value = ""; }}
+      className="h-6 rounded border border-input bg-background px-1 text-xs"
+    >
+      <option value="">Alinhar…</option>
+      <option value="left">Esquerda</option>
+      <option value="center-x">Centro horizontal</option>
+      <option value="right">Direita</option>
+      <option value="top">Topo</option>
+      <option value="center-y">Centro vertical</option>
+      <option value="bottom">Base</option>
+    </select>
+  </label>;
+}
+
+function ConnectionClassSelect({ connectionClass, actions }: { connectionClass: ConnectionClass; actions: EditorToolbarActions }) {
+  return <label className="inline-flex items-center gap-1 cursor-pointer" title="Tipo de linha de conexão">
+    <GitBranch className="size-4" />
+    <select
+      aria-label="Tipo de linha de conexão"
+      value={connectionClass}
+      onChange={(event) => actions.setConnectionClass(event.target.value as ConnectionClass)}
+      className="h-6 rounded border border-input bg-background px-1 text-xs"
+    >
+      <option value="process">Processo</option>
+      <option value="utility">Utilidade</option>
+      <option value="signal">Sinal</option>
+    </select>
+  </label>;
 }
