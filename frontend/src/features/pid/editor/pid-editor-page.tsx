@@ -12,7 +12,7 @@ import {
   alignSelection, deleteSelection, groupSelection, insertAnnotation, insertSymbol, rotateSelection,
   type PidCommand,
 } from "../domain/commands";
-import type { ConnectionClass } from "../domain/model";
+import { standardLabel, type ConnectionClass } from "../domain/model";
 import { validateDocument } from "../domain/validation";
 import { downloadBlob, pidExportFilename } from "../export/download";
 import { renderPidPng } from "../export/render-png";
@@ -510,9 +510,6 @@ function canvasCenter(viewport: { x: number; y: number; zoom: number }) {
   return { x: (400 - viewport.x) / viewport.zoom, y: (300 - viewport.y) / viewport.zoom };
 }
 
-function standardLabel(_standard: string): string {
-  return "Livre";
-}
 
 function inspectorCommandField(command: PidCommand): string {
   if (command.type !== "element.patch") return "properties";
