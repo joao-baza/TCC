@@ -40,7 +40,7 @@ export function reduceCommand(
     case "selection.align":
       return alignElements(document, command.ids, command.axis);
     case "ports.connect":
-      return connectDocumentPorts(document, command.sourcePortId, command.targetPortId, allocateId);
+      return connectDocumentPorts(document, command.sourcePortId, command.targetPortId, allocateId, command.connectionClass);
     case "selection.rotate":
       return rotateElements(document, command.ids, command.degrees);
     case "selection.group":
@@ -291,18 +291,20 @@ function connectDocumentPorts(
   sourcePortId: string,
   targetPortId: string,
   allocateId: () => string,
+  connectionClass?: string,
 ): PidDocument {
   const source = document.ports[sourcePortId];
   const rejection = getPortConnectionRejection(document, sourcePortId, targetPortId);
   if (rejection) throw commandError(rejection.code, rejection.message, rejection.path);
   if (!source) throw new Error("A validação de conexão aceitou uma porta ausente.");
   const id = allocateId();
+  const effectiveClass = (connectionClass as ConnectionClass | undefined) ?? source.connectionClass;
   const edge: PidEdge = {
     id,
     sourcePortId,
     targetPortId,
-    connectionClass: source.connectionClass,
-    lineStyle: DEFAULT_LINE_STYLE[source.connectionClass],
+    connectionClass: effectiveClass,
+    lineStyle: DEFAULT_LINE_STYLE[effectiveClass],
     route: [],
     tag: "",
     label: "",

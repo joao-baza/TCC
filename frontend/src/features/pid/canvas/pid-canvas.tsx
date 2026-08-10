@@ -187,7 +187,7 @@ function PidCanvasInner({
       setConnectionAnnouncement(`Conexão inválida: ${rejection?.message ?? "as portas não correspondem ao tipo de linha ativo."}`);
       return;
     }
-    onCommandRef.current({ type: "ports.connect", ...normalized });
+    onCommandRef.current({ type: "ports.connect", ...normalized, connectionClass: activeConnectionClassRef.current });
     updateKeyboardSourcePort(null);
     setConnectionAnnouncement("Conexão criada com sucesso.");
   }, [updateKeyboardSourcePort]);
@@ -536,8 +536,12 @@ function matchesActiveConnectionClass(
   activeConnectionClass: ConnectionClass | undefined,
 ): boolean {
   if (!activeConnectionClass) return true;
-  return document.ports[connection.sourcePortId]?.connectionClass === activeConnectionClass
-    && document.ports[connection.targetPortId]?.connectionClass === activeConnectionClass;
+  const sourceClass = document.ports[connection.sourcePortId]?.connectionClass;
+  const targetClass = document.ports[connection.targetPortId]?.connectionClass;
+  if (!sourceClass || !targetClass) return false;
+  if (sourceClass !== targetClass) return false;
+  if (activeConnectionClass === "utility") return sourceClass === "process";
+  return sourceClass === activeConnectionClass;
 }
 
 export function createPidMoveCommand(

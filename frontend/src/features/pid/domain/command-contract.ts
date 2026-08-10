@@ -52,7 +52,7 @@ export type PidCommand =
   | { type: "annotation.insert"; text: string; position: Point }
   | { type: "selection.move"; ids: string[]; delta: Point }
   | { type: "selection.align"; ids: string[]; axis: "left" | "center-x" | "right" | "top" | "center-y" | "bottom" }
-  | { type: "ports.connect"; sourcePortId: string; targetPortId: string }
+  | { type: "ports.connect"; sourcePortId: string; targetPortId: string; connectionClass?: string }
   | { type: "selection.rotate"; ids: string[]; degrees: 90 | -90 }
   | { type: "selection.group"; ids: string[] }
   | { type: "selection.duplicate"; ids: string[]; offset: Point }

@@ -53,10 +53,11 @@ export const alignSelection = (
   axis: Extract<PidCommand, { type: "selection.align" }>["axis"],
 ): PidCommand => ({ type: "selection.align", ids, axis });
 
-export const connectPorts = (sourcePortId: string, targetPortId: string): PidCommand => ({
+export const connectPorts = (sourcePortId: string, targetPortId: string, connectionClass?: string): PidCommand => ({
   type: "ports.connect",
   sourcePortId,
   targetPortId,
+  connectionClass,
 });
 
 export const rotateSelection = (ids: string[], degrees: 90 | -90): PidCommand => ({

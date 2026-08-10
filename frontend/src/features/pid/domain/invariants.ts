@@ -262,7 +262,7 @@ function blockingSemanticIssues(document: PidDocument): DocumentInvariantIssue[]
         "A direção das portas é incompatível com a conexão.",
       ));
     }
-    if (source.connectionClass !== target.connectionClass || edge.connectionClass !== source.connectionClass) {
+    if (!connectionClassesAreCompatible(source.connectionClass, target.connectionClass, edge.connectionClass)) {
       issues.push(invariantIssue(
         "connection.class",
         "error",
@@ -439,6 +439,17 @@ function issueKey(issue: DocumentInvariantIssue): string {
 
 function isPidDocumentObject(value: unknown): value is PidDocument {
   return typeof value === "object" && value !== null;
+}
+
+function connectionClassesAreCompatible(
+  sourceClass: string,
+  targetClass: string,
+  edgeClass: string,
+): boolean {
+  if (sourceClass !== targetClass) return false;
+  if (edgeClass === sourceClass) return true;
+  if (edgeClass === "utility" && sourceClass === "process") return true;
+  return false;
 }
 
 function deepFreeze<T>(value: T): T {
