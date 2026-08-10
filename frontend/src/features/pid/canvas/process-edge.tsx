@@ -8,6 +8,7 @@ import {
 } from "@xyflow/react";
 
 import type { PidEdge, Point } from "../domain/model";
+import { lineStyleAttributes, isSinusoidal } from "./line-rendering";
 
 export type ProcessEdgeData = Record<string, unknown> & {
   readonly processEdge: PidEdge;
@@ -27,9 +28,12 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
     props.sourcePosition,
     props.targetPosition,
   );
-  const path = pointsPath(routePoints);
+  const path = isSinusoidal(processEdge.lineStyle)
+    ? sinusoidalPath(routePoints, processEdge.lineStyle === "unguided-wave")
+    : pointsPath(routePoints);
   const midpoint = pathMidpoint(routePoints);
   const label = [processEdge.tag, processEdge.label].filter(Boolean).join(" ");
+  const attrs = lineStyleAttributes(processEdge.lineStyle);
 
   return (
     <>
@@ -38,7 +42,11 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
         path={path}
         markerEnd={props.markerEnd}
         interactionWidth={24}
-        className={props.selected ? "stroke-blue-600" : "stroke-slate-600"}
+        style={{
+          strokeWidth: attrs.strokeWidth,
+          strokeDasharray: attrs.strokeDasharray,
+        }}
+        className={props.selected ? "stroke-blue-600" : ""}
         data-testid={`process-edge-${props.id}`}
       />
       {label ? (
@@ -53,6 +61,37 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
       ) : null}
     </>
   );
+}
+
+function sinusoidalPath(points: readonly Point[], gapped: boolean): string {
+  const amplitude = 4;
+  const period = 20;
+  const segments: string[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const from = points[i];
+    const to = points[i + 1];
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) continue;
+    const steps = Math.max(1, Math.round(dist / 4));
+    const ux = dx / dist;
+    const uy = dy / dist;
+    const nx = -uy;
+    const ny = ux;
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const x = from.x + dx * t;
+      const y = from.y + dy * t;
+      const phase = (dist * t) / period * 2 * Math.PI;
+      const offset = amplitude * Math.sin(phase);
+      if (gapped && Math.abs(Math.sin(phase)) < 0.3) continue;
+      const sx = x + nx * offset;
+      const sy = y + ny * offset;
+      segments.push(`${segments.length === 0 ? "M" : "L"} ${sx} ${sy}`);
+    }
+  }
+  return segments.join(" ");
 }
 
 export function orthogonalPath(
@@ -102,7 +141,7 @@ function appendPoint(points: Point[], point: Point) {
   if (!previous || previous.x !== point.x || previous.y !== point.y) points.push({ ...point });
 }
 
-function pointsPath(points: readonly Point[]): string {
+export function pointsPath(points: readonly Point[]): string {
   return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
