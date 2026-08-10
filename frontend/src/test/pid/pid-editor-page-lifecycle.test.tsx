@@ -175,7 +175,6 @@ describe("studio focado P&ID", () => {
     expect(screen.getByRole("region", { name: "Inspetor" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
     expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
-    expect(screen.getByText("Livre")).toBeInTheDocument();
     expect(screen.getByText("Acesso de edição")).toHaveClass("sr-only");
     expect(screen.getByRole("button", { name: "Desfazer" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();

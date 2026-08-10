@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link, useBlocker, useLocation, useParams } from "react-router-dom";
 
 import { PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose } from "lucide-react";
@@ -18,7 +18,6 @@ import {
   alignSelection, deleteSelection, groupSelection, insertAnnotation, insertSymbol, rotateSelection,
   type PidCommand,
 } from "../domain/commands";
-import { standardLabel, type ConnectionClass } from "../domain/model";
 import { validateDocument } from "../domain/validation";
 import { downloadBlob, pidExportFilename } from "../export/download";
 import { renderPidPng } from "../export/render-png";
@@ -477,14 +476,9 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <main className={cn("pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]", textSizeClass)}>
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
-      <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
+      <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1></div></div>
       <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} exportBackground={exportBackground} onExportBackgroundChange={setExportBackground} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} iconSize={settings.iconSize} />
       <div className="pid-studio-session-controls">
-        <div className="pid-collaboration-summary" aria-label="Colaboração local">
-          <span>{collaborationSnapshot.label}</span>
-          <span role="status">{collaborationStatusLabel(collaborationSnapshot.status)}</span>
-          <div role="group" aria-label="Participantes">{collaborationSnapshot.participants.map((participant) => <span key={participant.id} style={{ "--participant-color": participant.color } as CSSProperties}>{participant.name}</span>)}</div>
-        </div>
         {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
           </div>}
@@ -570,11 +564,4 @@ function canvasCenter(viewport: { x: number; y: number; zoom: number }) {
 function inspectorCommandField(command: PidCommand): string {
   if (command.type !== "element.patch") return "properties";
   return Object.keys(command.patch)[0] ?? "properties";
-}
-
-function collaborationStatusLabel(status: "connecting" | "synced" | "reconnecting" | "unsaved"): string {
-  if (status === "connecting") return "Conectando";
-  if (status === "reconnecting") return "Reconectando";
-  if (status === "unsaved") return "Não salvo";
-  return "Sincronizado";
 }
