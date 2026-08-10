@@ -503,7 +503,7 @@ type ElementKind = "node" | "port" | "edge" | "annotation" | "group";
 const safePatchFields: Record<ElementKind, ReadonlySet<string>> = {
   node: new Set(["x", "y", "width", "height", "rotation", "tag", "label", "properties"]),
   port: new Set(["direction", "connectionClass", "capacity"]),
-  edge: new Set(["route", "tag", "label", "properties", "utilityCategoryId"]),
+  edge: new Set(["route", "tag", "label", "properties", "lineStyle", "utilityCategoryId"]),
   annotation: new Set(["kind", "text", "x", "y", "width", "height", "rotation", "properties"]),
   group: new Set(["label", "properties"]),
 };

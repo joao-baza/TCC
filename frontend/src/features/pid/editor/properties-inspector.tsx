@@ -216,13 +216,7 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
     {selected?.kind === "edge" && <FieldGroup key={selected.value.id} title="Conexão" id={selected.value.id}>
       <TextField label="Tag" field="tag" value={selected.value.tag} {...common} />
       <TextField label="Rótulo" field="label" value={selected.value.label} {...common} />
-      <SelectField label="Classe de conexão" field="connectionClass" value={selected.value.connectionClass}
-        title={CONNECTION_CLASS_INFO[selected.value.connectionClass as ConnectionClass].description}
-        options={[
-          ["process", CONNECTION_CLASS_INFO.process.label],
-          ["utility", CONNECTION_CLASS_INFO.utility.label],
-          ["signal", CONNECTION_CLASS_INFO.signal.label],
-        ]} {...common} />
+      <p><strong>Classe:</strong> {CONNECTION_CLASS_INFO[selected.value.connectionClass as ConnectionClass].label}</p>
       <SelectField label="Estilo de linha" field="lineStyle" value={selected.value.lineStyle}
         title={LINE_STYLE_INFO[selected.value.lineStyle as LineStyle].description}
         options={LINE_STYLES.map((style) => [style, LINE_STYLE_INFO[style].label] as const)} {...common} />
@@ -410,7 +404,7 @@ function selectedFieldValues(selected: NonNullable<ReturnType<typeof resolveSele
         capacity: selected.value.capacity,
       };
     case "edge":
-      return { tag: selected.value.tag, label: selected.value.label, connectionClass: selected.value.connectionClass, lineStyle: selected.value.lineStyle, properties: selected.value.properties, utilityCategoryId: selected.value.utilityCategoryId ?? "" };
+      return { tag: selected.value.tag, label: selected.value.label, lineStyle: selected.value.lineStyle, properties: selected.value.properties, utilityCategoryId: selected.value.utilityCategoryId ?? "" };
     case "group":
       return { label: selected.value.label, properties: selected.value.properties };
     case "annotation":

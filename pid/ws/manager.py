@@ -26,10 +26,13 @@ class ConnectionManager:
             self._listener_task.cancel()
             try:
                 await self._listener_task
-            except asyncio.CancelledError:
+            except (asyncio.CancelledError, RuntimeError):
                 pass
         if self._pubsub:
-            await self._pubsub.close()
+            try:
+                await self._pubsub.close()
+            except Exception:
+                pass
         self._rooms.clear()
 
     async def connect(self, diagram_id: UUID, websocket: WebSocket) -> None:
@@ -70,9 +73,12 @@ class ConnectionManager:
         if self._pubsub is None:
             return
         while True:
-            raw = await self._pubsub.get_message(
-                ignore_subscribe_messages=True, timeout=1.0
-            )
+            try:
+                raw = await self._pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=1.0
+                )
+            except RuntimeError:
+                break
             if raw is None:
                 continue
             try:
