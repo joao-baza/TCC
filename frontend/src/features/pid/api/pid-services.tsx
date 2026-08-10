@@ -12,6 +12,7 @@ import {
   type LocalPidExclusiveLock,
   type LocalPidRuntime,
 } from "./local-pid-api";
+import { RemotePidApi } from "./remote-pid-api";
 import { LocalRecentPidDiagrams } from "../recent/recent-pid-diagrams";
 
 const pidServicesErrorMessages = Object.freeze({
@@ -108,6 +109,16 @@ export function createPidServices(options: CreatePidServicesOptions | string | u
   const normalized = typeof options === "object" && options !== null
     ? options
     : { adapter: options };
+  if (normalized.adapter === "remote") {
+    const baseUrl = window.location.origin;
+    return {
+      document: new RemotePidApi(baseUrl),
+      catalog: ("catalog" in normalized ? normalized.catalog : undefined) ?? unavailableCatalog,
+      collaboration: ("collaboration" in normalized ? normalized.collaboration : undefined) ?? unavailableCollaboration,
+      recent: new LocalRecentPidDiagrams(browserStorage(), createBrowserLocalPidRuntime().now),
+    };
+  }
+
   if (normalized.adapter !== "local") throw new PidServicesError("ADAPTER_NOT_CONFIGURED");
 
   const storage = normalized.storage ?? browserStorage();
