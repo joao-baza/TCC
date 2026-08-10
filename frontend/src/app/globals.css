@@ -281,8 +281,10 @@ body {
 }
 
 .pid-studio-panel {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  overflow: auto;
+  overflow: hidden;
   padding: .65rem;
   border-inline-end: 1px solid var(--border);
   background: var(--sidebar);

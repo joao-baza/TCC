@@ -131,7 +131,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
   };
 
   return (
-    <section aria-label="Catálogo de símbolos P&ID" className="space-y-3">
+    <section aria-label="Catálogo de símbolos P&ID" className="flex flex-col gap-3 min-h-0">
       <div className="flex gap-2">
         <input aria-label="Pesquisar símbolos" type="search" value={query} onChange={(event) => { setPendingFocusId(undefined); setQuery(event.target.value); }} placeholder="Pesquisar símbolos" className="min-h-11 flex-1 rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         {query !== "" && <button type="button" onClick={() => setQuery("")} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Limpar busca</button>}
@@ -140,7 +140,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
         {sourceFilters.map((sourceKind) => <button type="button" key={sourceKind} aria-pressed={selectedSource === sourceKind} onClick={() => changeSource(selectedSource === sourceKind ? undefined : sourceKind)} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Fonte: {sourceKind === "project" ? "Projeto" : "Draw.io"}</button>)}
       </div>}
       {rows.length === 0 ? <p role="status" className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Nenhum símbolo encontrado.</p> : (
-        <div ref={setScrollElement} role="tree" aria-label="Símbolos disponíveis" className="max-h-[360px] overflow-auto rounded-md border" style={{ minHeight: 160 }}>
+        <div ref={setScrollElement} role="tree" aria-label="Símbolos disponíveis" className="min-h-[160px] flex-1 overflow-auto rounded-md border" style={{ minHeight: 160 }}>
           <div style={{ height: totalSize, position: "relative" }}>
             {visibleItems.map((virtualRow) => {
               const row = rows[virtualRow.index];
