@@ -270,6 +270,23 @@ function blockingSemanticIssues(document: PidDocument): DocumentInvariantIssue[]
         "A classe da conexão deve coincidir nas duas portas e na borda.",
       ));
     }
+    if (edge.utilityCategoryId && edge.connectionClass !== "utility") {
+      issues.push(invariantIssue(
+        "utility.category",
+        "warning",
+        ["edges", edgeId],
+        "Categoria de utilidade definida para aresta que não é de utilidade.",
+      ));
+    }
+    if (edge.utilityCategoryId
+        && !document.metadata.utilityCategories.some(c => c.id === edge.utilityCategoryId)) {
+      issues.push(invariantIssue(
+        "utility.category",
+        "warning",
+        ["edges", edgeId],
+        "Categoria de utilidade referenciada não existe no documento.",
+      ));
+    }
     const connectionKey = `${source.id}\u0000${target.id}`;
     if (semanticConnections.has(connectionKey)) {
       issues.push(invariantIssue(
