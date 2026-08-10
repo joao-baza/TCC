@@ -295,6 +295,73 @@ async def test_append_rejects_nonpositive_schema_before_opening_session(
     assert session_opened is False
 
 
+async def _ensure_diagram(session_factory, diagram_id):
+    from pid.models import PidDiagram, PidStandard
+    from sqlalchemy import select
+
+    async with session_factory() as session:
+        async with session.begin():
+            exists = await session.scalar(select(PidDiagram).where(PidDiagram.id == diagram_id))
+            if exists is None:
+                session.add(
+                    PidDiagram(
+                        id=diagram_id,
+                        title="test",
+                        standard=PidStandard.FREE,
+                        catalog_version="test-v1",
+                        schema_version=1,
+                    )
+                )
+
+
+@pytest.mark.asyncio
+async def test_load_latest_valid_returns_most_recent_valid_snapshot(session_factory):
+    repo = SnapshotRepository(session_factory)
+    diagram_id = uuid4()
+    await _ensure_diagram(session_factory, diagram_id)
+
+    await repo.append(diagram_id, yjs_state=b"first", document_projection={"v": 1}, schema_version=1, is_valid=True)
+    await repo.append(diagram_id, yjs_state=b"second-invalid", document_projection={"v": 2}, schema_version=1, is_valid=False)
+    await repo.append(diagram_id, yjs_state=b"third", document_projection={"v": 3}, schema_version=1, is_valid=True)
+
+    result = await repo.load_latest_valid(diagram_id)
+    assert result is not None
+    doc, rev = result
+    assert doc == {"v": 3}
+    assert rev == 3
+
+
+@pytest.mark.asyncio
+async def test_load_latest_valid_returns_none_for_no_valid_snapshots(session_factory):
+    repo = SnapshotRepository(session_factory)
+    diagram_id = uuid4()
+    await _ensure_diagram(session_factory, diagram_id)
+
+    await repo.append(diagram_id, yjs_state=b"bad", document_projection={"v": 1}, schema_version=1, is_valid=False)
+    result = await repo.load_latest_valid(diagram_id)
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_load_latest_valid_returns_none_for_unknown_diagram(session_factory):
+    repo = SnapshotRepository(session_factory)
+    result = await repo.load_latest_valid(uuid4())
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_latest_revision(session_factory):
+    repo = SnapshotRepository(session_factory)
+    diagram_id = uuid4()
+    await _ensure_diagram(session_factory, diagram_id)
+
+    assert await repo.get_latest_revision(diagram_id) is None
+    rev1 = await repo.append(diagram_id, yjs_state=b"a", document_projection={"v": 1}, schema_version=1, is_valid=True)
+    assert await repo.get_latest_revision(diagram_id) == rev1
+    rev2 = await repo.append(diagram_id, yjs_state=b"b", document_projection={"v": 2}, schema_version=1, is_valid=False)
+    assert await repo.get_latest_revision(diagram_id) == rev2
+
+
 async def test_list_revisions_returns_ascending_order(
     persisted_diagram_id,
     session_factory,

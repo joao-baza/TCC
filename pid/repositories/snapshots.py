@@ -91,6 +91,37 @@ class SnapshotRepository:
 
         return revision
 
+    async def load_latest_valid(
+        self,
+        diagram_id: UUID,
+    ) -> tuple[dict[str, Any], int] | None:
+        async with self._session_factory() as session:
+            row = await session.execute(
+                select(
+                    PidDocumentSnapshot.document_projection,
+                    PidDocumentSnapshot.revision,
+                )
+                .where(
+                    PidDocumentSnapshot.diagram_id == diagram_id,
+                    PidDocumentSnapshot.is_valid.is_(True),
+                )
+                .order_by(PidDocumentSnapshot.revision.desc())
+                .limit(1)
+            )
+            result = row.first()
+            if result is None:
+                return None
+            return (result.document_projection, int(result.revision))
+
+    async def get_latest_revision(self, diagram_id: UUID) -> int | None:
+        async with self._session_factory() as session:
+            revision = await session.scalar(
+                select(func.max(PidDocumentSnapshot.revision)).where(
+                    PidDocumentSnapshot.diagram_id == diagram_id,
+                )
+            )
+            return int(revision) if revision is not None else None
+
     async def list_revisions(self, diagram_id: UUID) -> list[int]:
         async with self._session_factory() as session:
             revisions = await session.scalars(
