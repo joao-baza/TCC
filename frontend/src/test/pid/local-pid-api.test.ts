@@ -120,7 +120,7 @@ function createHarness(overrides: HarnessOverrides = {}) {
 export const pidDocumentPortContract = (createPort: () => PidDocumentPort) => {
   it("cria, grava e reabre um diagrama pelo UUID e revisão", async () => {
     const port = createPort();
-    const created = await port.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await port.create({ title: "Utilidades", participantName: "Ana" });
     expect(created.diagramId).toMatch(UUID_PATTERN);
     expect(created.revision).toBe(1);
     expect(created.editUrl).toContain(`#access=${created.editToken}`);
@@ -137,7 +137,7 @@ describe("contrato PidDocumentPort do adaptador local", () => {
 describe("LocalPidApi", () => {
   it("persiste somente digests, revisão e a chave versionada exata", async () => {
     const { api, storage } = createHarness();
-    const created = await api.create({ title: "  Utilidades  ", standard: "isa", participantName: "  Ana  " });
+    const created = await api.create({ title: "  Utilidades  ", participantName: "  Ana  " });
 
     expect(created.document.metadata.title).toBe("Utilidades");
     expect(created.readToken).toMatch(TOKEN_PATTERN);
@@ -155,7 +155,7 @@ describe("LocalPidApi", () => {
 
   it("destaca documentos de entrada, armazenamento e saída", async () => {
     const { api, storage } = createHarness();
-    const created = await api.create({ title: "Utilidades", standard: "free", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
     const callerDocument = structuredClone(created.document);
 
     await api.save(diagramId, created.editToken, callerDocument, created.revision);
@@ -170,7 +170,7 @@ describe("LocalPidApi", () => {
 
   it("nega tokens errados, ausentes e revogados com o mesmo erro compartilhado", async () => {
     const { api } = createHarness();
-    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
     const regenerated = await api.regenerate(
       diagramId,
       created.editToken,
@@ -198,7 +198,7 @@ describe("LocalPidApi", () => {
 
   it("separa permissões de leitura e edição", async () => {
     const { api } = createHarness();
-    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
 
     await expect(api.open(diagramId, created.readToken)).resolves.toMatchObject({ scope: "view" });
     await expect(api.save(diagramId, created.readToken, created.document, 1)).rejects.toMatchObject({ code: "ACCESS_DENIED" });
@@ -207,7 +207,7 @@ describe("LocalPidApi", () => {
 
   it("faz uma de duas gravações concorrentes vencer e rejeita a revisão obsoleta", async () => {
     const { api, secondApi } = createHarness();
-    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
     const first = structuredClone(created.document);
     first.metadata.title = "Primeira janela";
     const second = structuredClone(created.document);
@@ -228,7 +228,7 @@ describe("LocalPidApi", () => {
 
   it("serializa rotações concorrentes sem devolver token já inválido", async () => {
     const { api, secondApi } = createHarness();
-    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
 
     const results = await Promise.allSettled([
       api.regenerate(diagramId, created.editToken, "edit", created.revision),
@@ -247,7 +247,7 @@ describe("LocalPidApi", () => {
 
   it("faz uma de duas rotações concorrentes de leitura vencer sem devolver token inválido", async () => {
     const { api, secondApi } = createHarness();
-    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
 
     const results = await Promise.allSettled([
       api.regenerate(diagramId, created.editToken, "view", created.revision),
@@ -269,7 +269,7 @@ describe("LocalPidApi", () => {
 
   it("impede gravação concorrente de desfazer exclusão", async () => {
     const { api, secondApi, storage } = createHarness();
-    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
     const changed = structuredClone(created.document);
     changed.metadata.title = "Não deve reviver";
 
@@ -289,14 +289,14 @@ describe("LocalPidApi", () => {
 
   it("restaura dentro de 30 dias e elimina definitivamente registro expirado", async () => {
     const active = createHarness();
-    const created = await active.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await active.api.create({ title: "Utilidades", participantName: "Ana" });
     expect(await active.api.softDelete(diagramId, created.editToken, created.revision)).toBe(2);
     active.setNow("2026-09-08T12:00:00.000Z");
     expect(await active.api.restore(diagramId, created.editToken, 2)).toBe(3);
     await expect(active.api.open(diagramId, created.editToken)).resolves.toMatchObject({ scope: "edit", revision: 3 });
 
     const expired = createHarness();
-    const expiredCreated = await expired.api.create({ title: "Expirado", standard: "iso", participantName: "Ana" });
+    const expiredCreated = await expired.api.create({ title: "Expirado", participantName: "Ana" });
     await expired.api.softDelete(diagramId, expiredCreated.editToken, expiredCreated.revision);
     expired.setNow("2026-09-08T12:00:00.001Z");
     await expect(expired.api.restore(diagramId, expiredCreated.editToken, 2)).rejects.toMatchObject({ code: "RESTORE_EXPIRED" });
@@ -305,13 +305,13 @@ describe("LocalPidApi", () => {
 
   it("rejeita exclusão obsoleta apó gravação ou rotação mais nova", async () => {
     const saved = createHarness();
-    const savedCreated = await saved.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const savedCreated = await saved.api.create({ title: "Utilidades", participantName: "Ana" });
     await saved.api.save(diagramId, savedCreated.editToken, savedCreated.document, savedCreated.revision);
     await expect(saved.api.softDelete(diagramId, savedCreated.editToken, savedCreated.revision))
       .rejects.toMatchObject({ code: "CONFLICT" });
 
     const rotated = createHarness();
-    const rotatedCreated = await rotated.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const rotatedCreated = await rotated.api.create({ title: "Utilidades", participantName: "Ana" });
     await rotated.api.regenerate(diagramId, rotatedCreated.editToken, "view", rotatedCreated.revision);
     await expect(rotated.api.softDelete(diagramId, rotatedCreated.editToken, rotatedCreated.revision))
       .rejects.toMatchObject({ code: "CONFLICT" });
@@ -319,7 +319,7 @@ describe("LocalPidApi", () => {
 
   it("serializa nova exclusão e restauração concorrentes nas duas ordens", async () => {
     const deleteFirst = createHarness();
-    const firstCreated = await deleteFirst.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const firstCreated = await deleteFirst.api.create({ title: "Utilidades", participantName: "Ana" });
     const deletedRevision = await deleteFirst.api.softDelete(
       diagramId,
       firstCreated.editToken,
@@ -330,7 +330,7 @@ describe("LocalPidApi", () => {
       .rejects.toMatchObject({ code: "CONFLICT" });
 
     const restoreFirst = createHarness();
-    const secondCreated = await restoreFirst.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const secondCreated = await restoreFirst.api.create({ title: "Utilidades", participantName: "Ana" });
     const secondDeletedRevision = await restoreFirst.api.softDelete(
       diagramId,
       secondCreated.editToken,
@@ -343,7 +343,7 @@ describe("LocalPidApi", () => {
 
   it("limpa proativamente apenas exclusões expiradas do namespace", async () => {
     const harness = createHarness();
-    const created = await harness.api.create({ title: "Expirado", standard: "iso", participantName: "Ana" });
+    const created = await harness.api.create({ title: "Expirado", participantName: "Ana" });
     await harness.api.softDelete(diagramId, created.editToken, created.revision);
     const expired = JSON.parse(harness.storage.getItem(storageKey)!);
     const recentId = "20000000-0000-4000-8000-000000000002";
@@ -363,7 +363,7 @@ describe("LocalPidApi", () => {
     harness.setNow("2026-09-09T12:00:00.000Z");
     harness.runtime.generateUuid = () => newId;
 
-    await harness.api.create({ title: "Novo", standard: "iso", participantName: "Ana" });
+    await harness.api.create({ title: "Novo", participantName: "Ana" });
 
     expect(harness.storage.getItem(storageKey)).toBeNull();
     expect(harness.storage.getItem(`dcou.pid.local.v1.${recentId}`)).not.toBeNull();
@@ -382,7 +382,7 @@ describe("LocalPidApi", () => {
     const storageKeyAt = vi.spyOn(harness.storage, "key");
     harness.runtime.generateUuid = () => "60000000-0000-4000-8000-000000000006";
 
-    await harness.api.create({ title: "Novo", standard: "iso", participantName: "Ana" });
+    await harness.api.create({ title: "Novo", participantName: "Ana" });
 
     expect(storageKeyAt).toHaveBeenCalledTimes(localPidCleanupScanLimit);
     expect(runExclusive).toHaveBeenCalledTimes(localPidCleanupScanLimit + 2);
@@ -390,7 +390,7 @@ describe("LocalPidApi", () => {
 
   it("persiste o cursor numérico entre reconstruções e alcança o fim sem enumerar toda a origem", async () => {
     const harness = createHarness();
-    const created = await harness.api.create({ title: "Modelo", standard: "iso", participantName: "Ana" });
+    const created = await harness.api.create({ title: "Modelo", participantName: "Ana" });
     await harness.api.softDelete(diagramId, created.editToken, created.revision);
     const deleted = JSON.parse(harness.storage.getItem(storageKey)!);
     harness.storage.removeItem(storageKey);
@@ -416,7 +416,7 @@ describe("LocalPidApi", () => {
       storageKeyAt.mockClear();
       harness.runtime.generateUuid = () => `${(0xe1000000 + pass).toString(16)}-0000-4000-8000-000000000000`;
       const reconstructed = new LocalPidApi(harness.storage, harness.runtime, harness.lock);
-      await reconstructed.create({ title: `Novo ${pass}`, standard: "iso", participantName: "Ana" });
+      await reconstructed.create({ title: `Novo ${pass}`, participantName: "Ana" });
       expect(storageKeyAt.mock.calls.length).toBeLessThanOrEqual(localPidCleanupScanLimit);
       if (harness.storage.getItem(`dcou.pid.local.v1.${expiredTailId}`) === null) break;
     }
@@ -432,7 +432,7 @@ describe("LocalPidApi", () => {
 
   it("remove o expirado antes de repetir a gravação do cursor quando a quota está cheia", async () => {
     const harness = createHarness();
-    const created = await harness.api.create({ title: "Expirado", standard: "iso", participantName: "Ana" });
+    const created = await harness.api.create({ title: "Expirado", participantName: "Ana" });
     await harness.api.softDelete(diagramId, created.editToken, created.revision);
     harness.storage.removeItem(cleanupCursorKey);
     harness.setNow("2026-09-09T12:00:00.000Z");
@@ -447,7 +447,7 @@ describe("LocalPidApi", () => {
     });
 
     const reconstructed = new LocalPidApi(harness.storage, harness.runtime, harness.lock);
-    await expect(reconstructed.create({ title: "Novo", standard: "iso", participantName: "Ana" }))
+    await expect(reconstructed.create({ title: "Novo", participantName: "Ana" }))
       .resolves.toMatchObject({ diagramId: "d1000000-0000-4000-8000-000000000000" });
     expect(harness.storage.getItem(storageKey)).toBeNull();
     expect(JSON.parse(harness.storage.getItem(cleanupCursorKey)!)).toEqual({
@@ -458,7 +458,6 @@ describe("LocalPidApi", () => {
     const unavailable = createHarness();
     const unavailableCreated = await unavailable.api.create({
       title: "Expirado",
-      standard: "iso",
       participantName: "Ana",
     });
     await unavailable.api.softDelete(diagramId, unavailableCreated.editToken, unavailableCreated.revision);
@@ -470,14 +469,14 @@ describe("LocalPidApi", () => {
       unavailableSetItem(key, value);
     });
 
-    await expect(unavailable.api.create({ title: "Novo", standard: "iso", participantName: "Ana" }))
+    await expect(unavailable.api.create({ title: "Novo", participantName: "Ana" }))
       .rejects.toMatchObject({ code: "STORAGE_UNAVAILABLE" });
     expect(unavailable.storage.getItem(storageKey)).toBeNull();
   });
 
   it("recalcula o próximo slot quando a exclusão desloca os índices da origem", async () => {
     const harness = createHarness();
-    const created = await harness.api.create({ title: "Modelo", standard: "iso", participantName: "Ana" });
+    const created = await harness.api.create({ title: "Modelo", participantName: "Ana" });
     await harness.api.softDelete(diagramId, created.editToken, created.revision);
     const deleted = JSON.parse(harness.storage.getItem(storageKey)!);
     const expiredId = "b1000000-0000-4000-8000-000000000000";
@@ -495,7 +494,7 @@ describe("LocalPidApi", () => {
     harness.setNow("2026-09-09T12:00:00.000Z");
     harness.runtime.generateUuid = () => "b2000000-0000-4000-8000-000000000000";
 
-    await harness.api.create({ title: "Novo", standard: "iso", participantName: "Ana" });
+    await harness.api.create({ title: "Novo", participantName: "Ana" });
 
     expect(harness.storage.getItem(`dcou.pid.local.v1.${expiredId}`)).toBeNull();
     expect(JSON.parse(harness.storage.getItem(cleanupCursorKey)!)).toEqual({ version: 1, nextSlot: 31 });
@@ -516,8 +515,8 @@ describe("LocalPidApi", () => {
     const secondTab = new LocalPidApi(harness.storage, secondRuntime, harness.lock);
 
     await Promise.all([
-      firstTab.create({ title: "Aba 1", standard: "iso", participantName: "Ana" }),
-      secondTab.create({ title: "Aba 2", standard: "iso", participantName: "Bia" }),
+      firstTab.create({ title: "Aba 1", participantName: "Ana" }),
+      secondTab.create({ title: "Aba 2", participantName: "Bia" }),
     ]);
 
     const inspected = runExclusive.mock.calls
@@ -530,7 +529,7 @@ describe("LocalPidApi", () => {
 
   it("rejeita id divergente e documento inválido ao gravar", async () => {
     const { api } = createHarness();
-    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
     const divergent = { ...created.document, id: "20000000-0000-4000-8000-000000000002" };
     const invalid = { ...created.document, metadata: { ...created.document.metadata, title: " " } };
 
@@ -544,7 +543,6 @@ describe("LocalPidApi", () => {
 
     await expect(api.create({
       title: "x".repeat(5 * 1024 * 1024),
-      standard: "iso",
       participantName: "Ana",
     })).rejects.toMatchObject({ code: "DOCUMENT_TOO_LARGE" });
     expect(setItem).toHaveBeenCalledWith(cleanupCursorKey, expect.any(String));
@@ -569,13 +567,13 @@ describe("LocalPidApi", () => {
 
     const quota = createHarness();
     quota.storage.setItem = () => { throw new DOMException("quota", "QuotaExceededError"); };
-    await expect(quota.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" }))
+    await expect(quota.api.create({ title: "Utilidades", participantName: "Ana" }))
       .rejects.toMatchObject({ code: "STORAGE_UNAVAILABLE" });
   });
 
   it.each([
-    ["título", { title: " ", standard: "iso", participantName: "Ana" }],
-    ["participante", { title: "Utilidades", standard: "iso", participantName: " " }],
+    ["título", { title: " ", participantName: "Ana" }],
+    ["participante", { title: "Utilidades", participantName: " " }],
     ["norma", { title: "Utilidades", standard: "din", participantName: "Ana" }],
   ])("valida %s na criação", async (_field, input) => {
     const { api } = createHarness();
@@ -585,30 +583,30 @@ describe("LocalPidApi", () => {
   it("rejeita bytes curtos ou malformados na geração de credenciais", async () => {
     const short = createHarness();
     short.runtime.randomBytes = () => new Uint8Array(31);
-    await expect(short.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" }))
+    await expect(short.api.create({ title: "Utilidades", participantName: "Ana" }))
       .rejects.toMatchObject({ code: "CREDENTIAL_GENERATION_FAILED" });
 
     const malformed = createHarness();
     malformed.runtime.randomBytes = () => [1, 2, 3] as unknown as Uint8Array;
-    await expect(malformed.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" }))
+    await expect(malformed.api.create({ title: "Utilidades", participantName: "Ana" }))
       .rejects.toMatchObject({ code: "CREDENTIAL_GENERATION_FAILED" });
   });
 
   it("limita tentativas quando o gerador repete credenciais", async () => {
     const repeated = createHarness({ byteSeeds: new Array(12).fill(7) });
-    await expect(repeated.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" }))
+    await expect(repeated.api.create({ title: "Utilidades", participantName: "Ana" }))
       .rejects.toMatchObject({ code: "CREDENTIAL_GENERATION_FAILED" });
   });
 
   it("rejeita colisão de digest entre credenciais distintas", async () => {
     const collision = createHarness({ digest: async () => "0".repeat(64) });
-    await expect(collision.api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" }))
+    await expect(collision.api.create({ title: "Utilidades", participantName: "Ana" }))
       .rejects.toMatchObject({ code: "CREDENTIAL_GENERATION_FAILED" });
   });
 
   it("distingue falha de digest da falha de geração", async () => {
     const { api } = createHarness({ digest: async () => { throw new Error("subtle indisponível"); } });
-    await expect(api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" }))
+    await expect(api.create({ title: "Utilidades", participantName: "Ana" }))
       .rejects.toMatchObject({ code: "DIGEST_FAILED" });
   });
 
@@ -616,7 +614,7 @@ describe("LocalPidApi", () => {
     const runtime = createBrowserLocalPidRuntime();
     expect(runtime.randomBytes(32)).toHaveLength(32);
     const api = new LocalPidApi(new MemoryStorage(), runtime, new SerialExclusiveLock());
-    const created = await api.create({ title: "Utilidades", standard: "iso", participantName: "Ana" });
+    const created = await api.create({ title: "Utilidades", participantName: "Ana" });
     expect(created.readToken).toMatch(TOKEN_PATTERN);
     expect(created.editToken).toMatch(TOKEN_PATTERN);
   });

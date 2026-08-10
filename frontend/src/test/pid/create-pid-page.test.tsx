@@ -18,7 +18,7 @@ import { PidEditorPage } from "@/features/pid/editor/pid-editor-page";
 
 const diagramId = "10000000-0000-4000-8000-000000000001";
 const document = createEmptyDocument(
-  { title: "Utilidades", standard: "iso" },
+  { title: "Utilidades", standard: "free" },
   { generateId: () => diagramId, now: () => new Date("2026-08-09T12:00:00.000Z") },
 );
 
@@ -88,8 +88,8 @@ describe("CreatePidPage", () => {
     const pidServices = services();
     renderCreate(pidServices);
 
+    expect(screen.queryByLabelText("Norma")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Título do diagrama"), { target: { value: "Utilidades" } });
-    fireEvent.change(screen.getByLabelText("Norma"), { target: { value: "iso" } });
     fireEvent.change(screen.getByLabelText("Seu nome"), { target: { value: "Ana" } });
     fireEvent.click(screen.getByRole("button", { name: "Criar diagrama" }));
 
@@ -115,7 +115,6 @@ describe("CreatePidPage", () => {
     );
     expect(pidServices.document.create).toHaveBeenCalledWith({
       title: "Utilidades",
-      standard: "iso",
       participantName: "Ana",
     });
     expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");

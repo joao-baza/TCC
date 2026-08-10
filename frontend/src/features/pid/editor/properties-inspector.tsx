@@ -359,11 +359,10 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 }
 
 function DocumentSummary({ document }: { document: PidDocument }) {
-  const standard = document.metadata.standard === "free" ? "Livre" : document.metadata.standard.toUpperCase();
   const nodeCount = Object.keys(document.nodes).length;
   return <dl className="pid-document-summary">
     <div><dt>Título</dt><dd>{document.metadata.title}</dd></div>
-    <div><dt>Standard</dt><dd>{standard} no documento</dd></div>
+    <div><dt>Standard</dt><dd>Livre no documento</dd></div>
     <div><dt>Conteúdo</dt><dd>{nodeCount} {nodeCount === 1 ? "equipamento" : "equipamentos"}, {Object.keys(document.edges).length} conexão(ões)</dd></div>
   </dl>;
 }

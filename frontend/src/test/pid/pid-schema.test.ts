@@ -123,7 +123,7 @@ describe("documento canônico P&ID", () => {
 
   it("aceita dependências injetadas para UUID e relógio", () => {
     expect(createEmptyDocument(
-      { title: "  Área 100  ", standard: "isa", catalogVersion: " catálogo-local " },
+      { title: "  Área 100  ", standard: "free", catalogVersion: " catálogo-local " },
       {
         generateId: () => ids.document,
         now: () => new Date("2026-08-09T12:00:00.000Z"),
@@ -140,7 +140,7 @@ describe("documento canônico P&ID", () => {
   });
 
   it.each([
-    ["título em branco", { title: " \n ", standard: "iso" }],
+    ["título em branco", { title: " \n ", standard: "free" }],
     ["standard fora do contrato", { title: "Área 100", standard: "outro" }],
     ["versão de catálogo em branco", { title: "Área 100", standard: "free", catalogVersion: " " }],
   ])("rejeita entrada de fábrica inválida: %s", (_rule, input) => {
@@ -162,6 +162,15 @@ describe("documento canônico P&ID", () => {
 
     expect(parsed).toEqual(document);
     expect(JSON.parse(JSON.stringify(parsed))).toEqual(parsed);
+  });
+
+  it.each(["isa", "iso"])("rejeita documento com a norma removida %s", (standard) => {
+    const document = createPopulatedDocument();
+
+    expect(() => parsePidDocument({
+      ...document,
+      metadata: { ...document.metadata, standard },
+    })).toThrow();
   });
 
   it("destaca propriedades analisadas do objeto de entrada", () => {

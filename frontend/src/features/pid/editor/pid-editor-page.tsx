@@ -510,8 +510,8 @@ function canvasCenter(viewport: { x: number; y: number; zoom: number }) {
   return { x: (400 - viewport.x) / viewport.zoom, y: (300 - viewport.y) / viewport.zoom };
 }
 
-function standardLabel(standard: string): string {
-  return standard === "isa" ? "ISA" : standard === "iso" ? "ISO" : "Livre";
+function standardLabel(_standard: string): string {
+  return "Livre";
 }
 
 function inspectorCommandField(command: PidCommand): string {

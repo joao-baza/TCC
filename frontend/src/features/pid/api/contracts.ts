@@ -42,7 +42,6 @@ export function isPidDocumentError(value: unknown): value is PidDocumentError {
 
 export interface CreatePidInput {
   title: string;
-  standard: PidStandard;
   participantName: string;
 }
 

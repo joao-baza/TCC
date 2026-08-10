@@ -11,7 +11,7 @@ it("cria e abre um diagrama pelas rotas reais com o serviço local compartilhado
   render(<RouterProvider router={router} />);
 
   fireEvent.change(await screen.findByLabelText("Título do diagrama"), { target: { value: "Utilidades" } });
-  fireEvent.change(screen.getByLabelText("Norma"), { target: { value: "iso" } });
+  expect(screen.queryByLabelText("Norma")).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Seu nome"), { target: { value: "Ana" } });
   fireEvent.click(screen.getByRole("button", { name: "Criar diagrama" }));
 

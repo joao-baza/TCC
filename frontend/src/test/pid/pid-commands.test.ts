@@ -30,7 +30,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 const symbol: CatalogSymbol = {
   key: "centrifugal-pump",
-  standards: ["isa"],
+  standards: ["free"],
   catalogVersion: "local-v1",
   name: "Bomba centrífuga",
   defaultSize: { width: 96, height: 64 },
@@ -43,7 +43,7 @@ const symbol: CatalogSymbol = {
 
 function emptyDocument(): PidDocument {
   return createEmptyDocument(
-    { title: "Novo P&ID", standard: "isa" },
+    { title: "Novo P&ID", standard: "free" },
     {
       generateId: () => "10000000-0000-4000-8000-000000000001",
       now: () => new Date("2026-08-09T12:00:00.000Z"),
@@ -127,18 +127,6 @@ describe("comandos canônicos P&ID", () => {
     expect(next.edges).toBe(canonical.edges);
     expect(next.annotations).toBe(canonical.annotations);
     expect(next.groups).toBe(canonical.groups);
-  });
-
-  it("rejeita símbolo incompatível com o standard sem tocar no documento", () => {
-    const empty = emptyDocument();
-    const before = structuredClone(empty);
-
-    expect(() => applyCommand(
-      empty,
-      insertSymbol({ ...symbol, standards: ["iso"] }, { x: 0, y: 0 }),
-      deterministicContext(),
-    )).toThrow(DomainCommandError);
-    expect(empty).toEqual(before);
   });
 
   it("conecta portas compatíveis e bloqueia direção, classe, capacidade e autorreferência", () => {

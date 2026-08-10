@@ -24,7 +24,6 @@ const uuidSchema = z.string().uuid();
 const revisionSchema = z.number().int().positive();
 const createInputSchema = z.object({
   title: z.string().trim().min(1),
-  standard: z.enum(["isa", "iso", "free"]),
   participantName: z.string().trim().min(1),
 }).strict();
 const sha256DigestSchema = z.string().regex(/^[0-9a-f]{64}$/i);
@@ -83,7 +82,7 @@ export class LocalPidApi implements PidDocumentPort {
     let document: PidDocument;
     try {
       document = toTrustedCanonicalDocument(createEmptyDocument(
-        { title: parsedInput.data.title, standard: parsedInput.data.standard },
+        { title: parsedInput.data.title, standard: "free" },
         { generateId: () => diagramId, now: () => this.runtime.now() },
       ));
     } catch (error) {

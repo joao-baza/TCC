@@ -125,7 +125,7 @@ const recordSchema = <T>(itemSchema: z.ZodType<T>) => z.record(z.string(), itemS
 
 export const pidMetadataSchema: z.ZodType<PidDocument["metadata"]> = z.object({
   title: nonBlankStringSchema,
-  standard: z.enum(["isa", "iso", "free"]),
+  standard: z.literal("free"),
   catalogVersion: nonBlankStringSchema,
   createdAt: z.string().datetime({ offset: true }),
   updatedAt: z.string().datetime({ offset: true }),
@@ -425,7 +425,7 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 
 const createEmptyPidDocumentInputSchema: z.ZodType<CreateEmptyPidDocumentInput> = z.object({
   title: z.string(),
-  standard: z.enum(["isa", "iso", "free"]),
+  standard: z.literal("free"),
   catalogVersion: z.string().optional(),
 }).strict();
 

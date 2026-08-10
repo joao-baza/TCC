@@ -18,11 +18,10 @@ import { usePidServices } from "../api/pid-services";
 
 const createPidFormSchema = z.object({
   title: z.string().trim().min(1, "Informe o título do diagrama."),
-  standard: z.enum(["isa", "iso", "free"]),
   participantName: z.string().trim().min(1, "Informe seu nome."),
 });
 
-type FormField = "title" | "standard" | "participantName";
+type FormField = "title" | "participantName";
 type FormErrors = Partial<Record<FormField, string>>;
 
 export function CreatePidPage() {
@@ -63,7 +62,6 @@ export function CreatePidPage() {
     const data = new FormData(event.currentTarget);
     const parsed = createPidFormSchema.safeParse({
       title: data.get("title"),
-      standard: data.get("standard"),
       participantName: data.get("participantName"),
     });
     if (!parsed.success) {
@@ -140,14 +138,6 @@ export function CreatePidPage() {
             type="text"
           />
           {errors.title && <p id="pid-title-error" role="alert" className="text-sm text-destructive">{errors.title}</p>}
-        </div>
-        <div className="grid gap-1">
-          <label htmlFor="pid-standard">Norma</label>
-          <select className="min-h-11 rounded-md border bg-background px-3 py-2" defaultValue="isa" id="pid-standard" name="standard" required>
-            <option value="isa">ISA</option>
-            <option value="iso">ISO</option>
-            <option value="free">Livre</option>
-          </select>
         </div>
         <div className="grid gap-1">
           <label htmlFor="pid-participant">Seu nome</label>

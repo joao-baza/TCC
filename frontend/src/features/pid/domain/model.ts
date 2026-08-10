@@ -1,4 +1,4 @@
-export type PidStandard = "isa" | "iso" | "free";
+export type PidStandard = "free";
 export type PortDirection = "input" | "output" | "bidirectional";
 export type ConnectionClass = "process" | "utility" | "signal";
 

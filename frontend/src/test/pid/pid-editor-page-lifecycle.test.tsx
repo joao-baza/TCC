@@ -29,7 +29,7 @@ import { PidEditorPage } from "@/features/pid/editor/pid-editor-page";
 
 const diagramId = "00000001-0000-4000-8000-000000000000";
 const document = createEmptyDocument(
-  { title: "Utilidades", standard: "iso" },
+  { title: "Utilidades", standard: "free" },
   { generateId: () => diagramId, now: () => new Date("2026-08-09T12:00:00Z") },
 );
 
@@ -175,7 +175,7 @@ describe("studio focado P&ID", () => {
     expect(screen.getByRole("region", { name: "Inspetor" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
     expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
-    expect(screen.getByText("ISO")).toBeInTheDocument();
+    expect(screen.getByText("Livre")).toBeInTheDocument();
     expect(screen.getByText("Acesso de edição")).toHaveClass("sr-only");
     expect(screen.getByRole("button", { name: "Desfazer" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();
@@ -324,7 +324,7 @@ describe("studio focado P&ID", () => {
   it("aguarda o flush antes de abrir outra rota e permite retry quando o save falha", async () => {
     const targetId = "00000002-0000-4000-8000-000000000000";
     const nextDocument = createEmptyDocument(
-      { title: "Próximo diagrama", standard: "iso" },
+      { title: "Próximo diagrama", standard: "free" },
       { generateId: () => targetId, now: () => new Date("2026-08-09T12:00:00Z") },
     );
     const firstSave = deferred<number>();

@@ -14,7 +14,7 @@ export const onPidPerformancePortKey = () => undefined;
 
 export function createPidCommandReferenceDocument(): PidDocument {
   const base = createEmptyDocument(
-    { title: "Novo P&ID", standard: "isa" },
+    { title: "Novo P&ID", standard: "free" },
     {
       generateId: () => "10000000-0000-4000-8000-000000000001",
       now: () => new Date("2026-08-09T12:00:00.000Z"),
