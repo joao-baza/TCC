@@ -238,6 +238,10 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     () => validateDocument(editor.document, { catalog: localCatalog }),
     [editor.document],
   );
+  const validationCounts = useMemo(() => ({
+    errors: validationIssues.filter((i) => i.severity === "error").length,
+    warnings: validationIssues.filter((i) => i.severity === "warning").length,
+  }), [validationIssues]);
   const exportErrors = useMemo(() => [...new Set(validationIssues
     .filter((issue) => issue.severity === "error")
     .map((issue) => issue.message))], [validationIssues]);
@@ -501,7 +505,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         </div>}
       </aside>
     </div>
-    <StatusBar state={editor} saveState={autosave.state} onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
+    <StatusBar state={editor} saveState={autosave.state} validationCounts={validationCounts} onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
     <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
   </main>;
 }

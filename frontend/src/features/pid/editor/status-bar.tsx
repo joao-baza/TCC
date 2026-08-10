@@ -1,9 +1,10 @@
 import type { EditorState } from "./editor-store";
 import type { EditorSaveState } from "./use-editor-autosave";
 
-export function StatusBar({ state, saveState, onRetry }: {
+export function StatusBar({ state, saveState, validationCounts, onRetry }: {
   readonly state: EditorState;
   readonly saveState: EditorSaveState;
+  readonly validationCounts: { errors: number; warnings: number };
   readonly onRetry?: () => void;
 }) {
   const { document, viewport } = state;
@@ -16,6 +17,6 @@ export function StatusBar({ state, saveState, onRetry }: {
     <span>Zoom {Math.round(viewport.zoom * 100)}%</span>
     <span>{elements} elementos</span>
     <span>{Object.keys(document.nodes).length} equipamentos · {Object.keys(document.edges).length} linhas</span>
-    <span>Avisos 0 · Erros 0</span>
+    <span>Avisos {validationCounts.warnings} · Erros {validationCounts.errors}</span>
   </footer>;
 }
