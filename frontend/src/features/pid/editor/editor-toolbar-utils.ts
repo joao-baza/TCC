@@ -1,4 +1,5 @@
-import type { PidDocument } from "../domain/model";
+import type { PidCommand } from "../domain/command-contract";
+import type { ConnectionClass, PidDocument } from "../domain/model";
 
 export interface EditorSelectionCapabilities {
   readonly canDelete: boolean;
@@ -7,6 +8,23 @@ export interface EditorSelectionCapabilities {
   readonly canRotate: boolean;
   readonly canGroup: boolean;
   readonly canAlign: boolean;
+}
+
+export interface EditorToolbarActions {
+  readonly undo: () => void;
+  readonly redo: () => void;
+  readonly deleteSelection: () => void;
+  readonly duplicate: () => void;
+  readonly copy: () => void;
+  readonly paste: () => void;
+  readonly rotate: (degrees: 90 | -90) => void;
+  readonly align: (axis: Extract<PidCommand, { type: "selection.align" }>["axis"]) => void;
+  readonly group: () => void;
+  readonly insertAnnotation: () => void;
+  readonly fit: () => void;
+  readonly zoomIn: () => void;
+  readonly zoomOut: () => void;
+  readonly setConnectionClass: (value: ConnectionClass) => void;
 }
 
 export function getEditorSelectionCapabilities(
