@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useBlocker } from "react-router-dom";
 import { z } from "zod";
 
+import { ModuleTabsLayout } from "@/components/module-tabs-layout";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,9 +13,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardHeader } from "@/components/ui/card";
 
 import { isPidDocumentError, type CreatedPidDiagram } from "../api/contracts";
 import { usePidServices } from "../api/pid-services";
+import { pidEditorTabs } from "./pid-tabs";
 
 const createPidFormSchema = z.object({
   title: z.string().trim().min(1, "Informe o título do diagrama."),
@@ -116,110 +119,127 @@ export function CreatePidPage() {
   const proceedBlockedNavigation = () => {
     if (navigationBlocker.state === "blocked") navigationBlocker.proceed();
   };
+  const navigationAction = navigationLocked ? (
+    <button className="min-h-11 min-w-11 w-fit text-sm font-medium underline opacity-50" disabled type="button">Voltar ao DCOU</button>
+  ) : (
+    <Link className="inline-flex min-h-11 min-w-11 w-fit items-center text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
+  );
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-6 md:p-8">
-      <header>
-        <h1 className="text-3xl font-semibold">Editor P&ID</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Crie um diagrama local e guarde separadamente os links de visualização e edição.
-        </p>
-      </header>
-      <form aria-busy={pending} className="grid max-w-xl gap-4" noValidate onSubmit={handleSubmit}>
-        <div className="grid gap-1">
-          <label htmlFor="pid-title">Título do diagrama</label>
-          <input
-            aria-describedby={errors.title ? "pid-title-error" : undefined}
-            aria-invalid={Boolean(errors.title)}
-            className="min-h-11 rounded-md border bg-background px-3 py-2"
-            id="pid-title"
-            name="title"
-            required
-            type="text"
+    <ModuleTabsLayout
+      action={navigationAction}
+      title="Editor P&ID"
+      subtitle="Crie diagramas de processo com catálogo livre, links de visualização e edição separados."
+      tabs={pidEditorTabs}
+    >
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(20rem,1.05fr)]">
+        <Card>
+          <CardHeader
+            title="Dados do diagrama"
+            subtitle="Informe os dados iniciais para gerar os links de acesso."
           />
-          {errors.title && <p id="pid-title-error" role="alert" className="text-sm text-destructive">{errors.title}</p>}
-        </div>
-        <div className="grid gap-1">
-          <label htmlFor="pid-participant">Seu nome</label>
-          <input
-            aria-describedby={errors.participantName ? "pid-participant-error" : undefined}
-            aria-invalid={Boolean(errors.participantName)}
-            className="min-h-11 rounded-md border bg-background px-3 py-2"
-            id="pid-participant"
-            name="participantName"
-            required
-            type="text"
-          />
-          {errors.participantName && <p id="pid-participant-error" role="alert" className="text-sm text-destructive">{errors.participantName}</p>}
-        </div>
-        <button className="min-h-11 min-w-11 w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50" disabled={pending} type="submit">
-          {pending ? "Criando…" : "Criar diagrama"}
-        </button>
-      </form>
-
-      {status && (
-        <p role={statusIsError ? "alert" : "status"} aria-live="polite">
-          {status}
-        </p>
-      )}
-
-      {created && (
-        <section aria-labelledby="pid-access-title" className="grid max-w-2xl gap-4 rounded-lg border p-4">
-          <h2 id="pid-access-title" className="text-xl font-semibold">Links de acesso</h2>
-          <div className="grid gap-1">
-            <label htmlFor="pid-view-url">Link de visualização</label>
-            <div className="flex flex-wrap items-center gap-3">
+          <form aria-busy={pending} className="grid gap-4 p-6" noValidate onSubmit={handleSubmit}>
+            <div className="grid gap-1">
+              <label htmlFor="pid-title">Título do diagrama</label>
               <input
-                className="min-h-11 min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
-                id="pid-view-url"
-                onFocus={(event) => event.currentTarget.select()}
-                readOnly
-                value={created.viewUrl}
+                aria-describedby={errors.title ? "pid-title-error" : undefined}
+                aria-invalid={Boolean(errors.title)}
+                className="min-h-11 rounded-md border bg-background px-3 py-2"
+                id="pid-title"
+                name="title"
+                required
+                type="text"
               />
-              <button type="button" className="min-h-11 min-w-11 rounded-md border px-3 py-2" onClick={() => void copyLink("Link de visualização", created.viewUrl)}>
-                Copiar visualização
-              </button>
+              {errors.title && <p id="pid-title-error" role="alert" className="text-sm text-destructive">{errors.title}</p>}
             </div>
-          </div>
-          <div className="grid gap-1">
-            <label htmlFor="pid-edit-url">Link de edição</label>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="grid gap-1">
+              <label htmlFor="pid-participant">Seu nome</label>
               <input
-                className="min-h-11 min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
-                id="pid-edit-url"
-                onFocus={(event) => event.currentTarget.select()}
-                readOnly
-                value={created.editUrl}
+                aria-describedby={errors.participantName ? "pid-participant-error" : undefined}
+                aria-invalid={Boolean(errors.participantName)}
+                className="min-h-11 rounded-md border bg-background px-3 py-2"
+                id="pid-participant"
+                name="participantName"
+                required
+                type="text"
               />
-              <button type="button" className="min-h-11 min-w-11 rounded-md border px-3 py-2" onClick={() => void copyLink("Link de edição", created.editUrl)}>
-                Copiar edição
-              </button>
+              {errors.participantName && <p id="pid-participant-error" role="alert" className="text-sm text-destructive">{errors.participantName}</p>}
             </div>
-          </div>
-          <label className="flex min-h-11 items-center gap-2">
-            <input checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} type="checkbox" />
-            Copiei o link de edição
-          </label>
-          <div className="flex flex-wrap gap-3">
-            {confirmed ? (
-              <>
-                <a className="inline-flex min-h-11 min-w-11 w-fit items-center justify-center rounded-md border px-4 py-2" href={created.viewUrl}>Abrir visualização</a>
-                <a className="inline-flex min-h-11 min-w-11 w-fit items-center justify-center rounded-md bg-primary px-4 py-2 text-primary-foreground" href={created.editUrl}>Abrir editor</a>
-              </>
-            ) : (
-              <>
-                <button className="min-h-11 min-w-11 w-fit rounded-md border px-4 py-2 opacity-50" disabled type="button">Abrir visualização</button>
-                <button className="min-h-11 min-w-11 w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground opacity-50" disabled type="button">Abrir editor</button>
-              </>
-            )}
-          </div>
-        </section>
-      )}
-      {navigationLocked ? (
-        <button className="min-h-11 min-w-11 w-fit text-sm font-medium underline opacity-50" disabled type="button">Voltar ao DCOU</button>
-      ) : (
-        <Link className="inline-flex min-h-11 min-w-11 w-fit items-center text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
-      )}
+            <button className="min-h-11 min-w-11 w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50" disabled={pending} type="submit">
+              {pending ? "Criando…" : "Criar diagrama"}
+            </button>
+          </form>
+        </Card>
+
+        <div className="grid content-start gap-4">
+          {status && (
+            <p
+              className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm"
+              role={statusIsError ? "alert" : "status"}
+              aria-live="polite"
+            >
+              {status}
+            </p>
+          )}
+
+          {created && (
+            <Card>
+              <CardHeader title="Links de acesso" />
+              <section aria-labelledby="pid-access-title" className="grid gap-4 p-6 pt-3">
+                <h2 id="pid-access-title" className="sr-only">Links de acesso</h2>
+                <div className="grid gap-1">
+                  <label htmlFor="pid-view-url">Link de visualização</label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      className="min-h-11 min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
+                      id="pid-view-url"
+                      onFocus={(event) => event.currentTarget.select()}
+                      readOnly
+                      value={created.viewUrl}
+                    />
+                    <button type="button" className="min-h-11 min-w-11 rounded-md border px-3 py-2" onClick={() => void copyLink("Link de visualização", created.viewUrl)}>
+                      Copiar visualização
+                    </button>
+                  </div>
+                </div>
+                <div className="grid gap-1">
+                  <label htmlFor="pid-edit-url">Link de edição</label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      className="min-h-11 min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
+                      id="pid-edit-url"
+                      onFocus={(event) => event.currentTarget.select()}
+                      readOnly
+                      value={created.editUrl}
+                    />
+                    <button type="button" className="min-h-11 min-w-11 rounded-md border px-3 py-2" onClick={() => void copyLink("Link de edição", created.editUrl)}>
+                      Copiar edição
+                    </button>
+                  </div>
+                </div>
+                <label className="flex min-h-11 items-center gap-2">
+                  <input checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} type="checkbox" />
+                  Copiei o link de edição
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {confirmed ? (
+                    <>
+                      <a className="inline-flex min-h-11 min-w-11 w-fit items-center justify-center rounded-md border px-4 py-2" href={created.viewUrl}>Abrir visualização</a>
+                      <a className="inline-flex min-h-11 min-w-11 w-fit items-center justify-center rounded-md bg-primary px-4 py-2 text-primary-foreground" href={created.editUrl}>Abrir editor</a>
+                    </>
+                  ) : (
+                    <>
+                      <button className="min-h-11 min-w-11 w-fit rounded-md border px-4 py-2 opacity-50" disabled type="button">Abrir visualização</button>
+                      <button className="min-h-11 min-w-11 w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground opacity-50" disabled type="button">Abrir editor</button>
+                    </>
+                  )}
+                </div>
+              </section>
+            </Card>
+          )}
+
+        </div>
+      </div>
       <AlertDialog
         open={navigationBlocker.state === "blocked"}
         onOpenChange={(open) => {
@@ -241,6 +261,6 @@ export function CreatePidPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+    </ModuleTabsLayout>
   );
 }

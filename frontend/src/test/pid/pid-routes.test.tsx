@@ -7,7 +7,11 @@ import { PidRouteErrorPage } from "@/features/pid/api/pid-services";
 
 afterEach(() => vi.restoreAllMocks());
 
-it.each(["/pid", "/pid/7c1fdcea-c47a-49d2-b16f-22c30da1b3cb"])(
+it.each([
+  "/pid",
+  "/pid/meus-diagramas",
+  "/pid/7c1fdcea-c47a-49d2-b16f-22c30da1b3cb",
+])(
   "declara a rota P&ID %s",
   (path) => expect(matchRoutes(routes, path)).not.toBeNull(),
 );
@@ -25,6 +29,27 @@ it("renderiza /pid dentro do layout geral com navegação lateral", async () => 
   expect(await screen.findByRole("heading", { name: "Editor P&ID" })).toBeInTheDocument();
   expect(screen.getByRole("navigation", { name: /Navegação principal/i })).toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "Novo diagrama" })).toHaveAttribute("href", "/pid");
+});
+
+it("mantém Novo diagrama como tab padrão e Meus diagramas como segunda tab", async () => {
+  const router = createMemoryRouter(routes, { initialEntries: ["/pid"] });
+  render(<RouterProvider router={router} />);
+
+  expect(await screen.findByRole("heading", { name: "Editor P&ID" })).toBeInTheDocument();
+  const tabs = screen.getAllByRole("tab").map((tab) => tab.textContent);
+  expect(tabs).toEqual(["Novo diagrama", "Meus diagramas"]);
+  expect(screen.getByRole("tab", { name: "Novo diagrama" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByRole("tab", { name: "Meus diagramas" })).toHaveAttribute("href", "/pid/meus-diagramas");
+});
+
+it("renderiza Meus diagramas dentro do layout geral", async () => {
+  const router = createMemoryRouter(routes, { initialEntries: ["/pid/meus-diagramas"] });
+  render(<RouterProvider router={router} />);
+
+  expect(await screen.findByRole("heading", { name: "Editor P&ID" })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Meus diagramas" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByText("Os diagramas criados ou abertos neste navegador aparecerão aqui.")).toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: /Navegação principal/i })).toBeInTheDocument();
 });
 
 it("mantém o editor por UUID focado sem a barra lateral", async () => {

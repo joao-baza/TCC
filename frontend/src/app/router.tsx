@@ -6,7 +6,7 @@ import { ComponentsPage } from "@/features/components/components-page";
 import { FlowPage } from "@/features/flow/flow-page";
 import { GlossaryPage } from "@/features/glossary/glossary-page";
 import { HomePage } from "@/features/home/home-page";
-import { pidRoute } from "@/features/pid/routing/active-pid-route";
+import { pidFocusedEditorRoute, pidRoute } from "@/features/pid/routing/active-pid-route";
 import {
   PipingConnectionsTab,
   PipingPage,
@@ -31,11 +31,11 @@ export const routes = [
     path: "/",
     element: <App />,
     children: [
-      pidRoute,
       {
         element: <AppShell />,
         children: [
           { index: true, element: <HomePage /> },
+          pidRoute,
           {
             path: "piping",
             element: <PipingPage />,
@@ -126,6 +126,7 @@ export const routes = [
           },
         ],
       },
+      pidFocusedEditorRoute,
     ],
   }
 ];

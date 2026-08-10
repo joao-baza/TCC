@@ -21,3 +21,8 @@ export const pidRoute: RouteObject = {
   path: "pid/*",
   element: <PidDisabledPage />,
 };
+
+export const pidFocusedEditorRoute: RouteObject = {
+  path: "pid/:diagramId",
+  element: <PidDisabledPage />,
+};
