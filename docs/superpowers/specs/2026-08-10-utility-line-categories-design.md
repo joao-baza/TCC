@@ -1,91 +1,200 @@
-# Utility Line Categories and Color Rendering
+# P&ID REST API + Utility Line Categories
 
 **Date:** 2026-08-10
 **Status:** draft
 
 ## Context
 
-Arestas P&ID com `connectionClass === "utility"` hoje renderizam identicamente a arestas `process` — sempre `stroke-slate-600`. O objetivo é permitir que o usuário crie categorias de utilidade (nome + cor) por documento e atribuí-las às arestas, resultando em diferenciação visual por cor no canvas e na exportação SVG.
+O sistema P&ID hoje opera 100% no frontend via `localStorage` (adapter `local`). O backend já tem infraestrutura PostgreSQL (SQLAlchemy + Alembic + Redis), modelos para `pid_diagrams`, `pid_access_tokens`, `pid_document_snapshots`, e serviços de domínio (`DiagramService`, `SnapshotRepository`). Falta expor esses serviços como API REST e criar o adapter remoto no frontend.
 
-**Escopo do sistema atual:**
-- `connectionClass` já existe no modelo (`"process" | "utility" | "signal"`)
-- As arestas renderizam com Tailwind `stroke-slate-600` fixo (sem diferenciação)
-- O SVG export já diferencia signal (dashed), mas utility = process (sólido)
-- Armazenamento 100% client-side via localStorage
-- Command pattern imutável com Zod schema validation
+Sobre essa base, implementamos o suporte a **categorias de utilidade** (nome + cor) para arestas com `connectionClass === "utility"`, com diferenciação visual por cor no canvas.
 
-## Design Decisions
+## Part 1: P&ID REST API
 
-| Decisão | Escolha |
-|---------|---------|
-| Escopo das categorias | Por documento P&ID |
-| Seleção de cor | Paleta fixa de 16 cores Tailwind 500 |
-| Atribuição de categoria | Na criação da aresta + editável no inspetor |
-| Armazenamento da referência | Campo dedicado `utilityCategoryId` no `PidEdge` |
+### 1.1 Backend — Router e Endpoints
 
-## Data Model
+Novo arquivo: `routers/pid.py`, registrado em `app.py`.
 
-### Novo tipo: `UtilityCategory`
+| Método | Rota | Body | Response |
+|--------|------|------|----------|
+| `POST` | `/api/pid/diagrams` | `{ title, catalog_version }` | `{ diagram_id, view_token, edit_token, document, revision }` |
+| `POST` | `/api/pid/diagrams/:id/open` | `{ token }` | `{ scope, document, revision }` |
+| `PUT` | `/api/pid/diagrams/:id/document` | `{ token, document, expected_revision }` | `{ revision }` |
+| `POST` | `/api/pid/diagrams/:id/tokens` | `{ edit_token, scope, expected_revision }` | `{ token, revision }` |
+| `DELETE` | `/api/pid/diagrams/:id` | `{ edit_token, expected_revision }` | `{ revision }` |
+| `POST` | `/api/pid/diagrams/:id/restore` | `{ edit_token, expected_revision }` | `{ revision }` |
+
+**Autenticação:** token enviado no corpo JSON de cada requisição. O backend valida via `DiagramService.authorize()`.
+
+**Dependências FastAPI:** endpoint que injeta `PidRuntime` via `request.app.state.pid_runtime`.
+
+### 1.2 Backend — Novos métodos no DiagramService
+
+Adicionar ao `DiagramService`:
+
+```python
+async def open_document(self, diagram_id: UUID, token: str) -> OpenedDiagram
+    # 1. authorize(token) → scope ou 403
+    # 2. SnapshotRepository.load_latest_valid(diagram_id) → document_projection
+    # 3. retorna { scope, document, revision }
+
+async def save_document(self, diagram_id: UUID, token: str, 
+                         document: dict, expected_revision: int) -> int
+    # 1. authorize(token) → requer EDIT, senão 403
+    # 2. SnapshotRepository.get_latest_revision(diagram_id) → revision atual
+    # 3. Se revision != expected_revision → 409 CONFLICT
+    # 4. SnapshotRepository.append(diagram_id, yjs_state=b"", document_projection=document,
+    #                               schema_version=1, is_valid=True)
+    # 5. Atualiza PidDiagram.updated_at
+    # 6. retorna nova revision
+```
+
+### 1.3 Backend — Extensões no SnapshotRepository
+
+```python
+async def load_latest_valid(self, diagram_id: UUID) -> tuple[dict, int] | None
+    # SELECT document_projection, revision FROM pid_document_snapshots
+    # WHERE diagram_id = :id AND is_valid = TRUE
+    # ORDER BY revision DESC LIMIT 1
+    # Retorna (document, revision) ou None
+
+async def get_latest_revision(self, diagram_id: UUID) -> int | None
+    # SELECT MAX(revision) FROM pid_document_snapshots WHERE diagram_id = :id
+```
+
+### 1.4 Frontend — RemotePidApi adapter
+
+Novo arquivo: `frontend/src/features/pid/api/remote-pid-api.ts`
 
 ```ts
-export interface UtilityCategory {
-  id: string;    // uuid
-  name: string;  // ex: "Vapor", "Água de resfriamento"
-  color: string; // ex: "#ef4444" (Tailwind red-500)
+class RemotePidApi implements PidDocumentPort {
+  constructor(private readonly baseUrl: string) {}
+
+  async create(input: CreatePidInput): Promise<CreatedPidDiagram> {
+    const res = await fetch(`${this.baseUrl}/api/pid/diagrams`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: input.title, catalog_version: "local-v1" }),
+    });
+    if (!res.ok) throw mapError(res);
+    const data = await res.json();
+    return {
+      diagramId: data.diagram_id,
+      document: data.document,
+      revision: data.revision,
+      readToken: data.view_token,
+      editToken: data.edit_token,
+      viewUrl: `${window.location.origin}/pid/${data.diagram_id}#access=${data.view_token}`,
+      editUrl: `${window.location.origin}/pid/${data.diagram_id}#access=${data.edit_token}`,
+    };
+  }
+
+  async open(diagramId: string, token: string): Promise<OpenedPidDiagram> { /* POST .../open */ }
+  async save(diagramId: string, token: string, document: PidDocument, expectedRevision: number): Promise<number> { /* PUT .../document */ }
+  async regenerate(...) { /* POST .../tokens */ }
+  async softDelete(...) { /* DELETE */ }
+  async restore(...) { /* POST .../restore */ }
 }
 ```
 
-### `PidDocument.metadata` estendido
+**Mapeamento de erros HTTP → PidDocumentError:**
+- 400 → `INVALID_INPUT`
+- 403 → `ACCESS_DENIED`
+- 404 → `DOCUMENT_NOT_FOUND`
+- 409 → `CONFLICT`
+- 410 → `DOCUMENT_DELETED` / `RESTORE_EXPIRED`
+- 413 → `DOCUMENT_TOO_LARGE`
+- 5xx → `STORAGE_CORRUPTED`
+
+### 1.5 Frontend — Ativar adapter remoto
+
+Em `pid-services.tsx`, `createPidServices()`:
+
+```ts
+if (normalized.adapter === "remote") {
+  return {
+    document: new RemotePidApi(normalized.baseUrl ?? window.location.origin),
+    catalog: normalized.catalog ?? unavailableCatalog,
+    collaboration: normalized.collaboration ?? unavailableCollaboration,
+  };
+}
+```
+
+Novo valor de env: `VITE_PID_ADAPTER=remote`.
+
+### 1.6 Migration (Alembic)
+
+Nenhuma migration nova necessária. O `document_projection` já é `JSONB` e aceita qualquer estrutura. O `utilityCategories` vai dentro do JSON do documento.
+
+---
+
+## Part 2: Utility Line Categories
+
+### 2.1 Data Model (frontend)
+
+**Novo tipo `UtilityCategory`:**
+
+```ts
+export interface UtilityCategory {
+  id: string;   // uuid
+  name: string; // ex: "Vapor", "Água de resfriamento"
+  color: string; // ex: "#ef4444"
+}
+```
+
+**`PidDocument.metadata` estendido:**
 
 ```ts
 metadata: {
-  // ... existing fields
+  // ... existing
   utilityCategories: UtilityCategory[];  // default []
 }
 ```
 
-### `PidEdge` estendido
+**`PidEdge` estendido:**
 
 ```ts
 interface PidEdge {
-  // ... existing fields
+  // ... existing
   utilityCategoryId?: string;
 }
 ```
 
-### Safe-patch fields
-
-Adicionar `"utilityCategoryId"` ao conjunto `safePatchFields.edge` em `command-reducers.ts`.
-
-### Paleta de cores
-
-16 cores do Tailwind 500: `red, orange, amber, yellow, lime, green, emerald, teal, cyan, blue, indigo, violet, purple, fuchsia, pink, slate`.
-
-### Schema version
-
-Permanece `1`. Campo opcional em edge é backward-compatible.
-
-### Zod schema
-
-- `utilityCategorySchema`: `z.object({ id: z.string().uuid(), name: z.string().min(1), color: z.string().regex(/^#[0-9a-fA-F]{6}$/) })`
+**Zod schemas** atualizados em `schema.ts`:
+- `utilityCategorySchema`: `z.object({ id: uuidSchema, name: z.string().min(1), color: z.string().regex(/^#[0-9a-fA-F]{6}$/) })`
 - `pidDocumentSchema.metadata`: adicionar `utilityCategories: z.array(utilityCategorySchema)`
 - `pidEdgeSchema`: adicionar `utilityCategoryId: z.string().uuid().optional()`
 
-## Commands
+**Schema version** permanece `1` (adições opcionais backward-compatible).
 
-### `utility.addCategory`
+**Paleta:** 16 cores Tailwind 500: `red, orange, amber, yellow, lime, green, emerald, teal, cyan, blue, indigo, violet, purple, fuchsia, pink, slate`.
+
+Mapeamento cor → hex em constante compartilhada:
+
+```ts
+export const UTILITY_COLOR_PALETTE: Record<string, string> = {
+  red: "#ef4444", orange: "#f97316", amber: "#f59e0b", yellow: "#eab308",
+  lime: "#84cc16", green: "#22c55e", emerald: "#10b981", teal: "#14b8a6",
+  cyan: "#06b6d4", blue: "#3b82f6", indigo: "#6366f1", violet: "#8b5cf6",
+  purple: "#a855f7", fuchsia: "#d946ef", pink: "#ec4899", slate: "#64748b",
+};
+```
+
+### 2.2 Commands
+
+**`utility.addCategory`** (novo comando):
 
 ```ts
 interface AddUtilityCategoryCommand {
   type: "utility.addCategory";
   name: string;
-  color: string;
+  color: string; // nome da cor da paleta (ex: "red"), resolvido para hex no reducer
 }
 ```
 
-Reducer: insere `{ id: crypto.randomUUID(), name, color }` em `metadata.utilityCategories`.
+Reducer: insere `{ id: crypto.randomUUID(), name, color: UTILITY_COLOR_PALETTE[color] }` em `metadata.utilityCategories`.
 
-### `utility.removeCategory`
+**`utility.removeCategory`** (novo comando):
 
 ```ts
 interface RemoveUtilityCategoryCommand {
@@ -94,82 +203,93 @@ interface RemoveUtilityCategoryCommand {
 }
 ```
 
-Reducer: remove a categoria do array e percorre todas as arestas limpando `utilityCategoryId` onde referenciava a categoria removida.
+Reducer: remove a categoria do array e limpa `utilityCategoryId` de todas as arestas que a referenciam.
 
-### `element.patch` (existente)
+**`element.patch`** (existente): adicionar `"utilityCategoryId"` ao `safePatchFields.edge`.
 
-Já suporta patch de campos no `safePatchFields`. Adicionar `utilityCategoryId` ao conjunto de campos seguros para edge. O comando em si não muda.
+### 2.3 Invariants
 
-## Invariants
-
-Nova validação em `invariants.ts`:
+Em `invariants.ts`:
 
 ```ts
-if (edge.connectionClass !== "utility" && edge.utilityCategoryId !== undefined) {
-  // warning: utilityCategoryId só é válido para arestas utility
-}
-if (edge.utilityCategoryId && !metadata.utilityCategories.find(c => c.id === edge.utilityCategoryId)) {
-  // warning: categoria referenciada não existe
-}
+// utilityCategoryId só é válido para arestas utility
+if (edge.connectionClass !== "utility" && edge.utilityCategoryId) → warning
+
+// Categoria referenciada deve existir
+if (edge.utilityCategoryId && !metadata.utilityCategories.find(c => c.id === edge.utilityCategoryId)) → warning
 ```
 
-## UI
+### 2.4 UI — Painel de Categorias
 
-### Painel de gerenciamento de categorias
+Componente `UtilityCategoriesPanel` acessível por botão na toolbar:
 
-- Acessível por botão na toolbar do editor ("Categorias de Utilidade")
-- Abre como painel lateral ou popover
-- Lista categorias existentes: bolinha colorida + nome + botão remover (ícone X)
-- Botão "+ Nova categoria" abre inline: campo de nome + grid 4x4 da paleta + confirmar
+- Lista categorias: bolinha colorida inline + nome + botão X (remover)
+- Botão "+ Nova categoria": expande inline com campo de nome + grid 4×4 das 16 cores
+- Cores mostradas como círculos preenchidos, seleção com borda destacada
+- Ao remover: confirmação se há arestas usando a categoria ("X arestas perderão a cor")
 
-### Atribuição na criação de aresta
+### 2.5 UI — Atribuição na Criação de Aresta
 
-Ao conectar duas portas com `connectionClass === "utility"`, antes de confirmar a aresta, exibe um seletor com:
-- Lista das categorias do documento (nome + bolinha colorida)
-- Opção "Sem categoria" (default)
-- A aresta é criada com `utilityCategoryId` correspondente (ou `undefined`)
+Ao conectar portas com `connectionClass === "utility"`:
+- Seletor aparece antes de confirmar (popover ou modal inline)
+- Lista categorias do documento + "Sem categoria" (default)
+- Aresta criada via comando `edge.create` com `utilityCategoryId` definido
 
-### Edição no inspetor de propriedades
+### 2.6 UI — Edição no Inspetor
 
-Quando uma aresta utility está selecionada, o inspetor mostra:
-- Campo "Categoria de utilidade": dropdown com categorias + opção "Nenhuma"
-- O patch de `utilityCategoryId` é enviado via `element.patch` existente
+Quando aresta utility selecionada:
+- Novo campo "Categoria": dropdown com categorias + "Nenhuma"
+- Patch via `element.patch` no campo `utilityCategoryId`
 
-## Rendering
+### 2.7 Rendering — Canvas
 
-### Canvas (`process-edge.tsx`)
+**`process-edge.tsx`**:
 
 ```tsx
-const strokeColor = edge.connectionClass === "utility" && edge.utilityCategoryId
+const categoryColor = edge.connectionClass === "utility" && edge.utilityCategoryId
   ? utilityCategories.find(c => c.id === edge.utilityCategoryId)?.color
   : undefined;
 
-// Usar estilo inline para cor dinâmica (Tailwind não suporta cores arbitrárias em runtime)
-style={strokeColor ? { stroke: strokeColor } : undefined}
-className={selected ? "stroke-blue-600" : !strokeColor ? "stroke-slate-600" : ""}
+<BaseEdge
+  style={categoryColor ? { stroke: categoryColor } : undefined}
+  className={selected ? "stroke-blue-600" : !categoryColor ? "stroke-slate-600" : ""}
+  ...
+/>
 ```
 
-### SVG Export (`render-svg.ts`)
+### 2.8 Rendering — SVG Export
+
+**`render-svg.ts`**:
 
 ```ts
 const category = edge.utilityCategoryId
   ? document.metadata.utilityCategories.find(c => c.id === edge.utilityCategoryId)
   : undefined;
-const stroke = category?.color ?? "#475569";
+const stroke = category?.color ?? (edge.connectionClass === "signal" ? "#64748b" : "#475569");
 ```
 
-Arestas `process` e `signal` mantêm comportamento atual inalterado.
+### 2.9 Fluxo de persistência
+
+1. Usuário cria/remove categorias → comando aplicado no estado local → `PidDocument.metadata.utilityCategories` atualizado
+2. Ao salvar (manual ou auto-save) → `RemotePidApi.save()` envia o `PidDocument` completo (com `metadata.utilityCategories`) para `PUT /api/pid/diagrams/:id/document`
+3. Backend persiste no `document_projection` JSONB do `PidDocumentSnapshot`
+4. Ao abrir diagrama → `RemotePidApi.open()` retorna o documento completo com as categorias
+
+---
 
 ## Non-Scope
 
-- Categorias para arestas `process` ou `signal` (só utility)
+- Categorias para arestas `process` ou `signal`
 - Cores customizadas além da paleta
 - Estilos visuais além de cor (stroke-width, dash array)
-- Import/export de categorias entre documentos
 - Alteração do `connectionClass` após criação da aresta
+- Edição de nome/cor de categoria existente (remove e recria)
+- Yjs/WebSocket para colaboração em tempo real (a API REST é suficiente para single-user)
+- `PidCatalogPort` e `PidCollaborationPort` remotos (stubs mantidos)
 
 ## Risks
 
-- **Arestas órfãs**: se uma categoria for removida enquanto arestas a referenciam, o comando `removeCategory` limpa as referências. Arestas voltam ao cinza padrão.
-- **Paleta insuficiente**: 16 cores cobre a maioria dos casos reais de utilidades em um único P&ID. Se insuficiente no futuro, pode ser expandida.
-- **Schema migration**: campo opcional em objeto existente é seguro. Nenhum diagrama existente quebra.
+- **Tamanho do documento**: com categorias e `utilityCategoryId`, o JSON do documento cresce marginalmente. O limite de 100k valores no `PidProperties` já cobre isso.
+- **Órfãos na remoção**: tratado pelo reducer de `removeCategory` que limpa referências.
+- **Conflito de revisão**: o `expectedRevision` no `save` garante integridade. Se dois clientes salvam simultaneamente, um recebe 409.
+- **Migração de localStorage → Postgres**: diagramas existentes no localStorage não migram automaticamente. Usuário precisará recriar ou exportar/importar.
