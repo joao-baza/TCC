@@ -1,7 +1,7 @@
 [
   {
     "key": "drawio.pid2.instruments.computer-function-control-room",
-    "name": "Computer Function (control room)",
+    "name": "Função de Computador (sala de controle)",
     "aliases": [
       "computer function (control room)",
       "computer function control room"
@@ -111,7 +111,7 @@
   },
   {
     "key": "drawio.pid2.instruments.computer-function-field",
-    "name": "Computer Function (field)",
+    "name": "Função de Computador (campo)",
     "aliases": [
       "computer function (field)",
       "computer function field"
@@ -221,7 +221,7 @@
   },
   {
     "key": "drawio.pid2.instruments.computer-function-inaccessible",
-    "name": "Computer Function (inaccessible)",
+    "name": "Função de Computador (inacessível)",
     "aliases": [
       "computer function (inaccessible)",
       "computer function inaccessible"
@@ -331,7 +331,7 @@
   },
   {
     "key": "drawio.pid2.instruments.computer-function-local-panel",
-    "name": "Computer Function (local panel)",
+    "name": "Função de Computador (painel local)",
     "aliases": [
       "computer function (local panel)",
       "computer function local panel"
@@ -441,7 +441,7 @@
   },
   {
     "key": "drawio.pid2.instruments.discrete-instrument-control-room",
-    "name": "Discrete Instrument (control room)",
+    "name": "Instrumento Discreto (sala de controle)",
     "aliases": [
       "discrete instrument (control room)",
       "discrete instrument control room"
@@ -551,7 +551,7 @@
   },
   {
     "key": "drawio.pid2.instruments.discrete-instrument-field",
-    "name": "Discrete Instrument (field)",
+    "name": "Instrumento Discreto (campo)",
     "aliases": [
       "discrete instrument (field)",
       "discrete instrument field"
@@ -661,7 +661,7 @@
   },
   {
     "key": "drawio.pid2.instruments.discrete-instrument-inaccessible",
-    "name": "Discrete Instrument (inaccessible)",
+    "name": "Instrumento Discreto (inacessível)",
     "aliases": [
       "discrete instrument (inaccessible)",
       "discrete instrument inaccessible"
@@ -771,7 +771,7 @@
   },
   {
     "key": "drawio.pid2.instruments.discrete-instrument-local-panel",
-    "name": "Discrete Instrument (local panel)",
+    "name": "Instrumento Discreto (painel local)",
     "aliases": [
       "discrete instrument (local panel)",
       "discrete instrument local panel"
@@ -881,7 +881,7 @@
   },
   {
     "key": "drawio.pid2.instruments.indicator-control",
-    "name": "Indicator (Control)",
+    "name": "Indicador (Controle)",
     "aliases": [
       "indicator (control)",
       "indicator control"
@@ -921,7 +921,7 @@
   },
   {
     "key": "drawio.pid2.instruments.indicator-function",
-    "name": "Indicator (Function)",
+    "name": "Indicador (Função)",
     "aliases": [
       "indicator (function)",
       "indicator function"
@@ -961,7 +961,7 @@
   },
   {
     "key": "drawio.pid2.instruments.indicator-instrument",
-    "name": "Indicator (Instrument)",
+    "name": "Indicador (Instrumento)",
     "aliases": [
       "indicator (instrument)",
       "indicator instrument"
@@ -1001,7 +1001,7 @@
   },
   {
     "key": "drawio.pid2.instruments.indicator-plc",
-    "name": "Indicator (PLC)",
+    "name": "Indicador (CLP)",
     "aliases": [
       "indicator (plc)",
       "indicator plc"
@@ -1041,7 +1041,7 @@
   },
   {
     "key": "drawio.pid2.instruments.logic-control-room",
-    "name": "Logic (control room)",
+    "name": "Lógica (sala de controle)",
     "aliases": [
       "logic (control room)",
       "logic control room"
@@ -1151,7 +1151,7 @@
   },
   {
     "key": "drawio.pid2.instruments.logic-field",
-    "name": "Logic (field)",
+    "name": "Lógica (campo)",
     "aliases": [
       "logic (field)",
       "logic field"
@@ -1261,7 +1261,7 @@
   },
   {
     "key": "drawio.pid2.instruments.logic-inaccessible",
-    "name": "Logic (inaccessible)",
+    "name": "Lógica (inacessível)",
     "aliases": [
       "logic (inaccessible)",
       "logic inaccessible"
@@ -1371,7 +1371,7 @@
   },
   {
     "key": "drawio.pid2.instruments.logic-local-panel",
-    "name": "Logic (local panel)",
+    "name": "Lógica (painel local)",
     "aliases": [
       "logic (local panel)",
       "logic local panel"
@@ -1481,7 +1481,7 @@
   },
   {
     "key": "drawio.pid2.instruments.programmable-logic-control-control-room",
-    "name": "Programmable Logic Control (control room)",
+    "name": "Controlador Lógico Programável (sala de controle)",
     "aliases": [
       "programmable logic control (control room)",
       "programmable logic control control room"
@@ -1591,7 +1591,7 @@
   },
   {
     "key": "drawio.pid2.instruments.programmable-logic-control-field",
-    "name": "Programmable Logic Control (field)",
+    "name": "Controlador Lógico Programável (campo)",
     "aliases": [
       "programmable logic control (field)",
       "programmable logic control field"
@@ -1701,7 +1701,7 @@
   },
   {
     "key": "drawio.pid2.instruments.programmable-logic-control-inaccessible",
-    "name": "Programmable Logic Control (inaccessible)",
+    "name": "Controlador Lógico Programável (inacessível)",
     "aliases": [
       "programmable logic control (inaccessible)",
       "programmable logic control inaccessible"
@@ -1811,7 +1811,7 @@
   },
   {
     "key": "drawio.pid2.instruments.programmable-logic-control-local-panel",
-    "name": "Programmable Logic Control (local panel)",
+    "name": "Controlador Lógico Programável (painel local)",
     "aliases": [
       "programmable logic control (local panel)",
       "programmable logic control local panel"
@@ -1921,7 +1921,7 @@
   },
   {
     "key": "drawio.pid2.instruments.shared-control-display-in-dcs-control-room",
-    "name": "Shared Control/Display in DCS (control room)",
+    "name": "Controle Indicação Compartilhado no DCS (sala de controle)",
     "aliases": [
       "shared control/display in dcs (control room)",
       "shared control display in dcs control room"
@@ -2031,7 +2031,7 @@
   },
   {
     "key": "drawio.pid2.instruments.shared-control-display-in-dcs-field",
-    "name": "Shared Control/Display in DCS (field)",
+    "name": "Controle Indicação Compartilhado no DCS (campo)",
     "aliases": [
       "shared control/display in dcs (field)",
       "shared control display in dcs field"
@@ -2141,7 +2141,7 @@
   },
   {
     "key": "drawio.pid2.instruments.shared-control-display-in-dcs-inaccessible",
-    "name": "Shared Control/Display in DCS (inaccessible)",
+    "name": "Controle Indicação Compartilhado no DCS (inacessível)",
     "aliases": [
       "shared control/display in dcs (inaccessible)",
       "shared control display in dcs inaccessible"
@@ -2251,7 +2251,7 @@
   },
   {
     "key": "drawio.pid2.instruments.shared-control-display-in-dcs-local-panel",
-    "name": "Shared Control/Display in DCS (local panel)",
+    "name": "Controle Indicação Compartilhado no DCS (painel local)",
     "aliases": [
       "shared control/display in dcs (local panel)",
       "shared control display in dcs local panel"
@@ -2361,7 +2361,7 @@
   },
   {
     "key": "drawio.pid2.misc.column",
-    "name": "Column",
+    "name": "Coluna",
     "aliases": [
       "column"
     ],
@@ -2430,7 +2430,7 @@
   },
   {
     "key": "drawio.pid2.misc.column-bubble-cap-trays",
-    "name": "Column (Bubble Cap Trays)",
+    "name": "Coluna (Pratos com Campânulas)",
     "aliases": [
       "column (bubble cap trays)",
       "column bubble cap trays"
@@ -2500,7 +2500,7 @@
   },
   {
     "key": "drawio.pid2.misc.column-fixed-bed",
-    "name": "Column (Fixed Bed)",
+    "name": "Coluna (Leito Fixo)",
     "aliases": [
       "column (fixed bed)",
       "column fixed bed"
@@ -2570,7 +2570,7 @@
   },
   {
     "key": "drawio.pid2.misc.column-fixed-bed-spray-nozzle",
-    "name": "Column (Fixed Bed, Spray Nozzle)",
+    "name": "Coluna (Leito Fixo, Bico Aspersor)",
     "aliases": [
       "column (fixed bed, spray nozzle)",
       "column fixed bed spray nozzle"
@@ -2640,7 +2640,7 @@
   },
   {
     "key": "drawio.pid2.misc.column-fluidized-bed",
-    "name": "Column (Fluidized Bed)",
+    "name": "Coluna (Leito Fluidizado)",
     "aliases": [
       "column (fluidized bed)",
       "column fluidized bed"
@@ -2710,7 +2710,7 @@
   },
   {
     "key": "drawio.pid2.misc.column-staggered-baffle-trays",
-    "name": "Column (Staggered Baffle Trays)",
+    "name": "Coluna (Pratos com Defletores Alternados)",
     "aliases": [
       "column (staggered baffle trays)",
       "column staggered baffle trays"
@@ -2780,7 +2780,7 @@
   },
   {
     "key": "drawio.pid2.misc.column-tray",
-    "name": "Column (Tray)",
+    "name": "Coluna (Prato)",
     "aliases": [
       "column (tray)",
       "column tray"
@@ -2850,7 +2850,7 @@
   },
   {
     "key": "drawio.pid2.misc.column-valve-trays",
-    "name": "Column (Valve Trays)",
+    "name": "Coluna (Pratos Valvulados)",
     "aliases": [
       "column (valve trays)",
       "column valve trays"
@@ -2920,7 +2920,7 @@
   },
   {
     "key": "drawio.pid2.misc.conveyor",
-    "name": "Conveyor",
+    "name": "Transportador",
     "aliases": [
       "conveyor"
     ],
@@ -2969,7 +2969,7 @@
   },
   {
     "key": "drawio.pid2.misc.fan",
-    "name": "Fan",
+    "name": "Ventilador",
     "aliases": [
       "fan"
     ],
@@ -3018,7 +3018,7 @@
   },
   {
     "key": "drawio.pid2.valves.angle-blowdown-valve",
-    "name": "Angle Blowdown Valve",
+    "name": "Válvula Angular de Purga",
     "aliases": [
       "angle blowdown valve"
     ],
@@ -3077,7 +3077,7 @@
   },
   {
     "key": "drawio.pid2.valves.angle-globe-valve",
-    "name": "Angle Globe Valve",
+    "name": "Válvula Globo Angular",
     "aliases": [
       "angle globe valve"
     ],
@@ -3126,7 +3126,7 @@
   },
   {
     "key": "drawio.pid2.valves.angle-globe-valve-manual",
-    "name": "Angle Globe Valve (Manual)",
+    "name": "Válvula Globo Angular (Manual)",
     "aliases": [
       "angle globe valve (manual)",
       "angle globe valve manual"
@@ -3186,7 +3186,7 @@
   },
   {
     "key": "drawio.pid2.valves.angle-valve",
-    "name": "Angle Valve",
+    "name": "Válvula Angular",
     "aliases": [
       "angle valve"
     ],
@@ -3235,7 +3235,7 @@
   },
   {
     "key": "drawio.pid2.valves.angle-valve-manual",
-    "name": "Angle Valve (Manual)",
+    "name": "Válvula Angular (Manual)",
     "aliases": [
       "angle valve (manual)",
       "angle valve manual"
@@ -3295,7 +3295,7 @@
   },
   {
     "key": "drawio.pid2.valves.auto-recirculation-valve",
-    "name": "Auto Recirculation Valve",
+    "name": "Válvula de Recirculação Automática",
     "aliases": [
       "auto recirculation valve"
     ],
@@ -3354,7 +3354,7 @@
   },
   {
     "key": "drawio.pid2.valves.ball-valve",
-    "name": "Ball Valve",
+    "name": "Válvula de Esfera",
     "aliases": [
       "ball valve"
     ],
@@ -3403,7 +3403,7 @@
   },
   {
     "key": "drawio.pid2.valves.butterfly-valve",
-    "name": "Butterfly Valve",
+    "name": "Válvula Borboleta",
     "aliases": [
       "butterfly valve"
     ],
@@ -3452,7 +3452,7 @@
   },
   {
     "key": "drawio.pid2.valves.check-valve",
-    "name": "Check Valve",
+    "name": "Válvula de Retenção",
     "aliases": [
       "check valve"
     ],
@@ -3501,7 +3501,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve",
-    "name": "Gate Valve",
+    "name": "Válvula Gaveta",
     "aliases": [
       "gate valve"
     ],
@@ -3550,7 +3550,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-balanced-diaphragm",
-    "name": "Gate Valve (Balanced Diaphragm)",
+    "name": "Válvula Gaveta (Diafragma Balanceado)",
     "aliases": [
       "gate valve (balanced diaphragm)",
       "gate valve balanced diaphragm"
@@ -3610,7 +3610,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-diaphragm",
-    "name": "Gate Valve (Diaphragm)",
+    "name": "Válvula Gaveta (Diafragma)",
     "aliases": [
       "gate valve (diaphragm)",
       "gate valve diaphragm"
@@ -3670,7 +3670,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-digital",
-    "name": "Gate Valve (Digital)",
+    "name": "Válvula Gaveta (Digital)",
     "aliases": [
       "gate valve (digital)",
       "gate valve digital"
@@ -3730,7 +3730,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-double-acting-cylinder",
-    "name": "Gate Valve (Double Acting Cylinder)",
+    "name": "Válvula Gaveta (Cilindro de Dupla Ação)",
     "aliases": [
       "gate valve (double acting cylinder)",
       "gate valve double acting cylinder"
@@ -3790,7 +3790,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-electro-hydraulic",
-    "name": "Gate Valve (Electro-Hydraulic)",
+    "name": "Válvula Gaveta (Eletro-Hidráulica)",
     "aliases": [
       "gate valve (electro-hydraulic)",
       "gate valve electro hydraulic"
@@ -3850,7 +3850,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-key",
-    "name": "Gate Valve (Key)",
+    "name": "Válvula Gaveta (Chave)",
     "aliases": [
       "gate valve (key)",
       "gate valve key"
@@ -3910,7 +3910,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-manual",
-    "name": "Gate Valve (Manual)",
+    "name": "Válvula Gaveta (Manual)",
     "aliases": [
       "gate valve (manual)",
       "gate valve manual"
@@ -3970,7 +3970,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-motor",
-    "name": "Gate Valve (Motor)",
+    "name": "Válvula Gaveta (Motor)",
     "aliases": [
       "gate valve (motor)",
       "gate valve motor"
@@ -4030,7 +4030,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-pilot",
-    "name": "Gate Valve (Pilot)",
+    "name": "Válvula Gaveta (Piloto)",
     "aliases": [
       "gate valve (pilot)",
       "gate valve pilot"
@@ -4090,7 +4090,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-powered",
-    "name": "Gate Valve (Powered)",
+    "name": "Válvula Gaveta (Motorizada)",
     "aliases": [
       "gate valve (powered)",
       "gate valve powered"
@@ -4150,7 +4150,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-single-acting-cylinder",
-    "name": "Gate Valve (Single Acting Cylinder)",
+    "name": "Válvula Gaveta (Cilindro de Ação Simples)",
     "aliases": [
       "gate valve (single acting cylinder)",
       "gate valve single acting cylinder"
@@ -4210,7 +4210,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-solenoid",
-    "name": "Gate Valve (Solenoid)",
+    "name": "Válvula Gaveta (Solenoide)",
     "aliases": [
       "gate valve (solenoid)",
       "gate valve solenoid"
@@ -4270,7 +4270,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-solenoid-with-manual-reset",
-    "name": "Gate Valve (Solenoid With Manual Reset)",
+    "name": "Válvula Gaveta (Solenoide com Reinicialização Manual)",
     "aliases": [
       "gate valve (solenoid with manual reset)",
       "gate valve solenoid with manual reset"
@@ -4330,7 +4330,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-spring",
-    "name": "Gate Valve (Spring)",
+    "name": "Válvula Gaveta (Mola)",
     "aliases": [
       "gate valve (spring)",
       "gate valve spring"
@@ -4390,7 +4390,7 @@
   },
   {
     "key": "drawio.pid2.valves.gate-valve-weight",
-    "name": "Gate Valve (Weight)",
+    "name": "Válvula Gaveta (Peso)",
     "aliases": [
       "gate valve (weight)",
       "gate valve weight"
@@ -4450,7 +4450,7 @@
   },
   {
     "key": "drawio.pid2.valves.globe-valve",
-    "name": "Globe Valve",
+    "name": "Válvula Globo",
     "aliases": [
       "globe valve"
     ],
@@ -4499,7 +4499,7 @@
   },
   {
     "key": "drawio.pid2.valves.integrated-block-and-bleed-valve",
-    "name": "Integrated Block and Bleed Valve",
+    "name": "Válvula Integrada de Bloqueio e Sangria",
     "aliases": [
       "integrated block and bleed valve"
     ],
@@ -4548,7 +4548,7 @@
   },
   {
     "key": "drawio.pid2.valves.integrated-block-and-bleed-valve-manual",
-    "name": "Integrated Block and Bleed Valve (Manual)",
+    "name": "Válvula Integrada de Bloqueio e Sangria (Manual)",
     "aliases": [
       "integrated block and bleed valve (manual)",
       "integrated block and bleed valve manual"
@@ -4608,7 +4608,7 @@
   },
   {
     "key": "drawio.pid2.valves.needle-valve",
-    "name": "Needle Valve",
+    "name": "Válvula de Agulha",
     "aliases": [
       "needle valve"
     ],
@@ -4657,7 +4657,7 @@
   },
   {
     "key": "drawio.pid2.valves.normally-closed-ball-valve",
-    "name": "Normally Closed Ball Valve",
+    "name": "Válvula de Esfera Normalmente Fechada",
     "aliases": [
       "normally closed ball valve"
     ],
@@ -4706,7 +4706,7 @@
   },
   {
     "key": "drawio.pid2.valves.normally-closed-gate-valve",
-    "name": "Normally Closed Gate Valve",
+    "name": "Válvula Gaveta Normalmente Fechada",
     "aliases": [
       "normally closed gate valve"
     ],
@@ -4755,7 +4755,7 @@
   },
   {
     "key": "drawio.pid2.valves.plug-valve",
-    "name": "Plug Valve",
+    "name": "Válvula de Macho",
     "aliases": [
       "plug valve"
     ],
@@ -4804,7 +4804,7 @@
   },
   {
     "key": "drawio.pid2.valves.self-draining-valve",
-    "name": "Self Draining Valve",
+    "name": "Válvula de Autodrenagem",
     "aliases": [
       "self draining valve"
     ],
@@ -4853,7 +4853,7 @@
   },
   {
     "key": "drawio.pid2.valves.symbol-3-way-valve",
-    "name": "3 Way Valve",
+    "name": "Válvula de 3 Vias",
     "aliases": [
       "3 way valve",
       "symbol 3 way valve"
@@ -4913,7 +4913,7 @@
   },
   {
     "key": "drawio.pid2.valves.symbol-3-way-valve-manual",
-    "name": "3 Way Valve (Manual)",
+    "name": "Válvula de 3 Vias (Manual)",
     "aliases": [
       "3 way valve (manual)",
       "symbol 3 way valve manual"
