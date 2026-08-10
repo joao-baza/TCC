@@ -1,7 +1,9 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 
 import { patchElement, type PidCommand } from "../domain/commands";
-import type { PidDocument, PidJsonValue, PidProperties } from "../domain/model";
+import type { ConnectionClass, PidDocument, PidJsonValue, PidProperties } from "../domain/model";
+import { LINE_STYLES, LINE_STYLE_INFO, CONNECTION_CLASS_INFO } from "../domain/line-style";
+import type { LineStyle } from "../domain/line-style";
 
 export interface PropertiesInspectorProps {
   readonly document: PidDocument;
@@ -214,7 +216,16 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
     {selected?.kind === "edge" && <FieldGroup key={selected.value.id} title="Conexão" id={selected.value.id}>
       <TextField label="Tag" field="tag" value={selected.value.tag} {...common} />
       <TextField label="Rótulo" field="label" value={selected.value.label} {...common} />
-      <p><strong>Classe:</strong> {connectionClassLabel(selected.value.connectionClass)}</p>
+      <SelectField label="Classe de conexão" field="connectionClass" value={selected.value.connectionClass}
+        title={CONNECTION_CLASS_INFO[selected.value.connectionClass as ConnectionClass].description}
+        options={[
+          ["process", CONNECTION_CLASS_INFO.process.label],
+          ["utility", CONNECTION_CLASS_INFO.utility.label],
+          ["signal", CONNECTION_CLASS_INFO.signal.label],
+        ]} {...common} />
+      <SelectField label="Estilo de linha" field="lineStyle" value={selected.value.lineStyle}
+        title={LINE_STYLE_INFO[selected.value.lineStyle as LineStyle].description}
+        options={LINE_STYLES.map((style) => [style, LINE_STYLE_INFO[style].label] as const)} {...common} />
       <PropertiesField value={selected.value.properties} {...common} />
     </FieldGroup>}
     {selected?.kind === "group" && <FieldGroup key={selected.value.id} title="Grupo" id={selected.value.id}>
@@ -302,8 +313,8 @@ function NumberField({ label, field, value, positive = false, integer = false, r
   </label>;
 }
 
-function SelectField({ label, field, value, options, editable, errors, drafts, beginDraft, changeDraft, finalizeDraft }: SharedFieldProps & {
-  label: string; field: string; value: string; options: readonly (readonly [string, string])[];
+function SelectField({ label, field, value, options, title, editable, errors, drafts, beginDraft, changeDraft, finalizeDraft }: SharedFieldProps & {
+  label: string; field: string; value: string; options: readonly (readonly [string, string])[]; title?: string;
 }) {
   const id = useId();
   const error = errors[field];
@@ -312,6 +323,7 @@ function SelectField({ label, field, value, options, editable, errors, drafts, b
     <select
       id={id}
       aria-label={label}
+      title={title}
       value={drafts[field]?.raw ?? value}
       disabled={!editable}
       aria-invalid={Boolean(error)}
@@ -386,7 +398,7 @@ function selectedFieldValues(selected: NonNullable<ReturnType<typeof resolveSele
         capacity: selected.value.capacity,
       };
     case "edge":
-      return { tag: selected.value.tag, label: selected.value.label, properties: selected.value.properties };
+      return { tag: selected.value.tag, label: selected.value.label, connectionClass: selected.value.connectionClass, lineStyle: selected.value.lineStyle, properties: selected.value.properties };
     case "group":
       return { label: selected.value.label, properties: selected.value.properties };
     case "annotation":
@@ -457,6 +469,3 @@ function fieldLabel(field: string): string {
   return field === "tag" ? "Tag" : field === "label" ? "Rótulo" : field === "text" ? "Texto" : "Campo";
 }
 
-function connectionClassLabel(value: string): string {
-  return value === "process" ? "Processo" : value === "utility" ? "Utilidade" : "Sinal";
-}
