@@ -1,5 +1,7 @@
 export type PidStandard = "free";
 export type PortDirection = "input" | "output" | "bidirectional";
+import type { LineStyle } from "./line-style";
+
 export type ConnectionClass = "process" | "utility" | "signal";
 
 export type PidJsonValue =
@@ -47,6 +49,7 @@ export interface PidEdge {
   sourcePortId: string;
   targetPortId: string;
   connectionClass: ConnectionClass;
+  lineStyle: LineStyle;
   route: Point[];
   tag: string;
   label: string;

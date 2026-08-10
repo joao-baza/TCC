@@ -21,6 +21,7 @@ import type {
   PidPort,
   Point,
 } from "./model";
+import { DEFAULT_LINE_STYLE } from "./line-style";
 import { parsePidProperties, pidPointSchema } from "./schema";
 
 export function reduceCommand(
@@ -267,6 +268,7 @@ function connectDocumentPorts(
     sourcePortId,
     targetPortId,
     connectionClass: source.connectionClass,
+    lineStyle: DEFAULT_LINE_STYLE[source.connectionClass],
     route: [],
     tag: "",
     label: "",

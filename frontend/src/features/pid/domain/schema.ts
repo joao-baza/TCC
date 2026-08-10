@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LINE_STYLES } from "./line-style";
 
 import { LOCAL_PID_CATALOG_VERSION } from "./catalog-version";
 import type {
@@ -94,6 +95,7 @@ export const pidEdgeSchema: z.ZodType<PidEdge> = z.object({
   sourcePortId: uuidSchema,
   targetPortId: uuidSchema,
   connectionClass: z.enum(["process", "utility", "signal"]),
+  lineStyle: z.enum(LINE_STYLES),
   route: z.array(pidPointSchema),
   tag: z.string(),
   label: z.string(),
