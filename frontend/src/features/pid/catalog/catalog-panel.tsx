@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -20,6 +21,7 @@ type CatalogPanelCommonProps = {
   readonly category?: string;
   readonly sourceFilters?: readonly CatalogSourceKind[];
   readonly thumbSize?: number;
+  readonly headerAction?: ReactNode;
 };
 
 export type CatalogPanelProps = CatalogPanelCommonProps & CatalogInput;
@@ -29,7 +31,7 @@ type CatalogRow =
   | { readonly kind: "symbol"; readonly id: string; readonly category: string; readonly symbol: CatalogSymbol };
 
 export function CatalogPanel(props: CatalogPanelProps) {
-  const { standard, onInsert, source, initialSource, onSourceChange, category, sourceFilters = [], thumbSize } = props;
+  const { standard, onInsert, source, initialSource, onSourceChange, category, sourceFilters = [], thumbSize, headerAction } = props;
   const inputSymbols = props.index === undefined ? props.symbols : undefined;
   const generatedIndex = useMemo(
     () => inputSymbols === undefined ? undefined : createCatalogIndex(inputSymbols),
@@ -133,6 +135,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
   return (
     <section aria-label="Catálogo de símbolos P&ID" className="flex flex-col gap-3 min-h-0">
       <div className="flex gap-2">
+        {headerAction}
         <input aria-label="Pesquisar símbolos" type="search" value={query} onChange={(event) => { setPendingFocusId(undefined); setQuery(event.target.value); }} placeholder="Pesquisar símbolos" className="min-h-11 flex-1 rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
         {query !== "" && <button type="button" onClick={() => setQuery("")} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Limpar busca</button>}
       </div>

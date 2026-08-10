@@ -493,18 +493,27 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <div className={`pid-studio-workspace ${!editorEnabled ? "pid-workspace-readonly" : ""} ${catalogCollapsed ? "pid-catalog-collapsed" : ""} ${inspectorCollapsed ? "pid-inspector-collapsed" : ""}`}>
       {compactReadOnly && <p className="pid-compact-readonly-notice" role="status">Edição disponível em telas a partir de 768 px</p>}
       {editorEnabled && <aside role="region" aria-label="Catálogo de símbolos" className="pid-studio-panel pid-catalog-panel">
-        <Tooltip>
-          <TooltipTrigger render={
-            <Button variant="ghost" size="icon-sm" aria-expanded={!catalogCollapsed} aria-label={catalogCollapsed ? "Abrir catálogo" : "Fechar catálogo"} onClick={() => setCatalogCollapsed((v) => !v)}>
-              {catalogCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-            </Button>
-          } />
-          <TooltipContent>{catalogCollapsed ? "Abrir catálogo" : "Fechar catálogo"}</TooltipContent>
-        </Tooltip>
         {!catalogCollapsed && <ScrollArea className="flex-1 min-h-0">
-          <CatalogPanel index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} thumbSize={settings.catalogThumbSize} />
+          <CatalogPanel headerAction={
+            <Tooltip>
+              <TooltipTrigger render={
+                <Button variant="ghost" size="icon-sm" aria-expanded={!catalogCollapsed} aria-label="Fechar catálogo" onClick={() => setCatalogCollapsed(true)}>
+                  <PanelLeftClose className="size-4" />
+                </Button>
+              } />
+              <TooltipContent>Fechar catálogo</TooltipContent>
+            </Tooltip>
+          } index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} thumbSize={settings.catalogThumbSize} />
           <CatalogZoomSlider value={settings.catalogThumbSize} onChange={(value) => updateSetting("catalogThumbSize", value)} />
         </ScrollArea>}
+        {catalogCollapsed && <Tooltip>
+          <TooltipTrigger render={
+            <Button variant="ghost" size="icon-sm" aria-label="Abrir catálogo" onClick={() => setCatalogCollapsed(false)}>
+              <PanelLeftOpen className="size-4" />
+            </Button>
+          } />
+          <TooltipContent>Abrir catálogo</TooltipContent>
+        </Tooltip>}
       </aside>}
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
         {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
