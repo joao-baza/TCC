@@ -31,7 +31,6 @@ import {
   getEditorPositionedSelectionIds, getEditorSelectionCapabilities,
 } from "./editor-toolbar-utils";
 import { createEditorStore, type EditorStore } from "./editor-store";
-import { PidSettingsButton, PidSettingsDialog } from "./pid-settings-dialog";
 import { ShareDialog } from "./share-dialog";
 import {
   PropertiesInspector, type InspectorCommandResult, type PropertiesInspectorHandle,
@@ -141,7 +140,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const editor = useSyncExternalStore(subscribe, store.getState, store.getState);
   const { editable: capabilityEditable, viewportWidth } = useEditCapability(opened.scope);
   const { settings, updateSetting } = usePidSettings();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const textSizeClass = settings.textSize === "sm" ? "text-xs" : settings.textSize === "lg" ? "text-base" : "text-sm";
   const compactReadOnly = viewportWidth < MINIMUM_EDIT_VIEWPORT_WIDTH;
   const [editLease, setEditLease] = useState(capabilityEditable);
@@ -488,8 +487,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         </div>
         {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
-          <PidSettingsButton onClick={() => setSettingsOpen(true)} />
-        </div>}
+          </div>}
       </div>
     </header>
     <div className={`pid-studio-workspace ${!editorEnabled ? "pid-workspace-readonly" : ""} ${catalogCollapsed ? "pid-catalog-collapsed" : ""} ${inspectorCollapsed ? "pid-inspector-collapsed" : ""}`}>
@@ -541,7 +539,6 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     </div>
     <StatusBar state={editor} saveState={autosave.state} validationCounts={validationCounts} onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
     <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
-    <PidSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
   </main>
   </PidThemeProvider>;
 }
