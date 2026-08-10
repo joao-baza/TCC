@@ -506,7 +506,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
           } index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} thumbSize={settings.catalogThumbSize} />
           <CatalogZoomSlider value={settings.catalogThumbSize} onChange={(value) => updateSetting("catalogThumbSize", value)} />
         </ScrollArea>}
-        {catalogCollapsed && <div className="flex justify-center pt-1"><Tooltip>
+        {catalogCollapsed && <div className="flex justify-center"><Tooltip>
           <TooltipTrigger render={
             <Button variant="ghost" size="icon-sm" aria-label="Abrir catálogo" onClick={() => setCatalogCollapsed(false)}>
               <PanelLeftOpen className="size-4" />
@@ -524,7 +524,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}
       </section>
       <aside role="region" aria-label="Inspetor" className="pid-studio-panel pid-inspector-panel">
-        {inspectorCollapsed ? <div className="flex justify-center pt-1"><Tooltip>
+        {inspectorCollapsed ? <div className="flex justify-center"><Tooltip>
           <TooltipTrigger render={
             <Button variant="ghost" size="icon-sm" aria-label="Abrir inspetor" onClick={() => setInspectorCollapsed(false)}>
               <PanelRightOpen className="size-4" />
