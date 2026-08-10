@@ -41,7 +41,7 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
     );
     return () => { active = false; };
   }, [symbol]);
-  const title = [equipment.label || symbol?.name || "Equipamento", equipment.tag].filter(Boolean).join(" ");
+  const label = equipment.label || symbol?.name || "Equipamento";
 
   return (
     <div
@@ -61,6 +61,16 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
           height: interactionGeometry.canonicalRect.height,
         }}
       >
+        {equipment.tag && (
+          <span
+            data-testid={`equipment-tag-${equipment.id}`}
+            className={`pid-equipment-node__tag pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 max-w-[12rem] -translate-x-1/2 truncate rounded bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-slate-800 shadow-sm transition-opacity ${
+              selected ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {equipment.tag}
+          </span>
+        )}
         <div
           data-testid={`equipment-artwork-${equipment.id}`}
           className="flex h-full min-h-0 w-full items-center justify-center"
@@ -81,12 +91,12 @@ function EquipmentNodeComponent({ data, selected, isConnectable }: NodeProps<Equ
           )}
         </div>
         <span
-          data-testid={`equipment-caption-${equipment.id}`}
-          className={`pid-equipment-node__caption pointer-events-none absolute left-1/2 top-full z-10 mt-1 max-w-[12rem] -translate-x-1/2 truncate rounded bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-slate-800 shadow-sm transition-opacity ${
+          data-testid={`equipment-label-${equipment.id}`}
+          className={`pid-equipment-node__label pointer-events-none absolute left-1/2 top-full z-10 mt-1 max-w-[12rem] -translate-x-1/2 truncate rounded bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-slate-800 shadow-sm transition-opacity ${
             selected ? "opacity-100" : "opacity-0"
           }`}
         >
-          {title}
+          {label}
         </span>
       </div>
 

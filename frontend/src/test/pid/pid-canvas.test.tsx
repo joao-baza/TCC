@@ -185,13 +185,13 @@ describe("PidCanvas", () => {
 
       const node = screen.getByRole("button", { name: /Bomba P-101/i });
       const body = screen.getByTestId(`equipment-body-${ids.pump}`);
-      const caption = screen.getByTestId(`equipment-caption-${ids.pump}`);
+      const label = screen.getByTestId(`equipment-label-${ids.pump}`);
 
       await waitFor(() => expect(node.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/));
       expect(node.querySelector("img")).toHaveAttribute("draggable", "false");
       expect(body).not.toHaveClass("border", "bg-white", "shadow-sm", "rounded-lg", "p-2");
       expect(body).not.toHaveClass("outline-blue-600");
-      expect(caption).toHaveClass("opacity-0");
+      expect(label).toHaveClass("opacity-0");
       const outputHandle = screen.getByLabelText(/Criar conexão pela porta de saída/i);
       expect(outputHandle).toHaveClass("!border-transparent");
       expect(outputHandle).toHaveStyle({ width: "44px", height: "44px" });
@@ -199,7 +199,7 @@ describe("PidCanvas", () => {
 
       fireEvent.click(node);
 
-      expect(caption).toHaveClass("opacity-100");
+      expect(label).toHaveClass("opacity-100");
       expect(body).toHaveClass("outline", "outline-2", "outline-blue-600");
       expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "true");
       expect(node).toHaveAttribute("aria-pressed", "true");
@@ -536,8 +536,8 @@ describe("PidCanvas", () => {
     expect(Number.parseFloat(handle.style.top)).toBeCloseTo(interaction.canonicalRect.y + anchor.y);
     expect(handle.style.transform).toBe("translate(-50%, -50%)");
     expect(screen.getByTestId(`equipment-artwork-${ids.pump}`)).toHaveStyle({ transform: artworkTransform });
-    expect(screen.getByTestId(`equipment-caption-${ids.pump}`)).not.toHaveAttribute("style");
-    expect(screen.getByText("Bomba P-101")).toBeInTheDocument();
+    expect(screen.getByTestId(`equipment-label-${ids.pump}`)).not.toHaveAttribute("style");
+    expect(screen.getByTestId(`equipment-tag-${ids.pump}`)).toHaveTextContent("P-101");
   });
 
   it("mantém os módulos de domínio livres de React e @xyflow/react", () => {
