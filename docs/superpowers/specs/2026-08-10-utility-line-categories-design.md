@@ -1,19 +1,27 @@
-# P&ID REST API + Utility Line Categories
+# P&ID Multi-User Platform: REST API + Collaboration + Utility Categories
 
 **Date:** 2026-08-10
 **Status:** draft
 
 ## Context
 
-O sistema P&ID hoje opera 100% no frontend via `localStorage` (adapter `local`). O backend já tem infraestrutura PostgreSQL (SQLAlchemy + Alembic + Redis), modelos para `pid_diagrams`, `pid_access_tokens`, `pid_document_snapshots`, e serviços de domínio (`DiagramService`, `SnapshotRepository`). Falta expor esses serviços como API REST e criar o adapter remoto no frontend.
+O sistema P&ID hoje é single-user com `localStorage` (`VITE_PID_ADAPTER=local`). O backend já tem infraestrutura PostgreSQL + Redis, modelos para `pid_diagrams`/`pid_access_tokens`/`pid_document_snapshots`, e serviços de domínio. A infraestrutura de colaboração está como scaffolding: `yjs_state` BYTEA, `TicketStore` em Redis, `PidCollaborationPort` stub, `PID_WS_PUBLIC_URL` configurado.
 
-Sobre essa base, implementamos o suporte a **categorias de utilidade** (nome + cor) para arestas com `connectionClass === "utility"`, com diferenciação visual por cor no canvas.
+Este spec cobre 3 subsistemas interdependentes, implementados em ordem:
+
+1. **P&ID REST API** — persistência remota em Postgres
+2. **Colaboração em tempo real** — WebSocket + Yjs + Redis pub/sub
+3. **Categorias de utilidade** — nome + cor para arestas `utility`
+
+---
 
 ## Part 1: P&ID REST API
 
-### 1.1 Backend — Router e Endpoints
+### 1.1 Objetivo
 
-Novo arquivo: `routers/pid.py`, registrado em `app.py`.
+Substituir `LocalPidApi` (localStorage) por `RemotePidApi` (HTTP → Postgres), mantendo a mesma interface `PidDocumentPort`. Diagramas passam a ser persistidos no servidor via `pid_document_snapshots`.
+
+### 1.2 Backend — Router (`routers/pid.py`)
 
 | Método | Rota | Body | Response |
 |--------|------|------|----------|
@@ -24,155 +32,206 @@ Novo arquivo: `routers/pid.py`, registrado em `app.py`.
 | `DELETE` | `/api/pid/diagrams/:id` | `{ edit_token, expected_revision }` | `{ revision }` |
 | `POST` | `/api/pid/diagrams/:id/restore` | `{ edit_token, expected_revision }` | `{ revision }` |
 
-**Autenticação:** token enviado no corpo JSON de cada requisição. O backend valida via `DiagramService.authorize()`.
+Autenticação: token no corpo JSON. Backend valida via `DiagramService.authorize()`.
 
-**Dependências FastAPI:** endpoint que injeta `PidRuntime` via `request.app.state.pid_runtime`.
-
-### 1.2 Backend — Novos métodos no DiagramService
-
-Adicionar ao `DiagramService`:
+### 1.3 Backend — Novos métodos no `DiagramService`
 
 ```python
-async def open_document(self, diagram_id: UUID, token: str) -> OpenedDiagram
-    # 1. authorize(token) → scope ou 403
-    # 2. SnapshotRepository.load_latest_valid(diagram_id) → document_projection
-    # 3. retorna { scope, document, revision }
+async def open_document(diagram_id: UUID, token: str) -> OpenedDiagram:
+    # authorize → scope, carrega último snapshot válido, retorna { scope, document, revision }
 
-async def save_document(self, diagram_id: UUID, token: str, 
-                         document: dict, expected_revision: int) -> int
-    # 1. authorize(token) → requer EDIT, senão 403
-    # 2. SnapshotRepository.get_latest_revision(diagram_id) → revision atual
-    # 3. Se revision != expected_revision → 409 CONFLICT
-    # 4. SnapshotRepository.append(diagram_id, yjs_state=b"", document_projection=document,
-    #                               schema_version=1, is_valid=True)
-    # 5. Atualiza PidDiagram.updated_at
-    # 6. retorna nova revision
+async def save_document(diagram_id: UUID, token: str, 
+                         document: dict, expected_revision: int) -> int:
+    # authorize → requer EDIT
+    # verifica revision atual == expected_revision (senão 409)
+    # append snapshot (yjs_state=b"", document_projection=document, is_valid=True)
+    # atualiza diagram.updated_at
+    # retorna nova revision
 ```
 
-### 1.3 Backend — Extensões no SnapshotRepository
+### 1.4 Backend — Extensões no `SnapshotRepository`
 
 ```python
-async def load_latest_valid(self, diagram_id: UUID) -> tuple[dict, int] | None
-    # SELECT document_projection, revision FROM pid_document_snapshots
-    # WHERE diagram_id = :id AND is_valid = TRUE
-    # ORDER BY revision DESC LIMIT 1
-    # Retorna (document, revision) ou None
-
-async def get_latest_revision(self, diagram_id: UUID) -> int | None
-    # SELECT MAX(revision) FROM pid_document_snapshots WHERE diagram_id = :id
+async def load_latest_valid(diagram_id: UUID) -> tuple[dict, int] | None
+async def get_latest_revision(diagram_id: UUID) -> int | None
 ```
 
-### 1.4 Frontend — RemotePidApi adapter
+### 1.5 Frontend — `RemotePidApi`
 
 Novo arquivo: `frontend/src/features/pid/api/remote-pid-api.ts`
 
-```ts
-class RemotePidApi implements PidDocumentPort {
-  constructor(private readonly baseUrl: string) {}
+Implementa `PidDocumentPort` via `fetch()`. Cada método mapeia para um endpoint REST. Erros HTTP mapeados para `PidDocumentError`:
+- 400 → `INVALID_INPUT`, 403 → `ACCESS_DENIED`, 404 → `DOCUMENT_NOT_FOUND`
+- 409 → `CONFLICT`, 410 → `DOCUMENT_DELETED`/`RESTORE_EXPIRED`
+- 413 → `DOCUMENT_TOO_LARGE`, 5xx → `STORAGE_CORRUPTED`
 
-  async create(input: CreatePidInput): Promise<CreatedPidDiagram> {
-    const res = await fetch(`${this.baseUrl}/api/pid/diagrams`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: input.title, catalog_version: "local-v1" }),
-    });
-    if (!res.ok) throw mapError(res);
-    const data = await res.json();
-    return {
-      diagramId: data.diagram_id,
-      document: data.document,
-      revision: data.revision,
-      readToken: data.view_token,
-      editToken: data.edit_token,
-      viewUrl: `${window.location.origin}/pid/${data.diagram_id}#access=${data.view_token}`,
-      editUrl: `${window.location.origin}/pid/${data.diagram_id}#access=${data.edit_token}`,
-    };
-  }
+### 1.6 Ativação
 
-  async open(diagramId: string, token: string): Promise<OpenedPidDiagram> { /* POST .../open */ }
-  async save(diagramId: string, token: string, document: PidDocument, expectedRevision: number): Promise<number> { /* PUT .../document */ }
-  async regenerate(...) { /* POST .../tokens */ }
-  async softDelete(...) { /* DELETE */ }
-  async restore(...) { /* POST .../restore */ }
-}
-```
-
-**Mapeamento de erros HTTP → PidDocumentError:**
-- 400 → `INVALID_INPUT`
-- 403 → `ACCESS_DENIED`
-- 404 → `DOCUMENT_NOT_FOUND`
-- 409 → `CONFLICT`
-- 410 → `DOCUMENT_DELETED` / `RESTORE_EXPIRED`
-- 413 → `DOCUMENT_TOO_LARGE`
-- 5xx → `STORAGE_CORRUPTED`
-
-### 1.5 Frontend — Ativar adapter remoto
-
-Em `pid-services.tsx`, `createPidServices()`:
+`createPidServices()` em `pid-services.tsx`:
 
 ```ts
 if (normalized.adapter === "remote") {
   return {
     document: new RemotePidApi(normalized.baseUrl ?? window.location.origin),
-    catalog: normalized.catalog ?? unavailableCatalog,
-    collaboration: normalized.collaboration ?? unavailableCollaboration,
+    catalog: ..., collaboration: ...,
   };
 }
 ```
 
-Novo valor de env: `VITE_PID_ADAPTER=remote`.
+`VITE_PID_ADAPTER=remote` no `.env.production`.
 
-### 1.6 Migration (Alembic)
+### 1.7 Migration
 
-Nenhuma migration nova necessária. O `document_projection` já é `JSONB` e aceita qualquer estrutura. O `utilityCategories` vai dentro do JSON do documento.
+Nenhuma. `document_projection` já é JSONB. Schema version permanece `1`.
 
 ---
 
-## Part 2: Utility Line Categories
+## Part 2: Real-Time Collaboration
 
-### 2.1 Data Model (frontend)
+### 2.1 Objetivo
+
+Múltiplos usuários editam o mesmo diagrama simultaneamente. Cada alteração local é sincronizada em tempo real via WebSocket usando Yjs (CRDT). O servidor faz broadcast das atualizações para todos os clientes conectados ao mesmo diagrama.
+
+### 2.2 Arquitetura
+
+```
+Cliente A ──WebSocket──┐
+                       ├── FastAPI WS Server ── Redis Pub/Sub ──┤
+Cliente B ──WebSocket──┘                                        │
+                       ┌────────────────────────────────────────┘
+                       ▼
+                 PostgreSQL (yjs_state snapshot periódico)
+```
+
+- Cada cliente mantém um `Y.Doc` local
+- Alterações são enviadas como Yjs updates binários via WebSocket
+- Servidor faz broadcast para todos os clientes no mesmo diagrama
+- A cada N segundos (ou N updates), o servidor persiste um snapshot do `Y.Doc` completo no `pid_document_snapshots`
+- `document_projection` JSON é derivado do `Y.Doc` pelo servidor para consultas REST
+
+### 2.3 Backend — WebSocket Server
+
+Novo arquivo: `pid/ws/handler.py`
+
+**Rota:** `WS /pid/ws/{diagram_id}?ticket=<one-time-ticket>`
+
+**Ciclo de vida da conexão:**
+
+1. Cliente obtém ticket via `POST /api/pid/diagrams/:id/ws-ticket` (usa `TicketStore.issue()`)
+2. Cliente conecta WebSocket com o ticket
+3. Servidor valida ticket via `TicketStore.consume()` → obtém `diagram_id`, `scope`
+4. Se `scope === "view"`, conexão é read-only (recebe updates, não envia)
+5. Servidor carrega snapshot Yjs mais recente e envia como estado inicial
+6. Cliente aplica estado inicial ao `Y.Doc` local
+7. Loop de mensagens binárias (Yjs updates)
+8. Ao desconectar, servidor remove subscription do Redis
+
+**Pub/Sub Redis:**
+
+```python
+# Canal: pid:ws:{diagram_id}
+# Cada instância do servidor:
+#   - SUBSCRIBE ao canal do diagrama
+#   - Ao receber update de um cliente, PUBLISH no canal
+#   - Ao receber mensagem do Redis, broadcast para clientes locais
+```
+
+Isso permite múltiplas instâncias do servidor (Docker Swarm replicas).
+
+### 2.4 Backend — Snapshot Persistência
+
+Novo arquivo: `pid/ws/persistence.py`
+
+Background task por diagrama ativo:
+
+```python
+async def persistence_loop(diagram_id, ydoc, snapshot_repo, interval=5):
+    # A cada `interval` segundos, se houve mudanças:
+    #   snapshot = Yjs.encode_state_as_update(ydoc)
+    #   projection = ydoc_to_json(ydoc)  # derivar PidDocument do Y.Doc
+    #   await snapshot_repo.append(diagram_id, yjs_state=snapshot, 
+    #                               document_projection=projection, is_valid=True)
+```
+
+### 2.5 Frontend — `RemoteCollaboration`
+
+Nova implementação real de `PidCollaborationPort` em `frontend/src/features/pid/collaboration/remote-collaboration.ts`:
+
+```ts
+class RemoteCollaboration implements PidCollaborationPort {
+  connect(input: CollaborationInput): CollaborationSession {
+    // 1. Obter ticket via POST /api/pid/diagrams/:id/ws-ticket
+    // 2. Conectar WebSocket a wss://host/pid/ws/{diagramId}?ticket=...
+    // 3. Criar Y.Doc local
+    // 4. Aplicar estado inicial recebido do servidor
+    // 5. Usar y-websocket ou implementação própria para sync
+    // 6. Retornar CollaborationSession com:
+    //    - ydoc: Y.Doc
+    //    - awareness: awareness protocol
+    //    - status: "connecting" | "synced" | "unsaved" | "reconnecting"
+    //    - participants: lista de usuários conectados
+  }
+}
+```
+
+### 2.6 Frontend — Integração com o Editor
+
+`pid-editor-page.tsx` já consome `PidCollaborationPort` via `createLocalCollaboration()`. Substituir por `RemoteCollaboration` quando `VITE_PID_ADAPTER=remote`.
+
+**Fluxo de edição com Yjs:**
+
+1. `Y.Doc` é a fonte da verdade. O estado do ReactFlow é derivado do `Y.Doc`.
+2. Alterações do usuário → Yjs update → WebSocket → servidor → broadcast → outros clientes
+3. `publishDocument()` e `subscribeDocument()` do `local-collaboration.ts` são substituídos por bindings Yjs
+4. Autosave: a cada N segundos sem alterações, dispara `saveDocument()` via REST para garantir persistência
+
+### 2.7 Dependências Novas
+
+**Frontend:** `yjs`, `y-websocket` (ou `lib0` para WebSocket próprio)
+**Backend:** `y-py` (Yjs port para Python, para derivar `document_projection` do Y.Doc)
+
+### 2.8 Migration
+
+Nenhuma. `yjs_state` BYTEA já existe.
+
+---
+
+## Part 3: Utility Line Categories
+
+### 3.1 Objetivo
+
+Arestas com `connectionClass === "utility"` ganham diferenciação visual por cor. O usuário cria categorias (nome + cor) no documento e as atribui às arestas.
+
+### 3.2 Data Model
 
 **Novo tipo `UtilityCategory`:**
 
 ```ts
 export interface UtilityCategory {
   id: string;   // uuid
-  name: string; // ex: "Vapor", "Água de resfriamento"
-  color: string; // ex: "#ef4444"
+  name: string; // ex: "Vapor"
+  color: string; // hex, ex: "#ef4444"
 }
 ```
 
 **`PidDocument.metadata` estendido:**
 
 ```ts
-metadata: {
-  // ... existing
-  utilityCategories: UtilityCategory[];  // default []
-}
+metadata: { /* ...existing... */ utilityCategories: UtilityCategory[] }
 ```
 
 **`PidEdge` estendido:**
 
 ```ts
-interface PidEdge {
-  // ... existing
-  utilityCategoryId?: string;
-}
+interface PidEdge { /* ...existing... */ utilityCategoryId?: string }
 ```
 
-**Zod schemas** atualizados em `schema.ts`:
-- `utilityCategorySchema`: `z.object({ id: uuidSchema, name: z.string().min(1), color: z.string().regex(/^#[0-9a-fA-F]{6}$/) })`
-- `pidDocumentSchema.metadata`: adicionar `utilityCategories: z.array(utilityCategorySchema)`
-- `pidEdgeSchema`: adicionar `utilityCategoryId: z.string().uuid().optional()`
+**Zod schemas** atualizados em `schema.ts` com validação para ambos os campos.
 
-**Schema version** permanece `1` (adições opcionais backward-compatible).
-
-**Paleta:** 16 cores Tailwind 500: `red, orange, amber, yellow, lime, green, emerald, teal, cyan, blue, indigo, violet, purple, fuchsia, pink, slate`.
-
-Mapeamento cor → hex em constante compartilhada:
+**Paleta de cores** (16 cores Tailwind 500):
 
 ```ts
-export const UTILITY_COLOR_PALETTE: Record<string, string> = {
+const UTILITY_COLOR_PALETTE: Record<string, string> = {
   red: "#ef4444", orange: "#f97316", amber: "#f59e0b", yellow: "#eab308",
   lime: "#84cc16", green: "#22c55e", emerald: "#10b981", teal: "#14b8a6",
   cyan: "#06b6d4", blue: "#3b82f6", indigo: "#6366f1", violet: "#8b5cf6",
@@ -180,116 +239,88 @@ export const UTILITY_COLOR_PALETTE: Record<string, string> = {
 };
 ```
 
-### 2.2 Commands
+### 3.3 Commands
 
-**`utility.addCategory`** (novo comando):
-
-```ts
-interface AddUtilityCategoryCommand {
-  type: "utility.addCategory";
-  name: string;
-  color: string; // nome da cor da paleta (ex: "red"), resolvido para hex no reducer
-}
-```
-
-Reducer: insere `{ id: crypto.randomUUID(), name, color: UTILITY_COLOR_PALETTE[color] }` em `metadata.utilityCategories`.
-
-**`utility.removeCategory`** (novo comando):
+**`utility.addCategory`:**
 
 ```ts
-interface RemoveUtilityCategoryCommand {
-  type: "utility.removeCategory";
-  categoryId: string;
-}
+{ type: "utility.addCategory"; name: string; color: string }
+// Reducer: insere { id: crypto.randomUUID(), name, color: PALETTE[color] }
 ```
 
-Reducer: remove a categoria do array e limpa `utilityCategoryId` de todas as arestas que a referenciam.
-
-**`element.patch`** (existente): adicionar `"utilityCategoryId"` ao `safePatchFields.edge`.
-
-### 2.3 Invariants
-
-Em `invariants.ts`:
+**`utility.removeCategory`:**
 
 ```ts
-// utilityCategoryId só é válido para arestas utility
-if (edge.connectionClass !== "utility" && edge.utilityCategoryId) → warning
-
-// Categoria referenciada deve existir
-if (edge.utilityCategoryId && !metadata.utilityCategories.find(c => c.id === edge.utilityCategoryId)) → warning
+{ type: "utility.removeCategory"; categoryId: string }
+// Reducer: remove categoria e limpa utilityCategoryId das arestas órfãs
 ```
 
-### 2.4 UI — Painel de Categorias
+**`element.patch`:** adicionar `utilityCategoryId` ao `safePatchFields.edge`.
 
-Componente `UtilityCategoriesPanel` acessível por botão na toolbar:
+### 3.4 Invariants
 
-- Lista categorias: bolinha colorida inline + nome + botão X (remover)
-- Botão "+ Nova categoria": expande inline com campo de nome + grid 4×4 das 16 cores
-- Cores mostradas como círculos preenchidos, seleção com borda destacada
-- Ao remover: confirmação se há arestas usando a categoria ("X arestas perderão a cor")
+- `utilityCategoryId` só é válido se `connectionClass === "utility"`
+- Categoria referenciada deve existir em `metadata.utilityCategories`
 
-### 2.5 UI — Atribuição na Criação de Aresta
+### 3.5 UI — Painel de Categorias
 
-Ao conectar portas com `connectionClass === "utility"`:
-- Seletor aparece antes de confirmar (popover ou modal inline)
-- Lista categorias do documento + "Sem categoria" (default)
-- Aresta criada via comando `edge.create` com `utilityCategoryId` definido
+Componente `UtilityCategoriesPanel`, acessível por botão na toolbar:
 
-### 2.6 UI — Edição no Inspetor
+- Lista categorias: bolinha colorida + nome + botão remover
+- "+ Nova categoria": campo nome + grid 4×4 de cores + confirmar
+- Confirmação ao remover se há arestas usando a categoria
 
-Quando aresta utility selecionada:
-- Novo campo "Categoria": dropdown com categorias + "Nenhuma"
-- Patch via `element.patch` no campo `utilityCategoryId`
+### 3.6 UI — Atribuição e Edição
 
-### 2.7 Rendering — Canvas
+- **Criação de aresta utility**: seletor de categoria antes de confirmar (popover)
+- **Inspetor de propriedades**: dropdown para alterar categoria da aresta selecionada
 
-**`process-edge.tsx`**:
+### 3.7 Rendering
+
+**Canvas (`process-edge.tsx`):**
 
 ```tsx
 const categoryColor = edge.connectionClass === "utility" && edge.utilityCategoryId
   ? utilityCategories.find(c => c.id === edge.utilityCategoryId)?.color
   : undefined;
-
-<BaseEdge
-  style={categoryColor ? { stroke: categoryColor } : undefined}
-  className={selected ? "stroke-blue-600" : !categoryColor ? "stroke-slate-600" : ""}
-  ...
-/>
+<BaseEdge style={categoryColor ? { stroke: categoryColor } : undefined}
+  className={selected ? "stroke-blue-600" : !categoryColor ? "stroke-slate-600" : ""} />
 ```
 
-### 2.8 Rendering — SVG Export
+**SVG export (`render-svg.ts`):** mesma lógica, aplicada ao atributo `stroke`.
 
-**`render-svg.ts`**:
+### 3.8 Persistência
 
-```ts
-const category = edge.utilityCategoryId
-  ? document.metadata.utilityCategories.find(c => c.id === edge.utilityCategoryId)
-  : undefined;
-const stroke = category?.color ?? (edge.connectionClass === "signal" ? "#64748b" : "#475569");
-```
-
-### 2.9 Fluxo de persistência
-
-1. Usuário cria/remove categorias → comando aplicado no estado local → `PidDocument.metadata.utilityCategories` atualizado
-2. Ao salvar (manual ou auto-save) → `RemotePidApi.save()` envia o `PidDocument` completo (com `metadata.utilityCategories`) para `PUT /api/pid/diagrams/:id/document`
-3. Backend persiste no `document_projection` JSONB do `PidDocumentSnapshot`
-4. Ao abrir diagrama → `RemotePidApi.open()` retorna o documento completo com as categorias
+Categorias vivem em `PidDocument.metadata.utilityCategories`. Com a API REST (Part 1), são persistidas no `document_projection` JSONB. Com colaboração (Part 2), são sincronizadas via Yjs como parte do documento.
 
 ---
 
+## Dependency Order
+
+```
+Part 1 (REST API) ──► Part 2 (Collaboration) ──► Part 3 (Utility Categories)
+```
+
+Part 1 é autossuficiente. Part 2 depende da Part 1 para autenticação e persistência de snapshots. Part 3 depende da Part 1 e da Part 2 (ou ao menos da Part 1) para persistir categorias no servidor.
+
+O frontend pode implementar Part 3 contra o adapter `local` inicialmente (como prova de conceito), e a feature funciona automaticamente com `remote` quando as Parts 1 e 2 estiverem prontas — as categorias estão no `PidDocument`, que é o que o adapter persiste.
+
 ## Non-Scope
 
+- Migração automática de diagramas do localStorage para Postgres
+- Cores customizadas além da paleta de 16
+- Estilos visuais além de cor (stroke-width, dash array, etc.)
 - Categorias para arestas `process` ou `signal`
-- Cores customizadas além da paleta
-- Estilos visuais além de cor (stroke-width, dash array)
-- Alteração do `connectionClass` após criação da aresta
-- Edição de nome/cor de categoria existente (remove e recria)
-- Yjs/WebSocket para colaboração em tempo real (a API REST é suficiente para single-user)
-- `PidCatalogPort` e `PidCollaborationPort` remotos (stubs mantidos)
+- Edição inline de nome/cor de categoria existente (remove e recria)
+- Convite/ compartilhamento de diagramas via UI (tokens já são gerados)
+- Presence/Awareness avançado (cursores, seleções)
 
 ## Risks
 
-- **Tamanho do documento**: com categorias e `utilityCategoryId`, o JSON do documento cresce marginalmente. O limite de 100k valores no `PidProperties` já cobre isso.
-- **Órfãos na remoção**: tratado pelo reducer de `removeCategory` que limpa referências.
-- **Conflito de revisão**: o `expectedRevision` no `save` garante integridade. Se dois clientes salvam simultaneamente, um recebe 409.
-- **Migração de localStorage → Postgres**: diagramas existentes no localStorage não migram automaticamente. Usuário precisará recriar ou exportar/importar.
+| Risco | Mitigação |
+|-------|-----------|
+| **Yjs ↔ PidDocument**: conflito entre estado Yjs e comandos imutáveis existentes | Y.Doc é a fonte da verdade; comandos são traduzidos para operações Yjs. O estado imutável é derivado do Y.Doc. |
+| **Conflito de edição simultânea**: dois usuários alteram a mesma categoria/aresta | Yjs resolve automaticamente (CRDT). Último write wins para campos simples. |
+| **Perda de dados**: servidor cai antes de persistir snapshot | Yjs updates são efêmeros, mas o cliente mantém o estado local. Autosave REST como fallback. |
+| **Complexidade**: 3 subsistemas em sequência é ambicioso | Cada parte entrega valor independente. Part 1 já permite compartilhar diagramas (sem colaboração em tempo real). |
+| **y-py dependência**: Yjs port para Python pode ter bugs ou atrasos | Usar `y-py` apenas para derivar `document_projection`. Se não funcionar, derivar do último snapshot REST. |
