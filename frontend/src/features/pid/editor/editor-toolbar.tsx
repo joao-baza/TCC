@@ -1,7 +1,8 @@
+import { useState } from "react";
 import {
   Undo2, Redo2, Trash2, CopyPlus, Copy, ClipboardPaste,
   RotateCw, RotateCcw, AlignJustify, Group, StickyNote,
-  GitBranch, Maximize2, ZoomIn, ZoomOut, FileImage, ImageDown,
+  GitBranch, Maximize2, ZoomIn, ZoomOut, FileImage, ImageDown, Palette,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,12 @@ import {
   Tooltip, TooltipTrigger, TooltipContent,
 } from "@/components/ui/tooltip";
 
+import { UtilityCategoriesPanel } from "./utility-categories-panel";
 import type { PidIconSize } from "./use-pid-settings";
 import type { ConnectionClass } from "../domain/model";
-import type { EditorToolbarActions } from "./editor-toolbar-utils";
+import type { PidCommand } from "../domain/command-contract";
+import type { UtilityCategory } from "../domain/utility-category";
+import type { EditorSelectionCapabilities, EditorToolbarActions } from "./editor-toolbar-utils";
 
 const ICON_CLASS: Record<PidIconSize, string> = {
   sm: "size-3",
@@ -46,9 +50,9 @@ function IconButton({ label, shortcut, disabled, onClick, iconClass, children }:
   </Tooltip>;
 }
 
-export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions, iconSize = "md" }: {
+export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions, iconSize = "md", onCommand, utilityCategories }: {
   readonly editable: boolean;
-  readonly capabilities: EditorToolbarActions extends infer _ ? import("./editor-toolbar-utils").EditorSelectionCapabilities : never;
+  readonly capabilities: EditorSelectionCapabilities;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly canPaste: boolean;
@@ -62,8 +66,11 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
   readonly connectionClass: ConnectionClass;
   readonly actions: EditorToolbarActions;
   readonly iconSize?: PidIconSize;
+  readonly onCommand: (cmd: PidCommand) => void;
+  readonly utilityCategories: readonly UtilityCategory[];
 }) {
   const cls = ICON_CLASS[iconSize];
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   const Separator = () => <div className="mx-0.5 h-6 w-px bg-border" />;
 
@@ -84,6 +91,20 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
       <IconButton label="Agrupar" shortcut="Ctrl+G" disabled={!capabilities.canGroup} onClick={actions.group} iconClass={cls}><Group className={cls} /></IconButton>
       <IconButton label="Adicionar anotação" shortcut="Ctrl+Shift+A" onClick={actions.insertAnnotation} iconClass={cls}><StickyNote className={cls} /></IconButton>
       <ConnectionClassSelect connectionClass={connectionClass} actions={actions} />
+      <div className="relative">
+        <IconButton label="Categorias de utilidade" onClick={() => setCategoriesOpen(!categoriesOpen)} iconClass={cls}>
+          <Palette className={cls} />
+        </IconButton>
+        {categoriesOpen && (
+          <div className="absolute right-0 top-full mt-1 z-50 rounded border bg-white shadow-lg">
+            <UtilityCategoriesPanel
+              categories={utilityCategories}
+              onCommand={onCommand}
+              editable={editable}
+            />
+          </div>
+        )}
+      </div>
     </>}
     <Separator />
     <IconButton label="Ajustar diagrama à tela" onClick={actions.fit} iconClass={cls}><Maximize2 className={cls} /></IconButton>
