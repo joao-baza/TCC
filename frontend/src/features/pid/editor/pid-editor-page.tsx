@@ -23,7 +23,6 @@ import { validateDocument } from "../domain/validation";
 import { downloadBlob, pidExportFilename } from "../export/download";
 import { renderPidPng } from "../export/render-png";
 import { loadPidSvgAssets, renderPidSvg, type PidExportBackground, type PidSvgAssets } from "../export/render-svg";
-import { DocumentActionsMenu } from "./document-actions-menu";
 import { copyEditorSelection, pasteEditorFragment, type EditorClipboardFragment } from "./editor-clipboard";
 import {
   EditorToolbar, type EditorToolbarActions,
@@ -490,7 +489,6 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
           <PidSettingsButton onClick={() => setSettingsOpen(true)} />
-          <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={lifecycle === "deleted" || lifecycle === "restoring"} onBeforeDelete={beforeDelete} onDeleted={deletedSuccessfully} onDeleteFailed={deleteFailed} onBeforeRestore={beforeRestore} onRestoreConfirmed={restoreConfirmed} onRestored={restoredSuccessfully} onRestoreFailed={restoreFailed} onAnnouncement={setAnnouncement} />
         </div>}
       </div>
     </header>
