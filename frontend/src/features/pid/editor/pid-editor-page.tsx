@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { Link, useBlocker, useLocation, useParams } from "react-router-dom";
 
+import { cn } from "@/lib/utils";
 import { isPidDocumentError, type OpenedPidDiagram } from "../api/contracts";
 import { usePidServices } from "../api/pid-services";
 import { PidCanvas, type PidCanvasSelection, type PidCanvasViewportAction } from "../canvas/pid-canvas";
@@ -26,6 +27,7 @@ import {
   getEditorPositionedSelectionIds, getEditorSelectionCapabilities,
 } from "./editor-toolbar-utils";
 import { createEditorStore, type EditorStore } from "./editor-store";
+import { PidSettingsButton, PidSettingsDialog } from "./pid-settings-dialog";
 import { ShareDialog } from "./share-dialog";
 import {
   PropertiesInspector, type InspectorCommandResult, type PropertiesInspectorHandle,
@@ -134,6 +136,8 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const editor = useSyncExternalStore(subscribe, store.getState, store.getState);
   const { editable: capabilityEditable, viewportWidth } = useEditCapability(opened.scope);
   const { settings } = usePidSettings();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const textSizeClass = settings.textSize === "sm" ? "text-xs" : settings.textSize === "lg" ? "text-base" : "text-sm";
   const compactReadOnly = viewportWidth < MINIMUM_EDIT_VIEWPORT_WIDTH;
   const [editLease, setEditLease] = useState(capabilityEditable);
   const capabilityEditableRef = useRef(capabilityEditable);
@@ -465,7 +469,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     setLifecycle("deleted");
   }, []);
 
-  return <main className="pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]">
+  return <main className={cn("pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]", textSizeClass)}>
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span>{standardLabel(editor.document.metadata.standard)}</span></div></div>
@@ -478,6 +482,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         </div>
         {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
+          <PidSettingsButton onClick={() => setSettingsOpen(true)} />
           <DocumentActionsMenu documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} title={editor.document.metadata.title} deleted={lifecycle === "deleted" || lifecycle === "restoring"} onBeforeDelete={beforeDelete} onDeleted={deletedSuccessfully} onDeleteFailed={deleteFailed} onBeforeRestore={beforeRestore} onRestoreConfirmed={restoreConfirmed} onRestored={restoredSuccessfully} onRestoreFailed={restoreFailed} onAnnouncement={setAnnouncement} />
         </div>}
       </div>
@@ -512,6 +517,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     </div>
     <StatusBar state={editor} saveState={autosave.state} validationCounts={validationCounts} onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
     <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
+    <PidSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
   </main>;
 }
 
