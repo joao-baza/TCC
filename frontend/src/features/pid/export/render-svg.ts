@@ -8,6 +8,7 @@ import {
 } from "../catalog/sanitized-svg-asset";
 import { getPidNodeGeometry, getPidPortAnchorGeometry, type PidFlowPosition } from "../domain/geometry";
 import type { PidAnnotation, PidDocument, PidEdge, PidGroup, PidNode, Point } from "../domain/model";
+import type { UtilityCategory } from "../domain/utility-category";
 import { lineStyleAttributes } from "../canvas/line-rendering";
 
 export type PidExportBackground = "white" | "transparent";
@@ -53,7 +54,7 @@ export async function renderPidSvg(
   }
   const edges = sortedValues(document.edges);
   for (let edgeIndex = 0; edgeIndex < edges.length; edgeIndex += 1) {
-    const result = renderEdge(portPositions, edges[edgeIndex], edgeIndex);
+    const result = renderEdge(portPositions, edges[edgeIndex], edgeIndex, document.metadata.utilityCategories);
     if (!result) continue;
     rendered.push(result.markup);
     bounds.push(result.bounds);
@@ -109,7 +110,7 @@ function renderNode(node: PidNode, asset: SanitizedPidSvgAsset) {
   };
 }
 
-function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: PidEdge, edgeIndex: number) {
+function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: PidEdge, edgeIndex: number, utilityCategories: readonly UtilityCategory[]) {
   const source = portPositions.get(edge.sourcePortId);
   const target = portPositions.get(edge.targetPortId);
   if (!source || !target) return null;
@@ -117,15 +118,19 @@ function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: Pi
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${number(point.x)} ${number(point.y)}`).join(" ");
   const arrow = closedArrowPoints(points);
   const attrs = lineStyleAttributes(edge.lineStyle);
+  const category = edge.utilityCategoryId
+    ? utilityCategories.find(c => c.id === edge.utilityCategoryId)
+    : undefined;
+  const strokeColor = category?.color ?? attrs.stroke;
   const arrowMarkup = arrow.length === 3
-    ? `<polygon id="pid-arrow-${edgeIndex}" data-arrow-for="${attribute(edge.id)}" points="${arrow.map((point) => `${number(point.x)},${number(point.y)}`).join(" ")}" fill="${attrs.stroke}" stroke="${attrs.stroke}" stroke-width="1" stroke-linejoin="round"/>`
+    ? `<polygon id="pid-arrow-${edgeIndex}" data-arrow-for="${attribute(edge.id)}" points="${arrow.map((point) => `${number(point.x)},${number(point.y)}`).join(" ")}" fill="${strokeColor}" stroke="${strokeColor}" stroke-width="1" stroke-linejoin="round"/>`
     : "";
   const dashAttr = attrs.strokeDasharray ? ` stroke-dasharray="${attrs.strokeDasharray}"` : "";
   const label = [edge.tag, edge.label].filter(Boolean).join(" ");
   const midpoint = pathMidpoint(points);
   const labelY = midpoint.y - 5;
   return {
-    markup: `<g data-element-id="${attribute(edge.id)}"><path d="${attribute(path)}" fill="none" stroke="${attrs.stroke}" stroke-width="${attrs.strokeWidth}"${dashAttr}/>${arrowMarkup}${label ? `<text x="${number(midpoint.x)}" y="${number(labelY)}" text-anchor="middle" fill="#334155" stroke="none" font-size="11">${text(label)}</text>` : ""}</g>`,
+    markup: `<g data-element-id="${attribute(edge.id)}"><path d="${attribute(path)}" fill="none" stroke="${strokeColor}" stroke-width="${attrs.strokeWidth}"${dashAttr}/>${arrowMarkup}${label ? `<text x="${number(midpoint.x)}" y="${number(labelY)}" text-anchor="middle" fill="#334155" stroke="none" font-size="11">${text(label)}</text>` : ""}</g>`,
     bounds: unionBounds([pointsBounds(points, 1), pointsBounds(arrow, 1)]),
     labelBounds: label ? centeredTextBounds(label, midpoint.x, labelY, 11) : undefined,
   };

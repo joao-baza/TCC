@@ -135,7 +135,7 @@ export function projectPidCanvasDocument(
       reconnectable: false,
       selected: false,
       ariaLabel: [edge.tag, edge.label].filter(Boolean).join(" ") || `Conexão ${edge.id}`,
-      data: { processEdge: edge, route: edge.route, editable },
+      data: { processEdge: edge, route: edge.route, editable, utilityCategories: document.metadata.utilityCategories },
     } : null;
     edgeAdapters.set(edge, { source, target, editable, edge: flowEdge });
     return flowEdge ? [flowEdge] : [];

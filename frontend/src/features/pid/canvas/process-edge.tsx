@@ -8,19 +8,21 @@ import {
 } from "@xyflow/react";
 
 import type { PidEdge, Point } from "../domain/model";
+import type { UtilityCategory } from "../domain/utility-category";
 import { lineStyleAttributes, isSinusoidal } from "./line-rendering";
 
 export type ProcessEdgeData = Record<string, unknown> & {
   readonly processEdge: PidEdge;
   readonly route: readonly Point[];
   readonly editable: boolean;
+  readonly utilityCategories?: UtilityCategory[];
 };
 
 export type ProcessFlowEdge = Edge<ProcessEdgeData, "process">;
 
 function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
   if (!props.data) return null;
-  const { processEdge, route } = props.data;
+  const { processEdge, route, utilityCategories } = props.data;
   const routePoints = orthogonalPoints(
     { x: props.sourceX, y: props.sourceY },
     route,
@@ -34,6 +36,9 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
   const midpoint = pathMidpoint(routePoints);
   const label = [processEdge.tag, processEdge.label].filter(Boolean).join(" ");
   const attrs = lineStyleAttributes(processEdge.lineStyle);
+  const categoryColor = processEdge.connectionClass === "utility" && processEdge.utilityCategoryId
+    ? utilityCategories?.find(c => c.id === processEdge.utilityCategoryId)?.color
+    : undefined;
 
   return (
     <>
@@ -45,8 +50,9 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
         style={{
           strokeWidth: attrs.strokeWidth,
           strokeDasharray: attrs.strokeDasharray,
+          ...(categoryColor ? { stroke: categoryColor } : {}),
         }}
-        className={props.selected ? "stroke-blue-600" : ""}
+        className={props.selected ? "stroke-blue-600" : !categoryColor ? "stroke-slate-600" : ""}
         data-testid={`process-edge-${props.id}`}
       />
       {label ? (
