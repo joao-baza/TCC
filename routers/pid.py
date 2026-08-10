@@ -163,7 +163,9 @@ async def regenerate_token(diagram_id: UUID, body: RegenerateTokenRequest, reque
         raise HTTPException(status_code=400, detail="Invalid scope")
 
     service = _service(request)
-    token = await service.regenerate_token(diagram_id, scope)
+    token = await service.regenerate_token(diagram_id, scope, body.edit_token)
+    if token is None:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     snapshots = _snapshots(request)
     revision = await snapshots.get_latest_revision(diagram_id)

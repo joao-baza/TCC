@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from pid.models import AccessScope, PidAccessToken, PidDiagram, PidStandard
+from pid.models import AccessScope, PidAccessToken, PidDiagram, PidDocumentSnapshot, PidStandard
 from pid.repositories.diagrams import DiagramRepository
 from pid.repositories.tokens import TokenRepository
 from pid.security import generate_secret, hash_secret
@@ -130,29 +131,64 @@ class DiagramService:
         if scope is not AccessScope.EDIT:
             return None
 
-        from pid.repositories.snapshots import SnapshotRepository
-        snapshots = SnapshotRepository(self._session_factory)
-        current_revision = await snapshots.get_latest_revision(diagram_id)
-        current = current_revision if current_revision is not None else 0
-
-        if current != expected_revision:
-            return None
-
-        new_revision = await snapshots.append(
-            diagram_id,
-            yjs_state=b"",
-            document_projection=document,
-            schema_version=1,
-            is_valid=True,
-        )
-
         async with self._session_factory() as session:
             async with session.begin():
-                from pid.repositories.diagrams import DiagramRepository
-                diagrams = DiagramRepository(session)
-                diagram = await diagrams.get_active(diagram_id, for_update=True)
-                if diagram is not None:
-                    diagram.updated_at = datetime.now(timezone.utc)
+                diagram = await session.scalar(
+                    select(PidDiagram)
+                    .where(
+                        PidDiagram.id == diagram_id,
+                        PidDiagram.deleted_at.is_(None),
+                    )
+                    .with_for_update()
+                )
+                if diagram is None:
+                    return None
+
+                current_revision = await session.scalar(
+                    select(func.max(PidDocumentSnapshot.revision)).where(
+                        PidDocumentSnapshot.diagram_id == diagram_id,
+                    )
+                )
+                current = int(current_revision) if current_revision is not None else 0
+
+                if current != expected_revision:
+                    return None
+
+                new_revision = current + 1
+
+                session.add(
+                    PidDocumentSnapshot(
+                        diagram_id=diagram_id,
+                        revision=new_revision,
+                        yjs_state=b"",
+                        document_projection=document,
+                        schema_version=1,
+                        is_valid=True,
+                    )
+                )
+                await session.flush()
+
+                previous_valid = await session.scalar(
+                    select(func.max(PidDocumentSnapshot.revision)).where(
+                        PidDocumentSnapshot.diagram_id == diagram_id,
+                        PidDocumentSnapshot.revision < new_revision,
+                        PidDocumentSnapshot.is_valid.is_(True),
+                    )
+                )
+                retained = [new_revision]
+                if previous_valid is not None:
+                    retained.append(int(previous_valid))
+
+                await session.execute(
+                    delete(PidDocumentSnapshot)
+                    .where(
+                        PidDocumentSnapshot.diagram_id == diagram_id,
+                        PidDocumentSnapshot.revision.not_in(retained),
+                    )
+                    .execution_options(synchronize_session=False)
+                )
+
+                diagram.updated_at = datetime.now(timezone.utc)
 
         return new_revision
 
@@ -160,19 +196,28 @@ class DiagramService:
         self,
         diagram_id: UUID,
         scope: AccessScope,
-    ) -> str:
+        edit_token: str,
+    ) -> str | None:
         if not isinstance(scope, AccessScope):
             raise ValueError("scope must be an AccessScope")
 
-        plain_token = generate_secret()
-        now = datetime.now(timezone.utc)
+        token_hash = hash_secret(edit_token, self._token_pepper)
         async with self._session_factory() as session:
             async with session.begin():
                 diagrams = DiagramRepository(session)
                 tokens = TokenRepository(session)
                 if await diagrams.get_active(diagram_id, for_update=True) is None:
-                    raise DiagramNotFoundError(diagram_id)
-                await tokens.revoke_scope(diagram_id, scope, now)
+                    return None
+                authorized = await tokens.resolve(
+                    diagram_id,
+                    token_hash,
+                    for_update=True,
+                )
+                if authorized is None or authorized.scope is not AccessScope.EDIT:
+                    return None
+
+                plain_token = generate_secret()
+                await tokens.revoke_scope(diagram_id, scope, datetime.now(timezone.utc))
                 tokens.add(
                     PidAccessToken(
                         diagram_id=diagram_id,

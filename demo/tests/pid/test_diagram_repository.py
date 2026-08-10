@@ -182,6 +182,7 @@ async def test_regenerate_view_token_revokes_previous_token(
     replacement = await service.regenerate_token(
         created.diagram_id,
         AccessScope.VIEW,
+        created.edit_token,
     )
 
     assert await service.authorize(created.diagram_id, created.view_token) is None
@@ -214,6 +215,7 @@ async def test_regenerate_missing_scope_creates_one_active_token(
     replacement = await service.regenerate_token(
         created.diagram_id,
         AccessScope.VIEW,
+        created.edit_token,
     )
 
     async with session_factory() as session:
@@ -239,8 +241,8 @@ async def test_regenerate_nonexistent_diagram_leaves_no_orphan_token(
     service = DiagramService(session_factory, token_pepper="p" * 32)
     diagram_id = uuid4()
 
-    with pytest.raises(DiagramNotFoundError):
-        await service.regenerate_token(diagram_id, AccessScope.VIEW)
+    result = await service.regenerate_token(diagram_id, AccessScope.VIEW, "fake-edit-token")
+    assert result is None
 
     async with session_factory() as session:
         token_count = await session.scalar(
@@ -264,6 +266,7 @@ async def test_regenerate_rejects_invalid_scope_without_changing_tokens(
         await service.regenerate_token(
             created.diagram_id,
             cast(AccessScope, "invalid"),
+            created.edit_token,
         )
 
     async with session_factory() as session:
