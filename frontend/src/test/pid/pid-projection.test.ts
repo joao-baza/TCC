@@ -18,7 +18,7 @@ function createPopulatedDocument(): PidDocument {
   return {
     schemaVersion: 1,
     id: ids.document,
-    metadata: { title: "Área 100", standard: "free", catalogVersion: "local-v1", createdAt: "2026-08-09T12:00:00.000Z", updatedAt: "2026-08-09T12:00:00.000Z" },
+    metadata: { title: "Área 100", standard: "free", catalogVersion: "local-v1", createdAt: "2026-08-09T12:00:00.000Z", updatedAt: "2026-08-09T12:00:00.000Z", utilityCategories: [] },
     nodes: {
       [ids.node]: { id: ids.node, symbolKey: "tank", catalogVersion: "local-v1", x: 10, y: 20, width: 100, height: 80, rotation: 90, tag: "T-100", label: "Tanque", properties: { nested: { value: "node" } } },
     },

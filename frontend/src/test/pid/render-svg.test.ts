@@ -281,6 +281,7 @@ function emptyDocument(title: string): PidDocument {
       catalogVersion: "local-v1",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
+      utilityCategories: [],
     },
     nodes: {}, ports: {}, edges: {}, annotations: {}, groups: {},
   };

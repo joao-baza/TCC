@@ -126,6 +126,7 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
           minimized={legendMinimized}
           onApplyLineStyle={onApplyLineStyle}
           onMinimize={() => setLegendMinimized(true)}
+          onRestore={() => setLegendMinimized(false)}
           onClose={() => {
             setLegendOpen(false);
             setLegendMinimized(false);

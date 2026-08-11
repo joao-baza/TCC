@@ -55,6 +55,7 @@ function pumpDocument(): PidDocument {
       catalogVersion: "local-v1",
       createdAt: "2026-08-09T12:00:00.000Z",
       updatedAt: "2026-08-09T12:00:00.000Z",
+      utilityCategories: [],
     },
     nodes: {
       [ids.pump]: {

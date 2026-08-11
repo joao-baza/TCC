@@ -1,4 +1,4 @@
-import { Minus, X } from "lucide-react";
+import { Maximize2, Minus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { renderSignalLinePattern, signalLineLegendItems } from "../canvas/signal-line-pattern";
@@ -12,12 +12,14 @@ export function SignalLineLegend({
   onApplyLineStyle,
   onClose,
   onMinimize,
+  onRestore,
 }: {
   readonly selectedEdgeId: string | null;
   readonly minimized: boolean;
   readonly onApplyLineStyle: (lineStyle: LineStyle) => void;
   readonly onClose: () => void;
   readonly onMinimize: () => void;
+  readonly onRestore: () => void;
 }) {
   const canApply = selectedEdgeId !== null;
   return (
@@ -32,8 +34,13 @@ export function SignalLineLegend({
           <p className="text-xs text-slate-600">{canApply ? "Selecione um padrão para a aresta ativa." : "Referência de padrões de sinais."}</p>
         </div>
         <div className="inline-flex items-center gap-1">
-          <Button variant="ghost" size="icon-sm" aria-label="Minimizar legenda de sinais" onClick={onMinimize}>
-            <Minus className="size-4" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={minimized ? "Restaurar legenda de sinais" : "Minimizar legenda de sinais"}
+            onClick={minimized ? onRestore : onMinimize}
+          >
+            {minimized ? <Maximize2 className="size-4" /> : <Minus className="size-4" />}
           </Button>
           <Button variant="ghost" size="icon-sm" aria-label="Fechar legenda de sinais" onClick={onClose}>
             <X className="size-4" />

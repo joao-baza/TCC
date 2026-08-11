@@ -101,6 +101,7 @@ export function renderSignalLinePattern(input: SignalLinePatternInput): ReactEle
           return (
             <path
               key="base"
+              className="react-flow__edge-path"
               d={primitive.path}
               fill="none"
               stroke={paint}

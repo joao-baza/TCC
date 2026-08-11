@@ -103,7 +103,7 @@ function documentFixture(): PidDocument {
   return {
     schemaVersion: 1,
     id: ids.diagram,
-    metadata: { title: "Canvas responsivo", standard: "free", catalogVersion: "local-v1", createdAt: "2026-08-09T00:00:00.000Z", updatedAt: "2026-08-09T00:00:00.000Z" },
+    metadata: { title: "Canvas responsivo", standard: "free", catalogVersion: "local-v1", createdAt: "2026-08-09T00:00:00.000Z", updatedAt: "2026-08-09T00:00:00.000Z", utilityCategories: [] },
     nodes: {
       [ids.pump]: { id: ids.pump, symbolKey: "drawio.pid.pumps.centrifugal-pump-1", catalogVersion: "local-v1", x: 100, y: 80, width: 96, height: 64, rotation: 0, tag: "P-1", label: "Bomba", properties: {} },
       [ids.tank]: { id: ids.tank, symbolKey: "drawio.pid.vessels.tank", catalogVersion: "local-v1", x: 360, y: 80, width: 80, height: 72, rotation: 0, tag: "T-1", label: "Tanque", properties: {} },

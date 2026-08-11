@@ -45,11 +45,11 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
         className="pointer-events-visibleStroke"
       >
         <path
+          className="react-flow__edge-interaction"
           d={pointsPath(routePoints)}
           fill="none"
-          stroke="transparent"
+          strokeOpacity={0}
           strokeWidth={24}
-          pointerEvents="stroke"
         />
         {renderSignalLinePattern({
           id: props.id,

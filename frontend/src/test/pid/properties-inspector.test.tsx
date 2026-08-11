@@ -309,6 +309,7 @@ function documentFixture(): PidDocument {
       catalogVersion: "local-v1",
       createdAt: "2026-08-09T00:00:00.000Z",
       updatedAt: "2026-08-09T00:00:00.000Z",
+      utilityCategories: [],
     },
     nodes: {
       [ids.node]: { id: ids.node, symbolKey: "test.pump", catalogVersion: "local-v1", x: 10, y: 20, width: 96, height: 64, rotation: 0, tag: "P-1", label: "Bomba", properties: { service: "process" } },

@@ -536,6 +536,7 @@ function makeDocument(nodes: Record<string, PidNode>, ports: Record<string, PidP
       catalogVersion: "local-v1",
       createdAt: "2026-08-09T00:00:00.000Z",
       updatedAt: "2026-08-09T00:00:00.000Z",
+      utilityCategories: [],
     },
     nodes,
     ports,

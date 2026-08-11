@@ -71,6 +71,27 @@ it("abre a legenda de sinais e aplica estilo quando há uma aresta selecionada",
   expect(screen.getByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).toBeInTheDocument();
 });
 
+it("minimiza e restaura a legenda de sinais", () => {
+  const capabilities: EditorSelectionCapabilities = {
+    canDelete: true,
+    canCopy: false,
+    canDuplicate: false,
+    canRotate: false,
+    canGroup: false,
+    canAlign: false,
+  };
+  render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ selectedEdgeId: "edge-1" })} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
+  expect(screen.getByText("Sinal pneumático")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Minimizar legenda de sinais" }));
+  expect(screen.queryByText("Sinal pneumático")).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Restaurar legenda de sinais" }));
+  expect(screen.getByText("Sinal pneumático")).toBeInTheDocument();
+});
+
 it("mantém a legenda como referência quando não há aresta selecionada", () => {
   const onApplyLineStyle = vi.fn();
   const capabilities: EditorSelectionCapabilities = {
