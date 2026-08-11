@@ -192,6 +192,13 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       <h2 id="pid-inspector-heading">Inspetor</h2>
       {!editable && <span>Somente leitura</span>}
     </div>
+    {selection.length === 0 && (
+      <div className="pid-inspector-fields">
+        <p><strong>{document.metadata.title}</strong></p>
+        <p>Livre no documento</p>
+        <p>{Object.keys(document.nodes).length} equipamento(s) · {Object.keys(document.edges).length} linha(s)</p>
+      </div>
+    )}
     {selection.length > 1 && <p>{selection.length} elementos selecionados. Selecione apenas um para editar propriedades.</p>}
     {selected?.kind === "node" && <FieldGroup key={selected.value.id} title="Equipamento" id={selected.value.id}>
       <TextField label="Tag" field="tag" value={selected.value.tag} {...common} />
@@ -474,4 +481,3 @@ function omitField(source: Record<string, string>, field: string): Record<string
 function fieldLabel(field: string): string {
   return field === "tag" ? "Tag" : field === "label" ? "Rótulo" : field === "text" ? "Texto" : "Campo";
 }
-

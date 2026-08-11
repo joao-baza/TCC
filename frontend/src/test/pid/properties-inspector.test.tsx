@@ -46,6 +46,14 @@ describe("inspetor contextual P&ID", () => {
     expect(onCommand).toHaveBeenCalledWith({ type: "element.patch", id: selectedId, patch });
   });
 
+  it("lista somente rótulos canônicos no estilo de linha da aresta", () => {
+    render(<PropertiesInspector document={documentFixture()} selection={[ids.edge]} editable onCommand={vi.fn()} />);
+
+    const lineStyle = screen.getByRole("combobox", { name: "Estilo de linha" });
+    expect(lineStyle).toHaveTextContent("Sinal elétrico");
+    expect(lineStyle).not.toHaveTextContent("Contínua grossa");
+  });
+
   it("valida o campo antes do comando e anuncia erros locais e do domínio", () => {
     const onCommand = vi.fn();
     const { rerender } = render(
