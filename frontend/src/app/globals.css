@@ -369,12 +369,12 @@ body {
   background: #f8fafc;
 }
 
-.pid-canvas-signal-legend {
+.pid-canvas-signal-legend,
+.pid-canvas-utility-categories {
   position: absolute;
   z-index: 25;
   inset-block-start: .75rem;
   inset-inline-end: .75rem;
-  width: min(44rem, calc(100% - 1.5rem));
   max-height: calc(100% - 1.5rem);
   overflow: hidden;
   border: 1px solid #cbd5e1;
@@ -382,6 +382,12 @@ body {
   color: #0f172a;
   background: #fff;
   box-shadow: 0 18px 40px rgb(15 23 42 / 18%);
+}
+
+.pid-canvas-signal-legend { width: min(44rem, calc(100% - 1.5rem)); }
+.pid-canvas-utility-categories {
+  width: min(20rem, calc(100% - 1.5rem));
+  overflow: auto;
 }
 
 .pid-studio-canvas-surface { height: 100% !important; min-height: 100%; border: 0; border-radius: 0; }

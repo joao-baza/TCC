@@ -25,28 +25,34 @@ describe("CatalogPanel", () => {
     fireEvent.change(screen.getByRole("searchbox", { name: "Pesquisar símbolos" }), {
       target: { value: "centrifugal pump 1" },
     });
-    expect(screen.getByRole("treeitem", { name: /^Inserir Centrifugal Pump 1/ })).toBeVisible();
+    expect(screen.getByRole("treeitem", { name: "Bomba Centrífuga 1" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Fonte: Draw.io" }));
-    expect(screen.getByRole("treeitem", { name: /^Inserir Centrifugal Pump 1/ })).toBeVisible();
+    expect(screen.getByRole("treeitem", { name: "Bomba Centrífuga 1" })).toBeVisible();
   });
 
   it("permite recolher categorias sem ocultar o botão semântico", () => {
     renderPanel();
 
     const category = screen.getByRole("treeitem", { name: "Agitadores" });
+    expect(category).not.toHaveClass("mt-1", "first:mt-0");
+    expect(category.closest("[data-index]")).toHaveStyle({ paddingTop: "0px" });
+    expect(screen.getByRole("treeitem", { name: "Elementos de aparelhos" }).closest("[data-index]")).toHaveStyle({ paddingTop: "8px" });
+    expect(category.querySelector(".lucide-chevron-up")).not.toBeNull();
     fireEvent.click(category);
     expect(category).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("treeitem", { name: /^Inserir Agitator \(Anchor\)/ })).not.toBeInTheDocument();
+    expect(category.querySelector(".lucide-chevron-down")).not.toBeNull();
+    expect(screen.queryByRole("treeitem", { name: "Agitador (Âncora)" })).not.toBeInTheDocument();
 
     fireEvent.click(category);
     expect(category).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("treeitem", { name: /^Inserir Agitator \(Anchor\)/ })).toBeVisible();
+    expect(category.querySelector(".lucide-chevron-up")).not.toBeNull();
+    expect(screen.getByRole("treeitem", { name: "Agitador (Âncora)" })).toBeVisible();
   });
 
   it("insere uma vez pela tecla Enter ou clique na mesma linha-botão", () => {
     const onInsert = renderPanel();
-    const row = screen.getByRole("treeitem", { name: /^Inserir Agitator \(Anchor\)/ });
+    const row = screen.getByRole("treeitem", { name: "Agitador (Âncora)" });
 
     fireEvent.keyDown(row, { key: "Enter" });
     fireEvent.click(row);
@@ -60,7 +66,7 @@ describe("CatalogPanel", () => {
     const category = screen.getByRole("treeitem", { name: "Agitadores" });
     category.focus();
     fireEvent.keyDown(category, { key: "ArrowDown" });
-    const pump = screen.getByRole("treeitem", { name: /^Inserir Agitator \(Anchor\)/ });
+    const pump = screen.getByRole("treeitem", { name: "Agitador (Âncora)" });
     expect(pump).toHaveFocus();
     fireEvent.keyDown(pump, { key: "Enter" });
     expect(onInsert).toHaveBeenCalledTimes(1);
@@ -102,7 +108,7 @@ describe("CatalogPanel", () => {
 
   it("preserva o foco do campo de busca, mas recupera o foco quando a tree remove a linha ativa", async () => {
     renderPanel();
-    const pump = screen.getByRole("treeitem", { name: /^Inserir Agitator \(Anchor\)/ });
+    const pump = screen.getByRole("treeitem", { name: "Agitador (Âncora)" });
     const search = screen.getByRole("searchbox", { name: "Pesquisar símbolos" });
 
     pump.focus();
@@ -111,7 +117,7 @@ describe("CatalogPanel", () => {
     expect(search).toHaveFocus();
 
     fireEvent.change(search, { target: { value: "" } });
-    const restoredPump = await screen.findByRole("treeitem", { name: /^Inserir Agitator \(Anchor\)/ });
+    const restoredPump = await screen.findByRole("treeitem", { name: "Agitador (Âncora)" });
     restoredPump.focus();
     fireEvent.change(search, { target: { value: "valve" } });
     await waitFor(() => expect(screen.getByRole("treeitem", { name: "Válvulas" })).toHaveFocus());
@@ -131,8 +137,8 @@ describe("CatalogPanel", () => {
 
     render(<CatalogPanel symbols={catalog} standard="free" onInsert={vi.fn()} />);
 
-    expect(screen.getAllByRole("treeitem", { name: /Inserir Bomba sintética/ })).toHaveLength(11);
-    expect(screen.queryByRole("treeitem", { name: /Inserir Bomba sintética 119/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("treeitem", { name: /Bomba sintética/ })).toHaveLength(11);
+    expect(screen.queryByRole("treeitem", { name: /Bomba sintética 119/ })).not.toBeInTheDocument();
     rect.mockRestore();
   });
 
@@ -200,7 +206,7 @@ describe("CatalogPanel", () => {
       act(() => emitResize(initialRows[1], 76));
       scrollTo.mockClear();
 
-      const first = screen.getByRole("treeitem", { name: "Agitadores" });
+      const first = screen.getByRole("treeitem", { name: "Tubulação modular" });
       first.focus();
       fireEvent.keyDown(first, { key: "End" });
       await waitFor(() => expect(scrollTo).toHaveBeenCalled());
@@ -224,8 +230,8 @@ describe("CatalogPanel", () => {
       expect(screen.getByRole("treeitem", { name: /Bomba scroll 9/ })).toHaveFocus();
 
       fireEvent.change(screen.getByRole("searchbox", { name: "Pesquisar símbolos" }), { target: { value: "79" } });
-      await waitFor(() => expect(screen.getByRole("treeitem", { name: "Agitadores" })).toHaveFocus());
-      const category = screen.getByRole("treeitem", { name: "Agitadores" });
+      await waitFor(() => expect(screen.getByRole("treeitem", { name: "Tubulação modular" })).toHaveFocus());
+      const category = screen.getByRole("treeitem", { name: "Tubulação modular" });
       fireEvent.click(category);
       await waitFor(() => expect(category).toHaveFocus());
       expect(screen.queryByRole("treeitem", { name: /Bomba scroll 79/ })).not.toBeInTheDocument();

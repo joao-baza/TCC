@@ -229,10 +229,6 @@ describe("documento canônico P&ID", () => {
       ...createPopulatedDocument(),
       nodes: { [ids.node]: { ...createPopulatedDocument().nodes[ids.node], width: 0 } },
     })],
-    ["rotação fora de múltiplo de 90", () => ({
-      ...createPopulatedDocument(),
-      nodes: { [ids.node]: { ...createPopulatedDocument().nodes[ids.node], rotation: 45 } },
-    })],
     ["porta com nó pendente", () => ({
       ...createPopulatedDocument(),
       ports: { ...createPopulatedDocument().ports, [ids.sourcePort]: { ...createPopulatedDocument().ports[ids.sourcePort], nodeId: ids.document } },
@@ -259,6 +255,14 @@ describe("documento canônico P&ID", () => {
     })],
   ])("rejeita %s", (_rule, invalidDocument) => {
     expect(() => parsePidDocument(invalidDocument())).toThrow();
+  });
+
+  it("aceita rotação livre em graus finitos", () => {
+    const document = createPopulatedDocument();
+    document.nodes[ids.node] = { ...document.nodes[ids.node], rotation: 37.5 };
+    document.annotations[ids.annotation] = { ...document.annotations[ids.annotation], rotation: 12.25 };
+
+    expect(pidDocumentSchema.safeParse(document).success).toBe(true);
   });
 
   it.each([0, 0.5])("rejeita capacidade de porta inválida: %s", (capacity) => {

@@ -49,3 +49,47 @@ it("usa posicionamento fixo do canvas quando aberta pelo topo", () => {
 
   expect(screen.getByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).toHaveClass("pid-canvas-signal-legend");
 });
+
+it("mostra a amostra com a mesma linha renderizada no canvas", () => {
+  const { container } = renderLegend({ selectedEdgeId: null });
+
+  const pneumaticLine = container.querySelector('[data-signal-line-style="pneumatic-signal"] .react-flow__edge-path');
+  const electricLine = container.querySelector('[data-signal-line-style="electric-signal"] .react-flow__edge-path');
+  const pneumaticGlyphs = container.querySelectorAll('[data-signal-line-style="pneumatic-signal"] [data-glyph="diagonal-pair"]');
+  const pneumaticPreview = pneumaticLine?.closest("svg");
+
+  expect(pneumaticLine).toHaveAttribute("d", "M 8 18 L 168 18");
+  expect(pneumaticLine).toHaveAttribute("stroke", "#64748b");
+  expect(pneumaticPreview?.style.getPropertyValue("--xy-edge-stroke")).toBe("#64748b");
+  expect(pneumaticPreview?.style.getPropertyValue("--xy-edge-stroke-selected")).toBe("#2563eb");
+  expect(pneumaticGlyphs.length).toBeGreaterThan(1);
+  expect(electricLine).toHaveAttribute("stroke-dasharray", "14 7");
+});
+
+it.each([
+  ["guided-electromagnetic-sonic", "open-circle"],
+  ["software-link", "software-circle"],
+  ["mechanical-link", "concentric-circle"],
+] as const)("mantém a linha visível cruzando os símbolos de %s", (lineStyle, glyph) => {
+  const { container } = renderLegend({ selectedEdgeId: null });
+  const preview = container.querySelector(`[data-signal-line-style="${lineStyle}"]`);
+
+  expect(preview?.querySelector(".react-flow__edge-path")).toHaveAttribute("d", "M 8 18 L 168 18");
+  for (const circle of preview?.querySelectorAll(`[data-glyph="${glyph}"] circle`) ?? []) {
+    expect(circle).toHaveAttribute("fill", "none");
+  }
+});
+
+it.each([
+  ["pneumatic-signal", "diagonal-pair"],
+  ["capillary-tube", "x-mark"],
+  ["unguided-electromagnetic-sonic", "wave"],
+  ["mechanical-link", "concentric-circle"],
+  ["binary-electric-signal", "binary-cross"],
+] as const)("desenha a linha por cima dos glifos de %s", (lineStyle, glyph) => {
+  const { container } = renderLegend({ selectedEdgeId: null });
+  const preview = container.querySelector(`[data-signal-line-style="${lineStyle}"]`);
+
+  expect(preview?.querySelector(`[data-glyph="${glyph}"]`)).toBeInTheDocument();
+  expect(preview?.lastElementChild).toHaveClass("react-flow__edge-path");
+});

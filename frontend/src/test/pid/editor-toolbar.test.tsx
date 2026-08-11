@@ -20,6 +20,8 @@ function toolbarExtras(overrides: Partial<Parameters<typeof EditorToolbar>[0]> =
   return {
     signalLegendOpen: false,
     onToggleSignalLegend: vi.fn(),
+    utilityCategoriesOpen: false,
+    onToggleUtilityCategories: vi.fn(),
     onCommand: vi.fn(),
     utilityCategories: [],
     ...overrides,
@@ -42,7 +44,7 @@ it("mantém somente exclusão habilitada para seleção exclusiva de aresta", ()
   expect(screen.getByRole("button", { name: "Duplicar" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Girar 90°" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Agrupar" })).toBeDisabled();
-  expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
+  expect(screen.queryByRole("combobox", { name: "Alinhar seleção" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Exportar SVG" }));
   expect(onExportSvg).toHaveBeenCalledTimes(1);
 });
@@ -66,6 +68,44 @@ it("aciona a legenda de sinais para renderização fixa no canvas", () => {
 
   rerender(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ signalLegendOpen: true, onToggleSignalLegend })} />);
   expect(screen.getByRole("button", { name: "Legenda de sinais" })).toHaveAttribute("aria-pressed", "true");
+});
+
+it("aciona categorias de utilidade para renderização fixa no canvas", () => {
+  const onToggleUtilityCategories = vi.fn();
+  const capabilities: EditorSelectionCapabilities = {
+    canDelete: true,
+    canCopy: false,
+    canDuplicate: false,
+    canRotate: false,
+    canGroup: false,
+    canAlign: false,
+  };
+  const { rerender } = render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ onToggleUtilityCategories })} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Categorias de utilidade" }));
+
+  expect(onToggleUtilityCategories).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("dialog", { name: "Categorias de utilidade" })).not.toBeInTheDocument();
+
+  rerender(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ utilityCategoriesOpen: true, onToggleUtilityCategories })} />);
+  expect(screen.getByRole("button", { name: "Categorias de utilidade" })).toHaveAttribute("aria-pressed", "true");
+});
+
+it("não exibe controles de ajuste e zoom na barra superior", () => {
+  const capabilities: EditorSelectionCapabilities = {
+    canDelete: false,
+    canCopy: false,
+    canDuplicate: false,
+    canRotate: false,
+    canGroup: false,
+    canAlign: false,
+  };
+
+  render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras()} />);
+
+  expect(screen.queryByRole("button", { name: "Ajustar diagrama à tela" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Aumentar zoom" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Diminuir zoom" })).not.toBeInTheDocument();
 });
 
 it("mantém exportação independente da permissão de edição", () => {

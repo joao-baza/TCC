@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Palette, Plus, X } from "lucide-react";
+import { Plus, X, Zap } from "lucide-react";
 import { UTILITY_COLOR_PALETTE } from "../domain/utility-category";
 import type { UtilityCategory } from "../domain/utility-category";
 import type { PidCommand } from "../domain/command-contract";
@@ -9,9 +9,11 @@ interface Props {
   categories: readonly UtilityCategory[];
   onCommand: (cmd: PidCommand) => void;
   editable: boolean;
+  titleId?: string;
+  onClose?: () => void;
 }
 
-export function UtilityCategoriesPanel({ categories, onCommand, editable }: Props) {
+export function UtilityCategoriesPanel({ categories, onCommand, editable, titleId, onClose }: Props) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState("blue");
@@ -24,9 +26,21 @@ export function UtilityCategoriesPanel({ categories, onCommand, editable }: Prop
   };
 
   return (
-    <div className="flex flex-col gap-2 p-2 min-w-[220px]">
-      <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-        <Palette className="size-3.5" /> Categorias de Utilidade
+    <div className="flex min-w-[220px] flex-col gap-2 p-2">
+      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-slate-600">
+        <span id={titleId} className="inline-flex min-w-0 items-center gap-2">
+          <Zap className="size-3.5 shrink-0" /> <span className="truncate">Categorias de utilidade</span>
+        </span>
+        {onClose && (
+          <button
+            type="button"
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Fechar categorias de utilidade"
+            onClick={onClose}
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
       </div>
       {categories.map(cat => (
         <div key={cat.id} className="flex items-center gap-2 text-xs">
@@ -34,7 +48,7 @@ export function UtilityCategoriesPanel({ categories, onCommand, editable }: Prop
             style={{ backgroundColor: cat.color }} />
           <span className="flex-1 truncate">{cat.name}</span>
           {editable && (
-            <button className="text-slate-400 hover:text-red-500 shrink-0"
+            <button type="button" className="shrink-0 text-slate-400 hover:text-red-500"
               title="Remover categoria"
               onClick={() => onCommand(removeUtilityCategory(cat.id))}>
               <X className="size-3" />
@@ -46,7 +60,7 @@ export function UtilityCategoriesPanel({ categories, onCommand, editable }: Prop
         <p className="text-xs text-slate-400">Nenhuma categoria criada.</p>
       )}
       {editable && !adding && (
-        <button className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1"
+        <button type="button" className="mt-1 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
           onClick={() => setAdding(true)}>
           <Plus className="size-3" /> Nova categoria
         </button>
@@ -59,16 +73,16 @@ export function UtilityCategoriesPanel({ categories, onCommand, editable }: Prop
             onKeyDown={e => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") setAdding(false); }} />
           <div className="grid grid-cols-8 gap-1">
             {Object.entries(UTILITY_COLOR_PALETTE).map(([key, hex]) => (
-              <button key={key}
+              <button type="button" key={key}
                 className={`size-4 rounded-full border-2 ${selectedColor === key ? "border-slate-800 scale-110" : "border-transparent"}`}
                 style={{ backgroundColor: hex }} title={key}
                 onClick={() => setSelectedColor(key)} />
             ))}
           </div>
           <div className="flex gap-1">
-            <button className="h-6 rounded bg-blue-600 px-2 text-xs text-white hover:bg-blue-700"
+            <button type="button" className="h-6 rounded bg-blue-600 px-2 text-xs text-white hover:bg-blue-700"
               onClick={handleAdd}>Adicionar</button>
-            <button className="h-6 rounded border px-2 text-xs hover:bg-slate-50"
+            <button type="button" className="h-6 rounded border px-2 text-xs hover:bg-slate-50"
               onClick={() => setAdding(false)}>Cancelar</button>
           </div>
         </div>

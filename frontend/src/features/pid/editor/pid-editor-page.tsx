@@ -40,6 +40,7 @@ import {
 } from "./properties-inspector";
 import { StatusBar } from "./status-bar";
 import { SignalLineLegend } from "./signal-line-legend";
+import { UtilityCategoriesPanel } from "./utility-categories-panel";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { MINIMUM_EDIT_VIEWPORT_WIDTH, useEditCapability } from "./use-edit-capability";
 import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-shortcuts";
@@ -169,6 +170,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const [connectionClass, setConnectionClass] = useState<ConnectionClass>("process");
   const [signalLegendOpen, setSignalLegendOpen] = useState(false);
   const [signalLegendMinimized, setSignalLegendMinimized] = useState(false);
+  const [utilityCategoriesOpen, setUtilityCategoriesOpen] = useState(false);
   const [viewportAction, setViewportAction] = useState<PidCanvasViewportAction>();
   const [announcement, setAnnouncement] = useState("");
   const [operationError, setOperationError] = useState<string | null>(null);
@@ -387,15 +389,33 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     afterInspectorDrafts(() => { setConnectionClass(value); return true; }, "Corrija o rascunho no inspetor antes de trocar a ferramenta de conexão.");
   }, [afterInspectorDrafts]);
   const toggleSignalLegend = useCallback(() => {
-    setSignalLegendOpen((open) => !open || signalLegendMinimized);
+    setSignalLegendOpen((open) => {
+      const nextOpen = !open || signalLegendMinimized;
+      if (nextOpen) setUtilityCategoriesOpen(false);
+      return nextOpen;
+    });
     setSignalLegendMinimized(false);
   }, [signalLegendMinimized]);
+  const toggleUtilityCategories = useCallback(() => {
+    setUtilityCategoriesOpen((open) => {
+      const nextOpen = !open;
+      if (nextOpen) {
+        setSignalLegendOpen(false);
+        setSignalLegendMinimized(false);
+      }
+      return nextOpen;
+    });
+  }, []);
   const applyLineStyle = useCallback((lineStyle: LineStyle) => {
     const current = store.getState();
     const currentSelectedEdgeIds = current.selection.filter((id) => Boolean(current.document.edges[id]));
     const currentSelectedEdgeId = current.selection.length === 1 && currentSelectedEdgeIds.length === 1 ? currentSelectedEdgeIds[0] : null;
     if (!currentSelectedEdgeId) {
       setAnnouncement("Selecione uma única aresta para aplicar o estilo de sinal.");
+      return;
+    }
+    if (current.document.edges[currentSelectedEdgeId].connectionClass === "utility") {
+      setAnnouncement("Linhas de utilidade usam sempre estilo liso normal.");
       return;
     }
     if (dispatch(patchElement(currentSelectedEdgeId, { lineStyle }))) {
@@ -497,7 +517,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1></div></div>
-      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} signalLegendOpen={signalLegendOpen} onToggleSignalLegend={toggleSignalLegend} iconSize={settings.iconSize} onCommand={dispatch} utilityCategories={editor.document.metadata.utilityCategories} />
+      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} signalLegendOpen={signalLegendOpen} onToggleSignalLegend={toggleSignalLegend} utilityCategoriesOpen={utilityCategoriesOpen} onToggleUtilityCategories={toggleUtilityCategories} iconSize={settings.iconSize} />
       <div className="pid-studio-session-controls">
         {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
@@ -560,6 +580,21 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
               setSignalLegendMinimized(false);
             }}
           />
+        )}
+        {utilityCategoriesOpen && (
+          <section
+            role="dialog"
+            aria-labelledby="pid-utility-categories-title"
+            className="pid-canvas-utility-categories"
+          >
+            <UtilityCategoriesPanel
+              titleId="pid-utility-categories-title"
+              categories={editor.document.metadata.utilityCategories}
+              onCommand={dispatch}
+              editable={editorEnabled}
+              onClose={() => setUtilityCategoriesOpen(false)}
+            />
+          </section>
         )}
         {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{capabilityEditable && autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}

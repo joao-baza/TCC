@@ -108,10 +108,10 @@ describe("renderPidSvg", () => {
   });
 
   it.each([
-    ["process", 0, "right"], ["utility", 0, "right"], ["signal", 0, "right"],
-    ["process", 90, "down"], ["utility", 90, "down"], ["signal", 90, "down"],
-    ["process", 180, "left"], ["utility", 180, "left"], ["signal", 180, "left"],
-    ["process", 270, "up"], ["utility", 270, "up"], ["signal", 270, "up"],
+    ["process", 0, "right"], ["signal", 0, "right"],
+    ["process", 90, "down"], ["signal", 90, "down"],
+    ["process", 180, "left"], ["signal", 180, "left"],
+    ["process", 270, "up"], ["signal", 270, "up"],
   ] as const)("desenha seta fechada %s na rotação %i apontando para %s", async (connectionClass, rotation, direction) => {
     const document = arrowDocument(connectionClass, rotation);
     const first = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
@@ -135,6 +135,15 @@ describe("renderPidSvg", () => {
     expect(y).toBeLessThan(0);
   });
 
+  it("exporta linha de utilidade sem seta terminal", async () => {
+    const document = arrowDocument("utility", 0);
+
+    const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+
+    expect(svg).toContain('data-signal-line-style="supply-impulse"');
+    expect(svg).not.toContain('data-arrow-for="edge"');
+  });
+
   it("inclui geometria e traço da seta nos limites do SVG", async () => {
     const document = arrowDocument("process", 0);
     document.nodes["node-a"] = { ...document.nodes["node-a"], x: -80, y: 0, width: 2, height: 2 };
@@ -154,6 +163,28 @@ describe("renderPidSvg", () => {
 
     expect(svg).toContain('data-signal-line-style="mechanical-link"');
     expect(svg).toContain('data-glyph="concentric-circle"');
+  });
+
+  it("exporta utilidade como linha lisa mesmo com estilo de sinal legado", async () => {
+    const document = edgeOnlyDocument("pneumatic-signal");
+    document.metadata.utilityCategories = [{
+      id: "c0000000-0000-4000-8000-000000000001",
+      name: "Vapor",
+      color: "#ef4444",
+    }];
+    document.ports.source = { ...document.ports.source, connectionClass: "utility" };
+    document.ports.target = { ...document.ports.target, connectionClass: "utility" };
+    document.edges.edge = {
+      ...document.edges.edge,
+      connectionClass: "utility",
+      utilityCategoryId: "c0000000-0000-4000-8000-000000000001",
+    };
+
+    const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+
+    expect(svg).toContain('data-signal-line-style="supply-impulse"');
+    expect(svg).toContain('stroke="#ef4444"');
+    expect(svg).not.toContain('data-glyph="diagonal-pair"');
   });
 
   it("inclui os limites dos glifos de linha no viewBox sem padding", async () => {

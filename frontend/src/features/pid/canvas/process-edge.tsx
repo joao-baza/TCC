@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type CSSProperties } from "react";
 import {
   EdgeLabelRenderer,
   Position,
@@ -8,7 +8,7 @@ import {
 
 import type { PidEdge, Point } from "../domain/model";
 import type { UtilityCategory } from "../domain/utility-category";
-import { lineStyleAttributes } from "./line-rendering";
+import { effectiveLineStyle, lineStyleAttributes } from "./line-rendering";
 import { renderSignalLinePattern } from "./signal-line-pattern";
 
 export type ProcessEdgeData = Record<string, unknown> & {
@@ -32,17 +32,25 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
   );
   const midpoint = pathMidpoint(routePoints);
   const label = [processEdge.tag, processEdge.label].filter(Boolean).join(" ");
-  const attrs = lineStyleAttributes(processEdge.lineStyle);
+  const lineStyle = effectiveLineStyle(processEdge.connectionClass, processEdge.lineStyle);
+  const attrs = lineStyleAttributes(lineStyle);
   const categoryColor = processEdge.connectionClass === "utility" && processEdge.utilityCategoryId
     ? utilityCategories?.find(c => c.id === processEdge.utilityCategoryId)?.color
     : undefined;
+  const preserveCategoryColor = categoryColor !== undefined && processEdge.connectionClass === "utility";
+  const stroke = categoryColor ?? attrs.stroke;
+  const edgeStrokeStyle = {
+    "--xy-edge-stroke": stroke,
+    "--xy-edge-stroke-selected": preserveCategoryColor ? stroke : "#2563eb",
+  } as CSSProperties;
 
   return (
     <>
       <g
         data-testid={`process-edge-${props.id}`}
-        data-signal-line-style={processEdge.lineStyle}
+        data-signal-line-style={lineStyle}
         className="pointer-events-visibleStroke"
+        style={edgeStrokeStyle}
       >
         <path
           className="react-flow__edge-interaction"
@@ -54,9 +62,9 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
         {renderSignalLinePattern({
           id: props.id,
           points: routePoints,
-          lineStyle: processEdge.lineStyle,
-          selected: Boolean(props.selected),
-          stroke: categoryColor ?? attrs.stroke,
+          lineStyle,
+          selected: Boolean(props.selected) && !preserveCategoryColor,
+          stroke,
           strokeWidth: attrs.strokeWidth,
           markerEnd: props.markerEnd,
         })}

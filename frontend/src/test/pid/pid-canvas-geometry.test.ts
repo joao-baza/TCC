@@ -107,7 +107,7 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
     });
   });
 
-  it("reduz alvos adjacentes somente o necessário para não sobrepor portas", () => {
+  it("reduz áreas adjacentes somente o necessário sem afastar a linha do marcador", () => {
     const compactNode = { ...node, width: 40, height: 40 };
     const compactPorts = ports(3);
     const canonical = getPidNodeGeometry(compactNode);
@@ -121,9 +121,10 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
       compactPorts,
     ));
 
-    expect(targets.every(({ targetSize }) => targetSize < 44 && targetSize >= 8)).toBe(true);
+    expect(targets.every(({ targetSize }) => targetSize === 8)).toBe(true);
+    expect(targets.every(({ interactionSize }) => interactionSize < 44 && interactionSize >= 8)).toBe(true);
     for (let index = 1; index < targets.length; index += 1) {
-      expect(targets[index].targetRect.y).toBeGreaterThanOrEqual(targets[index - 1].targetRect.y + targets[index - 1].targetRect.height);
+      expect(targets[index].interactionRect.y).toBeGreaterThanOrEqual(targets[index - 1].interactionRect.y + targets[index - 1].interactionRect.height);
     }
   });
 
@@ -144,7 +145,16 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
     const largeInteraction = getPidCanvasInteractionGeometry(geometry, sourcePorts, 96);
     const largeTarget = getPidPortHitTargetGeometry(largeInteraction, geometry, anchor, sourcePorts[0], 0, sourcePorts, 96);
 
-    expect(smallTarget.targetRect).not.toEqual(largeTarget.targetRect);
+    expect(smallTarget.targetSize).toBe(8);
+    expect(largeTarget.targetSize).toBe(8);
+    expect({
+      x: interaction.bounds.x + smallTarget.x,
+      y: interaction.bounds.y + smallTarget.y,
+    }).toEqual({
+      x: largeInteraction.bounds.x + largeTarget.x,
+      y: largeInteraction.bounds.y + largeTarget.y,
+    });
+    expect(smallTarget.interactionRect).not.toEqual(largeTarget.interactionRect);
     expect(boundsForNodes(Object.values(document.nodes))).toEqual({
       x: grouped.groups.group.x,
       y: grouped.groups.group.y,

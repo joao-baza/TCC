@@ -9,7 +9,7 @@ import {
 import { getPidNodeGeometry, getPidPortAnchorGeometry, type PidFlowPosition } from "../domain/geometry";
 import type { PidAnnotation, PidDocument, PidEdge, PidGroup, PidNode, Point } from "../domain/model";
 import type { UtilityCategory } from "../domain/utility-category";
-import { lineStyleAttributes } from "../canvas/line-rendering";
+import { effectiveLineStyle, lineStyleAttributes } from "../canvas/line-rendering";
 import { renderStaticSignalLinePattern, signalLinePatternBounds } from "../canvas/signal-line-pattern";
 
 export type PidExportBackground = "white" | "transparent";
@@ -116,16 +116,17 @@ function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: Pi
   const target = portPositions.get(edge.targetPortId);
   if (!source || !target) return null;
   const points = orthogonalPoints(source, edge.route, target);
-  const arrow = closedArrowPoints(points);
-  const attrs = lineStyleAttributes(edge.lineStyle);
-  const category = edge.utilityCategoryId
+  const arrow = edge.connectionClass === "utility" ? [] : closedArrowPoints(points);
+  const lineStyle = effectiveLineStyle(edge.connectionClass, edge.lineStyle);
+  const attrs = lineStyleAttributes(lineStyle);
+  const category = edge.connectionClass === "utility" && edge.utilityCategoryId
     ? utilityCategories.find(c => c.id === edge.utilityCategoryId)
     : undefined;
   const strokeColor = category?.color ?? attrs.stroke;
   const patternMarkup = renderStaticSignalLinePattern({
     id: edge.id,
     points,
-    lineStyle: edge.lineStyle,
+    lineStyle,
     selected: false,
     stroke: strokeColor,
     strokeWidth: attrs.strokeWidth,
@@ -133,7 +134,7 @@ function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: Pi
   const patternBounds = signalLinePatternBounds({
     id: edge.id,
     points,
-    lineStyle: edge.lineStyle,
+    lineStyle,
     selected: false,
     stroke: strokeColor,
     strokeWidth: attrs.strokeWidth,
@@ -283,12 +284,15 @@ function rotatedRectAround(x: number, y: number, width: number, height: number, 
   return pointsBounds(corners, 0);
 }
 
-function rotatePoint(point: Point, centerX: number, centerY: number, rotation: 0 | 90 | 180 | 270): Point {
+function rotatePoint(point: Point, centerX: number, centerY: number, rotation: number): Point {
   const x = point.x - centerX; const y = point.y - centerY;
-  if (rotation === 90) return { x: centerX - y, y: centerY + x };
-  if (rotation === 180) return { x: centerX - x, y: centerY - y };
-  if (rotation === 270) return { x: centerX + y, y: centerY - x };
-  return { ...point };
+  const radians = normalizedRotation(rotation) * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return {
+    x: centerX + x * cos - y * sin,
+    y: centerY + x * sin + y * cos,
+  };
 }
 
 function pointsBounds(points: readonly Point[], stroke: number): Bounds {
@@ -332,9 +336,8 @@ function deterministicTextWidth(value: string, size: number): number {
   return Math.max(1, glyphCount * size);
 }
 
-function normalizedRotation(rotation: number): 0 | 90 | 180 | 270 {
-  const normalized = ((rotation % 360) + 360) % 360;
-  return normalized === 90 || normalized === 180 || normalized === 270 ? normalized : 0;
+function normalizedRotation(rotation: number): number {
+  return ((rotation % 360) + 360) % 360;
 }
 
 function sortedValues<T extends { id: string }>(record: Record<string, T>): T[] {

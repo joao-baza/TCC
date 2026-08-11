@@ -130,7 +130,7 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     dispatchFlowMouseEvent(pump, "mousedown", { button: 0, buttons: 1, clientX: 100, clientY: 80 });
     dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 96, clientY: 80 });
     dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 128, clientY: 112 });
-    await waitFor(() => expect(pump.style.transform).toContain("128px"));
+    await waitFor(() => expect(pump.style.transform).toContain("132px"));
     const transientTransform = pump.style.transform;
 
     const unrelated = {
@@ -157,12 +157,12 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     pump.focus();
     fireEvent.keyDown(pump, { key: "ArrowRight", code: "ArrowRight" });
 
-    await waitFor(() => expect(pump.style.transform).toBe("translate(112px,64px)"));
+    await waitFor(() => expect(pump.style.transform).toBe("translate(101px,64px)"));
     expect(onCommand).toHaveBeenCalledTimes(1);
     expect(onCommand).toHaveBeenCalledWith({
       type: "selection.move",
       ids: [ids.pump],
-      delta: { x: 12, y: 0 },
+      delta: { x: 1, y: 0 },
     });
   });
 
@@ -192,17 +192,53 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     fireEvent.keyDown(pump, { key: "ArrowRight", code: "ArrowRight" });
 
     await waitFor(() => {
-      expect(pump.style.transform).toBe("translate(112px,64px)");
-      expect(tank.style.transform).toBe("translate(372px,44px)");
+      expect(pump.style.transform).toBe("translate(101px,64px)");
+      expect(tank.style.transform).toBe("translate(361px,44px)");
     });
     expect(onCommand).toHaveBeenCalledTimes(1);
     expect(onCommand).toHaveBeenCalledWith({
       type: "selection.move",
       ids: [ids.pump, ids.tank],
-      delta: { x: 12, y: 0 },
+      delta: { x: 1, y: 0 },
     });
-    expect(canonical.nodes[ids.pump].x).toBe(112);
-    expect(canonical.nodes[ids.tank].x).toBe(372);
+    expect(canonical.nodes[ids.pump].x).toBe(101);
+    expect(canonical.nodes[ids.tank].x).toBe(361);
+  });
+
+  it("redimensiona e gira equipamento selecionado com alças no canvas", async () => {
+    const onCommand = vi.fn();
+    render(
+      <PidCanvas
+        document={interactionDocument()}
+        catalog={localCatalog}
+        editable
+        onCommand={onCommand}
+        defaultSelection={{ nodeIds: [ids.pump], edgeIds: [] }}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Bomba P-1" })).toHaveAttribute("aria-pressed", "true"));
+    const resizeHandle = screen.getByTestId(`equipment-resize-se-${ids.pump}`);
+    dispatchFlowMouseEvent(resizeHandle, "pointerdown", { clientX: 196, clientY: 144 });
+    dispatchFlowMouseEvent(window, "pointermove", { clientX: 220, clientY: 160 });
+    dispatchFlowMouseEvent(window, "pointerup", { clientX: 220, clientY: 160 });
+
+    await waitFor(() => expect(onCommand).toHaveBeenCalledWith({
+      type: "element.patch",
+      id: ids.pump,
+      patch: { width: 120, height: 80 },
+    }));
+
+    const rotateHandle = screen.getByTestId(`equipment-rotate-${ids.pump}`);
+    dispatchFlowMouseEvent(rotateHandle, "pointerdown", { clientX: 48, clientY: 0 });
+    dispatchFlowMouseEvent(window, "pointermove", { clientX: 148, clientY: 82 });
+    dispatchFlowMouseEvent(window, "pointerup", { clientX: 148, clientY: 82 });
+
+    await waitFor(() => expect(onCommand).toHaveBeenCalledWith({
+      type: "element.patch",
+      id: ids.pump,
+      patch: { rotation: 117 },
+    }));
   });
 
   it("conecta portas focáveis com Enter/Espaço, anuncia estados e cancela com Escape", async () => {
@@ -420,6 +456,15 @@ describe("cache estrutural do canvas P&ID", () => {
     expect(changed.nodes.find(({ id }) => id === "node-10")).not.toBe(first.nodes.find(({ id }) => id === "node-10"));
     expect(changed.nodes.find(({ id }) => id === "node-300")).toBe(first.nodes.find(({ id }) => id === "node-300"));
     expect(changed.edges[700]).toBe(first.edges[700]);
+
+    const utilityCategories = [{ id: "c0000000-0000-4000-8000-000000000001", name: "Vapor", color: "#ef4444" }];
+    const categorizedDocument = {
+      ...document,
+      metadata: { ...document.metadata, utilityCategories },
+    };
+    const categorized = projectPidCanvasDocument(categorizedDocument, symbols, true, onPortKey);
+    expect(categorized.edges[700]).not.toBe(first.edges[700]);
+    expect(categorized.edges[700].data?.utilityCategories).toBe(utilityCategories);
 
     const { rerender } = render(
       <StrictMode>

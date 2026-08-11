@@ -521,8 +521,13 @@ function patchDocumentElement(document: PidDocument, id: string, patch: Record<s
       return { ...document, nodes: { ...document.nodes, [id]: { ...document.nodes[id], ...safePatch } as PidNode } };
     case "port":
       return { ...document, ports: { ...document.ports, [id]: { ...document.ports[id], ...safePatch } as PidPort } };
-    case "edge":
-      return { ...document, edges: { ...document.edges, [id]: { ...document.edges[id], ...safePatch } as PidEdge } };
+    case "edge": {
+      const current = document.edges[id];
+      const edgePatch = current.connectionClass === "utility" && "lineStyle" in safePatch
+        ? { ...safePatch, lineStyle: DEFAULT_LINE_STYLE.utility }
+        : safePatch;
+      return { ...document, edges: { ...document.edges, [id]: { ...current, ...edgePatch } as PidEdge } };
+    }
     case "annotation":
       return {
         ...document,

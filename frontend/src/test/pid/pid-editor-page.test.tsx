@@ -36,7 +36,6 @@ describe("integração real do studio P&ID", () => {
     expect(screen.getByRole("button", { name: "Duplicar" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Girar 90°" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Agrupar" })).toBeEnabled();
-    expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Girar 90°" }));
     await waitFor(() => expect(screen.getByTestId(`equipment-artwork-${ids.pump}`)).toHaveStyle({ transform: "rotate(90deg)" }));
@@ -45,7 +44,6 @@ describe("integração real do studio P&ID", () => {
     fireEvent.keyDown(document, { key: "Control", code: "ControlLeft" });
     fireEvent.click(tank, { ctrlKey: true });
     fireEvent.keyUp(document, { key: "Control", code: "ControlLeft" });
-    await waitFor(() => expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeEnabled());
 
     fireEvent.click(screen.getByTestId(`process-edge-${ids.edge}`));
     await waitFor(() => {
@@ -55,7 +53,6 @@ describe("integração real do studio P&ID", () => {
     expect(screen.getByRole("button", { name: "Duplicar" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Girar 90°" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Agrupar" })).toBeDisabled();
-    expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
     const canvasRegion = screen.getByRole("region", { name: "Canvas P&ID" });
@@ -63,8 +60,7 @@ describe("integração real do studio P&ID", () => {
     fireEvent.click(await within(canvasRegion).findByRole("button", { name: "Aplicar Sinal pneumático" }));
     await waitFor(() => expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute("data-signal-line-style", "pneumatic-signal"));
     expect(screen.getByText("Estilo de linha aplicado à aresta selecionada.")).toBeInTheDocument();
-    await waitFor(() => expect(save).toHaveBeenCalled());
-    expect(save.mock.calls[0][2].edges[ids.edge].lineStyle).toBe("pneumatic-signal");
+    await waitFor(() => expect(save.mock.calls.at(-1)?.[2].edges[ids.edge].lineStyle).toBe("pneumatic-signal"));
 
     const lineSelect = screen.getByLabelText("Tipo de linha de conexão");
     for (const value of ["utility", "signal", "process"]) {
@@ -122,6 +118,76 @@ describe("integração real do studio P&ID", () => {
     }
   });
 
+  it("abre categorias de utilidade como popup fixo no canvas", async () => {
+    mount(services());
+    await screen.findByRole("button", { name: "Bomba P-1" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Categorias de utilidade" }));
+
+    const canvasRegion = screen.getByRole("region", { name: "Canvas P&ID" });
+    const dialog = within(canvasRegion).getByRole("dialog", { name: "Categorias de utilidade" });
+    expect(dialog).toHaveClass("pid-canvas-utility-categories");
+    expect(screen.getByRole("button", { name: "Categorias de utilidade" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Fechar categorias de utilidade" }));
+
+    expect(within(canvasRegion).queryByRole("dialog", { name: "Categorias de utilidade" })).not.toBeInTheDocument();
+  });
+
+  it("mantém legenda e categorias de utilidade mutuamente exclusivas no canvas", async () => {
+    mount(services());
+    await screen.findByRole("button", { name: "Bomba P-1" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Categorias de utilidade" }));
+    const canvasRegion = screen.getByRole("region", { name: "Canvas P&ID" });
+    expect(within(canvasRegion).getByRole("dialog", { name: "Categorias de utilidade" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
+
+    expect(within(canvasRegion).getByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).toBeInTheDocument();
+    expect(within(canvasRegion).queryByRole("dialog", { name: "Categorias de utilidade" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Categorias de utilidade" }));
+
+    expect(within(canvasRegion).getByRole("dialog", { name: "Categorias de utilidade" })).toBeInTheDocument();
+    expect(within(canvasRegion).queryByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).not.toBeInTheDocument();
+  });
+
+  it("não aplica estilo da legenda em aresta de utilidade", async () => {
+    const save = vi.fn().mockResolvedValue(2);
+    mount(services({
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: utilityStudioDocument(), revision: 1 }),
+      save,
+    }));
+    await screen.findByRole("button", { name: "Bomba P-1" });
+
+    fireEvent.click(screen.getByTestId(`process-edge-${ids.edge}`));
+    fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
+    const canvasRegion = screen.getByRole("region", { name: "Canvas P&ID" });
+    fireEvent.click(await within(canvasRegion).findByRole("button", { name: "Aplicar Sinal pneumático" }));
+
+    expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute("data-signal-line-style", "supply-impulse");
+    expect(screen.getByText("Linhas de utilidade usam sempre estilo liso normal.")).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("aplica a cor da categoria selecionada na linha de utilidade", async () => {
+    const save = vi.fn().mockResolvedValue(2);
+    mount(services({
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: utilityStudioDocumentWithCategories(), revision: 1 }),
+      save,
+    }));
+    await screen.findByRole("button", { name: "Bomba P-1" });
+
+    fireEvent.click(screen.getByTestId(`process-edge-${ids.edge}`));
+    const category = await screen.findByRole("combobox", { name: "Categoria" });
+    fireEvent.change(category, { target: { value: "c0000000-0000-4000-8000-000000000001" } });
+
+    await waitFor(() => expect(screen.getByTestId(`process-edge-${ids.edge}`).querySelector(".react-flow__edge-path")).toHaveAttribute("stroke", "#ef4444"));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls.at(-1)?.[2].edges[ids.edge].utilityCategoryId).toBe("c0000000-0000-4000-8000-000000000001");
+  });
+
   it("retorna para a listagem P&ID após confirmar exclusão", async () => {
     const softDelete = vi.fn().mockResolvedValue(2);
     const { router } = mount(services({ softDelete }));
@@ -142,6 +208,31 @@ function mount(pidServices: PidServices) {
     { path: "/pid/:diagramId", element: <PidEditorPage /> },
   ], { initialEntries: [`/pid/${ids.diagram}#access=edit-token`] });
   return { router, ...render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>) };
+}
+
+function utilityStudioDocument(): PidDocument {
+  const document = studioDocument();
+  document.ports[ids.pumpOut] = { ...document.ports[ids.pumpOut], connectionClass: "utility" };
+  document.ports[ids.tankIn] = { ...document.ports[ids.tankIn], connectionClass: "utility" };
+  document.edges[ids.edge] = {
+    ...document.edges[ids.edge],
+    connectionClass: "utility",
+    lineStyle: "pneumatic-signal",
+  };
+  return document;
+}
+
+function utilityStudioDocumentWithCategories(): PidDocument {
+  const document = utilityStudioDocument();
+  document.metadata.utilityCategories = [
+    { id: "c0000000-0000-4000-8000-000000000001", name: "Vapor", color: "#ef4444" },
+    { id: "c0000000-0000-4000-8000-000000000002", name: "Água", color: "#3b82f6" },
+  ];
+  document.edges[ids.edge] = {
+    ...document.edges[ids.edge],
+    utilityCategoryId: undefined,
+  };
+  return document;
 }
 
 function services(documentOverrides: Partial<PidDocumentPort> = {}): PidServices {

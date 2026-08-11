@@ -831,6 +831,31 @@ describe("comandos canônicos P&ID", () => {
     expect(document.edges[edgeId].utilityCategoryId).toBeUndefined();
   });
 
+  it("mantém lineStyle liso em patch direto de aresta de utilidade", () => {
+    const context = deterministicContext(5150);
+    let document = applyCommand(emptyDocument(), insertSymbol({
+      ...symbol,
+      key: "utility-source",
+      portTemplates: [{ key: "out", direction: "output", connectionClass: "utility", capacity: 1 }],
+    }, { x: 0, y: 0 }), context);
+    document = applyCommand(document, insertSymbol({
+      ...symbol,
+      key: "utility-target",
+      portTemplates: [{ key: "in", direction: "input", connectionClass: "utility", capacity: 1 }],
+    }, { x: 200, y: 0 }), context);
+    const [nodeA, nodeB] = Object.values(document.nodes);
+    const sourcePort = Object.values(document.ports).find(p => p.nodeId === nodeA.id && p.direction === "output")!;
+    const targetPort = Object.values(document.ports).find(p => p.nodeId === nodeB.id && p.direction === "input")!;
+    document = applyCommand(document, connectPorts(sourcePort.id, targetPort.id), context);
+
+    const edgeId = Object.keys(document.edges)[0];
+    expect(document.edges[edgeId]).toMatchObject({ connectionClass: "utility", lineStyle: "supply-impulse" });
+
+    document = applyCommand(document, patchElement(edgeId, { lineStyle: "pneumatic-signal" }), context);
+
+    expect(document.edges[edgeId].lineStyle).toBe("supply-impulse");
+  });
+
   it("addCategory usa slate como fallback para cor inválida", () => {
     const context = deterministicContext(5200);
     const document = applyCommand(emptyDocument(), addUtilityCategory("Teste", "cor-que-nao-existe"), context);

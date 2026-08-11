@@ -224,9 +224,11 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       <TextField label="Tag" field="tag" value={selected.value.tag} {...common} />
       <TextField label="Rótulo" field="label" value={selected.value.label} {...common} />
       <p><strong>Classe:</strong> {CONNECTION_CLASS_INFO[selected.value.connectionClass as ConnectionClass].label}</p>
-      <SelectField label="Estilo de linha" field="lineStyle" value={selected.value.lineStyle}
-        title={LINE_STYLE_INFO[selected.value.lineStyle as LineStyle].description}
-        options={LINE_STYLES.map((style) => [style, LINE_STYLE_INFO[style].label] as const)} {...common} />
+      {selected.value.connectionClass === "utility"
+        ? <p><strong>Estilo de linha:</strong> Liso normal</p>
+        : <SelectField label="Estilo de linha" field="lineStyle" value={selected.value.lineStyle}
+          title={LINE_STYLE_INFO[selected.value.lineStyle as LineStyle].description}
+          options={LINE_STYLES.map((style) => [style, LINE_STYLE_INFO[style].label] as const)} {...common} />}
       {selected.value.connectionClass === "utility" && (
         <SelectField
           label="Categoria"
@@ -342,7 +344,10 @@ function SelectField({ label, field, value, options, title, editable, errors, dr
       aria-invalid={Boolean(error)}
       aria-describedby={error ? `${id}-error` : undefined}
       onFocus={() => beginDraft(field)}
-      onChange={(event) => changeDraft(field, event.currentTarget.value, value)}
+      onChange={(event) => {
+        changeDraft(field, event.currentTarget.value, value);
+        finalizeDraft(field);
+      }}
       onBlur={() => { finalizeDraft(field); }}
     >
       {options.map(([option, text]) => <option key={option} value={option}>{text}</option>)}
@@ -461,9 +466,6 @@ function parseDraftValue(
   }
   if ((field === "width" || field === "height") && value <= 0) {
     return { ok: false, message: "Informe um número positivo." };
-  }
-  if (field === "rotation" && value % 90 !== 0) {
-    return { ok: false, message: "A rotação deve ser múltipla de 90 graus." };
   }
   if (!selected) return { ok: false, message: "O elemento selecionado não existe mais." };
   return { ok: true, value };

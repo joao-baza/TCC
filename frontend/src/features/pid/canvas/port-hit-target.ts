@@ -9,6 +9,7 @@ import type { PidPort } from "../domain/model";
 export const PID_PORT_TARGET_SIZE = 44;
 export const PID_PORT_TARGET_GAP = 4;
 export const PID_PORT_MARKER_SIZE = 8;
+export const PID_PORT_HANDLE_SIZE = PID_PORT_MARKER_SIZE;
 
 export interface PidCanvasInteractionGeometry {
   readonly bounds: PidRect;
@@ -18,6 +19,8 @@ export interface PidCanvasInteractionGeometry {
 export interface PidPortHitTargetGeometry extends PidPortAnchorGeometry {
   readonly targetSize: number;
   readonly targetRect: PidRect;
+  readonly interactionSize: number;
+  readonly interactionRect: PidRect;
   readonly exactAnchor: boolean;
 }
 
@@ -83,17 +86,24 @@ export function getPidPortHitTargetGeometry(
     x: canonical.bounds.x - interaction.bounds.x + anchor.x,
     y: canonical.bounds.y - interaction.bounds.y + anchor.y,
   };
-  const effectiveTargetSize = adjacentTargetSize(canonical, anchor, port, index, ports, targetSize, gap);
+  const effectiveInteractionSize = adjacentTargetSize(canonical, anchor, port, index, ports, targetSize, gap);
   return {
     position: anchor.position,
     ...point,
-    targetSize: effectiveTargetSize,
+    targetSize: PID_PORT_HANDLE_SIZE,
+    interactionSize: effectiveInteractionSize,
     exactAnchor: true,
     targetRect: {
-      x: point.x - effectiveTargetSize / 2,
-      y: point.y - effectiveTargetSize / 2,
-      width: effectiveTargetSize,
-      height: effectiveTargetSize,
+      x: point.x - PID_PORT_HANDLE_SIZE / 2,
+      y: point.y - PID_PORT_HANDLE_SIZE / 2,
+      width: PID_PORT_HANDLE_SIZE,
+      height: PID_PORT_HANDLE_SIZE,
+    },
+    interactionRect: {
+      x: point.x - effectiveInteractionSize / 2,
+      y: point.y - effectiveInteractionSize / 2,
+      width: effectiveInteractionSize,
+      height: effectiveInteractionSize,
     },
   };
 }

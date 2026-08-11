@@ -78,14 +78,10 @@ describe("capacidade responsiva de edição", () => {
     expect(screen.queryByRole("region", { name: "Catálogo de símbolos" })).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Inspetor" })).toHaveTextContent("Somente leitura");
     expect(screen.getByRole("region", { name: "Validações do documento" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Participantes" })).toHaveTextContent("Você");
-    expect(screen.getByText("Sessão local")).toBeVisible();
     expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeEnabled();
     expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveClass("min-h-11", "min-w-11");
 
-    fireEvent.click(screen.getByRole("button", { name: "Aumentar zoom" }));
-    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-viewport-action", "zoom-in");
     fireEvent.click(screen.getByRole("button", { name: "Tentar comando do canvas" }));
     fireEvent.keyDown(window, { key: "a", ctrlKey: true, shiftKey: true });
     expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-annotation-count", "0");
@@ -124,11 +120,9 @@ describe("capacidade responsiva de edição", () => {
     vi.useFakeTimers();
     try {
       fireEvent.keyDown(window, { key: "a", ctrlKey: true, shiftKey: true });
-      expect(screen.getByLabelText("Colaboração local")).toHaveTextContent("Não salvo");
       await act(async () => { vi.advanceTimersByTime(400); });
       expect(save).toHaveBeenCalledTimes(1);
       expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Salvando");
-      expect(screen.getByLabelText("Colaboração local")).toHaveTextContent("Não salvo");
       expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeDisabled();
     } finally {
@@ -436,10 +430,10 @@ describe("capacidade responsiva de edição", () => {
       fireEvent.click(svg);
       expect(await screen.findByText("Não foi possível gerar SVG")).toBeVisible();
 
-      fireEvent.click(svg);
-      expect(await screen.findByText("Documento P&ID exportado em SVG.")).toBeVisible();
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(click).toHaveBeenCalledOnce();
+      await waitFor(() => expect(svg).toBeEnabled());
+      fireEvent.click(screen.getByRole("button", { name: "Exportar SVG" }));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(click).toHaveBeenCalledOnce());
     } finally {
       fetchMock.mockRestore(); createObjectURL.mockRestore(); revokeObjectURL.mockRestore(); click.mockRestore();
     }

@@ -54,6 +54,58 @@ describe("inspetor contextual P&ID", () => {
     expect(lineStyle).not.toHaveTextContent("Contínua grossa");
   });
 
+  it("não aplica seletor de estilo em aresta de utilidade", () => {
+    const document = documentFixture();
+    document.metadata.utilityCategories = [{ id: "c0000000-0000-4000-8000-000000000001", name: "Vapor", color: "#ef4444" }];
+    document.edges[ids.edge] = {
+      ...document.edges[ids.edge],
+      connectionClass: "utility",
+      lineStyle: "pneumatic-signal",
+      utilityCategoryId: "c0000000-0000-4000-8000-000000000001",
+    };
+
+    render(<PropertiesInspector document={document} selection={[ids.edge]} editable onCommand={vi.fn()} />);
+
+    expect(screen.queryByRole("combobox", { name: "Estilo de linha" })).not.toBeInTheDocument();
+    expect(screen.getByText("Liso normal")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Categoria" })).toHaveValue("c0000000-0000-4000-8000-000000000001");
+  });
+
+  it("aplica categoria de utilidade imediatamente no select", () => {
+    const onCommand = vi.fn();
+    const document = documentFixture();
+    document.metadata.utilityCategories = [{ id: "c0000000-0000-4000-8000-000000000001", name: "Vapor", color: "#ef4444" }];
+    document.edges[ids.edge] = {
+      ...document.edges[ids.edge],
+      connectionClass: "utility",
+      utilityCategoryId: undefined,
+    };
+
+    render(<PropertiesInspector document={document} selection={[ids.edge]} editable onCommand={onCommand} />);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Categoria" }), {
+      target: { value: "c0000000-0000-4000-8000-000000000001" },
+    });
+
+    expect(onCommand).toHaveBeenCalledWith({
+      type: "element.patch",
+      id: ids.edge,
+      patch: { utilityCategoryId: "c0000000-0000-4000-8000-000000000001" },
+    });
+  });
+
+  it("aceita rotação livre em graus no inspetor", () => {
+    const onCommand = vi.fn();
+    render(<PropertiesInspector document={documentFixture()} selection={[ids.node]} editable onCommand={onCommand} />);
+
+    const rotation = screen.getByLabelText("Rotação");
+    fireEvent.change(rotation, { target: { value: "37.5" } });
+    fireEvent.blur(rotation);
+
+    expect(onCommand).toHaveBeenCalledWith({ type: "element.patch", id: ids.node, patch: { rotation: 37.5 } });
+    expect(rotation).toHaveAttribute("aria-invalid", "false");
+  });
+
   it("valida o campo antes do comando e anuncia erros locais e do domínio", () => {
     const onCommand = vi.fn();
     const { rerender } = render(

@@ -149,15 +149,16 @@ export function signalLinePatternBounds(input: SignalLinePatternInput): SignalLi
 
 function buildPatternPrimitives(input: SignalLinePatternInput): readonly PatternPrimitive[] {
   const primitives: PatternPrimitive[] = [];
-  const path = pointsPath(input.points);
-  if (path && input.lineStyle !== "unguided-electromagnetic-sonic") {
-    primitives.push({ kind: "base-path", path, dashArray: dashedStyles.has(input.lineStyle) ? "14 7" : undefined });
+  const glyph = styleGlyph[input.lineStyle];
+  if (glyph) {
+    for (const placement of glyphPlacements(input.points)) {
+      primitives.push({ kind: "glyph", glyph, placement });
+    }
   }
 
-  const glyph = styleGlyph[input.lineStyle];
-  if (!glyph) return primitives;
-  for (const placement of glyphPlacements(input.points)) {
-    primitives.push({ kind: "glyph", glyph, placement });
+  const path = pointsPath(input.points);
+  if (path) {
+    primitives.push({ kind: "base-path", path, dashArray: dashedStyles.has(input.lineStyle) ? "14 7" : undefined });
   }
   return primitives;
 }
@@ -198,9 +199,9 @@ function renderGlyphElement(glyph: GlyphKind | undefined, placement: GlyphPlacem
     case "hydraulic-l":
       return <g key={placement.key} data-glyph={glyph} transform={transform}><path d="M -9 7 L -9 -7 L 7 -7" {...common} fill="none" /></g>;
     case "open-circle":
-      return <g key={placement.key} data-glyph={glyph} transform={transform}><circle cx="0" cy="0" r="6" {...common} fill="white" /></g>;
+      return <g key={placement.key} data-glyph={glyph} transform={transform}><circle cx="0" cy="0" r="6" {...common} fill="none" /></g>;
     case "software-circle":
-      return <g key={placement.key} data-glyph={glyph} transform={transform}><circle cx="0" cy="0" r="6" {...common} fill="white" strokeDasharray="2.5 2.5" /></g>;
+      return <g key={placement.key} data-glyph={glyph} transform={transform}><circle cx="0" cy="0" r="6" {...common} fill="none" strokeDasharray="2.5 2.5" /></g>;
     case "binary-cross":
     case "x-mark":
       return <g key={placement.key} data-glyph={glyph} transform={transform}><path d="M -7 -7 L 7 7 M 7 -7 L -7 7" {...common} fill="none" /></g>;
@@ -209,7 +210,7 @@ function renderGlyphElement(glyph: GlyphKind | undefined, placement: GlyphPlacem
     case "wave":
       return <g key={placement.key} data-glyph={glyph} transform={transform}><path d="M -14 0 C -10 -8 -6 -8 -2 0 S 6 8 10 0 S 14 -8 18 0" {...common} fill="none" /></g>;
     case "concentric-circle":
-      return <g key={placement.key} data-glyph={glyph} transform={transform}><circle cx="0" cy="0" r="7" {...common} fill="white" /><circle cx="0" cy="0" r="3" {...common} fill="none" /></g>;
+      return <g key={placement.key} data-glyph={glyph} transform={transform}><circle cx="0" cy="0" r="7" {...common} fill="none" /><circle cx="0" cy="0" r="3" {...common} fill="none" /></g>;
   }
 }
 
@@ -226,10 +227,10 @@ function renderGlyphMarkup(glyph: GlyphKind | undefined, placement: GlyphPlaceme
       content = `<path d="M -9 7 L -9 -7 L 7 -7" ${common} fill="none"/>`;
       break;
     case "open-circle":
-      content = `<circle cx="0" cy="0" r="6" ${common} fill="white"/>`;
+      content = `<circle cx="0" cy="0" r="6" ${common} fill="none"/>`;
       break;
     case "software-circle":
-      content = `<circle cx="0" cy="0" r="6" ${common} fill="white" stroke-dasharray="2.5 2.5"/>`;
+      content = `<circle cx="0" cy="0" r="6" ${common} fill="none" stroke-dasharray="2.5 2.5"/>`;
       break;
     case "binary-cross":
     case "x-mark":
@@ -242,7 +243,7 @@ function renderGlyphMarkup(glyph: GlyphKind | undefined, placement: GlyphPlaceme
       content = `<path d="M -14 0 C -10 -8 -6 -8 -2 0 S 6 8 10 0 S 14 -8 18 0" ${common} fill="none"/>`;
       break;
     case "concentric-circle":
-      content = `<circle cx="0" cy="0" r="7" ${common} fill="white"/><circle cx="0" cy="0" r="3" ${common} fill="none"/>`;
+      content = `<circle cx="0" cy="0" r="7" ${common} fill="none"/><circle cx="0" cy="0" r="3" ${common} fill="none"/>`;
       break;
   }
   return `<g data-glyph="${attribute(glyph)}" transform="${attribute(transform)}">${content}</g>`;

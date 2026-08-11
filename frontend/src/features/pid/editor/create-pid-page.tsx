@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link, useBlocker } from "react-router-dom";
+import { useBlocker } from "react-router-dom";
 import { z } from "zod";
 
 import { ModuleTabsLayout } from "@/components/module-tabs-layout";
@@ -125,15 +125,8 @@ export function CreatePidPage() {
   const proceedBlockedNavigation = () => {
     if (navigationBlocker.state === "blocked") navigationBlocker.proceed();
   };
-  const navigationAction = navigationLocked ? (
-    <button className="min-h-11 min-w-11 w-fit text-sm font-medium underline opacity-50" disabled type="button">Voltar ao DCOU</button>
-  ) : (
-    <Link className="inline-flex min-h-11 min-w-11 w-fit items-center text-sm font-medium underline" to="/">Voltar ao DCOU</Link>
-  );
-
   return (
     <ModuleTabsLayout
-      action={navigationAction}
       title="Editor P&ID"
       subtitle="Crie diagramas de processo com catálogo livre, links de visualização e edição separados."
       tabs={pidEditorTabs}

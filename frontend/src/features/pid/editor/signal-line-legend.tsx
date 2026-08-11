@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react";
 import { Maximize2, Minus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { lineStyleAttributes } from "../canvas/line-rendering";
 import { renderSignalLinePattern, signalLineLegendItems } from "../canvas/signal-line-pattern";
 import type { LineStyle } from "../domain/line-style";
 
@@ -60,7 +62,7 @@ export function SignalLineLegend({
                   type="button"
                   aria-label={`Aplicar ${item.label}`}
                   onClick={() => onApplyLineStyle(item.style)}
-                  className="grid min-h-16 w-full grid-cols-[7rem_1fr] items-center gap-3 rounded border border-transparent p-2 text-left hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="grid min-h-16 w-full grid-cols-[11rem_1fr] items-center gap-3 rounded border border-transparent p-2 text-left hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <SignalLinePreview lineStyle={item.style} />
                   <span>
@@ -69,7 +71,7 @@ export function SignalLineLegend({
                   </span>
                 </button>
               ) : (
-                <div className="grid min-h-16 grid-cols-[7rem_1fr] items-center gap-3 rounded p-2">
+                <div className="grid min-h-16 grid-cols-[11rem_1fr] items-center gap-3 rounded p-2">
                   <SignalLinePreview lineStyle={item.style} />
                   <span>
                     <span className="block text-xs font-medium">{item.label}</span>
@@ -86,15 +88,26 @@ export function SignalLineLegend({
 }
 
 function SignalLinePreview({ lineStyle }: { readonly lineStyle: LineStyle }) {
+  const attrs = lineStyleAttributes(lineStyle);
+  const edgeStrokeStyle = {
+    "--xy-edge-stroke": attrs.stroke,
+    "--xy-edge-stroke-selected": "#2563eb",
+  } as CSSProperties;
   return (
-    <svg aria-hidden="true" focusable="false" viewBox="0 0 112 28" className="h-8 w-28 overflow-visible">
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 176 36"
+      className="h-9 w-44 overflow-visible"
+      style={edgeStrokeStyle}
+    >
       {renderSignalLinePattern({
         id: `legend-${lineStyle}`,
-        points: [{ x: 8, y: 14 }, { x: 104, y: 14 }],
+        points: [{ x: 8, y: 18 }, { x: 168, y: 18 }],
         lineStyle,
         selected: false,
-        stroke: "#334155",
-        strokeWidth: 1.5,
+        stroke: attrs.stroke,
+        strokeWidth: attrs.strokeWidth,
       })}
     </svg>
   );

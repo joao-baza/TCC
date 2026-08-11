@@ -46,7 +46,7 @@ describe("alvos das portas P&ID", () => {
     });
   });
 
-  it("reduz alvos adjacentes sem sobrepô-los nem encolher o marcador", () => {
+  it("reduz áreas adjacentes sem deslocar o handle medido pela linha", () => {
     const canonical = getPidNodeGeometry(node);
     const interaction = getPidCanvasInteractionGeometry(canonical, ports);
     const targets = ports.map((port, index) => getPidPortHitTargetGeometry(
@@ -58,10 +58,11 @@ describe("alvos das portas P&ID", () => {
       ports,
     ));
 
-    expect(targets.every(({ targetSize }) => targetSize < 44 && targetSize >= 8)).toBe(true);
+    expect(targets.every(({ targetSize }) => targetSize === 8)).toBe(true);
+    expect(targets.every(({ interactionSize }) => interactionSize < 44 && interactionSize >= 8)).toBe(true);
     for (let index = 1; index < targets.length; index += 1) {
-      expect(targets[index].targetRect.y).toBeGreaterThanOrEqual(
-        targets[index - 1].targetRect.y + targets[index - 1].targetRect.height,
+      expect(targets[index].interactionRect.y).toBeGreaterThanOrEqual(
+        targets[index - 1].interactionRect.y + targets[index - 1].interactionRect.height,
       );
     }
   });

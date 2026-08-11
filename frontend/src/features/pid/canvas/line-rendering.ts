@@ -1,4 +1,5 @@
-import type { LineStyle } from "../domain/line-style";
+import { DEFAULT_LINE_STYLE, type LineStyle } from "../domain/line-style";
+import type { ConnectionClass } from "../domain/model";
 
 export interface LineStyleAttributes {
   strokeWidth: number;
@@ -26,6 +27,10 @@ const lineStyleAttributeMap: Record<LineStyle, LineStyleAttributes> = {
 
 export function lineStyleAttributes(lineStyle: LineStyle): LineStyleAttributes {
   return { ...lineStyleAttributeMap[lineStyle] };
+}
+
+export function effectiveLineStyle(connectionClass: ConnectionClass, lineStyle: LineStyle): LineStyle {
+  return connectionClass === "utility" ? DEFAULT_LINE_STYLE.utility : lineStyle;
 }
 
 export function isSinusoidal(_lineStyle: LineStyle): boolean {

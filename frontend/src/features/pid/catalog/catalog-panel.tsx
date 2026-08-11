@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type { PidStandard } from "../domain/model";
 import { createCatalogIndex, type CatalogIndex } from "./catalog-index";
@@ -29,6 +30,10 @@ export type CatalogPanelProps = CatalogPanelCommonProps & CatalogInput;
 type CatalogRow =
   | { readonly kind: "category"; readonly id: string; readonly category: string }
   | { readonly kind: "symbol"; readonly id: string; readonly category: string; readonly symbol: CatalogSymbol };
+
+const CATEGORY_ROW_HEIGHT = 44;
+const SYMBOL_ROW_HEIGHT = 76;
+const CATEGORY_SEPARATOR_GAP = 8;
 
 export function CatalogPanel(props: CatalogPanelProps) {
   const { standard, onInsert, source, initialSource, onSourceChange, category, sourceFilters = [], thumbSize, headerAction } = props;
@@ -59,7 +64,7 @@ export function CatalogPanel(props: CatalogPanelProps) {
     count: rows.length,
     getScrollElement: () => scrollElement,
     getItemKey: itemKey,
-    estimateSize: (index) => rows[index]?.kind === "category" ? 44 : 76,
+    estimateSize: (index) => estimateRowSize(rows[index], index),
     overscan: 6,
     initialRect: { width: 320, height: 360 },
   });
@@ -143,12 +148,17 @@ export function CatalogPanel(props: CatalogPanelProps) {
         {sourceFilters.map((sourceKind) => <button type="button" key={sourceKind} aria-pressed={selectedSource === sourceKind} onClick={() => changeSource(selectedSource === sourceKind ? undefined : sourceKind)} className="min-h-11 rounded-md border px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Fonte: {sourceKind === "project" ? "Projeto" : "Draw.io"}</button>)}
       </div>}
       {rows.length === 0 ? <p role="status" className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Nenhum símbolo encontrado.</p> : (
-        <div ref={setScrollElement} role="tree" aria-label="Símbolos disponíveis" className="min-h-[160px] flex-1 overflow-auto rounded-md border pid-scrollable" style={{ minHeight: 160 }}>
+        <div ref={setScrollElement} role="tree" aria-label="Símbolos disponíveis" className="min-h-[160px] flex-1 overflow-auto rounded-md pid-scrollable" style={{ minHeight: 160 }}>
           <div style={{ height: totalSize, position: "relative" }}>
             {visibleItems.map((virtualRow) => {
               const row = rows[virtualRow.index];
-              return <div key={row.id} ref={virtualizer.measureElement} data-index={virtualRow.index} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${virtualRow.start}px)` }}>
-                 {row.kind === "category" ? <button id={`${panelId}-${row.id}`} role="treeitem" aria-level={1} aria-expanded={!collapsed.has(canonicalCategory(row.category))} tabIndex={activeId === row.id ? 0 : -1} onFocus={() => setActiveId(row.id)} onClick={() => toggleCategory(row.category)} onKeyDown={(event) => onRowKeyDown(event, row, virtualRow.index)} className="min-h-11 w-full px-3 text-left font-medium rounded-lg border border-border/60 bg-muted/40 mt-1 first:mt-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">{row.category}</button>
+              const categoryExpanded = row.kind === "category" && !collapsed.has(canonicalCategory(row.category));
+              const categoryGap = row.kind === "category" ? categorySeparatorGap(virtualRow.index) : 0;
+              return <div key={row.id} ref={virtualizer.measureElement} data-index={virtualRow.index} style={{ position: "absolute", top: 0, left: 0, width: "100%", paddingTop: categoryGap, transform: `translateY(${virtualRow.start}px)` }}>
+                 {row.kind === "category" ? <button id={`${panelId}-${row.id}`} role="treeitem" aria-level={1} aria-expanded={categoryExpanded} tabIndex={activeId === row.id ? 0 : -1} onFocus={() => setActiveId(row.id)} onClick={() => toggleCategory(row.category)} onKeyDown={(event) => onRowKeyDown(event, row, virtualRow.index)} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/40 px-3 text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                    <span className="min-w-0 flex-1 truncate">{row.category}</span>
+                    {categoryExpanded ? <ChevronUp aria-hidden="true" className="size-4 shrink-0" /> : <ChevronDown aria-hidden="true" className="size-4 shrink-0" />}
+                  </button>
                   : <button id={`${panelId}-${row.id}`} role="treeitem" aria-level={2} tabIndex={activeId === row.id ? 0 : -1} onFocus={() => setActiveId(row.id)} onClick={() => onInsert(row.symbol)} onKeyDown={(event) => onRowKeyDown(event, row, virtualRow.index)} className="flex min-h-[76px] w-full items-center gap-3 border-t px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                     <img src={row.symbol.assetUrl} alt="" loading="lazy" decoding="async" style={{ height: thumbSize ?? 40, width: thumbSize ?? 40 }} className="rounded bg-white object-contain shrink-0" />
                     <span className="min-w-0 flex-1"><span className="block font-medium">{row.symbol.name}</span></span>
@@ -177,5 +187,10 @@ function toRows(symbols: readonly CatalogSymbol[], collapsed: ReadonlySet<string
   }));
 }
 function canonicalCategory(value: string): string { return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim().replace(/\s+/g, "-"); }
-function estimatedTotalSize(rows: readonly CatalogRow[]): number { return rows.reduce((total, row) => total + (row.kind === "category" ? 44 : 76), 0); }
-function estimatedVisibleItems(rows: readonly CatalogRow[]) { let start = 0; return rows.slice(0, 12).map((row, index) => { const item = { index, start }; start += row.kind === "category" ? 44 : 76; return item; }); }
+function categorySeparatorGap(index: number): number { return index > 0 ? CATEGORY_SEPARATOR_GAP : 0; }
+function estimateRowSize(row: CatalogRow | undefined, index: number): number {
+  if (!row) return SYMBOL_ROW_HEIGHT;
+  return row.kind === "category" ? CATEGORY_ROW_HEIGHT + categorySeparatorGap(index) : SYMBOL_ROW_HEIGHT;
+}
+function estimatedTotalSize(rows: readonly CatalogRow[]): number { return rows.reduce((total, row, index) => total + estimateRowSize(row, index), 0); }
+function estimatedVisibleItems(rows: readonly CatalogRow[]) { let start = 0; return rows.slice(0, 12).map((row, index) => { const item = { index, start }; start += estimateRowSize(row, index); return item; }); }

@@ -39,7 +39,7 @@ describe("canvas real sob capability responsiva", () => {
 
     expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "false");
     const beforeZoom = viewport.style.transform;
-    fireEvent.click(screen.getByRole("button", { name: "Aumentar zoom" }));
+    fireEvent.wheel(pane, { deltaY: -120, clientX: 400, clientY: 280 });
     await waitFor(() => expect(viewport.style.transform).not.toBe(beforeZoom));
     const beforePan = viewport.style.transform;
     dispatchFlowMouseEvent(pane, "mousedown", { button: 0, buttons: 1, clientX: 400, clientY: 280 });
@@ -63,8 +63,9 @@ describe("canvas real sob capability responsiva", () => {
     const editablePump = screen.getByRole("button", { name: "Bomba P-1" });
     const beforeDrag = editablePump.style.transform;
     dispatchFlowMouseEvent(editablePump, "mousedown", { button: 0, buttons: 1, clientX: 100, clientY: 80 });
-    dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 132, clientY: 112 });
-    dispatchFlowMouseEvent(window, "mouseup", { button: 0, clientX: 132, clientY: 112 });
+    dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 96, clientY: 80 });
+    dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 128, clientY: 112 });
+    dispatchFlowMouseEvent(window, "mouseup", { button: 0, clientX: 128, clientY: 112 });
     await waitFor(() => expect(editablePump.style.transform).not.toBe(beforeDrag));
 
     const source = screen.getByRole("button", { name: /saída out/i });

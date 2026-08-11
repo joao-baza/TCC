@@ -13,7 +13,7 @@ export interface PidNodeGeometry {
   readonly bounds: PidRect;
   readonly unrotatedBounds: PidRect;
   readonly center: Readonly<{ x: number; y: number }>;
-  readonly rotation: 0 | 90 | 180 | 270;
+  readonly rotation: number;
 }
 
 export interface PidPortAnchorGeometry {
@@ -27,14 +27,7 @@ export function getPidNodeGeometry(node: PidNode): PidNodeGeometry {
   const center = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
   const unrotatedBounds = { x: node.x, y: node.y, width: node.width, height: node.height };
   const rotation = normalizeRotation(node.rotation);
-  const bounds = rotation === 90 || rotation === 270
-    ? {
-        x: center.x - node.height / 2,
-        y: center.y - node.width / 2,
-        width: node.height,
-        height: node.width,
-      }
-    : { ...unrotatedBounds };
+  const bounds = rotatedRectBounds(unrotatedBounds, center, rotation);
   return { bounds, unrotatedBounds, center, rotation };
 }
 
@@ -114,27 +107,61 @@ function sideForDirection(direction: PortDirection): PidFlowPosition {
   return "bottom";
 }
 
-function rotateSide(side: PidFlowPosition, rotation: 0 | 90 | 180 | 270): PidFlowPosition {
-  const sides: readonly PidFlowPosition[] = ["top", "right", "bottom", "left"];
-  const index = sides.indexOf(side);
-  return sides[(index + rotation / 90) % sides.length];
+function rotateSide(side: PidFlowPosition, rotation: number): PidFlowPosition {
+  const vectors: Record<PidFlowPosition, { x: number; y: number }> = {
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 },
+    top: { x: 0, y: -1 },
+    bottom: { x: 0, y: 1 },
+  };
+  const rotated = rotateVector(vectors[side], rotation);
+  if (Math.abs(rotated.x) > Math.abs(rotated.y)) return rotated.x < 0 ? "left" : "right";
+  return rotated.y < 0 ? "top" : "bottom";
 }
 
 function rotatePoint(
   point: Readonly<{ x: number; y: number }>,
   center: Readonly<{ x: number; y: number }>,
-  rotation: 0 | 90 | 180 | 270,
+  rotation: number,
 ): { x: number; y: number } {
   const x = point.x - center.x;
   const y = point.y - center.y;
-  if (rotation === 90) return { x: center.x - y, y: center.y + x };
-  if (rotation === 180) return { x: center.x - x, y: center.y - y };
-  if (rotation === 270) return { x: center.x + y, y: center.y - x };
-  return { ...point };
+  const rotated = rotateVector({ x, y }, rotation);
+  return { x: center.x + rotated.x, y: center.y + rotated.y };
 }
 
-function normalizeRotation(rotation: number): 0 | 90 | 180 | 270 {
-  const normalized = ((rotation % 360) + 360) % 360;
-  if (normalized === 90 || normalized === 180 || normalized === 270) return normalized;
-  return 0;
+function rotatedRectBounds(rect: PidRect, center: Readonly<{ x: number; y: number }>, rotation: number): PidRect {
+  if (rotation === 0) return { ...rect };
+  const corners = [
+    { x: rect.x, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y + rect.height },
+    { x: rect.x, y: rect.y + rect.height },
+  ].map((point) => rotatePoint(point, center, rotation));
+  const xs = corners.map((point) => point.x);
+  const ys = corners.map((point) => point.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+function rotateVector(vector: Readonly<{ x: number; y: number }>, rotation: number): { x: number; y: number } {
+  const normalized = normalizeRotation(rotation);
+  if (normalized === 0) return { ...vector };
+  if (normalized === 90) return { x: -vector.y, y: vector.x };
+  if (normalized === 180) return { x: -vector.x, y: -vector.y };
+  if (normalized === 270) return { x: vector.y, y: -vector.x };
+  const radians = normalized * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return {
+    x: vector.x * cos - vector.y * sin,
+    y: vector.x * sin + vector.y * cos,
+  };
+}
+
+function normalizeRotation(rotation: number): number {
+  return ((rotation % 360) + 360) % 360;
 }

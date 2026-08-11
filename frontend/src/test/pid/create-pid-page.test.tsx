@@ -103,7 +103,8 @@ describe("CreatePidPage", () => {
     );
     expect(screen.getByRole("button", { name: "Abrir visualização" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Abrir editor" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Voltar ao DCOU" })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: "Voltar ao DCOU" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Voltar ao DCOU" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Copiei o link de edição" }));
     expect(screen.getByRole("link", { name: "Abrir visualização" })).toHaveAttribute(
@@ -124,7 +125,7 @@ describe("CreatePidPage", () => {
       scope: "edit",
       url: `https://dcou.test/pid/${diagramId}#access=edit-token`,
     });
-    expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("link", { name: "Voltar ao DCOU" })).not.toBeInTheDocument();
   });
 
   it("mostra erros acessíveis sem chamar a porta para formulário inválido", async () => {

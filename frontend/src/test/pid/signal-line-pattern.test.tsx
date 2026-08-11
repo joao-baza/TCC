@@ -43,7 +43,7 @@ describe("signal line pattern renderer", () => {
     expect(markup).not.toContain("data-glyph=\"diagonal-pair\"");
   });
 
-  it("keeps an arrow marker carrier when the style omits the base path", () => {
+  it("cruza as ondas do sinal não-guiado com uma linha-base", () => {
     const { container } = render(
       <svg>
         {renderSignalLinePattern({
@@ -57,8 +57,13 @@ describe("signal line pattern renderer", () => {
       </svg>,
     );
 
-    const markerCarrier = container.querySelector('[data-marker-carrier="wireless"]');
-    expect(markerCarrier).toHaveAttribute("marker-end", "url(#arrow)");
-    expect(markerCarrier).toHaveAttribute("stroke-opacity", "0");
+    const pattern = container.querySelector('[data-signal-line-pattern="wireless"]');
+    const basePath = pattern?.querySelector(".react-flow__edge-path");
+
+    expect(pattern?.querySelector('[data-glyph="wave"]')).toBeInTheDocument();
+    expect(basePath).toHaveAttribute("d", "M 0 0 L 160 0 L 160 80");
+    expect(basePath).toHaveAttribute("marker-end", "url(#arrow)");
+    expect(pattern?.lastElementChild).toBe(basePath);
+    expect(pattern?.querySelector('[data-marker-carrier="wireless"]')).not.toBeInTheDocument();
   });
 });

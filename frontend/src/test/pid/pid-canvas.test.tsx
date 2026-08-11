@@ -193,17 +193,20 @@ describe("PidCanvas", () => {
 
       const node = screen.getByRole("button", { name: /Bomba P-101/i });
       const body = screen.getByTestId(`equipment-body-${ids.pump}`);
+      const tag = screen.getByTestId(`equipment-tag-${ids.pump}`);
       const label = screen.getByTestId(`equipment-label-${ids.pump}`);
 
       await waitFor(() => expect(node.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/));
       expect(node.querySelector("img")).toHaveAttribute("draggable", "false");
       expect(body).not.toHaveClass("border", "bg-white", "shadow-sm", "rounded-lg", "p-2");
       expect(body).not.toHaveClass("outline-blue-600");
+      expect(tag).toHaveTextContent("P-101");
+      expect(tag).not.toHaveClass("opacity-0");
       expect(label).toHaveClass("opacity-0");
       const outputHandle = screen.getByLabelText(/Criar conexão pela porta de saída/i);
       expect(outputHandle).toHaveClass("!border-transparent");
-      expect(outputHandle).toHaveStyle({ width: "44px", height: "44px" });
-      expect(outputHandle).toHaveClass("after:size-2", "after:border", "after:border-slate-700");
+      expect(outputHandle).toHaveStyle({ width: "8px", height: "8px" });
+      expect(outputHandle).toHaveClass("before:size-11", "after:size-2", "after:border", "after:border-slate-700");
 
       fireEvent.click(node);
 
@@ -357,6 +360,37 @@ describe("PidCanvas", () => {
     expect(document.querySelector('[data-glyph="diagonal-pair"]')).toBeInTheDocument();
   });
 
+  it("mantém aresta de utilidade lisa mesmo com estilo de sinal legado", () => {
+    const pidDocument = connectionDocument();
+    pidDocument.metadata.utilityCategories = [{
+      id: "c0000000-0000-4000-8000-000000000001",
+      name: "Vapor",
+      color: "#ef4444",
+    }];
+    pidDocument.edges[ids.edge] = {
+      id: ids.edge,
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+      connectionClass: "utility",
+      lineStyle: "pneumatic-signal",
+      utilityCategoryId: "c0000000-0000-4000-8000-000000000001",
+      route: [],
+      tag: "",
+      label: "",
+      properties: {},
+    };
+
+    render(<PidCanvas document={pidDocument} catalog={localCatalog} editable onCommand={vi.fn()} defaultSelection={{ nodeIds: [], edgeIds: [ids.edge] }} />);
+
+    const edge = screen.getByTestId(`process-edge-${ids.edge}`);
+    expect(edge).toHaveAttribute("data-signal-line-style", "supply-impulse");
+    expect(edge.style.getPropertyValue("--xy-edge-stroke")).toBe("#ef4444");
+    expect(edge.style.getPropertyValue("--xy-edge-stroke-selected")).toBe("#ef4444");
+    expect(edge.querySelector(".react-flow__edge-path")).toHaveAttribute("stroke", "#ef4444");
+    expect(edge.querySelector(".react-flow__edge-path")).not.toHaveAttribute("marker-end");
+    expect(document.querySelector('[data-glyph="diagonal-pair"]')).not.toBeInTheDocument();
+  });
+
   it("emite um único delta canônico para todos os nós selecionados no fim do drag", () => {
     const document = connectionDocument();
 
@@ -376,7 +410,7 @@ describe("PidCanvas", () => {
     dispatchFlowMouseEvent(pump, "mousedown", { button: 0, buttons: 1, clientX: 100, clientY: 80 });
     dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 96, clientY: 80 });
     dispatchFlowMouseEvent(window, "mousemove", { buttons: 1, clientX: 128, clientY: 112 });
-    await waitFor(() => expect(pump.style.transform).toBe("translate(128px,96px)"));
+    await waitFor(() => expect(pump.style.transform).toBe("translate(132px,96px)"));
     expect(onCommand).not.toHaveBeenCalled();
     dispatchFlowMouseEvent(window, "mouseup", { button: 0, clientX: 128, clientY: 112 });
 
@@ -384,7 +418,7 @@ describe("PidCanvas", () => {
     expect(onCommand).toHaveBeenCalledWith({
       type: "selection.move",
       ids: [ids.pump],
-      delta: { x: 28, y: 32 },
+      delta: { x: 32, y: 32 },
     });
   });
 
@@ -407,7 +441,7 @@ describe("PidCanvas", () => {
     expect(onCommand).toHaveBeenCalledWith({
       type: "selection.move",
       ids: [ids.pump, ids.tank],
-      delta: { x: 28, y: 32 },
+      delta: { x: 32, y: 32 },
     });
   });
 
@@ -573,6 +607,37 @@ describe("PidCanvas", () => {
     expect(screen.getByTestId(`equipment-artwork-${ids.pump}`)).toHaveStyle({ transform: artworkTransform });
     expect(screen.getByTestId(`equipment-label-${ids.pump}`)).not.toHaveAttribute("style");
     expect(screen.getByTestId(`equipment-tag-${ids.pump}`)).toHaveTextContent("P-101");
+  });
+
+  it("mantém a arte retangular e os pontos de conexão no mesmo centro em rotação livre", () => {
+    const document = pumpDocument();
+    document.nodes[ids.pump].rotation = 45;
+    render(<PidCanvas document={document} catalog={localCatalog} editable onCommand={vi.fn()} />);
+
+    const nodePorts = Object.values(document.ports).filter(({ nodeId }) => nodeId === ids.pump);
+    const geometry = getPidNodeGeometry(document.nodes[ids.pump]);
+    const interaction = getPidCanvasInteractionGeometry(geometry, nodePorts);
+    const anchor = getPidPortAnchorGeometry(
+      geometry,
+      document.ports[ids.suction],
+      nodePorts.findIndex(({ id }) => id === ids.suction),
+      nodePorts,
+    );
+    const body = screen.getByTestId(`equipment-body-${ids.pump}`);
+    const artwork = screen.getByTestId(`equipment-artwork-${ids.pump}`);
+    const suctionHandle = screen.getByLabelText(/Criar conexão pela porta de entrada suction/i);
+
+    expect(Number.parseFloat(body.style.width)).toBeCloseTo(geometry.bounds.width);
+    expect(Number.parseFloat(body.style.height)).toBeCloseTo(geometry.bounds.height);
+    expect(Number.parseFloat(artwork.style.left)).toBeCloseTo((geometry.bounds.width - document.nodes[ids.pump].width) / 2);
+    expect(Number.parseFloat(artwork.style.top)).toBeCloseTo((geometry.bounds.height - document.nodes[ids.pump].height) / 2);
+    expect(artwork).toHaveStyle({
+      width: `${document.nodes[ids.pump].width}px`,
+      height: `${document.nodes[ids.pump].height}px`,
+      transform: "rotate(45deg)",
+    });
+    expect(Number.parseFloat(suctionHandle.style.left)).toBeCloseTo(interaction.canonicalRect.x + anchor.x);
+    expect(Number.parseFloat(suctionHandle.style.top)).toBeCloseTo(interaction.canonicalRect.y + anchor.y);
   });
 
   it("mantém os módulos de domínio livres de React e @xyflow/react", () => {

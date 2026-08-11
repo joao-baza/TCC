@@ -33,6 +33,7 @@ interface NodeCacheEntry {
   readonly symbol?: CatalogSymbol;
   readonly editable: boolean;
   readonly onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void;
+  readonly onElementPatch: (id: string, patch: Record<string, number>) => void;
   readonly node: EquipmentFlowNode;
   readonly geometry: PidNodeGeometry;
 }
@@ -41,18 +42,21 @@ interface EdgeCacheEntry {
   readonly source?: PidPort;
   readonly target?: PidPort;
   readonly editable: boolean;
+  readonly utilityCategories: PidDocument["metadata"]["utilityCategories"];
   readonly edge: ProcessFlowEdge | null;
 }
 
 const documentSnapshots = new WeakMap<PidDocument, DocumentSnapshot>();
 const nodeAdapters = new WeakMap<PidNode, NodeCacheEntry>();
 const edgeAdapters = new WeakMap<PidEdge, EdgeCacheEntry>();
+const noopElementPatch = () => {};
 
 export function projectPidCanvasDocument(
   document: PidDocument,
   symbols: ReadonlyMap<string, CatalogSymbol>,
   editable: boolean,
   onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void,
+  onElementPatch: (id: string, patch: Record<string, number>) => void = noopElementPatch,
 ): PidFlowProjection {
   const snapshot = snapshotDocument(document);
   const geometries = new Map<string, PidNodeGeometry>();
@@ -64,6 +68,7 @@ export function projectPidCanvasDocument(
       && cached.symbol === symbol
       && cached.editable === editable
       && cached.onPortKey === onPortKey
+      && cached.onElementPatch === onElementPatch
       && sameReferences(cached.ports, ports)) {
       geometries.set(node.id, cached.geometry);
       return cached.node;
@@ -109,9 +114,9 @@ export function projectPidCanvasDocument(
       domAttributes: { "aria-pressed": false },
       ariaRole: "button",
       ariaLabel: [node.label || symbol?.name || "Equipamento", node.tag].filter(Boolean).join(" "),
-      data: { equipment: node, ports, symbol, editable, geometry, interactionGeometry, portGeometries, onPortKey },
+      data: { equipment: node, ports, symbol, editable, geometry, interactionGeometry, portGeometries, onPortKey, onElementPatch },
     };
-    nodeAdapters.set(node, { ports, symbol, editable, onPortKey, node: flowNode, geometry });
+    nodeAdapters.set(node, { ports, symbol, editable, onPortKey, onElementPatch, node: flowNode, geometry });
     geometries.set(node.id, geometry);
     return flowNode;
   });
@@ -119,7 +124,11 @@ export function projectPidCanvasDocument(
     const source = document.ports[edge.sourcePortId];
     const target = document.ports[edge.targetPortId];
     const cached = edgeAdapters.get(edge);
-    if (cached && cached.source === source && cached.target === target && cached.editable === editable) {
+    if (cached
+      && cached.source === source
+      && cached.target === target
+      && cached.editable === editable
+      && cached.utilityCategories === document.metadata.utilityCategories) {
       return cached.edge ? [cached.edge] : [];
     }
     const flowEdge: ProcessFlowEdge | null = source && target ? {
@@ -129,7 +138,9 @@ export function projectPidCanvasDocument(
       target: target.nodeId,
       sourceHandle: source.id,
       targetHandle: target.id,
-      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
+      markerEnd: edge.connectionClass === "utility"
+        ? undefined
+        : { type: MarkerType.ArrowClosed, width: 14, height: 14 },
       selectable: true,
       deletable: editable,
       reconnectable: false,
@@ -137,7 +148,7 @@ export function projectPidCanvasDocument(
       ariaLabel: [edge.tag, edge.label].filter(Boolean).join(" ") || `Conexão ${edge.id}`,
       data: { processEdge: edge, route: edge.route, editable, utilityCategories: document.metadata.utilityCategories },
     } : null;
-    edgeAdapters.set(edge, { source, target, editable, edge: flowEdge });
+    edgeAdapters.set(edge, { source, target, editable, utilityCategories: document.metadata.utilityCategories, edge: flowEdge });
     return flowEdge ? [flowEdge] : [];
   });
   return { nodes, edges, geometries };

@@ -21,7 +21,7 @@ import "@xyflow/react/dist/style.css";
 
 import type { CatalogIndex } from "../catalog/catalog-index";
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
-import { deleteSelection, type PidCommand } from "../domain/commands";
+import { deleteSelection, patchElement, type PidCommand } from "../domain/commands";
 import type { PidDocument } from "../domain/model";
 import type { ConnectionClass } from "../domain/model";
 import { createPortConnectionValidation, getPortConnectionRejection, type PidGraphIndex, uniqueIds } from "../domain/graph-operations";
@@ -193,9 +193,13 @@ function PidCanvasInner({
     updateKeyboardSourcePort(null);
     setConnectionAnnouncement("Conexão criada com sucesso.");
   }, [updateKeyboardSourcePort]);
+  const handleElementPatch = useCallback((id: string, patch: Record<string, number>) => {
+    if (!editableRef.current) return;
+    onCommandRef.current(patchElement(id, patch));
+  }, []);
   const projection = useMemo(
-    () => projectPidCanvasDocument(document, symbols, editable, handlePortKey),
-    [document, editable, handlePortKey, symbols],
+    () => projectPidCanvasDocument(document, symbols, editable, handlePortKey, handleElementPatch),
+    [document, editable, handleElementPatch, handlePortKey, symbols],
   );
   const initialProjectionRef = useRef<PidFlowProjection | null>(null);
   if (!initialProjectionRef.current) initialProjectionRef.current = applyPidCanvasSelection(projection, initialSelection);
@@ -423,7 +427,7 @@ function PidCanvasInner({
         edgeTypes={edgeTypes}
         fitView
         snapToGrid
-        snapGrid={[16, 16]}
+        snapGrid={[1, 1]}
         nodesDraggable={editable}
         nodesConnectable={editable}
         edgesReconnectable={false}

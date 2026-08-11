@@ -46,9 +46,7 @@ const positiveIntegerSchema = finiteNumberSchema.int().positive();
 const nonBlankStringSchema = z.string().refine((value) => value.trim().length > 0, {
   message: "Obrigatório informar um texto não vazio.",
 });
-const rotationSchema = finiteNumberSchema.refine((value) => value % 90 === 0, {
-  message: "A rotação deve ser múltipla de 90 graus.",
-});
+const rotationSchema = finiteNumberSchema;
 const unsafePropertyKeys = new Set(["__proto__", "prototype", "constructor"]);
 const maxPropertyDepth = 64;
 const maxPropertyValues = 100_000;
