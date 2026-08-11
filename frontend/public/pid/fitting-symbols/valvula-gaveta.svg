@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="48" viewBox="0 0 96 48" fill="none" role="img" aria-labelledby="title-valvula-gaveta desc-valvula-gaveta">
+  <title id="title-valvula-gaveta">Válvula gaveta</title>
+  <desc id="desc-valvula-gaveta">Simbolo P&amp;ID simplificado de Válvula gaveta integrado a tubulacao hachurada.</desc>
+  <defs>
+    <clipPath id="interior-valvula-gaveta">
+      <path d="M0 17 H32 V31 H0 Z M64 17 H96 V31 H64 Z" />
+    </clipPath>
+  </defs>
+  <g class="fitting-symbol" data-fitting-family="valve">
+    <path class="fitting-hachures" d="M-96 96 L-16 -16 M-80 96 L0 -16 M-64 96 L16 -16 M-48 96 L32 -16 M-32 96 L48 -16 M-16 96 L64 -16 M0 96 L80 -16 M16 96 L96 -16 M32 96 L112 -16 M48 96 L128 -16 M64 96 L144 -16 M80 96 L160 -16 M96 96 L176 -16" fill="none" stroke="#1F2937" stroke-width="1.5" stroke-linecap="butt" clip-path="url(#interior-valvula-gaveta)" vector-effect="non-scaling-stroke" opacity="0.9" />
+    <path d="M0 17 H32 M0 31 H32 M64 17 H96 M64 31 H96" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="butt" vector-effect="non-scaling-stroke" />
+    <path d="M32 10 L48 24 L32 38 Z M64 10 L48 24 L64 38 Z" fill="#F8FAFC" stroke="#1F2937" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+    <path d="M48 7 V41" fill="none" stroke="#1F2937" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+  </g>
+</svg>

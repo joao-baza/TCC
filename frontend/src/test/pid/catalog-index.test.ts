@@ -83,7 +83,7 @@ describe("createCatalogIndex", () => {
   it("publica apenas símbolos explicitamente livres", () => {
     const index = createCatalogIndex(localCatalog);
 
-    expect(index.search("", { standard: "free" })).toHaveLength(547);
+    expect(index.search("", { standard: "free" })).toHaveLength(562);
     expect(index.search("", { standard: "free" }).every((item) => item.standards.length === 1
       && item.standards[0] === "free")).toBe(true);
   });
@@ -128,8 +128,9 @@ describe("createCatalogIndex", () => {
   });
 
   it("desanexa propriedades opcionais aninhadas", () => {
+    const drawioFixture = localCatalog.find((symbol) => symbol.key === "drawio.pid.agitators.agitator-anchor")!;
     const source = [{
-      ...localCatalog[0],
+      ...drawioFixture,
       properties: { configuration: { mode: "original" } },
     }];
     const index = createCatalogIndex(source);
@@ -140,11 +141,12 @@ describe("createCatalogIndex", () => {
   });
 
   it("desanexa e congela a licença aninhada da proveniência", () => {
+    const drawioFixture = localCatalog.find((symbol) => symbol.key === "drawio.pid.agitators.agitator-anchor")!;
     const source = [{
-      ...localCatalog[0],
+      ...drawioFixture,
       source: {
-        ...localCatalog[0].source,
-        license: { ...localCatalog[0].source.license },
+        ...drawioFixture.source,
+        license: { ...drawioFixture.source.license },
       },
     }];
     const index = createCatalogIndex(source);

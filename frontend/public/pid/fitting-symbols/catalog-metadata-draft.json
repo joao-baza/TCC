@@ -1,0 +1,568 @@
+[
+  {
+    "name": "Retorno 180°",
+    "slug": "retorno-180",
+    "family": "bend",
+    "stagingAsset": "/pid/fitting-symbols/retorno-180.svg",
+    "futureCatalogKey": "project.pid.fittings.retorno-180",
+    "futureAssetUrl": "/pid/symbols/project-fittings-retorno-180.svg",
+    "viewBox": "0 0 80 64",
+    "defaultSize": {
+      "width": 80,
+      "height": 64
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.18,
+          "y": 0.22
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.18,
+          "y": 0.78
+        },
+        "visualSide": "left"
+      }
+    ]
+  },
+  {
+    "name": "Cotovelo 90° raio longo",
+    "slug": "cotovelo-90-raio-longo",
+    "family": "bend",
+    "stagingAsset": "/pid/fitting-symbols/cotovelo-90-raio-longo.svg",
+    "futureCatalogKey": "project.pid.fittings.cotovelo-90-raio-longo",
+    "futureAssetUrl": "/pid/symbols/project-fittings-cotovelo-90-raio-longo.svg",
+    "viewBox": "0 0 72 72",
+    "defaultSize": {
+      "width": 72,
+      "height": 72
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.08,
+          "y": 0.74
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.74,
+          "y": 0.08
+        },
+        "visualSide": "top"
+      }
+    ]
+  },
+  {
+    "name": "Cotovelo 90° raio curto",
+    "slug": "cotovelo-90-raio-curto",
+    "family": "bend",
+    "stagingAsset": "/pid/fitting-symbols/cotovelo-90-raio-curto.svg",
+    "futureCatalogKey": "project.pid.fittings.cotovelo-90-raio-curto",
+    "futureAssetUrl": "/pid/symbols/project-fittings-cotovelo-90-raio-curto.svg",
+    "viewBox": "0 0 64 64",
+    "defaultSize": {
+      "width": 64,
+      "height": 64
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.1,
+          "y": 0.7
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.7,
+          "y": 0.1
+        },
+        "visualSide": "top"
+      }
+    ]
+  },
+  {
+    "name": "Tê (passagem reta)",
+    "slug": "te-passagem-reta",
+    "family": "tee",
+    "stagingAsset": "/pid/fitting-symbols/te-passagem-reta.svg",
+    "futureCatalogKey": "project.pid.fittings.te-passagem-reta",
+    "futureAssetUrl": "/pid/symbols/project-fittings-te-passagem-reta.svg",
+    "viewBox": "0 0 88 72",
+    "defaultSize": {
+      "width": 88,
+      "height": 72
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.58
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.58
+        },
+        "visualSide": "right"
+      },
+      {
+        "key": "p3",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.08
+        },
+        "visualSide": "top"
+      }
+    ]
+  },
+  {
+    "name": "Saída de tanque",
+    "slug": "saida-de-tanque",
+    "family": "entry",
+    "stagingAsset": "/pid/fitting-symbols/saida-de-tanque.svg",
+    "futureCatalogKey": "project.pid.fittings.saida-de-tanque",
+    "futureAssetUrl": "/pid/symbols/project-fittings-saida-de-tanque.svg",
+    "viewBox": "0 0 88 56",
+    "defaultSize": {
+      "width": 88,
+      "height": 56
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.05,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Válvula diafragma",
+    "slug": "valvula-diafragma",
+    "family": "valve",
+    "stagingAsset": "/pid/fitting-symbols/valvula-diafragma.svg",
+    "futureCatalogKey": "project.pid.fittings.valvula-diafragma",
+    "futureAssetUrl": "/pid/symbols/project-fittings-valvula-diafragma.svg",
+    "viewBox": "0 0 96 48",
+    "defaultSize": {
+      "width": 96,
+      "height": 48
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Válvula esfera",
+    "slug": "valvula-esfera",
+    "family": "valve",
+    "stagingAsset": "/pid/fitting-symbols/valvula-esfera.svg",
+    "futureCatalogKey": "project.pid.fittings.valvula-esfera",
+    "futureAssetUrl": "/pid/symbols/project-fittings-valvula-esfera.svg",
+    "viewBox": "0 0 96 48",
+    "defaultSize": {
+      "width": 96,
+      "height": 48
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Válvula gaveta",
+    "slug": "valvula-gaveta",
+    "family": "valve",
+    "stagingAsset": "/pid/fitting-symbols/valvula-gaveta.svg",
+    "futureCatalogKey": "project.pid.fittings.valvula-gaveta",
+    "futureAssetUrl": "/pid/symbols/project-fittings-valvula-gaveta.svg",
+    "viewBox": "0 0 96 48",
+    "defaultSize": {
+      "width": 96,
+      "height": 48
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Válvula retenção de pé",
+    "slug": "valvula-retencao-de-pe",
+    "family": "valve",
+    "stagingAsset": "/pid/fitting-symbols/valvula-retencao-de-pe.svg",
+    "futureCatalogKey": "project.pid.fittings.valvula-retencao-de-pe",
+    "futureAssetUrl": "/pid/symbols/project-fittings-valvula-retencao-de-pe.svg",
+    "viewBox": "0 0 96 56",
+    "defaultSize": {
+      "width": 96,
+      "height": 56
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Válvula agulha",
+    "slug": "valvula-agulha",
+    "family": "valve",
+    "stagingAsset": "/pid/fitting-symbols/valvula-agulha.svg",
+    "futureCatalogKey": "project.pid.fittings.valvula-agulha",
+    "futureAssetUrl": "/pid/symbols/project-fittings-valvula-agulha.svg",
+    "viewBox": "0 0 96 56",
+    "defaultSize": {
+      "width": 96,
+      "height": 56
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Válvula globo (aberta)",
+    "slug": "valvula-globo-aberta",
+    "family": "valve",
+    "stagingAsset": "/pid/fitting-symbols/valvula-globo-aberta.svg",
+    "futureCatalogKey": "project.pid.fittings.valvula-globo-aberta",
+    "futureAssetUrl": "/pid/symbols/project-fittings-valvula-globo-aberta.svg",
+    "viewBox": "0 0 96 56",
+    "defaultSize": {
+      "width": 96,
+      "height": 56
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Válvula borboleta",
+    "slug": "valvula-borboleta",
+    "family": "valve",
+    "stagingAsset": "/pid/fitting-symbols/valvula-borboleta.svg",
+    "futureCatalogKey": "project.pid.fittings.valvula-borboleta",
+    "futureAssetUrl": "/pid/symbols/project-fittings-valvula-borboleta.svg",
+    "viewBox": "0 0 96 48",
+    "defaultSize": {
+      "width": 96,
+      "height": 48
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Cotovelo 90° raio médio",
+    "slug": "cotovelo-90-raio-medio",
+    "family": "bend",
+    "stagingAsset": "/pid/fitting-symbols/cotovelo-90-raio-medio.svg",
+    "futureCatalogKey": "project.pid.fittings.cotovelo-90-raio-medio",
+    "futureAssetUrl": "/pid/symbols/project-fittings-cotovelo-90-raio-medio.svg",
+    "viewBox": "0 0 68 68",
+    "defaultSize": {
+      "width": 68,
+      "height": 68
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.09,
+          "y": 0.72
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.72,
+          "y": 0.09
+        },
+        "visualSide": "top"
+      }
+    ]
+  },
+  {
+    "name": "Entrada normal",
+    "slug": "entrada-normal",
+    "family": "entry",
+    "stagingAsset": "/pid/fitting-symbols/entrada-normal.svg",
+    "futureCatalogKey": "project.pid.fittings.entrada-normal",
+    "futureAssetUrl": "/pid/symbols/project-fittings-entrada-normal.svg",
+    "viewBox": "0 0 80 48",
+    "defaultSize": {
+      "width": 80,
+      "height": 48
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.08,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  },
+  {
+    "name": "Válvula retenção, leve",
+    "slug": "valvula-retencao-leve",
+    "family": "valve",
+    "stagingAsset": "/pid/fitting-symbols/valvula-retencao-leve.svg",
+    "futureCatalogKey": "project.pid.fittings.valvula-retencao-leve",
+    "futureAssetUrl": "/pid/symbols/project-fittings-valvula-retencao-leve.svg",
+    "viewBox": "0 0 96 48",
+    "defaultSize": {
+      "width": 96,
+      "height": 48
+    },
+    "portTemplates": [
+      {
+        "key": "p1",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.02,
+          "y": 0.5
+        },
+        "visualSide": "left"
+      },
+      {
+        "key": "p2",
+        "direction": "bidirectional",
+        "connectionClass": "process",
+        "capacity": 1,
+        "anchor": {
+          "x": 0.98,
+          "y": 0.5
+        },
+        "visualSide": "right"
+      }
+    ]
+  }
+]

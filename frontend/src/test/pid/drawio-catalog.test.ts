@@ -8,11 +8,11 @@ import { sanitizePidSvgAsset } from "@/features/pid/catalog/sanitized-svg-asset"
 import { getCanonicalPortAnchorLayout } from "@/features/pid/domain/geometry";
 
 describe("catálogo Draw.io P&ID", () => {
-  it("publica apenas os 547 símbolos livres do Draw.io", () => {
-    expect(localCatalog).toHaveLength(547);
+  it("preserva os 547 símbolos livres do Draw.io junto aos símbolos do projeto", () => {
+    expect(localCatalog).toHaveLength(562);
     expect(localCatalog.every((symbol) => symbol.standards.length === 1 && symbol.standards[0] === "free"))
       .toBe(true);
-    expect(localCatalog.some((symbol) => symbol.key.startsWith("project."))).toBe(false);
+    expect(localCatalog.filter((symbol) => symbol.key.startsWith("project."))).toHaveLength(15);
     expect(localCatalog.some((symbol) => /\/(pump|tank|valve|instrument)\.svg$/.test(symbol.assetUrl)))
       .toBe(false);
   });
