@@ -11,10 +11,8 @@ import {
 } from "@/components/ui/tooltip";
 
 import { UtilityCategoriesPanel } from "./utility-categories-panel";
-import { SignalLineLegend } from "./signal-line-legend";
 import type { PidIconSize } from "./use-pid-settings";
 import type { ConnectionClass } from "../domain/model";
-import type { LineStyle } from "../domain/line-style";
 import type { PidCommand } from "../domain/command-contract";
 import type { UtilityCategory } from "../domain/utility-category";
 import type { EditorSelectionCapabilities, EditorToolbarActions } from "./editor-toolbar-utils";
@@ -32,15 +30,16 @@ export {
   getEditorPositionedSelectionIds,
 } from "./editor-toolbar-utils";
 
-function IconButton({ label, shortcut, disabled, onClick, iconClass, children }: {
+function IconButton({ label, shortcut, disabled, pressed, onClick, iconClass, children }: {
   label: string;
   shortcut?: string;
   disabled?: boolean;
+  pressed?: boolean;
   onClick: () => void;
   iconClass: string;
   children: React.ReactNode;
 }) {
-  const button = <Button variant="ghost" size="icon-sm" disabled={disabled} onClick={onClick} aria-label={label}>
+  const button = <Button variant="ghost" size="icon-sm" disabled={disabled} onClick={onClick} aria-label={label} aria-pressed={pressed}>
     {children}
   </Button>;
 
@@ -52,7 +51,7 @@ function IconButton({ label, shortcut, disabled, onClick, iconClass, children }:
   </Tooltip>;
 }
 
-export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions, selectedEdgeId = null, onApplyLineStyle = () => {}, iconSize = "md", onCommand = () => {}, utilityCategories = [] }: {
+export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions, signalLegendOpen = false, onToggleSignalLegend = () => {}, iconSize = "md", onCommand = () => {}, utilityCategories = [] }: {
   readonly editable: boolean;
   readonly capabilities: EditorSelectionCapabilities;
   readonly canUndo: boolean;
@@ -67,16 +66,14 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
   readonly onExportPng: () => void;
   readonly connectionClass: ConnectionClass;
   readonly actions: EditorToolbarActions;
-  readonly selectedEdgeId?: string | null;
-  readonly onApplyLineStyle?: (lineStyle: LineStyle) => void;
+  readonly signalLegendOpen?: boolean;
+  readonly onToggleSignalLegend?: () => void;
   readonly iconSize?: PidIconSize;
   readonly onCommand?: (cmd: PidCommand) => void;
   readonly utilityCategories?: readonly UtilityCategory[];
 }) {
   const cls = ICON_CLASS[iconSize];
   const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [legendOpen, setLegendOpen] = useState(false);
-  const [legendMinimized, setLegendMinimized] = useState(false);
 
   const Separator = () => <div className="mx-0.5 h-6 w-px bg-border" />;
 
@@ -113,27 +110,9 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
       </div>
     </>}
     <Separator />
-    <div className="relative">
-      <IconButton label="Legenda de sinais" onClick={() => {
-        setLegendOpen((open) => !open || legendMinimized);
-        setLegendMinimized(false);
-      }} iconClass={cls}>
-        <HelpCircle className={cls} />
-      </IconButton>
-      {legendOpen && (
-        <SignalLineLegend
-          selectedEdgeId={selectedEdgeId}
-          minimized={legendMinimized}
-          onApplyLineStyle={onApplyLineStyle}
-          onMinimize={() => setLegendMinimized(true)}
-          onRestore={() => setLegendMinimized(false)}
-          onClose={() => {
-            setLegendOpen(false);
-            setLegendMinimized(false);
-          }}
-        />
-      )}
-    </div>
+    <IconButton label="Legenda de sinais" pressed={signalLegendOpen} onClick={onToggleSignalLegend} iconClass={cls}>
+      <HelpCircle className={cls} />
+    </IconButton>
     <Separator />
     <IconButton label="Ajustar diagrama à tela" onClick={actions.fit} iconClass={cls}><Maximize2 className={cls} /></IconButton>
     <IconButton label="Aumentar zoom" onClick={actions.zoomIn} iconClass={cls}><ZoomIn className={cls} /></IconButton>

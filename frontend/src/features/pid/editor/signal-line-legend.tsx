@@ -7,6 +7,7 @@ import type { LineStyle } from "../domain/line-style";
 const titleId = "pid-signal-line-legend-title";
 
 export function SignalLineLegend({
+  placement = "toolbar",
   selectedEdgeId,
   minimized,
   onApplyLineStyle,
@@ -14,6 +15,7 @@ export function SignalLineLegend({
   onMinimize,
   onRestore,
 }: {
+  readonly placement?: "toolbar" | "canvas";
   readonly selectedEdgeId: string | null;
   readonly minimized: boolean;
   readonly onApplyLineStyle: (lineStyle: LineStyle) => void;
@@ -26,7 +28,9 @@ export function SignalLineLegend({
     <section
       role="dialog"
       aria-labelledby={titleId}
-      className="absolute right-0 top-full z-50 mt-1 w-[min(44rem,calc(100vw-2rem))] rounded border bg-white text-slate-900 shadow-lg"
+      className={placement === "canvas"
+        ? "pid-canvas-signal-legend"
+        : "absolute right-0 top-full z-50 mt-1 w-[min(44rem,calc(100vw-2rem))] rounded border bg-white text-slate-900 shadow-lg"}
     >
       <header className="flex items-center justify-between gap-3 border-b px-3 py-2">
         <div>

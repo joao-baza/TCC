@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 
@@ -58,7 +58,9 @@ describe("integração real do studio P&ID", () => {
     expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Aplicar Sinal pneumático" }));
+    const canvasRegion = screen.getByRole("region", { name: "Canvas P&ID" });
+    expect(within(canvasRegion).getByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).toHaveClass("pid-canvas-signal-legend");
+    fireEvent.click(await within(canvasRegion).findByRole("button", { name: "Aplicar Sinal pneumático" }));
     await waitFor(() => expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute("data-signal-line-style", "pneumatic-signal"));
     expect(screen.getByText("Estilo de linha aplicado à aresta selecionada.")).toBeInTheDocument();
     await waitFor(() => expect(save).toHaveBeenCalled());

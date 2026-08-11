@@ -3,7 +3,6 @@ import { expect, it, vi } from "vitest";
 
 import type { PidDocument } from "@/features/pid/domain/model";
 import { alignSelection, rotateSelection } from "@/features/pid/domain/commands";
-import { signalLineLegendItems } from "@/features/pid/canvas/signal-line-pattern";
 import {
   EditorToolbar,
   getEditorPositionedSelectionIds,
@@ -19,8 +18,8 @@ const actions = {
 
 function toolbarExtras(overrides: Partial<Parameters<typeof EditorToolbar>[0]> = {}) {
   return {
-    selectedEdgeId: null,
-    onApplyLineStyle: vi.fn(),
+    signalLegendOpen: false,
+    onToggleSignalLegend: vi.fn(),
     onCommand: vi.fn(),
     utilityCategories: [],
     ...overrides,
@@ -48,8 +47,8 @@ it("mantém somente exclusão habilitada para seleção exclusiva de aresta", ()
   expect(onExportSvg).toHaveBeenCalledTimes(1);
 });
 
-it("abre a legenda de sinais e aplica estilo quando há uma aresta selecionada", () => {
-  const onApplyLineStyle = vi.fn();
+it("aciona a legenda de sinais para renderização fixa no canvas", () => {
+  const onToggleSignalLegend = vi.fn();
   const capabilities: EditorSelectionCapabilities = {
     canDelete: true,
     canCopy: false,
@@ -58,57 +57,15 @@ it("abre a legenda de sinais e aplica estilo quando há uma aresta selecionada",
     canGroup: false,
     canAlign: false,
   };
-  render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ selectedEdgeId: "edge-1", onApplyLineStyle })} />);
+  const { rerender } = render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ onToggleSignalLegend })} />);
 
   fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
 
-  expect(screen.getByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).toBeInTheDocument();
-  for (const item of signalLineLegendItems) expect(screen.getByText(item.label)).toBeInTheDocument();
+  expect(onToggleSignalLegend).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("button", { name: "Aplicar Sinal pneumático" }));
-
-  expect(onApplyLineStyle).toHaveBeenCalledWith("pneumatic-signal");
-  expect(screen.getByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).toBeInTheDocument();
-});
-
-it("minimiza e restaura a legenda de sinais", () => {
-  const capabilities: EditorSelectionCapabilities = {
-    canDelete: true,
-    canCopy: false,
-    canDuplicate: false,
-    canRotate: false,
-    canGroup: false,
-    canAlign: false,
-  };
-  render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ selectedEdgeId: "edge-1" })} />);
-
-  fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
-  expect(screen.getByText("Sinal pneumático")).toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole("button", { name: "Minimizar legenda de sinais" }));
-  expect(screen.queryByText("Sinal pneumático")).not.toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole("button", { name: "Restaurar legenda de sinais" }));
-  expect(screen.getByText("Sinal pneumático")).toBeInTheDocument();
-});
-
-it("mantém a legenda como referência quando não há aresta selecionada", () => {
-  const onApplyLineStyle = vi.fn();
-  const capabilities: EditorSelectionCapabilities = {
-    canDelete: false,
-    canCopy: false,
-    canDuplicate: false,
-    canRotate: false,
-    canGroup: false,
-    canAlign: false,
-  };
-  render(<EditorToolbar editable={false} capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ onApplyLineStyle })} />);
-
-  fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
-  fireEvent.click(screen.getByText("Sinal pneumático").closest("[role='listitem']")!);
-
-  expect(onApplyLineStyle).not.toHaveBeenCalled();
-  expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeEnabled();
+  rerender(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ signalLegendOpen: true, onToggleSignalLegend })} />);
+  expect(screen.getByRole("button", { name: "Legenda de sinais" })).toHaveAttribute("aria-pressed", "true");
 });
 
 it("mantém exportação independente da permissão de edição", () => {
