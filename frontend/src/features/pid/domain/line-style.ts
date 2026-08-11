@@ -1,54 +1,57 @@
 import type { ConnectionClass } from "./model";
 
 export type LineStyle =
-  | "solid-thick"
-  | "solid-thin"
-  | "pneumatic"
-  | "dashed"
-  | "hydraulic"
-  | "capillary"
-  | "guided-wave"
-  | "unguided-wave"
-  | "digital"
-  | "mechanical"
-  | "undefined";
+  | "supply-impulse"
+  | "pneumatic-signal"
+  | "hydraulic-signal"
+  | "guided-electromagnetic-sonic"
+  | "software-link"
+  | "binary-pneumatic-signal"
+  | "undefined-signal"
+  | "electric-signal"
+  | "capillary-tube"
+  | "unguided-electromagnetic-sonic"
+  | "mechanical-link"
+  | "binary-electric-signal";
 
 export const LINE_STYLES: readonly LineStyle[] = [
-  "solid-thick",
-  "solid-thin",
-  "pneumatic",
-  "dashed",
-  "hydraulic",
-  "capillary",
-  "guided-wave",
-  "unguided-wave",
-  "digital",
-  "mechanical",
-  "undefined",
+  "supply-impulse",
+  "pneumatic-signal",
+  "hydraulic-signal",
+  "guided-electromagnetic-sonic",
+  "software-link",
+  "binary-pneumatic-signal",
+  "undefined-signal",
+  "electric-signal",
+  "capillary-tube",
+  "unguided-electromagnetic-sonic",
+  "mechanical-link",
+  "binary-electric-signal",
 ] as const;
 
 export const LINE_STYLE_INFO: Record<LineStyle, { label: string; description: string }> = {
-  "solid-thick":     { label: "Contínua grossa",     description: "Tubulação principal de processo" },
-  "solid-thin":      { label: "Contínua fina",       description: "Conexão ao processo, tomada de instrumento ou linha de impulso" },
-  "pneumatic":       { label: "Sinal pneumático",    description: "Transmissão por ar comprimido (3-15 psi)" },
-  "dashed":          { label: "Sinal elétrico",      description: "Sinal elétrico/eletrônico (4-20 mA, binário)" },
-  "hydraulic":       { label: "Sinal hidráulico",    description: "Transmissão por fluido hidráulico pressurizado" },
-  "capillary":       { label: "Tubo capilar",        description: "Sistema preenchido ou selo remoto com capilar" },
-  "guided-wave":     { label: "Guiado (fibra/cabo)", description: "Sinal eletromagnético/sônico guiado (fibra óptica, cabo especial)" },
-  "unguided-wave":   { label: "Não guiado (rádio)",  description: "Sinal sem fio, rádio ou comunicação não guiada" },
-  "digital":         { label: "Digital/barramento",  description: "Comunicação digital, barramento ou link de dados entre sistemas" },
-  "mechanical":      { label: "Ligação mecânica",    description: "Acoplamento mecânico entre dispositivos" },
-  "undefined":       { label: "Sinal indefinido",    description: "Meio de transmissão não definido ou irrelevante" },
+  "supply-impulse": { label: "Suprimento ou impulso", description: "Linha de suprimento, impulso ou tomada de instrumento." },
+  "pneumatic-signal": { label: "Sinal pneumático", description: "Transmissão pneumática de instrumentação." },
+  "hydraulic-signal": { label: "Sinal hidráulico", description: "Transmissão hidráulica de instrumentação." },
+  "guided-electromagnetic-sonic": { label: "Sinal eletromagnético ou sônico guiado", description: "Sinal guiado por cabo, fibra ou guia físico." },
+  "software-link": { label: "Ligação por software", description: "Ligação lógica ou por software entre sistemas." },
+  "binary-pneumatic-signal": { label: "Sinal binário pneumático", description: "Sinal pneumático discreto/binário." },
+  "undefined-signal": { label: "Sinal não-definido", description: "Meio de transmissão ainda não definido." },
+  "electric-signal": { label: "Sinal elétrico", description: "Sinal elétrico ou eletrônico." },
+  "capillary-tube": { label: "Tubo capilar", description: "Tubo capilar ou sistema preenchido." },
+  "unguided-electromagnetic-sonic": { label: "Sinal eletromagnético ou sônico não-guiado", description: "Sinal sem guia físico, rádio ou acústico livre." },
+  "mechanical-link": { label: "Ligação mecânica", description: "Acoplamento ou transmissão mecânica." },
+  "binary-electric-signal": { label: "Sinal binário elétrico", description: "Sinal elétrico discreto/binário." },
 };
 
 export const CONNECTION_CLASS_INFO: Record<ConnectionClass, { label: string; description: string }> = {
-  "process":  { label: "Processo",  description: "Linha de fluido do processo produtivo principal" },
-  "utility":  { label: "Utilidade", description: "Linha de serviço auxiliar (vapor, água, ar, etc.)" },
-  "signal":   { label: "Sinal",     description: "Conexão de instrumentação, controle ou transmissão de dados" },
+  process: { label: "Processo", description: "Linha de fluido do processo produtivo principal" },
+  utility: { label: "Utilidade", description: "Linha de serviço auxiliar (vapor, água, ar, etc.)" },
+  signal: { label: "Sinal", description: "Conexão de instrumentação, controle ou transmissão de dados" },
 };
 
 export const DEFAULT_LINE_STYLE: Record<ConnectionClass, LineStyle> = {
-  "process": "solid-thick",
-  "utility": "solid-thin",
-  "signal": "dashed",
+  process: "supply-impulse",
+  utility: "supply-impulse",
+  signal: "electric-signal",
 };

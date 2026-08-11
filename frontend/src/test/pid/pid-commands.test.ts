@@ -181,6 +181,28 @@ describe("comandos canônicos P&ID", () => {
     expect(Object.values(crossClass.edges)).toHaveLength(1);
   });
 
+  it("usa sinal eletrico como estilo padrao de nova conexao signal", () => {
+    const context = deterministicContext();
+    const signalSymbol: CatalogSymbol = {
+      ...symbol,
+      key: "signal-source",
+      portTemplates: [
+        { key: "signal-out", direction: "output", connectionClass: "signal", capacity: 1 },
+        { key: "signal-in", direction: "input", connectionClass: "signal", capacity: 1 },
+      ],
+    };
+    let document = emptyDocument();
+    document = applyCommand(document, insertSymbol(signalSymbol, { x: 0, y: 0 }), context);
+    document = applyCommand(document, insertSymbol(signalSymbol, { x: 200, y: 0 }), context);
+    const ports = Object.values(document.ports);
+    const source = ports.find((port) => port.templateKey === "signal-out")!;
+    const target = ports.find((port) => port.templateKey === "signal-in" && port.nodeId !== source.nodeId)!;
+
+    const next = applyCommand(document, connectPorts(source.id, target.id, "signal"), context);
+
+    expect(Object.values(next.edges)[0].lineStyle).toBe("electric-signal");
+  });
+
   it("duplica o grupo preservando relações internas e trocando todos os IDs", () => {
     const withConnectedGroup = connectedGroup();
     const groupIds = Object.keys(withConnectedGroup.groups);

@@ -27,7 +27,7 @@ function createPopulatedDocument(): PidDocument {
       [ids.targetPort]: { id: ids.targetPort, nodeId: ids.node, templateKey: "inlet", direction: "input", connectionClass: "process", capacity: 1 },
     },
     edges: {
-      [ids.edge]: { id: ids.edge, sourcePortId: ids.sourcePort, targetPortId: ids.targetPort, connectionClass: "process", lineStyle: "solid-thick", route: [{ x: 110, y: 20 }], tag: "L-100", label: "Linha", properties: { nested: { value: "edge" } } },
+      [ids.edge]: { id: ids.edge, sourcePortId: ids.sourcePort, targetPortId: ids.targetPort, connectionClass: "process", lineStyle: "supply-impulse", route: [{ x: 110, y: 20 }], tag: "L-100", label: "Linha", properties: { nested: { value: "edge" } } },
     },
     annotations: {
       [ids.annotation]: { id: ids.annotation, kind: "callout", text: "Nota", x: 120, y: 30, width: 160, height: 50, rotation: 0, nodeId: ids.node, edgeId: ids.edge, properties: { nested: { value: "annotation" } } },

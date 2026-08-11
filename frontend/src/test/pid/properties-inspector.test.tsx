@@ -309,7 +309,7 @@ function documentFixture(): PidDocument {
       [ids.port]: { id: ids.port, nodeId: ids.node, templateKey: "out", direction: "output", connectionClass: "process", capacity: 1 },
     },
     edges: {
-      [ids.edge]: { id: ids.edge, sourcePortId: ids.port, targetPortId: ids.port, connectionClass: "process", lineStyle: "solid-thick", route: [], tag: "L-1", label: "Linha", properties: {} },
+      [ids.edge]: { id: ids.edge, sourcePortId: ids.port, targetPortId: ids.port, connectionClass: "process", lineStyle: "supply-impulse", route: [], tag: "L-1", label: "Linha", properties: {} },
     },
     annotations: {
       [ids.annotation]: { id: ids.annotation, kind: "note", text: "Nota", x: 30, y: 40, width: 120, height: 80, rotation: 0, properties: {} },
@@ -367,11 +367,11 @@ function overloadedEditorDocument(): PidDocument {
   document.edges = {
     "40000000-0000-4000-8000-000000000002": {
       id: "40000000-0000-4000-8000-000000000002", sourcePortId: sourcePort, targetPortId: firstInlet,
-      connectionClass: "process", lineStyle: "solid-thick", route: [], tag: "L-1", label: "Linha 1", properties: {},
+      connectionClass: "process", lineStyle: "supply-impulse", route: [], tag: "L-1", label: "Linha 1", properties: {},
     },
     "40000000-0000-4000-8000-000000000003": {
       id: "40000000-0000-4000-8000-000000000003", sourcePortId: sourcePort, targetPortId: secondInlet,
-      connectionClass: "process", lineStyle: "solid-thick", route: [], tag: "L-2", label: "Linha 2", properties: {},
+      connectionClass: "process", lineStyle: "supply-impulse", route: [], tag: "L-2", label: "Linha 2", properties: {},
     },
   };
   return document;

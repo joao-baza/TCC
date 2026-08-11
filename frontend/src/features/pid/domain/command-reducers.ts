@@ -13,6 +13,7 @@ import {
   uniqueIds,
 } from "./graph-operations";
 import type {
+  ConnectionClass,
   PidAnnotation,
   PidDocument,
   PidEdge,

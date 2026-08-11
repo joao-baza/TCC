@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { PidDocument, PidJsonValue, PidProperties } from "@/features/pid/domain/model";
+import { LINE_STYLES, LINE_STYLE_INFO, DEFAULT_LINE_STYLE } from "@/features/pid/domain/line-style";
 import {
   createEmptyDocument,
   parsePidDocument,
@@ -68,7 +69,7 @@ function createPopulatedDocument(): PidDocument {
         sourcePortId: ids.sourcePort,
         targetPortId: ids.targetPort,
         connectionClass: "process",
-        lineStyle: "solid-thick",
+        lineStyle: "supply-impulse",
         route: [{ x: 110, y: 20 }, { x: 180, y: 20 }],
         tag: "L-100",
         label: "Linha de processo",
@@ -174,6 +175,37 @@ describe("documento canônico P&ID", () => {
       metadata: { ...document.metadata, standard },
     })).toThrow();
   });
+
+  it("aceita somente os 12 estilos canonicos da legenda de sinais", () => {
+    expect(LINE_STYLES).toEqual([
+      "supply-impulse",
+      "pneumatic-signal",
+      "hydraulic-signal",
+      "guided-electromagnetic-sonic",
+      "software-link",
+      "binary-pneumatic-signal",
+      "undefined-signal",
+      "electric-signal",
+      "capillary-tube",
+      "unguided-electromagnetic-sonic",
+      "mechanical-link",
+      "binary-electric-signal",
+    ]);
+    expect(Object.keys(LINE_STYLE_INFO)).toEqual([...LINE_STYLES]);
+    expect(DEFAULT_LINE_STYLE.process).toBe("supply-impulse");
+    expect(DEFAULT_LINE_STYLE.utility).toBe("supply-impulse");
+    expect(DEFAULT_LINE_STYLE.signal).toBe("electric-signal");
+  });
+
+  it.each(["solid-thick", "solid-thin", "dashed", "pneumatic", "hydraulic", "capillary", "guided-wave", "unguided-wave", "digital", "mechanical", "undefined"])(
+    "rejeita estilo legado removido %s",
+    (lineStyle) => {
+      const document = createPopulatedDocument();
+      document.edges[ids.edge].lineStyle = lineStyle as never;
+
+      expect(() => parsePidDocument(document)).toThrow();
+    },
+  );
 
   it("destaca propriedades analisadas do objeto de entrada", () => {
     const input = createPopulatedDocument();

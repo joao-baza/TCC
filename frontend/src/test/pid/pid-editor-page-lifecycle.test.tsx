@@ -131,7 +131,7 @@ function doubleOverloadedDocument(): PidDocument {
     sourcePortId,
     targetPortId,
     connectionClass: "process",
-    lineStyle: "solid-thick",
+    lineStyle: "supply-impulse",
     route: [],
     tag,
     label: tag,

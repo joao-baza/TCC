@@ -347,7 +347,7 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
       sourcePortId: ids.pumpOut,
       targetPortId: ids.tankIn,
       connectionClass: "process",
-      lineStyle: "solid-thick",
+      lineStyle: "supply-impulse",
       route: [],
       tag: "",
       label: "",
@@ -494,7 +494,7 @@ function documentWithAnnotationAndEdge(): PidDocument {
   };
   document.edges[edgeId] = {
     id: edgeId, sourcePortId: ids.pumpOut, targetPortId: ids.tankIn,
-    connectionClass: "process", lineStyle: "solid-thick", route: [], tag: "", label: "", properties: {},
+    connectionClass: "process", lineStyle: "supply-impulse", route: [], tag: "", label: "", properties: {},
   };
   return document;
 }
@@ -516,7 +516,7 @@ function largeDocument(): PidDocument {
       sourcePortId: `out-${index % 500}`,
       targetPortId: `in-${target}`,
       connectionClass: "process",
-      lineStyle: "solid-thick",
+      lineStyle: "supply-impulse",
       route: [],
       tag: "",
       label: "",

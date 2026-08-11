@@ -31,7 +31,7 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
     props.targetPosition,
   );
   const path = isSinusoidal(processEdge.lineStyle)
-    ? sinusoidalPath(routePoints, processEdge.lineStyle === "unguided-wave")
+    ? sinusoidalPath(routePoints, false)
     : pointsPath(routePoints);
   const midpoint = pathMidpoint(routePoints);
   const label = [processEdge.tag, processEdge.label].filter(Boolean).join(" ");

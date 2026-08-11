@@ -178,7 +178,7 @@ function arrowDocument(connectionClass: ConnectionClass, rotation: number): PidD
   document.nodes["node-b"] = { ...document.nodes["node-b"], x: -120, y: -120, width: 40, height: 40, rotation, tag: "", label: "" };
   document.ports.source = { ...document.ports.source, connectionClass };
   document.ports.target = { ...document.ports.target, connectionClass };
-  document.edges.edge = { ...document.edges.edge, connectionClass, lineStyle: { "process": "solid-thick" as const, "utility": "solid-thin" as const, "signal": "dashed" as const }[connectionClass], route: [], tag: "", label: "" };
+  document.edges.edge = { ...document.edges.edge, connectionClass, lineStyle: { "process": "supply-impulse" as const, "utility": "supply-impulse" as const, "signal": "electric-signal" as const }[connectionClass], route: [], tag: "", label: "" };
   document.annotations = {};
   document.groups = {};
   return document;
@@ -257,7 +257,7 @@ function exportDocument(): PidDocument {
   };
   document.edges = {
     edge: {
-      id: "edge", sourcePortId: "source", targetPortId: "target", connectionClass: "process", lineStyle: "solid-thick",
+      id: "edge", sourcePortId: "source", targetPortId: "target", connectionClass: "process", lineStyle: "supply-impulse",
       route: [{ x: -50, y: 150 }, { x: 240, y: 150 }], tag: "L-1", label: "Linha", properties: {},
     },
   };
