@@ -6,23 +6,26 @@ export interface LineStyleAttributes {
   stroke: string;
 }
 
+const signalStroke = "#64748b";
+const signalAttributes: LineStyleAttributes = { strokeWidth: 1.5, stroke: signalStroke };
+
+const lineStyleAttributeMap: Record<LineStyle, LineStyleAttributes> = {
+  "supply-impulse": { strokeWidth: 1.5, stroke: "#475569" },
+  "pneumatic-signal": signalAttributes,
+  "hydraulic-signal": signalAttributes,
+  "guided-electromagnetic-sonic": signalAttributes,
+  "software-link": signalAttributes,
+  "binary-pneumatic-signal": signalAttributes,
+  "undefined-signal": signalAttributes,
+  "electric-signal": { ...signalAttributes, strokeDasharray: "14 7" },
+  "capillary-tube": signalAttributes,
+  "unguided-electromagnetic-sonic": signalAttributes,
+  "mechanical-link": signalAttributes,
+  "binary-electric-signal": { ...signalAttributes, strokeDasharray: "14 7" },
+};
+
 export function lineStyleAttributes(lineStyle: LineStyle): LineStyleAttributes {
-  switch (lineStyle) {
-    case "supply-impulse":
-      return { strokeWidth: 1.5, strokeDasharray: "16 6", stroke: "#475569" };
-    case "pneumatic-signal":
-    case "hydraulic-signal":
-    case "guided-electromagnetic-sonic":
-    case "software-link":
-    case "binary-pneumatic-signal":
-    case "undefined-signal":
-    case "electric-signal":
-    case "capillary-tube":
-    case "unguided-electromagnetic-sonic":
-    case "mechanical-link":
-    case "binary-electric-signal":
-      return { strokeWidth: 1.5, strokeDasharray: "16 6", stroke: "#64748b" };
-  }
+  return { ...lineStyleAttributeMap[lineStyle] };
 }
 
 export function isSinusoidal(_lineStyle: LineStyle): boolean {
