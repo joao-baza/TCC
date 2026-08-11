@@ -89,16 +89,20 @@ describe("integração real do studio P&ID", () => {
       mount(services(documentPort));
       await screen.findByRole("button", { name: "Bomba P-1" });
       fireEvent.click(screen.getByRole("button", { name: "Compartilhar" }));
+      const viewButton = screen.getByRole("button", { name: "Gerar novo link de visualização" });
+      const editButton = screen.getByRole("button", { name: "Gerar novo link de edição" });
+      expect(viewButton.parentElement).toBe(editButton.parentElement);
+      expect(viewButton.parentElement).toHaveClass("flex", "flex-wrap", "gap-3");
 
-      fireEvent.click(screen.getByRole("button", { name: "Gerar novo link de visualização" }));
+      fireEvent.click(viewButton);
       const firstViewLink = await screen.findByDisplayValue(/#access=view-token-1$/);
       const firstViewUrl = (firstViewLink as HTMLInputElement).value;
 
-      fireEvent.click(screen.getByRole("button", { name: "Gerar novo link de edição" }));
+      fireEvent.click(editButton);
       const editLink = await screen.findByDisplayValue(/#access=edit-token-1$/);
       const editUrl = (editLink as HTMLInputElement).value;
 
-      fireEvent.click(screen.getByRole("button", { name: "Gerar novo link de visualização" }));
+      fireEvent.click(viewButton);
       const currentViewLink = await screen.findByDisplayValue(/#access=view-token-2$/);
       const currentViewUrl = (currentViewLink as HTMLInputElement).value;
       fireEvent.click(screen.getByRole("button", { name: "Copiar link de visualização" }));

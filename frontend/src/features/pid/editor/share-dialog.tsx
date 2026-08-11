@@ -53,8 +53,10 @@ export function ShareDialog({ documentPort, diagramId, editToken, revision, onRe
       <Dialog.Popup className="pid-modal-card pid-modal-popup" initialFocus={closeRef} finalFocus={triggerRef}>
         <header><Dialog.Title>Compartilhar diagrama</Dialog.Title><Dialog.Close ref={closeRef} aria-label="Fechar compartilhamento">×</Dialog.Close></header>
         <Dialog.Description>Gerar um novo link invalida imediatamente o link anterior do mesmo tipo.</Dialog.Description>
-        <button type="button" disabled={busy !== null} onClick={() => void regenerate("view")}>Gerar novo link de visualização</button>
-        <button type="button" disabled={busy !== null} onClick={() => void regenerate("edit")}>Gerar novo link de edição</button>
+        <div className="flex flex-wrap gap-3">
+          <button className="min-h-11 min-w-11 w-fit rounded-md border px-4 py-2" type="button" disabled={busy !== null} onClick={() => void regenerate("view")}>Gerar novo link de visualização</button>
+          <button className="min-h-11 min-w-11 w-fit rounded-md bg-primary px-4 py-2 text-primary-foreground" type="button" disabled={busy !== null} onClick={() => void regenerate("edit")}>Gerar novo link de edição</button>
+        </div>
         {(["view", "edit"] as const).map((scope) => links[scope] && <label key={scope}>Novo link de {scope === "view" ? "visualização" : "edição"}
           <input readOnly value={links[scope]} onFocus={(event) => event.currentTarget.select()} />
           <button type="button" onClick={() => void copy(scope)}>Copiar link de {scope === "view" ? "visualização" : "edição"}</button>
