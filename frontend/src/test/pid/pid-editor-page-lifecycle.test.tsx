@@ -51,12 +51,12 @@ function services(overrides: Partial<PidServices["document"]> = {}, scope: "view
 }
 
 function mount(pidServices: PidServices, strict = false) {
-  const router = createMemoryRouter([{
-    path: "/pid/:diagramId",
-    element: <PidEditorPage />,
-  }], { initialEntries: [`/pid/${diagramId}#access=edit-token`] });
+  const router = createMemoryRouter([
+    { path: "/pid", element: <h1>Diagramas P&ID</h1> },
+    { path: "/pid/:diagramId", element: <PidEditorPage /> },
+  ], { initialEntries: [`/pid/${diagramId}#access=edit-token`] });
   const page = <PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>;
-  return render(strict ? <StrictMode>{page}</StrictMode> : page);
+  return { router, ...render(strict ? <StrictMode>{page}</StrictMode> : page) };
 }
 
 function NavigationControl({ targetId }: { targetId: string }) {
@@ -65,16 +65,20 @@ function NavigationControl({ targetId }: { targetId: string }) {
 }
 
 function mountWithNavigation(pidServices: PidServices, targetId: string) {
-  const router = createMemoryRouter([{
-    path: "/pid/:diagramId",
-    element: <><NavigationControl targetId={targetId} /><PidEditorPage /></>,
-  }], { initialEntries: [`/pid/${diagramId}#access=edit-token`] });
+  const router = createMemoryRouter([
+    { path: "/pid", element: <h1>Diagramas P&ID</h1> },
+    {
+      path: "/pid/:diagramId",
+      element: <><NavigationControl targetId={targetId} /><PidEditorPage /></>,
+    },
+  ], { initialEntries: [`/pid/${diagramId}#access=edit-token`] });
   return { router, ...render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>) };
 }
 
 function mountWithExitNavigation(pidServices: PidServices) {
   const router = createMemoryRouter([
     { path: "/", element: <h1>Início</h1> },
+    { path: "/pid", element: <h1>Diagramas P&ID</h1> },
     { path: "/pid/:diagramId", element: <PidEditorPage /> },
   ], { initialEntries: ["/", `/pid/${diagramId}#access=edit-token`], initialIndex: 1 });
   return { router, ...render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>) };
@@ -389,7 +393,7 @@ describe("studio focado P&ID", () => {
     await screen.findByRole("heading", { name: "Utilidades" });
     expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "false");
     expect(screen.queryByRole("button", { name: "Compartilhar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Ações do documento" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Excluir diagrama" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Excluir seleção" })).not.toBeInTheDocument();
   });
 
@@ -409,41 +413,33 @@ describe("studio focado P&ID", () => {
     expect(pidServices.document.save).toHaveBeenCalledWith(diagramId, "rotated-token", expect.any(Object), 2);
   });
 
-  it("exige o título exato para excluir e permite restaurar com a revisão retornada", async () => {
+  it("exige o título exato para excluir e retorna para a listagem P&ID", async () => {
     const pidServices = services();
-    mount(pidServices);
+    const { router } = mount(pidServices);
     await screen.findByRole("heading", { name: "Utilidades" });
-    const actionsTrigger = screen.getByRole("button", { name: "Ações do documento" });
-    fireEvent.click(actionsTrigger);
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    const deleteTrigger = screen.getByRole("button", { name: "Excluir diagrama" });
+    fireEvent.click(deleteTrigger);
     const confirmation = screen.getByLabelText("Digite Utilidades para confirmar");
     fireEvent.change(confirmation, { target: { value: "utilidades" } });
     expect(screen.getByRole("button", { name: "Confirmar exclusão" })).toBeDisabled();
     fireEvent.change(confirmation, { target: { value: "Utilidades" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
     await waitFor(() => expect(pidServices.document.softDelete).toHaveBeenCalledWith(diagramId, "edit-token", 1));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Diagrama excluído");
-    fireEvent.click(screen.getByRole("button", { name: "Restaurar diagrama" }));
-    await waitFor(() => expect(pidServices.document.restore).toHaveBeenCalledWith(diagramId, "edit-token", 3));
-    expect(screen.getByTestId("pid-canvas")).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.pathname).toBe("/pid"));
+    expect(screen.getByRole("heading", { name: "Diagramas P&ID" })).toBeInTheDocument();
   });
 
-  it("salva a versão pendente antes de excluir e restaura o conteúdo mais recente", async () => {
+  it("salva a versão pendente antes de excluir e retorna para a listagem", async () => {
     vi.useFakeTimers();
-    let persisted = document;
     const save = vi.fn().mockImplementation(async (_diagramId, _token, nextDocument) => {
-      persisted = nextDocument;
+      expect(Object.keys(nextDocument.annotations)).toHaveLength(1);
       return 2;
     });
-    const open = vi.fn()
-      .mockResolvedValueOnce({ scope: "edit", document, revision: 1 })
-      .mockImplementationOnce(async () => ({ scope: "edit", document: persisted, revision: 4 }));
-    const pidServices = services({ open, save });
-    mount(pidServices);
+    const pidServices = services({ save });
+    const { router } = mount(pidServices);
     await act(async () => { await Promise.resolve(); });
     fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir diagrama" }));
     fireEvent.change(screen.getByLabelText("Digite Utilidades para confirmar"), { target: { value: "Utilidades" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
@@ -452,18 +448,8 @@ describe("studio focado P&ID", () => {
     expect(save).toHaveBeenCalledOnce();
     expect(Object.keys(save.mock.calls[0][2].annotations)).toHaveLength(1);
     expect(pidServices.document.softDelete).toHaveBeenCalledWith(diagramId, "edit-token", 2);
-    expect(screen.queryByRole("button", { name: "Compartilhar" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Pesquisar símbolos")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("pid-canvas")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Restaurar diagrama" }));
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
-    expect(screen.getByRole("button", { name: "Compartilhar" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Pesquisar símbolos")).toBeInTheDocument();
-    expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-annotation-count", "1");
-    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    expect(save).toHaveBeenLastCalledWith(diagramId, "edit-token", expect.any(Object), 4);
+    expect(router.state.location.pathname).toBe("/pid");
+    expect(screen.getByRole("heading", { name: "Diagramas P&ID" })).toBeInTheDocument();
   });
 
   it("aborta a exclusão e mantém a edição recuperável quando o flush falha", async () => {
@@ -473,9 +459,8 @@ describe("studio focado P&ID", () => {
     mount(pidServices);
     await act(async () => { await Promise.resolve(); });
     fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    const actionsTrigger = screen.getByRole("button", { name: "Ações do documento" });
-    fireEvent.click(actionsTrigger);
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    const deleteTrigger = screen.getByRole("button", { name: "Excluir diagrama" });
+    fireEvent.click(deleteTrigger);
     fireEvent.change(screen.getByLabelText("Digite Utilidades para confirmar"), { target: { value: "Utilidades" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
@@ -506,8 +491,7 @@ describe("studio focado P&ID", () => {
     fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
     await waitFor(() => expect(save).toHaveBeenCalledOnce());
     fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir diagrama" }));
     fireEvent.change(screen.getByLabelText("Digite Utilidades para confirmar"), { target: { value: "Utilidades" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
 
@@ -546,13 +530,12 @@ describe("studio focado P&ID", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Compartilhar diagrama" })).not.toBeInTheDocument());
     expect(shareTrigger).toHaveFocus();
 
-    const actionsTrigger = screen.getByRole("button", { name: "Ações do documento" });
-    fireEvent.click(actionsTrigger);
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    const deleteTrigger = screen.getByRole("button", { name: "Excluir diagrama" });
+    fireEvent.click(deleteTrigger);
     const deleteDialog = screen.getByRole("alertdialog", { name: "Excluir diagrama" });
     const confirmation = screen.getByLabelText("Digite Utilidades para confirmar");
     await waitFor(() => expect(confirmation).toHaveFocus());
-    expect(actionsTrigger.closest("[data-base-ui-inert]")).not.toBeNull();
+    expect(deleteTrigger.closest("[data-base-ui-inert]")).not.toBeNull();
     const cancel = screen.getByRole("button", { name: "Cancelar" });
     fireEvent.keyDown(confirmation, { key: "Tab", shiftKey: true });
     expect(deleteDialog).toContainElement(globalThis.document.activeElement as HTMLElement);
@@ -563,7 +546,7 @@ describe("studio focado P&ID", () => {
     expect(deleteDialog).toBeInTheDocument();
     fireEvent.keyDown(cancel, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("alertdialog", { name: "Excluir diagrama" })).not.toBeInTheDocument());
-    expect(actionsTrigger).toHaveFocus();
+    expect(deleteTrigger).toHaveFocus();
   });
 
   it("espera o save em voo antes do soft delete e não agenda save subsequente", async () => {
@@ -577,8 +560,7 @@ describe("studio focado P&ID", () => {
     fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     expect(save).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir diagrama" }));
     fireEvent.change(screen.getByLabelText("Digite Utilidades para confirmar"), { target: { value: "Utilidades" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
     expect(softDelete).not.toHaveBeenCalled();
@@ -589,29 +571,4 @@ describe("studio focado P&ID", () => {
     expect(save).toHaveBeenCalledOnce();
   });
 
-  it("preserva a revisão restaurada e recupera sem repetir o CAS quando a primeira reabertura falha", async () => {
-    const open = vi.fn()
-      .mockResolvedValueOnce({ scope: "edit", document, revision: 1 })
-      .mockRejectedValueOnce(new Error("offline"))
-      .mockResolvedValueOnce({ scope: "edit", document, revision: 4 });
-    const restore = vi.fn().mockResolvedValue(4);
-    const pidServices = services({ open, restore });
-    mount(pidServices);
-    await act(async () => { await Promise.resolve(); });
-    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
-    fireEvent.change(screen.getByLabelText("Digite Utilidades para confirmar"), { target: { value: "Utilidades" } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Restaurar diagrama" })).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: "Restaurar diagrama" }));
-    expect(await screen.findByText("O diagrama foi restaurado, mas não foi possível recarregá-lo.")).toBeInTheDocument();
-    expect(restore).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole("button", { name: "Tentar recuperar diagrama" }));
-    await waitFor(() => expect(screen.getByTestId("pid-canvas")).toBeInTheDocument());
-
-    expect(restore).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    await waitFor(() => expect(pidServices.document.save).toHaveBeenCalledWith(diagramId, "edit-token", expect.any(Object), 4));
-  });
 });

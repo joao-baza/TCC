@@ -74,7 +74,7 @@ describe("capacidade responsiva de edição", () => {
     expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-editable", "false");
     expect(screen.queryByRole("button", { name: "Adicionar anotação" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Compartilhar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Ações do documento" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Excluir diagrama" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Catálogo de símbolos" })).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Inspetor" })).toHaveTextContent("Somente leitura");
     expect(screen.getByRole("region", { name: "Validações do documento" })).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("capacidade responsiva de edição", () => {
     expect(screen.queryByText("Edição disponível em telas a partir de 768 px")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Adicionar anotação" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Ações do documento" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Excluir diagrama" })).toBeEnabled();
     expect(screen.getByRole("region", { name: "Catálogo de símbolos" })).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "a", ctrlKey: true, shiftKey: true });

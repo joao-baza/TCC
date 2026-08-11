@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Link, useBlocker, useLocation, useParams } from "react-router-dom";
+import { Link, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,7 @@ import {
   getEditorPositionedSelectionIds, getEditorSelectionCapabilities,
 } from "./editor-toolbar-utils";
 import { createEditorStore, type EditorStore } from "./editor-store";
-import { DocumentActionsMenu } from "./document-actions-menu";
+import { DocumentDeleteButton } from "./document-actions-menu";
 import { ShareDialog } from "./share-dialog";
 import {
   PropertiesInspector, type InspectorCommandResult, type PropertiesInspectorHandle,
@@ -63,7 +63,7 @@ interface EditorSession {
   readonly store: EditorStore;
 }
 
-type EditorLifecycle = "active" | "deleting" | "deleted" | "restoring";
+type EditorLifecycle = "active" | "deleting" | "deleted";
 type ExportFormat = "svg" | "png";
 
 const BLOCKED_SELECTION_CAPABILITIES = Object.freeze({
@@ -146,6 +146,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   registerNavigationGuard: (guard: () => Promise<number>) => () => void;
 }) {
   const { document: documentPort } = usePidServices();
+  const navigate = useNavigate();
   const { store, opened } = session;
   const subscribe = useCallback((notify: () => void) => store.subscribe(() => notify()), [store]);
   const editor = useSyncExternalStore(subscribe, store.getState, store.getState);
@@ -483,38 +484,14 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     setRevision(nextRevision);
     lifecycleRef.current = "deleted";
     setLifecycle("deleted");
-  }, []);
+    void navigate("/pid");
+  }, [navigate]);
   const deleteFailed = useCallback((currentRevision: number) => {
     const preservedRevision = autosave.resumeLocal(currentRevision);
     setRevision((previous) => Math.max(previous, preservedRevision));
     lifecycleRef.current = "active";
     setLifecycle("active");
   }, [autosave]);
-  const beforeRestore = useCallback(() => {
-    lifecycleRef.current = "restoring";
-    setLifecycle("restoring");
-    setOperationError(null);
-  }, []);
-  const restoreConfirmed = useCallback((nextRevision: number) => {
-    setRevision(nextRevision);
-    lifecycleRef.current = "restoring";
-    setLifecycle("restoring");
-  }, []);
-  const restoredSuccessfully = useCallback(async (nextRevision: number) => {
-    const remote = await documentPort.open(diagramId, editToken);
-    if (remote.scope !== "edit") throw new Error("A restauração não devolveu acesso de edição ao diagrama.");
-    store.replace(remote.document, "remote");
-    const restoredRevision = Math.max(nextRevision, remote.revision);
-    setRevision(restoredRevision);
-    autosave.resumeRemote(restoredRevision);
-    lifecycleRef.current = "active";
-    setLifecycle("active");
-  }, [autosave, diagramId, documentPort, editToken, store]);
-  const restoreFailed = useCallback(() => {
-    lifecycleRef.current = "deleted";
-    setLifecycle("deleted");
-  }, []);
-
   return <PidThemeProvider>
     <main className={cn("pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]", textSizeClass)}>
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
@@ -525,20 +502,15 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
           {documentActionsAvailable && (
-            <DocumentActionsMenu
+            <DocumentDeleteButton
               documentPort={documentPort}
               diagramId={diagramId}
               editToken={editToken}
               revision={revision}
               title={editor.document.metadata.title}
-              deleted={lifecycle === "deleted"}
               onBeforeDelete={beforeDelete}
               onDeleted={deletedSuccessfully}
               onDeleteFailed={deleteFailed}
-              onBeforeRestore={beforeRestore}
-              onRestoreConfirmed={restoreConfirmed}
-              onRestored={restoredSuccessfully}
-              onRestoreFailed={restoreFailed}
               onAnnouncement={setAnnouncement}
             />
           )}
@@ -571,7 +543,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         </Tooltip></div>}
       </aside>}
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
-        {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : lifecycle === "restoring" ? "Restaurando diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada até que o diagrama seja restaurado.</p></div>
+        {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada enquanto o editor retorna para a listagem.</p></div>
           : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editorEnabled} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => {
             select([...nodeIds, ...edgeIds, ...annotationIds]);
           }} activeConnectionClass={connectionClass} viewportAction={viewportAction} onViewportChange={(next) => store.setViewport(next)} className="pid-studio-canvas-surface" />}

@@ -118,38 +118,26 @@ describe("integração real do studio P&ID", () => {
     }
   });
 
-  it("remove canvas, compartilhamento e catálogo ao excluir e os recompõe após restaurar", async () => {
-    const restored = studioDocument();
-    restored.metadata.title = "Studio restaurado";
-    const open = vi.fn()
-      .mockResolvedValueOnce({ scope: "edit", document: studioDocument(), revision: 1 })
-      .mockResolvedValueOnce({ scope: "edit", document: restored, revision: 3 });
-    mount(services({ open, softDelete: vi.fn().mockResolvedValue(2), restore: vi.fn().mockResolvedValue(3) }));
+  it("retorna para a listagem P&ID após confirmar exclusão", async () => {
+    const softDelete = vi.fn().mockResolvedValue(2);
+    const { router } = mount(services({ softDelete }));
     await screen.findByRole("button", { name: "Bomba P-1" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Ações do documento" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Excluir diagrama" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir diagrama" }));
     fireEvent.change(screen.getByLabelText("Digite Studio integrado para confirmar"), { target: { value: "Studio integrado" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-    expect(await screen.findByRole("heading", { name: "Diagrama excluído" })).toBeInTheDocument();
-    expect(screen.queryByTestId("pid-canvas")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Compartilhar" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Pesquisar símbolos")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Restaurar diagrama" }));
-    expect(await screen.findByRole("heading", { name: "Studio restaurado" })).toBeInTheDocument();
-    expect(screen.getByTestId("pid-canvas")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();
-    expect(screen.getByLabelText("Pesquisar símbolos")).toBeInTheDocument();
+    await waitFor(() => expect(softDelete).toHaveBeenCalledWith(ids.diagram, "edit-token", 1));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/pid"));
+    expect(screen.getByRole("heading", { name: "Diagramas P&ID" })).toBeInTheDocument();
   });
 });
 
 function mount(pidServices: PidServices) {
-  const router = createMemoryRouter([{
-    path: "/pid/:diagramId",
-    element: <PidEditorPage />,
-  }], { initialEntries: [`/pid/${ids.diagram}#access=edit-token`] });
-  return render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>);
+  const router = createMemoryRouter([
+    { path: "/pid", element: <h1>Diagramas P&ID</h1> },
+    { path: "/pid/:diagramId", element: <PidEditorPage /> },
+  ], { initialEntries: [`/pid/${ids.diagram}#access=edit-token`] });
+  return { router, ...render(<PidServicesProvider services={pidServices}><RouterProvider router={router} /></PidServicesProvider>) };
 }
 
 function services(documentOverrides: Partial<PidDocumentPort> = {}): PidServices {
