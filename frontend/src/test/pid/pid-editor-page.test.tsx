@@ -24,7 +24,8 @@ beforeEach(() => window.history.replaceState(null, "", "/"));
 
 describe("integração real do studio P&ID", () => {
   it("deriva a toolbar da seleção real, executa comandos e alterna a classe de linha", async () => {
-    mount(services());
+    const save = vi.fn().mockResolvedValue(2);
+    mount(services({ save }));
     const pump = await screen.findByRole("button", { name: "Bomba P-1" });
     expect(screen.getByRole("button", { name: "Excluir seleção" })).toBeDisabled();
 
@@ -60,6 +61,8 @@ describe("integração real do studio P&ID", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Aplicar Sinal pneumático" }));
     await waitFor(() => expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute("data-signal-line-style", "pneumatic-signal"));
     expect(screen.getByText("Estilo de linha aplicado à aresta selecionada.")).toBeInTheDocument();
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][2].edges[ids.edge].lineStyle).toBe("pneumatic-signal");
 
     const lineSelect = screen.getByLabelText("Tipo de linha de conexão");
     for (const value of ["utility", "signal", "process"]) {
