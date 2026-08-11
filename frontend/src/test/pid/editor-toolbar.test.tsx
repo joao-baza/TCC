@@ -36,7 +36,7 @@ it("mantém somente exclusão habilitada para seleção exclusiva de aresta", ()
     canAlign: false,
   };
   const onExportSvg = vi.fn();
-  render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={onExportSvg} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras()} />);
+  render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} onExportSvg={onExportSvg} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras()} />);
   expect(screen.getByRole("button", { name: "Excluir seleção" })).toBeEnabled();
   expect(screen.getByRole("button", { name: "Copiar" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Duplicar" })).toBeDisabled();
@@ -57,14 +57,14 @@ it("aciona a legenda de sinais para renderização fixa no canvas", () => {
     canGroup: false,
     canAlign: false,
   };
-  const { rerender } = render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ onToggleSignalLegend })} />);
+  const { rerender } = render(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ onToggleSignalLegend })} />);
 
   fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
 
   expect(onToggleSignalLegend).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole("dialog", { name: "Sinais utilizados nos fluxogramas de processo" })).not.toBeInTheDocument();
 
-  rerender(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ signalLegendOpen: true, onToggleSignalLegend })} />);
+  rerender(<EditorToolbar editable capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} onExportSvg={vi.fn()} onExportPng={vi.fn()} connectionClass="process" actions={actions} {...toolbarExtras({ signalLegendOpen: true, onToggleSignalLegend })} />);
   expect(screen.getByRole("button", { name: "Legenda de sinais" })).toHaveAttribute("aria-pressed", "true");
 });
 
@@ -74,7 +74,7 @@ it("mantém exportação independente da permissão de edição", () => {
   const capabilities: EditorSelectionCapabilities = {
     canDelete: false, canCopy: false, canDuplicate: false, canRotate: false, canGroup: false, canAlign: false,
   };
-  const { rerender } = render(<EditorToolbar editable={false} capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} exportBackground="white" onExportBackgroundChange={vi.fn()} onExportSvg={onExportSvg} onExportPng={onExportPng} connectionClass="process" actions={actions} {...toolbarExtras()} />);
+  const { rerender } = render(<EditorToolbar editable={false} capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport exporting={false} exportErrors={[]} onExportSvg={onExportSvg} onExportPng={onExportPng} connectionClass="process" actions={actions} {...toolbarExtras()} />);
   expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeEnabled();
   expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeEnabled();
   fireEvent.click(screen.getByRole("button", { name: "Exportar SVG" }));
@@ -82,12 +82,12 @@ it("mantém exportação independente da permissão de edição", () => {
   expect(onExportSvg).toHaveBeenCalledTimes(1);
   expect(onExportPng).toHaveBeenCalledTimes(1);
 
-  rerender(<EditorToolbar editable={false} capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport={false} exporting exportErrors={["O nó A referencia um símbolo ausente."]} exportBackground="transparent" onExportBackgroundChange={vi.fn()} onExportSvg={onExportSvg} onExportPng={onExportPng} connectionClass="process" actions={actions} {...toolbarExtras()} />);
+  rerender(<EditorToolbar editable={false} capabilities={capabilities} canUndo={false} canRedo={false} canPaste={false} canExport={false} exporting exportErrors={["O nó A referencia um símbolo ausente."]} onExportSvg={onExportSvg} onExportPng={onExportPng} connectionClass="process" actions={actions} {...toolbarExtras()} />);
   expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeDisabled();
   expect(screen.getByRole("group", { name: "Erros que bloqueiam a exportação" })).toHaveTextContent("O nó A referencia um símbolo ausente.");
   expect(screen.getByRole("status")).toHaveTextContent("Preparando exportação");
-  expect(screen.getByRole("combobox", { name: "Fundo da exportação" })).toHaveValue("transparent");
+  expect(screen.queryByRole("combobox", { name: "Fundo da exportação" })).not.toBeInTheDocument();
 });
 
 it("habilita rotação e alinhamento de grupo e preserva o ID do grupo para o comando", () => {

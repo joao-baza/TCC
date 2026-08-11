@@ -24,7 +24,7 @@ import type { LineStyle } from "../domain/line-style";
 import { validateDocument } from "../domain/validation";
 import { downloadBlob, pidExportFilename } from "../export/download";
 import { renderPidPng } from "../export/render-png";
-import { loadPidSvgAssets, renderPidSvg, type PidExportBackground, type PidSvgAssets } from "../export/render-svg";
+import { loadPidSvgAssets, renderPidSvg, type PidSvgAssets } from "../export/render-svg";
 import { copyEditorSelection, pasteEditorFragment, type EditorClipboardFragment } from "./editor-clipboard";
 import {
   EditorToolbar, type EditorToolbarActions,
@@ -171,7 +171,6 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const [viewportAction, setViewportAction] = useState<PidCanvasViewportAction>();
   const [announcement, setAnnouncement] = useState("");
   const [operationError, setOperationError] = useState<string | null>(null);
-  const [exportBackground, setExportBackground] = useState<PidExportBackground>("white");
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const exportInFlightRef = useRef(false);
   const exportMountedRef = useRef(false);
@@ -423,7 +422,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         throw reason;
       }
       if (!exportMountedRef.current) return;
-      const svg = await renderPidSvg(snapshot, assets, { background: exportBackground, padding: 24 });
+      const svg = await renderPidSvg(snapshot, assets, { background: "white", padding: 24 });
       if (!exportMountedRef.current) return;
       if (format === "svg") {
         downloadBlob(
@@ -432,7 +431,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         );
         setAnnouncement("Documento P&ID exportado em SVG.");
       } else {
-        const png = await renderPidPng(svg, { background: exportBackground });
+        const png = await renderPidPng(svg, { background: "white" });
         if (!exportMountedRef.current) return;
         downloadBlob(png, pidExportFilename(snapshot.metadata.title, "png"));
         setAnnouncement("Documento P&ID exportado em PNG.");
@@ -444,7 +443,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       exportInFlightRef.current = false;
       if (exportMountedRef.current) setExporting(null);
     }
-  }, [canExport, exportBackground, store]);
+  }, [canExport, store]);
 
   const toolbarActions: EditorToolbarActions = {
     undo: () => { undo(); }, redo: () => { redo(); }, deleteSelection: () => { remove(); }, duplicate: () => { duplicate(); },
@@ -521,7 +520,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1></div></div>
-      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} exportBackground={exportBackground} onExportBackgroundChange={setExportBackground} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} signalLegendOpen={signalLegendOpen} onToggleSignalLegend={toggleSignalLegend} iconSize={settings.iconSize} onCommand={dispatch} utilityCategories={editor.document.metadata.utilityCategories} />
+      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} signalLegendOpen={signalLegendOpen} onToggleSignalLegend={toggleSignalLegend} iconSize={settings.iconSize} onCommand={dispatch} utilityCategories={editor.document.metadata.utilityCategories} />
       <div className="pid-studio-session-controls">
         {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}

@@ -51,7 +51,7 @@ function IconButton({ label, shortcut, disabled, pressed, onClick, iconClass, ch
   </Tooltip>;
 }
 
-export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, exportBackground, onExportBackgroundChange, onExportSvg, onExportPng, connectionClass, actions, signalLegendOpen = false, onToggleSignalLegend = () => {}, iconSize = "md", onCommand = () => {}, utilityCategories = [] }: {
+export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPaste, canExport, exporting, exportErrors, onExportSvg, onExportPng, connectionClass, actions, signalLegendOpen = false, onToggleSignalLegend = () => {}, iconSize = "md", onCommand = () => {}, utilityCategories = [] }: {
   readonly editable: boolean;
   readonly capabilities: EditorSelectionCapabilities;
   readonly canUndo: boolean;
@@ -60,8 +60,6 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
   readonly canExport: boolean;
   readonly exporting: boolean;
   readonly exportErrors: readonly string[];
-  readonly exportBackground: "white" | "transparent";
-  readonly onExportBackgroundChange: (value: "white" | "transparent") => void;
   readonly onExportSvg: () => void;
   readonly onExportPng: () => void;
   readonly connectionClass: ConnectionClass;
@@ -119,19 +117,6 @@ export function EditorToolbar({ editable, capabilities, canUndo, canRedo, canPas
     <IconButton label="Diminuir zoom" onClick={actions.zoomOut} iconClass={cls}><ZoomOut className={cls} /></IconButton>
     <Separator />
     <div role="group" aria-label="Exportação" className="inline-flex items-center gap-0.5">
-      <label className="inline-flex items-center gap-1 cursor-pointer">
-        <FileImage className={cls} />
-        <select
-          aria-label="Fundo da exportação"
-          value={exportBackground}
-          disabled={exporting}
-          onChange={(event) => onExportBackgroundChange(event.target.value as "white" | "transparent")}
-          className="h-6 rounded border border-input bg-background px-1 text-xs"
-        >
-          <option value="white">Branco</option>
-          <option value="transparent">Transparente</option>
-        </select>
-      </label>
       <IconButton label="Exportar SVG" disabled={!canExport || exporting} onClick={onExportSvg} iconClass={cls}><FileImage className={cls} /></IconButton>
       <IconButton label="Exportar PNG" disabled={!canExport || exporting} onClick={onExportPng} iconClass={cls}><ImageDown className={cls} /></IconButton>
     </div>
