@@ -262,14 +262,6 @@ function blockingSemanticIssues(document: PidDocument): DocumentInvariantIssue[]
         "A direção das portas é incompatível com a conexão.",
       ));
     }
-    if (edge.connectionClass !== source.connectionClass) {
-      issues.push(invariantIssue(
-        "connection.class",
-        "error",
-        ["edges", edgeId, "connectionClass"],
-        "A classe da linha não corresponde à porta de origem.",
-      ));
-    }
     if (edge.utilityCategoryId && edge.connectionClass !== "utility") {
       issues.push(invariantIssue(
         "utility.category",

@@ -203,6 +203,27 @@ describe("comandos canônicos P&ID", () => {
     expect(Object.values(next.edges)[0].lineStyle).toBe("electric-signal");
   });
 
+  it("usa a classe ativa ao conectar portas de processo como sinal", () => {
+    const context = deterministicContext();
+    let document = emptyDocument();
+    document = applyCommand(document, insertSymbol(symbol, { x: 0, y: 0 }), context);
+    document = applyCommand(document, insertSymbol(symbol, { x: 200, y: 0 }), context);
+    const [first, second] = Object.values(document.nodes);
+    const source = Object.values(document.ports).find(
+      (port) => port.nodeId === first.id && port.direction === "output",
+    )!;
+    const target = Object.values(document.ports).find(
+      (port) => port.nodeId === second.id && port.direction === "input",
+    )!;
+
+    const next = applyCommand(document, connectPorts(source.id, target.id, "signal"), context);
+    const edge = Object.values(next.edges)[0];
+
+    expect(edge.connectionClass).toBe("signal");
+    expect(edge.lineStyle).toBe("electric-signal");
+    expect(assertDocumentInvariants(next).filter((issue) => issue.severity === "error")).toEqual([]);
+  });
+
   it("duplica o grupo preservando relações internas e trocando todos os IDs", () => {
     const withConnectedGroup = connectedGroup();
     const groupIds = Object.keys(withConnectedGroup.groups);

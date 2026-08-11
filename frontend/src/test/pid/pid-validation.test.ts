@@ -40,11 +40,19 @@ describe("validação estruturada P&ID", () => {
     ["ID semântico duplicado", duplicateSemanticId()],
     ["nó ausente", mutate((document) => { document.ports[ids.pumpOut].nodeId = unknownId(1); })],
     ["porta ausente", mutate((document) => { document.edges[ids.edge].sourcePortId = unknownId(2); })],
-    ["classe incompatível", mutate((document) => { document.edges[ids.edge].connectionClass = "signal"; })],
     ["capacidade excedida", capacityExceeded()],
     ["standard legado", mutate((document) => { document.metadata.standard = "iso" as never; })],
   ])("bloqueia %s", (_name, document) => {
     expect(validateDocument(document, { catalog }).some((issue) => issue.severity === "error")).toBe(true);
+  });
+
+  it("aceita classe de linha escolhida independentemente da classe da porta", () => {
+    const document = mutate((draft) => {
+      draft.edges[ids.edge].connectionClass = "signal";
+      draft.edges[ids.edge].lineStyle = "electric-signal";
+    });
+
+    expect(validateDocument(document, { catalog }).filter((issue) => issue.severity === "error")).toEqual([]);
   });
 
   it.each([
