@@ -16,9 +16,11 @@ import { createLocalCollaboration } from "../collaboration/local-collaboration";
 import { createRemoteCollaboration } from "../collaboration/remote-collaboration";
 import {
   alignSelection, deleteSelection, groupSelection, insertAnnotation, insertSymbol, rotateSelection,
+  patchElement,
   type PidCommand,
 } from "../domain/commands";
 import type { ConnectionClass } from "../domain/model";
+import type { LineStyle } from "../domain/line-style";
 import { validateDocument } from "../domain/validation";
 import { downloadBlob, pidExportFilename } from "../export/download";
 import { renderPidPng } from "../export/render-png";
@@ -31,6 +33,7 @@ import {
   getEditorPositionedSelectionIds, getEditorSelectionCapabilities,
 } from "./editor-toolbar-utils";
 import { createEditorStore, type EditorStore } from "./editor-store";
+import { DocumentActionsMenu } from "./document-actions-menu";
 import { ShareDialog } from "./share-dialog";
 import {
   PropertiesInspector, type InspectorCommandResult, type PropertiesInspectorHandle,
@@ -259,6 +262,8 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   }, [autosave.state, hasInspectorDrafts]);
   const editorEnabled = capabilityEditable && editLease && lifecycle === "active";
   const selectedNodeIds = editor.selection.filter((id) => Boolean(editor.document.nodes[id]));
+  const selectedEdgeIds = editor.selection.filter((id) => Boolean(editor.document.edges[id]));
+  const selectedEdgeId = editorEnabled && editor.selection.length === 1 && selectedEdgeIds.length === 1 ? selectedEdgeIds[0] : null;
   const positionedSelectionIds = getEditorPositionedSelectionIds(editor.document, editor.selection);
   const activeSelectionCapabilities = useMemo(
     () => getEditorSelectionCapabilities(editor.document, editor.selection),
@@ -378,6 +383,18 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const chooseConnectionClass = useCallback((value: ConnectionClass) => {
     afterInspectorDrafts(() => { setConnectionClass(value); return true; }, "Corrija o rascunho no inspetor antes de trocar a ferramenta de conexão.");
   }, [afterInspectorDrafts]);
+  const applyLineStyle = useCallback((lineStyle: LineStyle) => {
+    const current = store.getState();
+    const currentSelectedEdgeIds = current.selection.filter((id) => Boolean(current.document.edges[id]));
+    const currentSelectedEdgeId = current.selection.length === 1 && currentSelectedEdgeIds.length === 1 ? currentSelectedEdgeIds[0] : null;
+    if (!currentSelectedEdgeId) {
+      setAnnouncement("Selecione uma única aresta para aplicar o estilo de sinal.");
+      return;
+    }
+    if (dispatch(patchElement(currentSelectedEdgeId, { lineStyle }))) {
+      setAnnouncement("Estilo de linha aplicado à aresta selecionada.");
+    }
+  }, [dispatch, store]);
   const exportDocument = useCallback(async (format: ExportFormat) => {
     if (exportInFlightRef.current || !canExport) return;
     exportInFlightRef.current = true;
@@ -428,6 +445,7 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     group: () => { group(); }, insertAnnotation: () => { annotation(); }, fit: () => viewport("fit"), zoomIn: () => viewport("zoom-in"),
     zoomOut: () => viewport("zoom-out"), setConnectionClass: chooseConnectionClass,
   };
+  const documentActionsAvailable = capabilityEditable && editLease;
   const shortcutActions: EditorShortcutActions = {
     undo, redo, deleteSelection: remove, duplicate, copy, paste,
     rotateClockwise: () => rotate(90), rotateCounterclockwise: () => rotate(-90), group,
@@ -496,10 +514,28 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
       <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1></div></div>
-      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} exportBackground={exportBackground} onExportBackgroundChange={setExportBackground} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} iconSize={settings.iconSize} onCommand={dispatch} utilityCategories={editor.document.metadata.utilityCategories} />
+      <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} exportBackground={exportBackground} onExportBackgroundChange={setExportBackground} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} selectedEdgeId={selectedEdgeId} onApplyLineStyle={applyLineStyle} iconSize={settings.iconSize} onCommand={dispatch} utilityCategories={editor.document.metadata.utilityCategories} />
       <div className="pid-studio-session-controls">
         {capabilityEditable && <div className="pid-studio-document-controls">
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
+          {documentActionsAvailable && (
+            <DocumentActionsMenu
+              documentPort={documentPort}
+              diagramId={diagramId}
+              editToken={editToken}
+              revision={revision}
+              title={editor.document.metadata.title}
+              deleted={lifecycle === "deleted"}
+              onBeforeDelete={beforeDelete}
+              onDeleted={deletedSuccessfully}
+              onDeleteFailed={deleteFailed}
+              onBeforeRestore={beforeRestore}
+              onRestoreConfirmed={restoreConfirmed}
+              onRestored={restoredSuccessfully}
+              onRestoreFailed={restoreFailed}
+              onAnnouncement={setAnnouncement}
+            />
+          )}
           </div>}
       </div>
     </header>

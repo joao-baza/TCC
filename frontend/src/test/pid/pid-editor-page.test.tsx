@@ -56,6 +56,11 @@ describe("integração real do studio P&ID", () => {
     expect(screen.getByRole("button", { name: "Agrupar" })).toBeDisabled();
     expect(screen.getByRole("combobox", { name: "Alinhar seleção" })).toBeDisabled();
 
+    fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Aplicar Sinal pneumático" }));
+    await waitFor(() => expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute("data-signal-line-style", "pneumatic-signal"));
+    expect(screen.getByText("Estilo de linha aplicado à aresta selecionada.")).toBeInTheDocument();
+
     const lineSelect = screen.getByLabelText("Tipo de linha de conexão");
     for (const value of ["utility", "signal", "process"]) {
       fireEvent.change(lineSelect, { target: { value } });
@@ -204,6 +209,7 @@ function studioDocument(): PidDocument {
       catalogVersion: "local-v1",
       createdAt: "2026-08-09T00:00:00.000Z",
       updatedAt: "2026-08-09T00:00:00.000Z",
+      utilityCategories: [],
     },
     nodes: {
       [ids.pump]: { id: ids.pump, symbolKey: "drawio.pid.pumps.centrifugal-pump-1", catalogVersion: "local-v1", x: 100, y: 80, width: 96, height: 64, rotation: 0, tag: "P-1", label: "Bomba", properties: {} },
