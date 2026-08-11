@@ -228,7 +228,7 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
 
     source.focus();
     fireEvent.keyDown(source, { key: "Enter", code: "Enter" });
-    const invalid = screen.getByRole("button", { name: /bidirecional utility/i });
+    const invalid = source;
     invalid.focus();
     fireEvent.keyDown(invalid, { key: "Enter", code: "Enter" });
     expect(screen.getByRole("status")).toHaveTextContent(/inválida/i);

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { renderStaticSignalLinePattern, signalLineLegendItems } from "@/features/pid/canvas/signal-line-pattern";
+import { render } from "@testing-library/react";
+import {
+  renderSignalLinePattern,
+  renderStaticSignalLinePattern,
+  signalLineLegendItems,
+} from "@/features/pid/canvas/signal-line-pattern";
 import { LINE_STYLES } from "@/features/pid/domain/line-style";
 
 const route = [{ x: 0, y: 0 }, { x: 160, y: 0 }, { x: 160, y: 80 }];
@@ -36,5 +41,24 @@ describe("signal line pattern renderer", () => {
       stroke: "#111827",
     });
     expect(markup).not.toContain("data-glyph=\"diagonal-pair\"");
+  });
+
+  it("keeps an arrow marker carrier when the style omits the base path", () => {
+    const { container } = render(
+      <svg>
+        {renderSignalLinePattern({
+          id: "wireless",
+          points: route,
+          lineStyle: "unguided-electromagnetic-sonic",
+          selected: false,
+          stroke: "#111827",
+          markerEnd: "url(#arrow)",
+        })}
+      </svg>,
+    );
+
+    const markerCarrier = container.querySelector('[data-marker-carrier="wireless"]');
+    expect(markerCarrier).toHaveAttribute("marker-end", "url(#arrow)");
+    expect(markerCarrier).toHaveAttribute("stroke-opacity", "0");
   });
 });

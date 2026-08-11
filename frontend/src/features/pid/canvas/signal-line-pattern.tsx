@@ -29,6 +29,13 @@ interface PatternPrimitive {
   readonly placement?: GlyphPlacement;
 }
 
+export interface SignalLinePatternBounds {
+  readonly minX: number;
+  readonly minY: number;
+  readonly maxX: number;
+  readonly maxY: number;
+}
+
 export interface SignalLineLegendItem {
   readonly style: LineStyle;
   readonly label: string;
@@ -42,6 +49,7 @@ export interface SignalLinePatternInput {
   readonly selected: boolean;
   readonly stroke: string;
   readonly strokeWidth?: number;
+  readonly markerEnd?: string;
 }
 
 const GLYPH_SPACING = 48;
@@ -72,9 +80,23 @@ export const signalLineLegendItems: readonly SignalLineLegendItem[] = LINE_STYLE
 export function renderSignalLinePattern(input: SignalLinePatternInput): ReactElement {
   const paint = input.selected ? "#2563eb" : input.stroke;
   const strokeWidth = input.strokeWidth ?? 1.5;
+  const primitives = buildPatternPrimitives(input);
+  const hasBasePath = primitives.some((primitive) => primitive.kind === "base-path");
   return (
-    <g data-signal-line-pattern={input.id} data-line-style={input.lineStyle}>
-      {buildPatternPrimitives(input).map((primitive) => {
+    <g data-signal-line-pattern={input.id} data-line-style={input.lineStyle} data-signal-line-style={input.lineStyle}>
+      {input.markerEnd && !hasBasePath ? (
+        <path
+          data-marker-carrier={input.id}
+          d={pointsPath(input.points)}
+          fill="none"
+          stroke={paint}
+          strokeOpacity={0}
+          strokeWidth={strokeWidth}
+          markerEnd={input.markerEnd}
+          pointerEvents="none"
+        />
+      ) : null}
+      {primitives.map((primitive) => {
         if (primitive.kind === "base-path") {
           return (
             <path
@@ -86,6 +108,7 @@ export function renderSignalLinePattern(input: SignalLinePatternInput): ReactEle
               strokeDasharray={primitive.dashArray}
               strokeLinecap="round"
               strokeLinejoin="round"
+              markerEnd={input.markerEnd}
             />
           );
         }
@@ -105,7 +128,22 @@ export function renderStaticSignalLinePattern(input: SignalLinePatternInput): st
     }
     return renderGlyphMarkup(primitive.glyph, primitive.placement, paint, strokeWidth);
   }).join("");
-  return `<g data-signal-line-pattern="${attribute(input.id)}" data-line-style="${attribute(input.lineStyle)}">${children}</g>`;
+  return `<g data-signal-line-pattern="${attribute(input.id)}" data-line-style="${attribute(input.lineStyle)}" data-signal-line-style="${attribute(input.lineStyle)}">${children}</g>`;
+}
+
+export function signalLinePatternBounds(input: SignalLinePatternInput): SignalLinePatternBounds | null {
+  const strokeRadius = (input.strokeWidth ?? 1.5) / 2;
+  const bounds: SignalLinePatternBounds[] = [];
+  for (const primitive of buildPatternPrimitives(input)) {
+    if (primitive.kind === "base-path") bounds.push(pointsBounds(input.points, strokeRadius));
+    else {
+      const glyphBounds = primitive.glyph && primitive.placement
+        ? boundsForGlyph(primitive.glyph, primitive.placement, strokeRadius)
+        : null;
+      if (glyphBounds) bounds.push(glyphBounds);
+    }
+  }
+  return unionBounds(bounds);
 }
 
 function buildPatternPrimitives(input: SignalLinePatternInput): readonly PatternPrimitive[] {
@@ -207,6 +245,55 @@ function renderGlyphMarkup(glyph: GlyphKind | undefined, placement: GlyphPlaceme
       break;
   }
   return `<g data-glyph="${attribute(glyph)}" transform="${attribute(transform)}">${content}</g>`;
+}
+
+function boundsForGlyph(glyph: GlyphKind, placement: GlyphPlacement, strokeRadius: number): SignalLinePatternBounds {
+  const extents: Record<GlyphKind, { halfWidth: number; halfHeight: number }> = {
+    "diagonal-pair": { halfWidth: 11, halfHeight: 8 },
+    "hydraulic-l": { halfWidth: 9, halfHeight: 7 },
+    "open-circle": { halfWidth: 6, halfHeight: 6 },
+    "software-circle": { halfWidth: 6, halfHeight: 6 },
+    "binary-cross": { halfWidth: 7, halfHeight: 7 },
+    "single-diagonal": { halfWidth: 7, halfHeight: 8 },
+    "x-mark": { halfWidth: 7, halfHeight: 7 },
+    "wave": { halfWidth: 18, halfHeight: 8 },
+    "concentric-circle": { halfWidth: 7, halfHeight: 7 },
+  };
+  const normalizedAngle = Math.abs(placement.angle) % 180;
+  const rotated = normalizedAngle === 90;
+  const halfX = (rotated ? extents[glyph].halfHeight : extents[glyph].halfWidth) + strokeRadius;
+  const halfY = (rotated ? extents[glyph].halfWidth : extents[glyph].halfHeight) + strokeRadius;
+  return {
+    minX: placement.x - halfX,
+    minY: placement.y - halfY,
+    maxX: placement.x + halfX,
+    maxY: placement.y + halfY,
+  };
+}
+
+function pointsBounds(points: readonly Point[], stroke: number): SignalLinePatternBounds {
+  if (!points.length) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  let minX = points[0].x;
+  let minY = points[0].y;
+  let maxX = points[0].x;
+  let maxY = points[0].y;
+  for (const point of points.slice(1)) {
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+  }
+  return { minX: minX - stroke, minY: minY - stroke, maxX: maxX + stroke, maxY: maxY + stroke };
+}
+
+function unionBounds(bounds: readonly SignalLinePatternBounds[]): SignalLinePatternBounds | null {
+  if (!bounds.length) return null;
+  return bounds.reduce((result, item) => ({
+    minX: Math.min(result.minX, item.minX),
+    minY: Math.min(result.minY, item.minY),
+    maxX: Math.max(result.maxX, item.maxX),
+    maxY: Math.max(result.maxY, item.maxY),
+  }));
 }
 
 function pointsPath(points: readonly Point[]): string {

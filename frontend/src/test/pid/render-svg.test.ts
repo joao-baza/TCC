@@ -146,6 +146,30 @@ describe("renderPidSvg", () => {
     expect(y + height).toBeGreaterThanOrEqual(6);
   });
 
+  it("exporta arestas com o mesmo renderer de padrao P&ID", async () => {
+    const document = exportDocument();
+    document.edges.edge = { ...document.edges.edge, lineStyle: "mechanical-link" };
+
+    const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+
+    expect(svg).toContain('data-signal-line-style="mechanical-link"');
+    expect(svg).toContain('data-glyph="concentric-circle"');
+  });
+
+  it("inclui os limites dos glifos de linha no viewBox sem padding", async () => {
+    const document = edgeOnlyDocument("mechanical-link");
+    document.edges.edge.route = [{ x: 50, y: -40 }];
+    document.edges.edge.tag = "";
+    document.edges.edge.label = "";
+
+    const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+    const [, y] = new DOMParser().parseFromString(svg, "image/svg+xml")
+      .documentElement.getAttribute("viewBox")!.split(" ").map(Number);
+
+    expect(svg).toContain('data-glyph="concentric-circle"');
+    expect(y).toBeLessThanOrEqual(-47);
+  });
+
   it("enquadra glifos largos em legendas de nó, aresta, grupo e anotação", async () => {
     const value = "WW界語".repeat(10);
     const fixtures = wideTextDocuments(value);
@@ -181,6 +205,31 @@ function arrowDocument(connectionClass: ConnectionClass, rotation: number): PidD
   document.edges.edge = { ...document.edges.edge, connectionClass, lineStyle: { "process": "supply-impulse" as const, "utility": "supply-impulse" as const, "signal": "electric-signal" as const }[connectionClass], route: [], tag: "", label: "" };
   document.annotations = {};
   document.groups = {};
+  return document;
+}
+
+function edgeOnlyDocument(lineStyle: PidDocument["edges"][string]["lineStyle"]): PidDocument {
+  const document = emptyDocument("Aresta com glifo");
+  document.nodes = {
+    "node-a": {
+      id: "node-a", symbolKey: "project.pump", catalogVersion: "local-v1",
+      x: 0, y: 0, width: 2, height: 2, rotation: 0, tag: "", label: "", properties: {},
+    },
+    "node-b": {
+      id: "node-b", symbolKey: "project.pump", catalogVersion: "local-v1",
+      x: 200, y: 0, width: 2, height: 2, rotation: 0, tag: "", label: "", properties: {},
+    },
+  };
+  document.ports = {
+    source: { id: "source", nodeId: "node-a", templateKey: "out", direction: "output", connectionClass: "signal", capacity: 1 },
+    target: { id: "target", nodeId: "node-b", templateKey: "in", direction: "input", connectionClass: "signal", capacity: 1 },
+  };
+  document.edges = {
+    edge: {
+      id: "edge", sourcePortId: "source", targetPortId: "target", connectionClass: "signal", lineStyle,
+      route: [], tag: "", label: "", properties: {},
+    },
+  };
   return document;
 }
 

@@ -167,6 +167,13 @@ function expectAxisAligned(points: readonly { x: number; y: number }[]) {
   }
 }
 
+function renderedProcessPath(edgeId: string): string {
+  const rendered = screen.getByTestId(`process-edge-${edgeId}`)
+    .querySelector('[data-signal-line-pattern] > path');
+  expect(rendered).toBeInTheDocument();
+  return rendered?.getAttribute("d") ?? "";
+}
+
 describe("PidCanvas", () => {
   it("projeta equipamento com o mesmo ativo sanitizado usado pela exportação", async () => {
     const onCommand = vi.fn();
@@ -278,7 +285,7 @@ describe("PidCanvas", () => {
     });
   });
 
-  it("impede conexão cuja classe não corresponde à ferramenta de linha ativa", async () => {
+  it("usa a classe ativa como override sem exigir que as portas tenham a mesma classe", async () => {
     const onCommand = vi.fn();
     render(<PidCanvas document={connectionDocument()} catalog={localCatalog} editable onCommand={onCommand} activeConnectionClass="signal" />);
     const target = screen.getByLabelText(/Criar conexão pela porta de entrada inlet/i);
@@ -291,11 +298,16 @@ describe("PidCanvas", () => {
       if (originalElementFromPoint) Object.defineProperty(document, "elementFromPoint", originalElementFromPoint);
       else Reflect.deleteProperty(document, "elementFromPoint");
     }
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(onCommand).not.toHaveBeenCalled();
+    await waitFor(() => expect(onCommand).toHaveBeenCalledTimes(1));
+    expect(onCommand).toHaveBeenCalledWith({
+      type: "ports.connect",
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+      connectionClass: "signal",
+    });
   });
 
-  it("valida ausência, identidade, nó, direção, classe, capacidade, duplicidade e bidirecionalidade", () => {
+  it("valida ausência, identidade, nó, direção, capacidade, duplicidade e bidirecionalidade", () => {
     const document = connectionDocument();
 
     expect(isPidConnectionValid(document, "missing", ids.tankInlet)).toBe(false);
@@ -303,7 +315,7 @@ describe("PidCanvas", () => {
     expect(isPidConnectionValid(document, ids.discharge, ids.suction)).toBe(false);
     expect(isPidConnectionValid(document, ids.discharge, ids.tankOutlet)).toBe(false);
     expect(isPidConnectionValid(document, ids.suction, ids.tankInlet)).toBe(false);
-    expect(isPidConnectionValid(document, ids.discharge, ids.utility)).toBe(false);
+    expect(isPidConnectionValid(document, ids.discharge, ids.utility)).toBe(true);
     expect(isPidConnectionValid(document, ids.discharge, ids.tankInlet)).toBe(true);
     expect(isPidConnectionValid(document, ids.discharge, ids.bidirectional)).toBe(true);
     expect(isPidConnectionValid(document, ids.bidirectional, ids.tankInlet)).toBe(true);
@@ -322,6 +334,26 @@ describe("PidCanvas", () => {
     expect(isPidConnectionValid(document, ids.discharge, ids.tankInlet)).toBe(false);
     document.ports[ids.discharge].capacity = 1;
     expect(isPidConnectionValid(document, ids.discharge, ids.bidirectional)).toBe(false);
+  });
+
+  it("renderiza aresta de sinal com glifos P&ID fieis", () => {
+    const pidDocument = connectionDocument();
+    pidDocument.edges[ids.edge] = {
+      id: ids.edge,
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+      connectionClass: "signal",
+      lineStyle: "pneumatic-signal",
+      route: [],
+      tag: "",
+      label: "",
+      properties: {},
+    };
+
+    render(<PidCanvas document={pidDocument} catalog={localCatalog} editable onCommand={vi.fn()} />);
+
+    expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute("data-signal-line-style", "pneumatic-signal");
+    expect(document.querySelector('[data-glyph="diagonal-pair"]')).toBeInTheDocument();
   });
 
   it("emite um único delta canônico para todos os nós selecionados no fim do drag", () => {
@@ -488,8 +520,7 @@ describe("PidCanvas", () => {
     render(<PidCanvas document={document} catalog={localCatalog} editable onCommand={vi.fn()} />);
 
     expect(await screen.findByText("L-101 Produto")).toBeInTheDocument();
-    const rendered = screen.getByTestId(`process-edge-${ids.edge}`).getAttribute("d") ?? "";
-    expectAxisAligned(pathPoints(rendered));
+    expectAxisAligned(pathPoints(renderedProcessPath(ids.edge)));
     const path = orthogonalPath(
       { x: 196, y: 112 },
       document.edges[ids.edge].route,

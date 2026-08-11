@@ -10,6 +10,7 @@ import { getPidNodeGeometry, getPidPortAnchorGeometry, type PidFlowPosition } fr
 import type { PidAnnotation, PidDocument, PidEdge, PidGroup, PidNode, Point } from "../domain/model";
 import type { UtilityCategory } from "../domain/utility-category";
 import { lineStyleAttributes } from "../canvas/line-rendering";
+import { renderStaticSignalLinePattern, signalLinePatternBounds } from "../canvas/signal-line-pattern";
 
 export type PidExportBackground = "white" | "transparent";
 
@@ -115,23 +116,37 @@ function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: Pi
   const target = portPositions.get(edge.targetPortId);
   if (!source || !target) return null;
   const points = orthogonalPoints(source, edge.route, target);
-  const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${number(point.x)} ${number(point.y)}`).join(" ");
   const arrow = closedArrowPoints(points);
   const attrs = lineStyleAttributes(edge.lineStyle);
   const category = edge.utilityCategoryId
     ? utilityCategories.find(c => c.id === edge.utilityCategoryId)
     : undefined;
   const strokeColor = category?.color ?? attrs.stroke;
+  const patternMarkup = renderStaticSignalLinePattern({
+    id: edge.id,
+    points,
+    lineStyle: edge.lineStyle,
+    selected: false,
+    stroke: strokeColor,
+    strokeWidth: attrs.strokeWidth,
+  });
+  const patternBounds = signalLinePatternBounds({
+    id: edge.id,
+    points,
+    lineStyle: edge.lineStyle,
+    selected: false,
+    stroke: strokeColor,
+    strokeWidth: attrs.strokeWidth,
+  });
   const arrowMarkup = arrow.length === 3
     ? `<polygon id="pid-arrow-${edgeIndex}" data-arrow-for="${attribute(edge.id)}" points="${arrow.map((point) => `${number(point.x)},${number(point.y)}`).join(" ")}" fill="${strokeColor}" stroke="${strokeColor}" stroke-width="1" stroke-linejoin="round"/>`
     : "";
-  const dashAttr = attrs.strokeDasharray ? ` stroke-dasharray="${attrs.strokeDasharray}"` : "";
   const label = [edge.tag, edge.label].filter(Boolean).join(" ");
   const midpoint = pathMidpoint(points);
   const labelY = midpoint.y - 5;
   return {
-    markup: `<g data-element-id="${attribute(edge.id)}"><path d="${attribute(path)}" fill="none" stroke="${strokeColor}" stroke-width="${attrs.strokeWidth}"${dashAttr}/>${arrowMarkup}${label ? `<text x="${number(midpoint.x)}" y="${number(labelY)}" text-anchor="middle" fill="#334155" stroke="none" font-size="11">${text(label)}</text>` : ""}</g>`,
-    bounds: unionBounds([pointsBounds(points, 1), pointsBounds(arrow, 1)]),
+    markup: `<g data-element-id="${attribute(edge.id)}">${patternMarkup}${arrowMarkup}${label ? `<text x="${number(midpoint.x)}" y="${number(labelY)}" text-anchor="middle" fill="#334155" stroke="none" font-size="11">${text(label)}</text>` : ""}</g>`,
+    bounds: unionBounds([pointsBounds(points, 1), pointsBounds(arrow, 1), ...(patternBounds ? [patternBounds] : [])]),
     labelBounds: label ? centeredTextBounds(label, midpoint.x, labelY, 11) : undefined,
   };
 }

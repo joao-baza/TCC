@@ -1,6 +1,5 @@
 import { memo } from "react";
 import {
-  BaseEdge,
   EdgeLabelRenderer,
   Position,
   type Edge,
@@ -9,7 +8,8 @@ import {
 
 import type { PidEdge, Point } from "../domain/model";
 import type { UtilityCategory } from "../domain/utility-category";
-import { lineStyleAttributes, isSinusoidal } from "./line-rendering";
+import { lineStyleAttributes } from "./line-rendering";
+import { renderSignalLinePattern } from "./signal-line-pattern";
 
 export type ProcessEdgeData = Record<string, unknown> & {
   readonly processEdge: PidEdge;
@@ -30,9 +30,6 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
     props.sourcePosition,
     props.targetPosition,
   );
-  const path = isSinusoidal(processEdge.lineStyle)
-    ? sinusoidalPath(routePoints, false)
-    : pointsPath(routePoints);
   const midpoint = pathMidpoint(routePoints);
   const label = [processEdge.tag, processEdge.label].filter(Boolean).join(" ");
   const attrs = lineStyleAttributes(processEdge.lineStyle);
@@ -42,19 +39,28 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
 
   return (
     <>
-      <BaseEdge
-        id={props.id}
-        path={path}
-        markerEnd={props.markerEnd}
-        interactionWidth={24}
-        style={{
-          strokeWidth: attrs.strokeWidth,
-          strokeDasharray: attrs.strokeDasharray,
-          ...(categoryColor ? { stroke: categoryColor } : {}),
-        }}
-        className={props.selected ? "stroke-blue-600" : !categoryColor ? "stroke-slate-600" : ""}
+      <g
         data-testid={`process-edge-${props.id}`}
-      />
+        data-signal-line-style={processEdge.lineStyle}
+        className="pointer-events-visibleStroke"
+      >
+        <path
+          d={pointsPath(routePoints)}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={24}
+          pointerEvents="stroke"
+        />
+        {renderSignalLinePattern({
+          id: props.id,
+          points: routePoints,
+          lineStyle: processEdge.lineStyle,
+          selected: Boolean(props.selected),
+          stroke: categoryColor ?? attrs.stroke,
+          strokeWidth: attrs.strokeWidth,
+          markerEnd: props.markerEnd,
+        })}
+      </g>
       {label ? (
         <EdgeLabelRenderer>
           <span
@@ -67,37 +73,6 @@ function ProcessEdgeComponent(props: EdgeProps<ProcessFlowEdge>) {
       ) : null}
     </>
   );
-}
-
-function sinusoidalPath(points: readonly Point[], gapped: boolean): string {
-  const amplitude = 4;
-  const period = 20;
-  const segments: string[] = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const from = points[i];
-    const to = points[i + 1];
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist === 0) continue;
-    const steps = Math.max(1, Math.round(dist / 4));
-    const ux = dx / dist;
-    const uy = dy / dist;
-    const nx = -uy;
-    const ny = ux;
-    for (let s = 0; s <= steps; s++) {
-      const t = s / steps;
-      const x = from.x + dx * t;
-      const y = from.y + dy * t;
-      const phase = (dist * t) / period * 2 * Math.PI;
-      const offset = amplitude * Math.sin(phase);
-      if (gapped && Math.abs(Math.sin(phase)) < 0.3) continue;
-      const sx = x + nx * offset;
-      const sy = y + ny * offset;
-      segments.push(`${segments.length === 0 ? "M" : "L"} ${sx} ${sy}`);
-    }
-  }
-  return segments.join(" ");
 }
 
 export function orthogonalPath(

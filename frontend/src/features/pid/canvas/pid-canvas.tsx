@@ -181,13 +181,15 @@ function PidCanvasInner({
     const rejection = normalized
       ? connectionValidationRef.current.getRejection(normalized.sourcePortId, normalized.targetPortId)
       : { message: "As duas portas da conexão devem existir." };
-    const classMatches = normalized
-      && matchesActiveConnectionClass(currentDocument, normalized, activeConnectionClassRef.current);
-    if (!normalized || rejection || !classMatches) {
+    if (!normalized || rejection) {
       setConnectionAnnouncement(`Conexão inválida: ${rejection?.message ?? "as portas não correspondem ao tipo de linha ativo."}`);
       return;
     }
-    onCommandRef.current({ type: "ports.connect", ...normalized, connectionClass: activeConnectionClassRef.current });
+    onCommandRef.current({
+      type: "ports.connect",
+      ...normalized,
+      ...(activeConnectionClassRef.current ? { connectionClass: activeConnectionClassRef.current } : {}),
+    });
     updateKeyboardSourcePort(null);
     setConnectionAnnouncement("Conexão criada com sucesso.");
   }, [updateKeyboardSourcePort]);
@@ -346,13 +348,15 @@ function PidCanvasInner({
   const isValidConnection = useCallback((connection: ProcessFlowEdge | Connection) => {
     const normalized = normalizeConnection(connection);
     return normalized !== null
-      && matchesActiveConnectionClass(document, normalized, activeConnectionClass)
       && connectionValidation.isValid(normalized.sourcePortId, normalized.targetPortId);
-  }, [activeConnectionClass, connectionValidation, document, normalizeConnection]);
+  }, [connectionValidation, normalizeConnection]);
   const handleConnect = useCallback((connection: Connection) => {
     if (!editable) return;
     const command = pidConnectionCommand(document, connection, connectionValidation.index);
-    if (command && matchesActiveConnectionClass(document, command, activeConnectionClass)) onCommand(command);
+    if (command) onCommand({
+      ...command,
+      ...(activeConnectionClass ? { connectionClass: activeConnectionClass } : {}),
+    });
   }, [activeConnectionClass, connectionValidation.index, document, editable, onCommand]);
   const handleDragStart = useCallback((_event: MouseEvent | TouchEvent, node: EquipmentFlowNode, movedNodes: EquipmentFlowNode[]) => {
     pointerDraggingRef.current = true;
@@ -528,14 +532,6 @@ export function pidConnectionCommand(
   const normalized = normalizePidConnection(document, connection);
   if (!normalized || !isPidConnectionValid(document, normalized.sourcePortId, normalized.targetPortId, index)) return null;
   return { type: "ports.connect", ...normalized };
-}
-
-function matchesActiveConnectionClass(
-  _document: PidDocument,
-  connection: { readonly sourcePortId: string; readonly targetPortId: string },
-  _activeConnectionClass: ConnectionClass | undefined,
-): boolean {
-  return true;
 }
 
 export function createPidMoveCommand(
