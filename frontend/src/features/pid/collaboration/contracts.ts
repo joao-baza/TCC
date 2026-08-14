@@ -11,7 +11,7 @@ export interface CollaborationParticipant {
 }
 
 export interface CollaborationSnapshot {
-  readonly label: "Sessão local";
+  readonly label: "Sessão local" | "Sessão colaborativa";
   readonly status: CollaborationSyncStatus;
   readonly participants: readonly CollaborationParticipant[];
 }

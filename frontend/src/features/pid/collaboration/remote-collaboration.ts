@@ -20,29 +20,27 @@ export function createRemoteCollaboration(
 ): CollaborationFacade {
   const { diagramId, token, participant, baseUrl } = input;
   const ydoc = new Y.Doc();
-  const participants = new Set<CollaborationParticipant>([participant]);
+  const participants = Object.freeze([freezeParticipant(participant)]);
   const listeners = new Set<() => void>();
   const documentListeners = new Set<(update: CollaborationDocumentUpdate) => void>();
   let ws: WebSocket | null = null;
-  let status: CollaborationSyncStatus = "connecting";
+  let snapshot = freezeSnapshot("connecting", participants);
   let cleanup: (() => void) | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   const emitSnapshot = () => {
-    for (const l of listeners) l();
+    for (const listener of [...listeners]) {
+      if (listeners.has(listener)) listener();
+    }
   };
 
-  const setStatus = (s: CollaborationSyncStatus) => {
-    if (status === s) return;
-    status = s;
+  const setStatus = (status: CollaborationSyncStatus) => {
+    if (snapshot.status === status) return;
+    snapshot = freezeSnapshot(status, participants);
     emitSnapshot();
   };
 
-  const getSnapshot = (): CollaborationSnapshot => ({
-    label: "Sessão colaborativa" as CollaborationSnapshot["label"],
-    status,
-    participants: [...participants],
-  });
+  const getSnapshot = (): CollaborationSnapshot => snapshot;
 
   const subscribe = (listener: () => void): (() => void) => {
     listeners.add(listener);
@@ -148,4 +146,20 @@ export function createRemoteCollaboration(
   };
 
   return { getSnapshot, subscribe, subscribeDocument, connect, setStatus, publishDocument };
+}
+
+function freezeParticipant(participant: CollaborationParticipant): CollaborationParticipant {
+  return Object.freeze({
+    id: participant.id,
+    name: participant.name,
+    color: participant.color,
+    local: participant.local,
+  });
+}
+
+function freezeSnapshot(
+  status: CollaborationSyncStatus,
+  participants: readonly CollaborationParticipant[],
+): CollaborationSnapshot {
+  return Object.freeze({ label: "Sessão colaborativa", status, participants });
 }
