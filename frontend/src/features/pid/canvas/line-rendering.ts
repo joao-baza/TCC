@@ -30,7 +30,7 @@ export function lineStyleAttributes(lineStyle: LineStyle): LineStyleAttributes {
 }
 
 export function effectiveLineStyle(connectionClass: ConnectionClass, lineStyle: LineStyle): LineStyle {
-  return connectionClass === "utility" ? DEFAULT_LINE_STYLE.utility : lineStyle;
+  return connectionClass === "signal" ? lineStyle : DEFAULT_LINE_STYLE[connectionClass];
 }
 
 export function isSinusoidal(_lineStyle: LineStyle): boolean {

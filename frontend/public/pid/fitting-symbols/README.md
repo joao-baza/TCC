@@ -20,4 +20,4 @@ devem ser replicadas no asset canonico correspondente e validadas pelos testes
 do catalogo.
 
 ## Asset base
-- `tubulacao-modular.svg`: referencia visual enviada pelo usuario.
+- `piping.svg`: modulo repetivel mantido para revisao visual; nao e incorporado as linhas de processo.

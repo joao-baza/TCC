@@ -61,7 +61,7 @@ export interface PidEdge {
 
 export interface PidAnnotation {
   id: string;
-  kind: "text" | "note" | "callout";
+  kind: "text";
   text: string;
   x: number;
   y: number;

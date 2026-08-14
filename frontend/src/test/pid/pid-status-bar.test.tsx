@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { StatusBar } from "@/features/pid/editor/status-bar";
 import type { EditorState } from "@/features/pid/editor/editor-store";
 
@@ -20,20 +20,15 @@ const baseState: EditorState = Object.freeze({
 
 describe("StatusBar", () => {
   it("shows dynamic validation counts", () => {
-    render(<StatusBar state={baseState} saveState="Sincronizado" validationCounts={{ errors: 3, warnings: 1 }} />);
+    render(<StatusBar state={baseState} validationCounts={{ errors: 3, warnings: 1 }} />);
     expect(screen.getByText(/Avisos 1/)).toBeInTheDocument();
     expect(screen.getByText(/Erros 3/)).toBeInTheDocument();
   });
 
   it("shows zero counts when no issues", () => {
-    render(<StatusBar state={baseState} saveState="Sincronizado" validationCounts={{ errors: 0, warnings: 0 }} />);
+    render(<StatusBar state={baseState} validationCounts={{ errors: 0, warnings: 0 }} />);
     expect(screen.getByText(/Avisos 0/)).toBeInTheDocument();
     expect(screen.getByText(/Erros 0/)).toBeInTheDocument();
   });
 
-  it("shows retry button when not saved", () => {
-    const retry = vi.fn();
-    render(<StatusBar state={baseState} saveState="Não salvo" validationCounts={{ errors: 0, warnings: 0 }} onRetry={retry} />);
-    expect(screen.getByText("Tentar salvar novamente")).toBeInTheDocument();
-  });
 });

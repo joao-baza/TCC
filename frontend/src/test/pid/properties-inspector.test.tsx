@@ -27,6 +27,20 @@ describe("inspetor contextual P&ID", () => {
     expect(screen.getByText("Documento de teste")).toBeInTheDocument();
     expect(screen.getByText("Livre no documento")).toBeInTheDocument();
     expect(screen.getByText(/1 equipamento/i)).toBeInTheDocument();
+    expect(screen.queryByText(/linha\(s\)/i)).not.toBeInTheDocument();
+  });
+
+  it("não mostra IDs de elementos ou conexões no resumo do inspetor", () => {
+    const document = documentFixture();
+    document.edges[ids.edge] = { ...document.edges[ids.edge], tag: "", label: "" };
+    const { rerender } = render(<PropertiesInspector document={document} selection={[ids.node]} editable onCommand={vi.fn()} />);
+
+    expect(screen.queryByText(new RegExp(ids.node))).not.toBeInTheDocument();
+
+    rerender(<PropertiesInspector document={document} selection={[ids.edge]} editable onCommand={vi.fn()} />);
+
+    expect(screen.getByText("Conexão sem rótulo")).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(ids.edge))).not.toBeInTheDocument();
   });
 
   it.each([
@@ -46,12 +60,93 @@ describe("inspetor contextual P&ID", () => {
     expect(onCommand).toHaveBeenCalledWith({ type: "element.patch", id: selectedId, patch });
   });
 
+  it("edita cores do card de anotação preservando as propriedades existentes", () => {
+    const onCommand = vi.fn();
+    const document = documentFixture();
+    document.annotations[ids.annotation].properties = { review: "ok", annotationTextColor: "#0f172a" };
+    render(<PropertiesInspector document={document} selection={[ids.annotation]} editable onCommand={onCommand} />);
+
+    fireEvent.change(screen.getByLabelText("Cor do card"), { target: { value: "#fde68a" } });
+    fireEvent.change(screen.getByLabelText("Cor do texto"), { target: { value: "#7f1d1d" } });
+
+    expect(onCommand).toHaveBeenNthCalledWith(1, {
+      type: "element.patch",
+      id: ids.annotation,
+      patch: {
+        properties: { review: "ok", annotationTextColor: "#0f172a", annotationFillColor: "#fde68a" },
+      },
+    });
+    expect(onCommand).toHaveBeenNthCalledWith(2, {
+      type: "element.patch",
+      id: ids.annotation,
+      patch: {
+        properties: { review: "ok", annotationTextColor: "#7f1d1d", annotationFillColor: "#fde68a" },
+      },
+    });
+  });
+
+  it("edita alinhamento do texto do card preservando as propriedades existentes", () => {
+    const onCommand = vi.fn();
+    const document = documentFixture();
+    document.annotations[ids.annotation].properties = { review: "ok", annotationFillColor: "#fde68a" };
+    render(<PropertiesInspector document={document} selection={[ids.annotation]} editable onCommand={onCommand} />);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Alinhamento do texto" }), {
+      target: { value: "center" },
+    });
+
+    expect(onCommand).toHaveBeenCalledWith({
+      type: "element.patch",
+      id: ids.annotation,
+      patch: {
+        properties: { review: "ok", annotationFillColor: "#fde68a", annotationTextAlign: "center" },
+      },
+    });
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Alinhamento vertical" }), {
+      target: { value: "bottom" },
+    });
+
+    expect(onCommand).toHaveBeenCalledWith({
+      type: "element.patch",
+      id: ids.annotation,
+      patch: {
+        properties: {
+          review: "ok",
+          annotationFillColor: "#fde68a",
+          annotationTextAlign: "center",
+          annotationTextVerticalAlign: "bottom",
+        },
+      },
+    });
+  });
+
   it("lista somente rótulos canônicos no estilo de linha da aresta", () => {
-    render(<PropertiesInspector document={documentFixture()} selection={[ids.edge]} editable onCommand={vi.fn()} />);
+    const document = documentFixture();
+    document.edges[ids.edge] = {
+      ...document.edges[ids.edge],
+      connectionClass: "signal",
+      lineStyle: "electric-signal",
+    };
+    render(<PropertiesInspector document={document} selection={[ids.edge]} editable onCommand={vi.fn()} />);
 
     const lineStyle = screen.getByRole("combobox", { name: "Estilo de linha" });
     expect(lineStyle).toHaveTextContent("Sinal elétrico");
     expect(lineStyle).not.toHaveTextContent("Contínua grossa");
+  });
+
+  it("não aplica seletor de estilo em aresta de processo", () => {
+    const document = documentFixture();
+    document.edges[ids.edge] = {
+      ...document.edges[ids.edge],
+      lineStyle: "software-link",
+    };
+    render(<PropertiesInspector document={document} selection={[ids.edge]} editable onCommand={vi.fn()} />);
+
+    expect(screen.queryByRole("combobox", { name: "Estilo de linha" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Estilo de linha:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Liso normal")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ligação por software")).not.toBeInTheDocument();
   });
 
   it("não aplica seletor de estilo em aresta de utilidade", () => {
@@ -94,16 +189,25 @@ describe("inspetor contextual P&ID", () => {
     });
   });
 
-  it("aceita rotação livre em graus no inspetor", () => {
-    const onCommand = vi.fn();
-    render(<PropertiesInspector document={documentFixture()} selection={[ids.node]} editable onCommand={onCommand} />);
+  it("não mostra geometria de equipamento no inspetor", () => {
+    render(<PropertiesInspector document={documentFixture()} selection={[ids.node]} editable onCommand={vi.fn()} />);
 
-    const rotation = screen.getByLabelText("Rotação");
-    fireEvent.change(rotation, { target: { value: "37.5" } });
-    fireEvent.blur(rotation);
+    expect(screen.queryByLabelText("Posição X")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Posição Y")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Largura")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Altura")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Rotação")).not.toBeInTheDocument();
+  });
 
-    expect(onCommand).toHaveBeenCalledWith({ type: "element.patch", id: ids.node, patch: { rotation: 37.5 } });
-    expect(rotation).toHaveAttribute("aria-invalid", "false");
+  it("não mostra geometria de anotação no inspetor", () => {
+    render(<PropertiesInspector document={documentFixture()} selection={[ids.annotation]} editable onCommand={vi.fn()} />);
+
+    expect(screen.queryByLabelText("Tipo")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Posição X")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Posição Y")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Largura")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Altura")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Rotação")).not.toBeInTheDocument();
   });
 
   it("valida o campo antes do comando e anuncia erros locais e do domínio", () => {
@@ -175,8 +279,6 @@ describe("inspetor contextual P&ID", () => {
   });
 
   it.each([
-    ["Posição X", ids.node],
-    ["Rotação", ids.node],
     ["Capacidade", ids.port],
   ])("rejeita %s vazio sem substituir o valor canônico por zero", (label, selectedId) => {
     const onCommand = vi.fn();
@@ -225,7 +327,7 @@ describe("inspetor contextual P&ID", () => {
     remote.nodes[ids.node] = { ...remote.nodes[ids.node], x: 99 };
     rerender(<PropertiesInspector document={remote} selection={[ids.node]} editable onCommand={vi.fn()} />);
 
-    await waitFor(() => expect(screen.getByLabelText("Posição X")).toHaveValue(99));
+    expect(screen.queryByLabelText("Posição X")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Rótulo")).toBe(label);
     expect(label).toHaveValue("Rascunho local");
     expect(label).toHaveFocus();
@@ -373,7 +475,7 @@ function documentFixture(): PidDocument {
       [ids.edge]: { id: ids.edge, sourcePortId: ids.port, targetPortId: ids.port, connectionClass: "process", lineStyle: "supply-impulse", route: [], tag: "L-1", label: "Linha", properties: {} },
     },
     annotations: {
-      [ids.annotation]: { id: ids.annotation, kind: "note", text: "Nota", x: 30, y: 40, width: 120, height: 80, rotation: 0, properties: {} },
+      [ids.annotation]: { id: ids.annotation, kind: "text", text: "Nota", x: 30, y: 40, width: 120, height: 80, rotation: 0, properties: {} },
     },
     groups: {
       [ids.group]: { id: ids.group, label: "Unidade 100", memberIds: [ids.node], x: -24, y: -14, width: 164, height: 132, properties: {} },

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   Background,
   applyNodeChanges,
@@ -7,6 +7,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   SelectionMode,
+  ViewportPortal,
   useReactFlow,
   useEdgesState,
   useNodesState,
@@ -21,8 +22,14 @@ import "@xyflow/react/dist/style.css";
 
 import type { CatalogIndex } from "../catalog/catalog-index";
 import type { CatalogSymbol } from "../catalog/catalog-symbol";
-import { deleteSelection, patchElement, type PidCommand } from "../domain/commands";
-import type { PidDocument } from "../domain/model";
+import { deleteSelection, moveSelection, patchElement, type PidCommand } from "../domain/commands";
+import {
+  annotationColorsFromProperties,
+  annotationTextAlignFromProperties,
+  annotationTextVerticalAlignFromProperties,
+  type AnnotationTextVerticalAlign,
+} from "../domain/annotation-style";
+import type { PidAnnotation, PidDocument } from "../domain/model";
 import type { ConnectionClass } from "../domain/model";
 import { createPortConnectionValidation, getPortConnectionRejection, type PidGraphIndex, uniqueIds } from "../domain/graph-operations";
 import { EquipmentNode, type EquipmentFlowNode } from "./equipment-node";
@@ -69,6 +76,33 @@ type UncontrolledSelectionProps = {
 
 export type PidCanvasProps = PidCanvasBaseProps & (ControlledSelectionProps | UncontrolledSelectionProps);
 
+interface AnnotationDragState {
+  readonly ids: readonly string[];
+  readonly startClient: { readonly x: number; readonly y: number };
+  readonly viewportZoom: number;
+}
+
+interface AnnotationDragPreview {
+  readonly ids: readonly string[];
+  readonly delta: { readonly x: number; readonly y: number };
+}
+
+type AnnotationResizeDirection = "nw" | "ne" | "se" | "sw";
+type AnnotationTransformDraft = Pick<PidAnnotation, "x" | "y" | "width" | "height">;
+
+interface AnnotationResizeState {
+  readonly id: string;
+  readonly direction: AnnotationResizeDirection;
+  readonly startClient: { readonly x: number; readonly y: number };
+  readonly start: AnnotationTransformDraft;
+  readonly viewportZoom: number;
+}
+
+interface AnnotationResizePreview {
+  readonly id: string;
+  readonly draft: AnnotationTransformDraft;
+}
+
 const EMPTY_SELECTION: PidCanvasSelection = { nodeIds: [], edgeIds: [] };
 const EDITABLE_ARIA_LABELS = {
   "node.a11yDescription.default": "Pressione Enter ou Espaço para selecionar. Use as setas para mover e Delete para excluir. Escape cancela.",
@@ -81,6 +115,8 @@ const READONLY_ARIA_LABELS = {
   "edge.a11yDescription.default": "Pressione Enter ou Espaço para selecionar uma conexão. Escape cancela a seleção.",
 } as const;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const MIN_ANNOTATION_WIDTH = 48;
+const MIN_ANNOTATION_HEIGHT = 32;
 
 export function pidCanvasViewportDuration(
   type: PidCanvasViewportAction["type"],
@@ -130,6 +166,11 @@ function PidCanvasInner({
   const additiveSelectionIntentRef = useRef(false);
   const pointerDraggingRef = useRef(false);
   const draggingNodeIdsRef = useRef<ReadonlySet<string>>(new Set());
+  const annotationDragRef = useRef<AnnotationDragState | null>(null);
+  const annotationDraggedRef = useRef(false);
+  const [annotationDragPreview, setAnnotationDragPreview] = useState<AnnotationDragPreview | null>(null);
+  const annotationResizeRef = useRef<AnnotationResizeState | null>(null);
+  const [annotationResizePreview, setAnnotationResizePreview] = useState<AnnotationResizePreview | null>(null);
   const [keyboardSourcePortId, setKeyboardSourcePortId] = useState<string | null>(null);
   const keyboardSourcePortRef = useRef<string | null>(null);
   const [connectionAnnouncement, setConnectionAnnouncement] = useState("");
@@ -193,7 +234,7 @@ function PidCanvasInner({
     updateKeyboardSourcePort(null);
     setConnectionAnnouncement("Conexão criada com sucesso.");
   }, [updateKeyboardSourcePort]);
-  const handleElementPatch = useCallback((id: string, patch: Record<string, number>) => {
+  const handleElementPatch = useCallback((id: string, patch: Record<string, unknown>) => {
     if (!editableRef.current) return;
     onCommandRef.current(patchElement(id, patch));
   }, []);
@@ -384,6 +425,11 @@ function PidCanvasInner({
   }, [editable, onCommand]);
   const handleAnnotationClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>, annotationId: string) => {
     event.stopPropagation();
+    if (annotationDraggedRef.current) {
+      annotationDraggedRef.current = false;
+      event.preventDefault();
+      return;
+    }
     commitSelection((current) => {
       const selected = new Set(current.annotationIds ?? []);
       if (event.ctrlKey || event.metaKey) {
@@ -393,11 +439,126 @@ function PidCanvasInner({
       return { nodeIds: [], edgeIds: [], annotationIds: [annotationId] };
     });
   }, [commitSelection]);
+  const handleAnnotationPointerMove = useCallback((event: PointerEvent) => {
+    const drag = annotationDragRef.current;
+    if (!drag) return;
+    const zoom = drag.viewportZoom || 1;
+    const delta = {
+      x: (event.clientX - drag.startClient.x) / zoom,
+      y: (event.clientY - drag.startClient.y) / zoom,
+    };
+    if (delta.x !== 0 || delta.y !== 0) annotationDraggedRef.current = true;
+    setAnnotationDragPreview({ ids: drag.ids, delta });
+  }, []);
+  const handleAnnotationPointerEnd = useCallback((event: PointerEvent) => {
+    const drag = annotationDragRef.current;
+    if (!drag) return;
+    annotationDragRef.current = null;
+    window.removeEventListener("pointermove", handleAnnotationPointerMove);
+    window.removeEventListener("pointerup", handleAnnotationPointerEnd);
+    window.removeEventListener("pointercancel", handleAnnotationPointerEnd);
+    const zoom = drag.viewportZoom || 1;
+    const delta = {
+      x: (event.clientX - drag.startClient.x) / zoom,
+      y: (event.clientY - drag.startClient.y) / zoom,
+    };
+    setAnnotationDragPreview(null);
+    if (delta.x === 0 && delta.y === 0) return;
+    annotationDraggedRef.current = true;
+    onCommandRef.current(moveSelection([...drag.ids], delta));
+  }, [handleAnnotationPointerMove]);
+  const handleAnnotationPointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>, annotationId: string) => {
+    if (!editableRef.current || event.button !== 0) return;
+    event.stopPropagation();
+    const selectedAnnotations = selectionRef.current.annotationIds ?? [];
+    const isSelected = selectedAnnotations.includes(annotationId);
+    const ids = isSelected
+      ? selectedAnnotations
+      : event.ctrlKey || event.metaKey
+        ? uniqueIds([...selectedAnnotations, annotationId])
+        : [annotationId];
+    if (!isSelected) {
+      commitSelection((current) => event.ctrlKey || event.metaKey
+        ? {
+          nodeIds: current.nodeIds,
+          edgeIds: current.edgeIds,
+          annotationIds: uniqueIds([...(current.annotationIds ?? []), annotationId]),
+        }
+        : { nodeIds: [], edgeIds: [], annotationIds: [annotationId] });
+    }
+    annotationDragRef.current = {
+      ids,
+      startClient: { x: event.clientX, y: event.clientY },
+      viewportZoom: canvasViewport.zoom,
+    };
+    annotationDraggedRef.current = false;
+    window.addEventListener("pointermove", handleAnnotationPointerMove);
+    window.addEventListener("pointerup", handleAnnotationPointerEnd);
+    window.addEventListener("pointercancel", handleAnnotationPointerEnd);
+  }, [canvasViewport.zoom, commitSelection, handleAnnotationPointerEnd, handleAnnotationPointerMove]);
+  const handleAnnotationResizePointerMove = useCallback((event: PointerEvent) => {
+    const resize = annotationResizeRef.current;
+    if (!resize) return;
+    const zoom = resize.viewportZoom || 1;
+    const delta = {
+      x: (event.clientX - resize.startClient.x) / zoom,
+      y: (event.clientY - resize.startClient.y) / zoom,
+    };
+    const draft = resizeAnnotationTransform(resize.start, resize.direction, delta.x, delta.y);
+    if (draft.width !== resize.start.width || draft.height !== resize.start.height || draft.x !== resize.start.x || draft.y !== resize.start.y) {
+      annotationDraggedRef.current = true;
+    }
+    setAnnotationResizePreview({ id: resize.id, draft });
+  }, []);
+  const handleAnnotationResizePointerEnd = useCallback((event: PointerEvent) => {
+    const resize = annotationResizeRef.current;
+    if (!resize) return;
+    annotationResizeRef.current = null;
+    window.removeEventListener("pointermove", handleAnnotationResizePointerMove);
+    window.removeEventListener("pointerup", handleAnnotationResizePointerEnd);
+    window.removeEventListener("pointercancel", handleAnnotationResizePointerEnd);
+    const zoom = resize.viewportZoom || 1;
+    const draft = resizeAnnotationTransform(resize.start, resize.direction, (event.clientX - resize.startClient.x) / zoom, (event.clientY - resize.startClient.y) / zoom);
+    setAnnotationResizePreview(null);
+    const patch = diffAnnotationTransform(resize.start, draft);
+    if (Object.keys(patch).length === 0) return;
+    annotationDraggedRef.current = true;
+    onCommandRef.current(patchElement(resize.id, patch));
+  }, [handleAnnotationResizePointerMove]);
+  const handleAnnotationResizePointerDown = useCallback((
+    event: ReactPointerEvent<HTMLElement>,
+    annotationId: string,
+    direction: AnnotationResizeDirection,
+    start: AnnotationTransformDraft,
+  ) => {
+    if (!editableRef.current || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    annotationResizeRef.current = {
+      id: annotationId,
+      direction,
+      startClient: { x: event.clientX, y: event.clientY },
+      start,
+      viewportZoom: canvasViewport.zoom,
+    };
+    annotationDraggedRef.current = false;
+    window.addEventListener("pointermove", handleAnnotationResizePointerMove);
+    window.addEventListener("pointerup", handleAnnotationResizePointerEnd);
+    window.addEventListener("pointercancel", handleAnnotationResizePointerEnd);
+  }, [canvasViewport.zoom, handleAnnotationResizePointerEnd, handleAnnotationResizePointerMove]);
   const handleAnnotationKeyDown = useCallback((event: ReactKeyboardEvent<HTMLButtonElement>, annotationId: string) => {
     if (!editableRef.current || (event.key !== "Delete" && event.key !== "Backspace")) return;
     event.preventDefault(); event.stopPropagation();
     onCommandRef.current(deleteSelection([annotationId]));
   }, []);
+  useEffect(() => () => {
+    window.removeEventListener("pointermove", handleAnnotationPointerMove);
+    window.removeEventListener("pointerup", handleAnnotationPointerEnd);
+    window.removeEventListener("pointercancel", handleAnnotationPointerEnd);
+    window.removeEventListener("pointermove", handleAnnotationResizePointerMove);
+    window.removeEventListener("pointerup", handleAnnotationResizePointerEnd);
+    window.removeEventListener("pointercancel", handleAnnotationResizePointerEnd);
+  }, [handleAnnotationPointerEnd, handleAnnotationPointerMove, handleAnnotationResizePointerEnd, handleAnnotationResizePointerMove]);
   useEffect(() => {
     if (!viewportAction) return;
     const duration = pidCanvasViewportDuration(viewportAction.type, reducedMotionRef.current);
@@ -410,11 +571,12 @@ function PidCanvasInner({
     <div
       data-testid="pid-canvas"
       data-editable={String(editable)}
+      data-canvas-mode={editable ? "editing" : "readonly"}
       data-keyboard-source-port={keyboardSourcePortId ?? ""}
       data-viewport-animation-duration={viewportAction
         ? pidCanvasViewportDuration(viewportAction.type, reducedMotion)
         : undefined}
-      className={`relative h-[640px] min-h-[320px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${className ?? ""}`}
+      className={`pid-canvas-flow relative h-[640px] min-h-[320px] w-full overflow-hidden rounded-xl border border-slate-200 ${className ?? ""}`}
       style={{ height: "640px" }}
       onPointerDownCapture={(event) => { additiveSelectionIntentRef.current = event.ctrlKey || event.metaKey; }}
       onClickCapture={(event) => { additiveSelectionIntentRef.current = event.ctrlKey || event.metaKey; }}
@@ -451,26 +613,56 @@ function PidCanvasInner({
         onDelete={handleDelete}
         proOptions={{ hideAttribution: true }}
       >
-        <Background gap={16} size={1} />
+        <Background color="var(--pid-canvas-grid)" gap={16} size={1} />
+        <ViewportPortal>
+          <div className="pid-canvas-annotations" aria-label="Anotações do diagrama">
+            {Object.values(document.annotations).map((annotation) => {
+              const selected = selectionRef.current.annotationIds?.includes(annotation.id) === true;
+              const colors = annotationColorsFromProperties(annotation.properties);
+              const textAlign = annotationTextAlignFromProperties(annotation.properties);
+              const textVerticalAlign = annotationTextVerticalAlignFromProperties(annotation.properties);
+              const resizeDraft = annotationResizePreview?.id === annotation.id ? annotationResizePreview.draft : annotation;
+              const dragDelta = annotationDragPreview?.ids.includes(annotation.id) === true
+                ? annotationDragPreview.delta
+                : { x: 0, y: 0 };
+              return <button
+                key={annotation.id}
+                type="button"
+                aria-label={`Anotação: ${annotation.text}`}
+                aria-pressed={selected}
+                className="pid-canvas-annotation nodrag nopan"
+                style={{
+                  left: resizeDraft.x + dragDelta.x,
+                  top: resizeDraft.y + dragDelta.y,
+                  width: resizeDraft.width,
+                  height: resizeDraft.height,
+                  color: colors.textColor,
+                  backgroundColor: colors.fillColor,
+                  textAlign,
+                  justifyContent: annotationTextVerticalAlignToJustifyContent(textVerticalAlign),
+                  transform: `rotate(${annotation.rotation}deg)`,
+                }}
+                onPointerDown={(event) => handleAnnotationPointerDown(event, annotation.id)}
+                onClick={(event) => handleAnnotationClick(event, annotation.id)}
+                onKeyDown={(event) => handleAnnotationKeyDown(event, annotation.id)}
+              >
+                <span className="pid-canvas-annotation__text">{annotation.text}</span>
+                {editable && selected && (["nw", "ne", "se", "sw"] as const).map((direction) => (
+                  <span
+                    key={direction}
+                    aria-hidden="true"
+                    data-testid={`annotation-resize-${direction}-${annotation.id}`}
+                    className={`nodrag nopan absolute size-3 rounded-sm border border-blue-700 bg-white shadow-sm ${annotationResizeCursor(direction)}`}
+                    style={annotationResizeHandleStyle(direction)}
+                    onPointerDown={(event) => handleAnnotationResizePointerDown(event, annotation.id, direction, resizeDraft)}
+                  />
+                ))}
+              </button>;
+            })}
+          </div>
+        </ViewportPortal>
         <MiniMap pannable zoomable ariaLabel="Minimapa do diagrama P&ID" />
       </ReactFlow>
-      <div className="pid-canvas-annotations" aria-label="Anotações do diagrama">
-        <div style={{ transform: `translate(${canvasViewport.x}px, ${canvasViewport.y}px) scale(${canvasViewport.zoom})` }}>
-          {Object.values(document.annotations).map((annotation) => {
-            const selected = selectionRef.current.annotationIds?.includes(annotation.id) === true;
-            return <button
-              key={annotation.id}
-              type="button"
-              aria-label={`Anotação: ${annotation.text}`}
-              aria-pressed={selected}
-              className="pid-canvas-annotation"
-              style={{ left: annotation.x, top: annotation.y, width: annotation.width, height: annotation.height, transform: `rotate(${annotation.rotation}deg)` }}
-              onClick={(event) => handleAnnotationClick(event, annotation.id)}
-              onKeyDown={(event) => handleAnnotationKeyDown(event, annotation.id)}
-            >{annotation.text}</button>;
-          })}
-        </div>
-      </div>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {connectionAnnouncement}
       </div>
@@ -556,6 +748,72 @@ export function createPidMoveCommand(
   const selected = uniqueIds(selectedNodeIds.filter((id) => document.nodes[id]));
   const ids = selected.includes(draggedNodeId) ? selected : [draggedNodeId];
   return { type: "selection.move", ids, delta };
+}
+
+function resizeAnnotationTransform(
+  start: AnnotationTransformDraft,
+  direction: AnnotationResizeDirection,
+  deltaX: number,
+  deltaY: number,
+): AnnotationTransformDraft {
+  let { x, y, width, height } = start;
+  if (direction.includes("e")) width = start.width + deltaX;
+  if (direction.includes("s")) height = start.height + deltaY;
+  if (direction.includes("w")) {
+    width = start.width - deltaX;
+    x = start.x + deltaX;
+  }
+  if (direction.includes("n")) {
+    height = start.height - deltaY;
+    y = start.y + deltaY;
+  }
+  if (width < MIN_ANNOTATION_WIDTH) {
+    if (direction.includes("w")) x = start.x + start.width - MIN_ANNOTATION_WIDTH;
+    width = MIN_ANNOTATION_WIDTH;
+  }
+  if (height < MIN_ANNOTATION_HEIGHT) {
+    if (direction.includes("n")) y = start.y + start.height - MIN_ANNOTATION_HEIGHT;
+    height = MIN_ANNOTATION_HEIGHT;
+  }
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.round(width),
+    height: Math.round(height),
+  };
+}
+
+function diffAnnotationTransform(
+  start: AnnotationTransformDraft,
+  draft: AnnotationTransformDraft,
+): Record<string, number> {
+  const patch: Record<string, number> = {};
+  if (start.x !== draft.x) patch.x = draft.x;
+  if (start.y !== draft.y) patch.y = draft.y;
+  if (start.width !== draft.width) patch.width = draft.width;
+  if (start.height !== draft.height) patch.height = draft.height;
+  return patch;
+}
+
+function annotationResizeCursor(direction: AnnotationResizeDirection): string {
+  return direction === "nw" || direction === "se" ? "cursor-nwse-resize" : "cursor-nesw-resize";
+}
+
+function annotationResizeHandleStyle(direction: AnnotationResizeDirection): CSSProperties {
+  return {
+    left: direction.includes("w") ? 3 : undefined,
+    right: direction.includes("e") ? 3 : undefined,
+    top: direction.includes("n") ? 3 : undefined,
+    bottom: direction.includes("s") ? 3 : undefined,
+  };
+}
+
+function annotationTextVerticalAlignToJustifyContent(
+  alignment: AnnotationTextVerticalAlign,
+): CSSProperties["justifyContent"] {
+  if (alignment === "middle") return "center";
+  if (alignment === "bottom") return "flex-end";
+  return "flex-start";
 }
 
 function sameSelection(left: PidCanvasSelection, right: PidCanvasSelection): boolean {

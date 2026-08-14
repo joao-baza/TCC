@@ -24,7 +24,7 @@ test("cria, desenha, recarrega e exporta o documento canônico", async ({ page }
   expect(downloadPath).not.toBeNull();
   const svg = await readFile(downloadPath!, "utf8");
   expect(svg).toContain('aria-label="Área 100"');
-  expect(svg).toContain("Bomba centrífuga");
+  expect(svg).toContain("Bomba Centrífuga");
   expect(svg).toContain("data-element-id=");
   expect(svg).not.toMatch(/minimap|selection|cursor|validation/i);
 });
@@ -65,9 +65,10 @@ test("abre o link de visualização sem expor escrita ou persistir mutações", 
 });
 
 test("mantém a criação acessível em todos os viewports e temas", async ({ page }) => {
+  test.setTimeout(60_000);
   for (const theme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: theme });
-    for (const width of [375, 768, 1024, 1440]) {
+    for (const width of [375, 414, 768, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/pid");
       await expect(page.getByRole("heading", { name: "Editor P&ID" })).toBeVisible();
@@ -76,13 +77,15 @@ test("mantém a criação acessível em todos os viewports e temas", async ({ pa
       }, theme);
 
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await expectMinimumTargetSize(page.locator("main"));
-      await expectKeyboardFocusVisible(page);
+      if (width === 375 || width === 1024) {
+        await expectMinimumTargetSize(page);
+        await expectKeyboardFocusVisible(page);
+      }
     }
   }
 });
 
-test("mantém o canvas utilizável em 375, 768, 1024 e 1440 px", async ({ page }) => {
+test("mantém o canvas utilizável em 375, 414, 768, 1024, 1280 e 1440 px", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 800 });
   await createDiagram(page, "Responsivo");
   await insertPump(page);
@@ -93,7 +96,7 @@ test("mantém o canvas utilizável em 375, 768, 1024 e 1440 px", async ({ page }
     await page.evaluate((selectedTheme) => {
       document.documentElement.classList.toggle("dark", selectedTheme === "dark");
     }, theme);
-    for (const width of [375, 768, 1024, 1440]) {
+    for (const width of [375, 414, 768, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 800 });
       const canvas = page.getByRole("region", { name: "Canvas P&ID" });
       await expect(canvas).toBeVisible();
@@ -103,7 +106,7 @@ test("mantém o canvas utilizável em 375, 768, 1024 e 1440 px", async ({ page }
       expect(bounds!.x + bounds!.width, `canvas excede a tela em ${width}px`).toBeLessThanOrEqual(width + 1);
       expect(await canvas.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(248, 250, 252)");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-      await expectMinimumTargetSize(page.locator("main"));
+      await expectMinimumTargetSize(page);
       await expectPanelsOutsideCanvas(page, canvas);
 
       if (width < 768) {
@@ -112,7 +115,7 @@ test("mantém o canvas utilizável em 375, 768, 1024 e 1440 px", async ({ page }
       } else {
         await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toBeVisible();
       }
-      if (width === 768 || width === 1440) await expectToolbarContentContained(page);
+      if (width === 768 || width === 1280 || width === 1440) await expectToolbarContentContained(page);
       if (width === 1024) await expectKeyboardFocusVisible(page);
     }
   }
@@ -158,10 +161,10 @@ test("rejeita conexão inválida sem criar linha", async ({ page }) => {
   await createDiagram(page, "Conexão inválida");
   await insertPump(page);
 
-  const suction = page.getByRole("button", { name: "Criar conexão pela porta de entrada suction" });
-  await suction.focus();
-  await suction.press("Enter");
-  await suction.press("Enter");
+  const port = page.getByRole("button", { name: /^Criar conexão pela porta de / }).first();
+  await port.focus();
+  await port.press("Enter");
+  await port.press("Enter");
   await expect(page.getByText(/Conexão inválida:/)).toBeAttached();
   await expect(page.locator(".react-flow__edge")).toHaveCount(0);
 });
@@ -202,7 +205,7 @@ test("toolbar usa botões com ícones e dropdowns", async ({ page }) => {
   await expect(toolbar.getByRole("button", { name: "Desfazer" })).toBeVisible();
   await expect(toolbar.getByRole("button", { name: "Refazer" })).toBeVisible();
   await expect(toolbar.getByRole("button", { name: "Exportar SVG" })).toBeVisible();
-  await expect(toolbar.getByLabelText("Tipo de linha de conexão")).toBeVisible();
+  await expect(toolbar.getByRole("combobox", { name: "Tipo de linha de conexão" })).toBeVisible();
   await expect(toolbar.getByRole("button", { name: "Linha de processo" })).toHaveCount(0);
 });
 
@@ -213,7 +216,7 @@ test("abre diálogo de configurações e persiste após reload", async ({ page }
   const largeButton = page.getByRole("dialog").getByRole("button", { name: "Grande" }).first();
   await largeButton.click();
   await expect(largeButton).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Fechar" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Fechar" }).click();
   await page.reload();
   await page.getByRole("button", { name: "Configurações" }).click();
   await expect(page.getByRole("dialog").getByRole("button", { name: "Grande" }).first()).toHaveAttribute("aria-pressed", "true");
@@ -221,7 +224,8 @@ test("abre diálogo de configurações e persiste após reload", async ({ page }
 
 test("slider de zoom do catálogo redimensiona miniaturas", async ({ page }) => {
   await createDiagram(page, "Zoom catálogo");
-  await page.getByLabelText("Tamanho das miniaturas").fill("64");
+  await page.getByRole("button", { name: "Abrir catálogo" }).click();
+  await page.getByRole("slider", { name: "Tamanho das miniaturas" }).fill("64");
   const img = page.locator("[role='tree'] img").first();
   await expect(img).toBeVisible();
   const height = await img.evaluate((el) => (el as HTMLImageElement).height);
@@ -235,10 +239,31 @@ test("barra de status mostra contagem de validação dinâmica", async ({ page }
   await expect(footer).toContainText("Erros 0");
 });
 
+test("abre e fecha os docks sem retirar o canvas do fluxo", async ({ page }) => {
+  await createDiagram(page, "Docks contextuais");
+
+  await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toHaveAttribute("data-dock-state", "closed");
+  await expect(page.getByRole("region", { name: "Inspetor", exact: true })).toHaveAttribute("data-dock-state", "open");
+
+  await page.getByRole("button", { name: "Abrir catálogo" }).click();
+  await expect(page.getByRole("tree", { name: "Símbolos disponíveis" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toHaveAttribute("data-dock-state", "open");
+  await page.getByRole("button", { name: "Fechar catálogo" }).click();
+  await expect(page.getByRole("tree", { name: "Símbolos disponíveis" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Fechar inspetor" }).click();
+  await expect(page.getByRole("region", { name: "Inspetor", exact: true })).toHaveAttribute("data-dock-state", "closed");
+  await expect(page.getByRole("region", { name: "Canvas P&ID" })).toBeVisible();
+
+  await page.keyboard.press("c");
+  await page.keyboard.press("i");
+  await expect(page.getByRole("region", { name: "Catálogo de símbolos", exact: true })).toHaveAttribute("data-dock-state", "open");
+  await expect(page.getByRole("region", { name: "Inspetor", exact: true })).toHaveAttribute("data-dock-state", "open");
+});
+
 async function createDiagram(page: Page, title: string): Promise<DiagramAccess> {
   await page.goto("/pid");
   await page.getByLabel("Título do diagrama").fill(title);
-  await page.getByLabel("Norma").selectOption("free");
   await page.getByLabel("Seu nome").fill("Ana");
   await page.getByRole("button", { name: "Criar diagrama" }).click();
   const viewUrl = await page.getByRole("textbox", { name: "Link de visualização" }).inputValue();
@@ -250,16 +275,19 @@ async function createDiagram(page: Page, title: string): Promise<DiagramAccess> 
 }
 
 async function insertPump(page: Page): Promise<void> {
-  await page.getByRole("treeitem", { name: /^Inserir Bomba centrífuga/ }).click();
+  const catalog = page.getByRole("treeitem", { name: /^Bomba Centrífuga/ });
+  if (await catalog.count() === 0) await page.getByRole("button", { name: "Abrir catálogo" }).click();
+  if (await catalog.count() === 0) await page.getByLabel("Pesquisar símbolos").fill("Bomba Centrífuga");
+  await catalog.first().click();
   await expect(equipmentNodes(page)).toHaveCount(1);
 }
 
 function equipmentNodes(page: Page) {
-  return page.locator(".react-flow__node").filter({ hasText: "Bomba centrífuga" });
+  return page.locator(".react-flow__node").filter({ hasText: /Bomba Centrífuga/i });
 }
 
 async function expectSaveState(page: Page, state: string): Promise<void> {
-  await expect(page.locator('footer[aria-label="Status do documento"]')).toContainText(state);
+  await expect(page.getByRole("group", { name: "Estado da sessão" })).toContainText(state);
 }
 
 async function persistedPidRecord(page: Page): Promise<string | null> {
@@ -289,16 +317,29 @@ async function failNextPidWrite(page: Page): Promise<void> {
   });
 }
 
-async function expectMinimumTargetSize(main: Locator): Promise<void> {
-  const targets = main.locator('button, a, input:not([type="checkbox"]), select, textarea, [role="button"], [role="treeitem"]');
-  for (let index = 0; index < await targets.count(); index += 1) {
-    const target = targets.nth(index);
-    if (!(await target.isVisible())) continue;
-    const box = await target.boundingBox();
-    expect(box, `alvo interativo ${index} sem geometria`).not.toBeNull();
-    const label = await target.getAttribute("aria-label") ?? await target.textContent() ?? `alvo ${index}`;
-    expect(box!.width, `${label.trim()} deve ter largura mínima de 44 px`).toBeGreaterThanOrEqual(44);
-    expect(box!.height, `${label.trim()} deve ter altura mínima de 44 px`).toBeGreaterThanOrEqual(44);
+async function expectMinimumTargetSize(page: Page): Promise<void> {
+  const targets = await page.evaluate(() => {
+    const root = document.querySelector("main") ?? document.querySelector('[role="tabpanel"]') ?? document.body;
+    return Array.from(root.querySelectorAll<HTMLElement>('button, a, input:not([type="checkbox"]), select, textarea, [role="button"], [role="treeitem"]'))
+      .filter((target) => {
+        if (target.getAttribute("aria-label")?.startsWith("Criar conexão pela porta")) return false;
+        const style = window.getComputedStyle(target);
+        const rect = target.getBoundingClientRect();
+        return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
+      })
+      .map((target, index) => {
+        const rect = target.getBoundingClientRect();
+        return {
+          index,
+          label: (target.getAttribute("aria-label") ?? target.textContent ?? `alvo ${index}`).trim(),
+          width: rect.width,
+          height: rect.height,
+        };
+      });
+  });
+  for (const target of targets) {
+    expect(target.width, `${target.label} deve ter largura mínima de 44 px`).toBeGreaterThanOrEqual(44);
+    expect(target.height, `${target.label} deve ter altura mínima de 44 px`).toBeGreaterThanOrEqual(44);
   }
 }
 

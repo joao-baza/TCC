@@ -1,4 +1,4 @@
-import { Settings2, RotateCcw, ZoomOut, ZoomIn } from "lucide-react";
+import { RotateCcw, ZoomOut, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePidSettings, type PidIconSize, type PidTextSize } from "./use-pid-settings";
 import { cn } from "@/lib/utils";
@@ -63,10 +63,4 @@ export function PidSettingsDialog({ open, onOpenChange }: { open: boolean; onOpe
       </div>
     </div>
   </div>;
-}
-
-export function PidSettingsButton({ onClick }: { onClick: () => void }) {
-  return <Button variant="ghost" size="icon-sm" aria-label="Configurações" onClick={onClick}>
-    <Settings2 className="size-4" />
-  </Button>;
 }

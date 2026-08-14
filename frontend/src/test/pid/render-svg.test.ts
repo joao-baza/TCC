@@ -107,11 +107,42 @@ describe("renderPidSvg", () => {
     expect(y + height).toBeGreaterThan(250);
   });
 
+  it("exporta tamanho e cores configuradas do card de anotação", async () => {
+    const document = emptyDocument("Anotação colorida");
+    document.annotations.note = {
+      id: "note",
+      kind: "text",
+      text: "Aviso",
+      x: 10,
+      y: 20,
+      width: 220,
+      height: 72,
+      rotation: 0,
+      properties: {
+        annotationFillColor: "#fde68a",
+        annotationTextColor: "#7f1d1d",
+        annotationTextAlign: "right",
+        annotationTextVerticalAlign: "bottom",
+      },
+    };
+
+    const svg = await renderPidSvg(document, new Map(), { padding: 0 });
+
+    expect(svg).toContain('width="220"');
+    expect(svg).toContain('height="72"');
+    expect(svg).toContain('fill="#fde68a"');
+    expect(svg).toContain('fill="#7f1d1d"');
+    expect(svg).toContain('text-anchor="end"');
+    expect(svg).toContain('data-text-align="right"');
+    expect(svg).toContain('data-text-vertical-align="bottom"');
+    expect(svg).toContain('y="86"');
+  });
+
   it.each([
-    ["process", 0, "right"], ["signal", 0, "right"],
-    ["process", 90, "down"], ["signal", 90, "down"],
-    ["process", 180, "left"], ["signal", 180, "left"],
-    ["process", 270, "up"], ["signal", 270, "up"],
+    ["signal", 0, "right"],
+    ["signal", 90, "down"],
+    ["signal", 180, "left"],
+    ["signal", 270, "up"],
   ] as const)("desenha seta fechada %s na rotação %i apontando para %s", async (connectionClass, rotation, direction) => {
     const document = arrowDocument(connectionClass, rotation);
     const first = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
@@ -122,7 +153,7 @@ describe("renderPidSvg", () => {
 
     expect(first).toBe(second);
     expect(arrow?.getAttribute("id")).toBe("pid-arrow-0");
-    expect(arrow?.getAttribute("fill")).toBe(connectionClass === "signal" ? "#64748b" : "#475569");
+    expect(arrow?.getAttribute("fill")).toBe("#64748b");
     expect(points).toHaveLength(3);
     const [tip, firstBase, secondBase] = points!;
     const base = [(firstBase[0] + secondBase[0]) / 2, (firstBase[1] + secondBase[1]) / 2];
@@ -144,6 +175,18 @@ describe("renderPidSvg", () => {
     expect(svg).not.toContain('data-arrow-for="edge"');
   });
 
+  it("exporta a linha de processo sem incorporar o piping.svg", async () => {
+    const document = arrowDocument("process", 0);
+    const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
+
+    expect(svg.match(/data-process-line-parallel=/g)).toHaveLength(2);
+    expect(svg).toContain('stroke-width="2"');
+    expect(svg).not.toContain('data-process-line-asset="piping.svg"');
+    expect(svg).not.toContain("<image");
+    expect(svg).not.toContain("<pattern");
+    expect(svg).not.toContain('data-arrow-for="edge"');
+  });
+
   it("inclui geometria e traço da seta nos limites do SVG", async () => {
     const document = arrowDocument("process", 0);
     document.nodes["node-a"] = { ...document.nodes["node-a"], x: -80, y: 0, width: 2, height: 2 };
@@ -155,14 +198,14 @@ describe("renderPidSvg", () => {
     expect(y + height).toBeGreaterThanOrEqual(6);
   });
 
-  it("exporta arestas com o mesmo renderer de padrao P&ID", async () => {
+  it("mantém a linha de processo lisa mesmo com estilo de sinal legado", async () => {
     const document = exportDocument();
     document.edges.edge = { ...document.edges.edge, lineStyle: "mechanical-link" };
 
     const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
 
-    expect(svg).toContain('data-signal-line-style="mechanical-link"');
-    expect(svg).toContain('data-glyph="concentric-circle"');
+    expect(svg).toContain('data-process-line-parallel="0"');
+    expect(svg).not.toContain('data-glyph="concentric-circle"');
   });
 
   it("exporta utilidade como linha lisa mesmo com estilo de sinal legado", async () => {
@@ -223,7 +266,8 @@ describe("renderPidSvg", () => {
 
     const svg = await renderPidSvg(document, new Map([["project.pump", pump]]), { padding: 0 });
     expect(svg).toContain("L 62500 62499");
-    expect(svg).toContain('data-arrow-for="edge"');
+    expect(svg).toContain('data-process-line-parallel="0"');
+    expect(svg).not.toContain('data-arrow-for="edge"');
   }, 15_000);
 });
 
@@ -343,7 +387,7 @@ function exportDocument(): PidDocument {
     },
   };
   document.annotations = {
-    note: { id: "note", kind: "note", text: "Nota <segura>", x: 110, y: -10, width: 100, height: 30, rotation: 0, properties: {} },
+    note: { id: "note", kind: "text", text: "Nota <segura>", x: 110, y: -10, width: 100, height: 30, rotation: 0, properties: {} },
   };
   document.groups = {
     group: { id: "group", label: "Grupo <A>", memberIds: ["node-a"], x: -50, y: -20, width: 120, height: 80, properties: {} },

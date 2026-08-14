@@ -7,9 +7,21 @@ import {
   type SanitizedPidSvgAsset,
 } from "../catalog/sanitized-svg-asset";
 import { getPidNodeGeometry, getPidPortAnchorGeometry, type PidFlowPosition } from "../domain/geometry";
+import {
+  annotationColorsFromProperties,
+  annotationTextAlignFromProperties,
+  annotationTextVerticalAlignFromProperties,
+  type AnnotationTextAlign,
+  type AnnotationTextVerticalAlign,
+} from "../domain/annotation-style";
 import type { PidAnnotation, PidDocument, PidEdge, PidGroup, PidNode, Point } from "../domain/model";
 import type { UtilityCategory } from "../domain/utility-category";
 import { effectiveLineStyle, lineStyleAttributes } from "../canvas/line-rendering";
+import {
+  processLineStyleFromProperties,
+  processPipingPatternBounds,
+  renderStaticProcessPipingPattern,
+} from "../canvas/process-piping-pattern";
 import { renderStaticSignalLinePattern, signalLinePatternBounds } from "../canvas/signal-line-pattern";
 
 export type PidExportBackground = "white" | "transparent";
@@ -116,29 +128,42 @@ function renderEdge(portPositions: ReadonlyMap<string, PositionedPort>, edge: Pi
   const target = portPositions.get(edge.targetPortId);
   if (!source || !target) return null;
   const points = orthogonalPoints(source, edge.route, target);
-  const arrow = edge.connectionClass === "utility" ? [] : closedArrowPoints(points);
+  const arrow = edge.connectionClass === "signal" ? closedArrowPoints(points) : [];
   const lineStyle = effectiveLineStyle(edge.connectionClass, edge.lineStyle);
   const attrs = lineStyleAttributes(lineStyle);
   const category = edge.connectionClass === "utility" && edge.utilityCategoryId
     ? utilityCategories.find(c => c.id === edge.utilityCategoryId)
     : undefined;
   const strokeColor = category?.color ?? attrs.stroke;
-  const patternMarkup = renderStaticSignalLinePattern({
-    id: edge.id,
-    points,
-    lineStyle,
-    selected: false,
-    stroke: strokeColor,
-    strokeWidth: attrs.strokeWidth,
-  });
-  const patternBounds = signalLinePatternBounds({
-    id: edge.id,
-    points,
-    lineStyle,
-    selected: false,
-    stroke: strokeColor,
-    strokeWidth: attrs.strokeWidth,
-  });
+  const processStyle = edge.connectionClass === "process"
+    ? processLineStyleFromProperties(edge.properties)
+    : null;
+  const patternMarkup = edge.connectionClass === "process"
+    ? renderStaticProcessPipingPattern({
+        id: edge.id,
+        points,
+        selected: false,
+        strokeWidth: processStyle?.strokeWidth,
+        parallelGap: processStyle?.parallelGap,
+      })
+    : renderStaticSignalLinePattern({
+        id: edge.id,
+        points,
+        lineStyle,
+        selected: false,
+        stroke: strokeColor,
+        strokeWidth: attrs.strokeWidth,
+      });
+  const patternBounds = edge.connectionClass === "process"
+    ? processPipingPatternBounds(points, false, processStyle?.strokeWidth, processStyle?.parallelGap)
+    : signalLinePatternBounds({
+        id: edge.id,
+        points,
+        lineStyle,
+        selected: false,
+        stroke: strokeColor,
+        strokeWidth: attrs.strokeWidth,
+      });
   const arrowMarkup = arrow.length === 3
     ? `<polygon id="pid-arrow-${edgeIndex}" data-arrow-for="${attribute(edge.id)}" points="${arrow.map((point) => `${number(point.x)},${number(point.y)}`).join(" ")}" fill="${strokeColor}" stroke="${strokeColor}" stroke-width="1" stroke-linejoin="round"/>`
     : "";
@@ -161,14 +186,41 @@ function renderAnnotation(annotation: PidAnnotation): { markup: string; bounds: 
   const centerY = annotation.y + annotation.height / 2;
   const rotation = normalizedRotation(annotation.rotation);
   const transform = rotation ? ` transform="rotate(${rotation} ${number(centerX)} ${number(centerY)})"` : "";
-  const frame = annotation.kind === "text" ? "" : `<rect x="${number(annotation.x)}" y="${number(annotation.y)}" width="${number(annotation.width)}" height="${number(annotation.height)}" rx="4" fill="none" stroke="#94a3b8"/>`;
-  const markup = `<g data-element-id="${attribute(annotation.id)}"${transform}>${frame}<text x="${number(annotation.x + 4)}" y="${number(annotation.y + 15)}" fill="#334155" stroke="none" font-size="12">${text(annotation.text)}</text></g>`;
+  const colors = annotationColorsFromProperties(annotation.properties);
+  const textAlign = annotationTextAlignFromProperties(annotation.properties);
+  const textVerticalAlign = annotationTextVerticalAlignFromProperties(annotation.properties);
+  const textPosition = annotationSvgTextPosition(annotation, textAlign);
+  const textBaselineY = annotationSvgTextBaselineY(annotation, textVerticalAlign);
+  const frame = `<rect x="${number(annotation.x)}" y="${number(annotation.y)}" width="${number(annotation.width)}" height="${number(annotation.height)}" rx="4" fill="${colors.fillColor}" stroke="#94a3b8"/>`;
+  const markup = `<g data-element-id="${attribute(annotation.id)}"${transform}>${frame}<text x="${number(textPosition.x)}" y="${number(textBaselineY)}" text-anchor="${textPosition.anchor}" data-text-align="${attribute(textAlign)}" data-text-vertical-align="${attribute(textVerticalAlign)}" fill="${colors.textColor}" stroke="none" font-size="12">${text(annotation.text)}</text></g>`;
   const frameBounds = rotatedRectAround(annotation.x, annotation.y, annotation.width, annotation.height, centerX, centerY, annotation.rotation, 1);
-  const rawTextBounds = textBounds(annotation.text, annotation.x + 4, annotation.y + 15);
+  const rawTextBounds = textBoundsForAnchor(annotation.text, textPosition.x, textBaselineY, textPosition.anchor);
   const textWidth = rawTextBounds.maxX - rawTextBounds.minX;
   const textHeight = rawTextBounds.maxY - rawTextBounds.minY;
   const rotatedTextBounds = rotatedRectAround(rawTextBounds.minX, rawTextBounds.minY, textWidth, textHeight, centerX, centerY, annotation.rotation);
   return { markup, bounds: unionBounds([frameBounds, rotatedTextBounds]) };
+}
+
+function annotationSvgTextPosition(
+  annotation: PidAnnotation,
+  textAlign: AnnotationTextAlign,
+): { readonly x: number; readonly anchor: "start" | "middle" | "end" } {
+  if (textAlign === "center") {
+    return { x: annotation.x + annotation.width / 2, anchor: "middle" };
+  }
+  if (textAlign === "right") {
+    return { x: annotation.x + annotation.width - 4, anchor: "end" };
+  }
+  return { x: annotation.x + 4, anchor: "start" };
+}
+
+function annotationSvgTextBaselineY(
+  annotation: PidAnnotation,
+  textVerticalAlign: AnnotationTextVerticalAlign,
+): number {
+  if (textVerticalAlign === "middle") return annotation.y + annotation.height / 2 + 4;
+  if (textVerticalAlign === "bottom") return annotation.y + annotation.height - 6;
+  return annotation.y + 15;
 }
 
 function buildPortPositions(document: PidDocument): ReadonlyMap<string, PositionedPort> {
@@ -193,7 +245,16 @@ function orthogonalPoints(source: PositionedPort, route: readonly Point[], targe
   const points: Point[] = [{ ...source.point }];
   appendPoint(points, tangentPoint(source.point, source.side));
   for (const waypoint of route) appendOrthogonalPoint(points, waypoint);
-  appendOrthogonalPoint(points, tangentPoint(target.point, target.side));
+  const targetTangent = tangentPoint(target.point, target.side);
+  const current = points.at(-1)!;
+  if (tangentWouldBacktrack(current, targetTangent, source.side, target.side)) {
+    appendPoint(points, target.side === "top" || target.side === "bottom"
+      ? { x: targetTangent.x, y: current.y }
+      : { x: current.x, y: targetTangent.y });
+    appendPoint(points, target.point);
+    return points;
+  }
+  appendOrthogonalPoint(points, targetTangent);
   appendPoint(points, target.point);
   return points;
 }
@@ -209,6 +270,14 @@ function tangentPoint(point: Point, side: PidFlowPosition): Point {
   if (side === "right") return { x: point.x + 24, y: point.y };
   if (side === "top") return { x: point.x, y: point.y - 24 };
   return { x: point.x, y: point.y + 24 };
+}
+
+function tangentWouldBacktrack(current: Point, tangent: Point, sourceSide: PidFlowPosition, targetSide: PidFlowPosition): boolean {
+  if (sourceSide === "right" && targetSide === "left") return current.x > tangent.x && current.y !== tangent.y;
+  if (sourceSide === "left" && targetSide === "right") return current.x < tangent.x && current.y !== tangent.y;
+  if (sourceSide === "bottom" && targetSide === "top") return current.y > tangent.y && current.x !== tangent.x;
+  if (sourceSide === "top" && targetSide === "bottom") return current.y < tangent.y && current.x !== tangent.x;
+  return false;
 }
 
 function appendPoint(points: Point[], point: Point): void {
@@ -318,6 +387,21 @@ function pointsBounds(points: readonly Point[], stroke: number): Bounds {
 
 function textBounds(value: string, x: number, baselineY: number, size = 12): Bounds {
   return rectBounds(x - 1, baselineY - size - 1, deterministicTextWidth(value, size) + 2, size + 5);
+}
+
+function textBoundsForAnchor(
+  value: string,
+  x: number,
+  baselineY: number,
+  anchor: "start" | "middle" | "end",
+  size = 12,
+): Bounds {
+  if (anchor === "middle") return centeredTextBounds(value, x, baselineY, size);
+  if (anchor === "end") {
+    const width = deterministicTextWidth(value, size);
+    return rectBounds(x - width - 1, baselineY - size - 1, width + 2, size + 5);
+  }
+  return textBounds(value, x, baselineY, size);
 }
 
 function centeredTextBounds(value: string, centerX: number, baselineY: number, size = 12): Bounds {

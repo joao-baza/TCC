@@ -301,6 +301,28 @@ describe("comandos canônicos P&ID", () => {
     expect(document.annotations[annotationId].rotation).toBe(270);
   });
 
+  it("alinha rotações fora de esquadro antes de girar em incrementos de 90 graus", () => {
+    const context = deterministicContext();
+    let document = emptyDocument();
+    document = applyCommand(document, insertSymbol(symbol, { x: 20, y: 30 }), context);
+    document = applyCommand(document, insertAnnotation("Nota", { x: 100, y: 80 }), context);
+    const nodeId = Object.keys(document.nodes)[0];
+    const annotationId = Object.keys(document.annotations)[0];
+    document = {
+      ...document,
+      nodes: { ...document.nodes, [nodeId]: { ...document.nodes[nodeId], rotation: 44 } },
+      annotations: { ...document.annotations, [annotationId]: { ...document.annotations[annotationId], rotation: 46 } },
+    };
+
+    const clockwise = applyCommand(document, rotateSelection([nodeId, annotationId], 90), context);
+    expect(clockwise.nodes[nodeId].rotation).toBe(90);
+    expect(clockwise.annotations[annotationId].rotation).toBe(180);
+
+    const counterclockwise = applyCommand(document, rotateSelection([nodeId, annotationId], -90), context);
+    expect(counterclockwise.nodes[nodeId].rotation).toBe(270);
+    expect(counterclockwise.annotations[annotationId].rotation).toBe(0);
+  });
+
   it("agrupa somente nós e exclui em cascata", () => {
     const context = deterministicContext();
     let document = connectedGroup();
@@ -850,6 +872,23 @@ describe("comandos canônicos P&ID", () => {
 
     const edgeId = Object.keys(document.edges)[0];
     expect(document.edges[edgeId]).toMatchObject({ connectionClass: "utility", lineStyle: "supply-impulse" });
+
+    document = applyCommand(document, patchElement(edgeId, { lineStyle: "pneumatic-signal" }), context);
+
+    expect(document.edges[edgeId].lineStyle).toBe("supply-impulse");
+  });
+
+  it("mantém lineStyle liso em patch direto de aresta de processo", () => {
+    const context = deterministicContext(5175);
+    let document = applyCommand(emptyDocument(), insertSymbol(symbol, { x: 0, y: 0 }), context);
+    document = applyCommand(document, insertSymbol(symbol, { x: 200, y: 0 }), context);
+    const [nodeA, nodeB] = Object.values(document.nodes);
+    const sourcePort = Object.values(document.ports).find(p => p.nodeId === nodeA.id && p.direction === "output")!;
+    const targetPort = Object.values(document.ports).find(p => p.nodeId === nodeB.id && p.direction === "input")!;
+    document = applyCommand(document, connectPorts(sourcePort.id, targetPort.id), context);
+
+    const edgeId = Object.keys(document.edges)[0];
+    expect(document.edges[edgeId]).toMatchObject({ connectionClass: "process", lineStyle: "supply-impulse" });
 
     document = applyCommand(document, patchElement(edgeId, { lineStyle: "pneumatic-signal" }), context);
 

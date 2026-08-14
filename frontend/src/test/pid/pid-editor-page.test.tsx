@@ -25,7 +25,10 @@ beforeEach(() => window.history.replaceState(null, "", "/"));
 describe("integração real do studio P&ID", () => {
   it("deriva a toolbar da seleção real, executa comandos e alterna a classe de linha", async () => {
     const save = vi.fn().mockResolvedValue(2);
-    mount(services({ save }));
+    mount(services({
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: signalStudioDocument(), revision: 1 }),
+      save,
+    }));
     const pump = await screen.findByRole("button", { name: "Bomba P-1" });
     expect(screen.getByRole("button", { name: "Excluir seleção" })).toBeDisabled();
 
@@ -171,6 +174,24 @@ describe("integração real do studio P&ID", () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  it("não aplica estilo da legenda em aresta de processo", async () => {
+    const save = vi.fn().mockResolvedValue(2);
+    mount(services({
+      open: vi.fn().mockResolvedValue({ scope: "edit", document: studioDocument(), revision: 1 }),
+      save,
+    }));
+    await screen.findByRole("button", { name: "Bomba P-1" });
+
+    fireEvent.click(screen.getByTestId(`process-edge-${ids.edge}`));
+    fireEvent.click(screen.getByRole("button", { name: "Legenda de sinais" }));
+    const canvasRegion = screen.getByRole("region", { name: "Canvas P&ID" });
+    fireEvent.click(await within(canvasRegion).findByRole("button", { name: "Aplicar Sinal pneumático" }));
+
+    expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute("data-signal-line-style", "supply-impulse");
+    expect(screen.getByText("Linhas de processo usam sempre estilo liso normal.")).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it("aplica a cor da categoria selecionada na linha de utilidade", async () => {
     const save = vi.fn().mockResolvedValue(2);
     mount(services({
@@ -218,6 +239,18 @@ function utilityStudioDocument(): PidDocument {
     ...document.edges[ids.edge],
     connectionClass: "utility",
     lineStyle: "pneumatic-signal",
+  };
+  return document;
+}
+
+function signalStudioDocument(): PidDocument {
+  const document = studioDocument();
+  document.ports[ids.pumpOut] = { ...document.ports[ids.pumpOut], connectionClass: "signal" };
+  document.ports[ids.tankIn] = { ...document.ports[ids.tankIn], connectionClass: "signal" };
+  document.edges[ids.edge] = {
+    ...document.edges[ids.edge],
+    connectionClass: "signal",
+    lineStyle: "electric-signal",
   };
   return document;
 }

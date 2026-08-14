@@ -30,7 +30,7 @@ function createPopulatedDocument(): PidDocument {
       [ids.edge]: { id: ids.edge, sourcePortId: ids.sourcePort, targetPortId: ids.targetPort, connectionClass: "process", lineStyle: "supply-impulse", route: [{ x: 110, y: 20 }], tag: "L-100", label: "Linha", properties: { nested: { value: "edge" } } },
     },
     annotations: {
-      [ids.annotation]: { id: ids.annotation, kind: "callout", text: "Nota", x: 120, y: 30, width: 160, height: 50, rotation: 0, nodeId: ids.node, edgeId: ids.edge, properties: { nested: { value: "annotation" } } },
+      [ids.annotation]: { id: ids.annotation, kind: "text", text: "Nota", x: 120, y: 30, width: 160, height: 50, rotation: 0, nodeId: ids.node, edgeId: ids.edge, properties: { nested: { value: "annotation" } } },
     },
     groups: {
       [ids.group]: { id: ids.group, label: "Área", memberIds: [ids.node], x: 0, y: 0, width: 400, height: 300, properties: { nested: { value: "group" } } },

@@ -170,7 +170,7 @@ function expectAxisAligned(points: readonly { x: number; y: number }[]) {
 
 function renderedProcessPath(edgeId: string): string {
   const rendered = screen.getByTestId(`process-edge-${edgeId}`)
-    .querySelector('[data-signal-line-pattern] > path');
+    .querySelector('[data-process-line-parallel="0"]');
   expect(rendered).toBeInTheDocument();
   return rendered?.getAttribute("d") ?? "";
 }
@@ -358,6 +358,51 @@ describe("PidCanvas", () => {
 
     expect(screen.getByTestId(`process-edge-${ids.edge}`)).toHaveAttribute("data-signal-line-style", "pneumatic-signal");
     expect(document.querySelector('[data-glyph="diagonal-pair"]')).toBeInTheDocument();
+  });
+
+  it("renderiza a linha de processo sem incorporar o asset piping.svg", () => {
+    const pidDocument = connectionDocument();
+    pidDocument.edges[ids.edge] = {
+      id: ids.edge,
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+      connectionClass: "process",
+      lineStyle: "supply-impulse",
+      route: [],
+      tag: "",
+      label: "",
+      properties: {},
+    };
+
+    render(<PidCanvas document={pidDocument} catalog={localCatalog} editable onCommand={vi.fn()} />);
+
+    const edge = screen.getByTestId(`process-edge-${ids.edge}`);
+    expect(edge).not.toHaveAttribute("data-process-line-asset");
+    expect(edge.querySelector("image")).toBeNull();
+    expect(edge.querySelector("pattern")).toBeNull();
+    expect(edge.querySelectorAll("[data-process-line-parallel]")).toHaveLength(2);
+    expect(edge.querySelector("[data-process-line-parallel='0']")).toHaveAttribute("stroke-width", "2");
+  });
+
+  it("mantém aresta de processo lisa mesmo com estilo de sinal legado", () => {
+    const pidDocument = connectionDocument();
+    pidDocument.edges[ids.edge] = {
+      id: ids.edge,
+      sourcePortId: ids.discharge,
+      targetPortId: ids.tankInlet,
+      connectionClass: "process",
+      lineStyle: "software-link",
+      route: [],
+      tag: "",
+      label: "",
+      properties: {},
+    };
+
+    render(<PidCanvas document={pidDocument} catalog={localCatalog} editable onCommand={vi.fn()} />);
+
+    const edge = screen.getByTestId(`process-edge-${ids.edge}`);
+    expect(edge).toHaveAttribute("data-signal-line-style", "supply-impulse");
+    expect(document.querySelector('[data-glyph="software-circle"]')).not.toBeInTheDocument();
   });
 
   it("mantém aresta de utilidade lisa mesmo com estilo de sinal legado", () => {

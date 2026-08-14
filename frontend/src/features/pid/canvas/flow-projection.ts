@@ -33,7 +33,7 @@ interface NodeCacheEntry {
   readonly symbol?: CatalogSymbol;
   readonly editable: boolean;
   readonly onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void;
-  readonly onElementPatch: (id: string, patch: Record<string, number>) => void;
+  readonly onElementPatch: (id: string, patch: Record<string, unknown>) => void;
   readonly node: EquipmentFlowNode;
   readonly geometry: PidNodeGeometry;
 }
@@ -43,6 +43,7 @@ interface EdgeCacheEntry {
   readonly target?: PidPort;
   readonly editable: boolean;
   readonly utilityCategories: PidDocument["metadata"]["utilityCategories"];
+  readonly onElementPatch: (id: string, patch: Record<string, unknown>) => void;
   readonly edge: ProcessFlowEdge | null;
 }
 
@@ -56,7 +57,7 @@ export function projectPidCanvasDocument(
   symbols: ReadonlyMap<string, CatalogSymbol>,
   editable: boolean,
   onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void,
-  onElementPatch: (id: string, patch: Record<string, number>) => void = noopElementPatch,
+  onElementPatch: (id: string, patch: Record<string, unknown>) => void = noopElementPatch,
 ): PidFlowProjection {
   const snapshot = snapshotDocument(document);
   const geometries = new Map<string, PidNodeGeometry>();
@@ -128,7 +129,8 @@ export function projectPidCanvasDocument(
       && cached.source === source
       && cached.target === target
       && cached.editable === editable
-      && cached.utilityCategories === document.metadata.utilityCategories) {
+      && cached.utilityCategories === document.metadata.utilityCategories
+      && cached.onElementPatch === onElementPatch) {
       return cached.edge ? [cached.edge] : [];
     }
     const flowEdge: ProcessFlowEdge | null = source && target ? {
@@ -138,17 +140,17 @@ export function projectPidCanvasDocument(
       target: target.nodeId,
       sourceHandle: source.id,
       targetHandle: target.id,
-      markerEnd: edge.connectionClass === "utility"
-        ? undefined
-        : { type: MarkerType.ArrowClosed, width: 14, height: 14 },
+      markerEnd: edge.connectionClass === "signal"
+        ? { type: MarkerType.ArrowClosed, width: 14, height: 14 }
+        : undefined,
       selectable: true,
       deletable: editable,
       reconnectable: false,
       selected: false,
       ariaLabel: [edge.tag, edge.label].filter(Boolean).join(" ") || `Conexão ${edge.id}`,
-      data: { processEdge: edge, route: edge.route, editable, utilityCategories: document.metadata.utilityCategories },
+      data: { processEdge: edge, route: edge.route, editable, utilityCategories: document.metadata.utilityCategories, onElementPatch },
     } : null;
-    edgeAdapters.set(edge, { source, target, editable, utilityCategories: document.metadata.utilityCategories, edge: flowEdge });
+    edgeAdapters.set(edge, { source, target, editable, utilityCategories: document.metadata.utilityCategories, onElementPatch, edge: flowEdge });
     return flowEdge ? [flowEdge] : [];
   });
   return { nodes, edges, geometries };

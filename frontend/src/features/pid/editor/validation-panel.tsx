@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import type { ValidationIssue } from "../domain/validation";
 
 export interface ValidationPanelProps {
@@ -8,14 +10,28 @@ export interface ValidationPanelProps {
 export function ValidationPanel({ issues, onFocusElement }: ValidationPanelProps) {
   const errors = issues.filter((issue) => issue.severity === "error");
   const warnings = issues.filter((issue) => issue.severity === "warning");
+  const [expanded, setExpanded] = useState(errors.length > 0);
+  useEffect(() => {
+    if (errors.length > 0) setExpanded(true);
+    else if (issues.length === 0) setExpanded(false);
+  }, [errors.length, issues.length]);
   return <section className="pid-validation-panel" aria-label="Validações do documento">
-    <h2>Validações</h2>
-    {issues.length === 0 && <p>Nenhum problema encontrado.</p>}
-    {errors.length > 0 && <IssueGroup title={`Erros (${errors.length})`} issues={errors} onFocusElement={onFocusElement} />}
-    {warnings.length > 0 && <>
-      <IssueGroup title={`Avisos (${warnings.length})`} issues={warnings} onFocusElement={onFocusElement} />
-      <p className="pid-validation-note">Avisos não bloqueiam a edição nem a exportação.</p>
-    </>}
+    <details open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
+      <summary className="pid-validation-summary">
+        <span>Validações</span>
+        <span className="pid-validation-count" aria-label={`${errors.length} erros e ${warnings.length} avisos`}>
+          {errors.length + warnings.length}
+        </span>
+      </summary>
+      <div className="pid-validation-content">
+        {issues.length === 0 && <p>Nenhum problema encontrado.</p>}
+        {errors.length > 0 && <IssueGroup title={`Erros (${errors.length})`} issues={errors} onFocusElement={onFocusElement} />}
+        {warnings.length > 0 && <>
+          <IssueGroup title={`Avisos (${warnings.length})`} issues={warnings} onFocusElement={onFocusElement} />
+          <p className="pid-validation-note">Avisos não bloqueiam a edição nem a exportação.</p>
+        </>}
+      </div>
+    </details>
   </section>;
 }
 

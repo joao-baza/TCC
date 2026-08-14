@@ -179,7 +179,7 @@ describe("studio focado P&ID", () => {
     expect(screen.getByRole("toolbar", { name: "Ferramentas do editor P&ID" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Catálogo de símbolos" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Inspetor" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
+    expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Sincronizado");
     expect(screen.getByRole("link", { name: "Voltar ao DCOU" })).toHaveAttribute("href", "/");
     expect(screen.getByText("Acesso de edição")).toHaveClass("sr-only");
     expect(screen.getByRole("button", { name: "Desfazer" })).toBeDisabled();
@@ -192,13 +192,13 @@ describe("studio focado P&ID", () => {
     mount(pidServices, true);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     fireEvent.click(screen.getByRole("button", { name: "Simular alteração" }));
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Não salvo");
+    expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Não salvo");
     await act(async () => { await vi.advanceTimersByTimeAsync(399); });
     expect(pidServices.document.save).not.toHaveBeenCalled();
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(pidServices.document.save).toHaveBeenCalledOnce();
     expect(pidServices.document.save).toHaveBeenCalledWith(diagramId, "edit-token", expect.any(Object), 1);
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
+    expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Sincronizado");
   });
 
   it("mantém reparos parciais localmente e só salva quando todos os erros bloqueantes forem corrigidos", async () => {
@@ -218,7 +218,7 @@ describe("studio focado P&ID", () => {
     expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeDisabled();
     fireEvent.click(repairs[0]);
 
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Não salvo");
+    expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Não salvo");
     expect(screen.getByRole("alert")).toHaveTextContent(/erros bloqueantes/i);
     expect(screen.queryByRole("button", { name: "Tentar salvar novamente" })).not.toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
@@ -230,7 +230,7 @@ describe("studio focado P&ID", () => {
     expect(save).toHaveBeenCalledOnce();
     expect(save.mock.calls[0][2].ports[overloadedIds.firstDischarge].capacity).toBe(2);
     expect(save.mock.calls[0][2].ports[overloadedIds.secondDischarge].capacity).toBe(2);
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
+    expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Sincronizado");
     expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeEnabled();
   });
@@ -250,7 +250,7 @@ describe("studio focado P&ID", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
 
     expect(save).toHaveBeenCalledOnce();
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
+    expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Sincronizado");
   });
 
   it("bloqueia autosave em conflito e orienta recarregar sem sobrescrever", async () => {
@@ -286,7 +286,7 @@ describe("studio focado P&ID", () => {
     expect(save.mock.calls[1][3]).toBe(2);
     expect(Object.keys(save.mock.calls[1][2].annotations)).toHaveLength(2);
     await act(async () => { second.resolve(3); await second.promise; });
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
+    expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Sincronizado");
   });
 
   it("oferece retry para falha transitória e não atualiza estado depois do unmount", async () => {
@@ -472,7 +472,7 @@ describe("studio focado P&ID", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog", { name: "Excluir diagrama" })).not.toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Compartilhar" })).toBeEnabled();
-    expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Não salvo");
+    expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Não salvo");
   });
 
   it("preserva a revisão confirmada quando um flush parcial falha antes da exclusão", async () => {

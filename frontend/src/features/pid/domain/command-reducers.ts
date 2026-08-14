@@ -277,12 +277,12 @@ function rotateElements(document: PidDocument, ids: string[], degrees: 90 | -90)
   for (const id of selection.nodeIds) {
     if (nodes === document.nodes) nodes = { ...nodes };
     const node = document.nodes[id];
-    nodes[id] = { ...node, rotation: normalizeRotation(node.rotation + degrees) };
+    nodes[id] = { ...node, rotation: rotateFromRightAngle(node.rotation, degrees) };
   }
   for (const id of selection.annotationIds) {
     if (annotations === document.annotations) annotations = { ...annotations };
     const annotation = document.annotations[id];
-    annotations[id] = { ...annotation, rotation: normalizeRotation(annotation.rotation + degrees) };
+    annotations[id] = { ...annotation, rotation: rotateFromRightAngle(annotation.rotation, degrees) };
   }
   return { ...document, nodes, annotations };
 }
@@ -507,7 +507,7 @@ const safePatchFields: Record<ElementKind, ReadonlySet<string>> = {
   node: new Set(["x", "y", "width", "height", "rotation", "tag", "label", "properties"]),
   port: new Set(["direction", "connectionClass", "capacity"]),
   edge: new Set(["route", "tag", "label", "properties", "lineStyle", "utilityCategoryId"]),
-  annotation: new Set(["kind", "text", "x", "y", "width", "height", "rotation", "properties"]),
+  annotation: new Set(["text", "x", "y", "width", "height", "rotation", "properties"]),
   group: new Set(["label", "properties"]),
 };
 
@@ -523,8 +523,8 @@ function patchDocumentElement(document: PidDocument, id: string, patch: Record<s
       return { ...document, ports: { ...document.ports, [id]: { ...document.ports[id], ...safePatch } as PidPort } };
     case "edge": {
       const current = document.edges[id];
-      const edgePatch = current.connectionClass === "utility" && "lineStyle" in safePatch
-        ? { ...safePatch, lineStyle: DEFAULT_LINE_STYLE.utility }
+      const edgePatch = current.connectionClass !== "signal" && "lineStyle" in safePatch
+        ? { ...safePatch, lineStyle: DEFAULT_LINE_STYLE[current.connectionClass] }
         : safePatch;
       return { ...document, edges: { ...document.edges, [id]: { ...current, ...edgePatch } as PidEdge } };
     }
@@ -660,4 +660,9 @@ function deleteAndPruneGroups(
 
 function normalizeRotation(rotation: number): number {
   return ((rotation % 360) + 360) % 360;
+}
+
+function rotateFromRightAngle(rotation: number, degrees: 90 | -90): number {
+  const aligned = Math.round(normalizeRotation(rotation) / 90) * 90;
+  return normalizeRotation(aligned + degrees);
 }

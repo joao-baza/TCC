@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Settings } from "lucide-react";
 
-import { PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { isPidDocumentError, type OpenedPidDiagram } from "../api/contracts";
 import { usePidServices } from "../api/pid-services";
 import { PidCanvas, type PidCanvasSelection, type PidCanvasViewportAction } from "../canvas/pid-canvas";
@@ -34,6 +33,9 @@ import {
 } from "./editor-toolbar-utils";
 import { createEditorStore, type EditorStore } from "./editor-store";
 import { DocumentDeleteButton } from "./document-actions-menu";
+import { PidDockRail } from "./pid-dock-rail";
+import { PidSessionStatus } from "./pid-session-status";
+import { PidSettingsDialog } from "./pid-settings-dialog";
 import { ShareDialog } from "./share-dialog";
 import {
   PropertiesInspector, type InspectorCommandResult, type PropertiesInspectorHandle,
@@ -47,6 +49,7 @@ import { useEditorShortcuts, type EditorShortcutActions } from "./use-editor-sho
 import { ValidationPanel } from "./validation-panel";
 import { PidThemeProvider } from "./pid-theme-provider";
 import { usePidSettings } from "./use-pid-settings";
+import { usePidDockState } from "./use-pid-dock-state";
 
 const catalogIndex = createCatalogIndex(localCatalog);
 const persistenceBlockFor = (document: Parameters<typeof validateDocument>[0]): string | null => {
@@ -165,8 +168,8 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
   const [editToken, setEditToken] = useState(session.routeToken);
   const [lifecycle, setLifecycle] = useState<EditorLifecycle>("active");
   const lifecycleRef = useRef<EditorLifecycle>("active");
-  const [catalogCollapsed, setCatalogCollapsed] = useState(false);
-  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const { catalogOpen, inspectorOpen, toggleDock } = usePidDockState(diagramId, viewportWidth);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [connectionClass, setConnectionClass] = useState<ConnectionClass>("process");
   const [signalLegendOpen, setSignalLegendOpen] = useState(false);
   const [signalLegendMinimized, setSignalLegendMinimized] = useState(false);
@@ -414,8 +417,11 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
       setAnnouncement("Selecione uma única aresta para aplicar o estilo de sinal.");
       return;
     }
-    if (current.document.edges[currentSelectedEdgeId].connectionClass === "utility") {
-      setAnnouncement("Linhas de utilidade usam sempre estilo liso normal.");
+    const selectedEdge = current.document.edges[currentSelectedEdgeId];
+    if (selectedEdge.connectionClass !== "signal") {
+      setAnnouncement(selectedEdge.connectionClass === "utility"
+        ? "Linhas de utilidade usam sempre estilo liso normal."
+        : "Linhas de processo usam sempre estilo liso normal.");
       return;
     }
     if (dispatch(patchElement(currentSelectedEdgeId, { lineStyle }))) {
@@ -479,6 +485,23 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     alignLeft: () => align("left"), insertAnnotation: annotation,
   };
   useEditorShortcuts({ editable: editorEnabled, actions: shortcutActions });
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, select, textarea, [contenteditable=\"true\"]") || target?.closest('[role="dialog"]')) return;
+      const key = event.key.toLowerCase();
+      if (key === "c" && editorEnabled) {
+        event.preventDefault();
+        toggleDock("catalog");
+      } else if (key === "i") {
+        event.preventDefault();
+        toggleDock("inspector");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [editorEnabled, toggleDock]);
 
   const reload = async () => {
     if (!afterInspectorDrafts(() => true, "Corrija o rascunho no inspetor antes de recarregar o diagrama.")) return;
@@ -516,10 +539,21 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
     <main className={cn("pid-focused-studio h-dvh grid grid-rows-[auto_1fr_auto]", textSizeClass)}>
     <p className="sr-only">{capabilityEditable ? "Acesso de edição" : "Acesso de visualização"}</p>
     <header className="pid-studio-header">
-      <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1></div></div>
+      <div className="pid-studio-identity"><Link className="inline-flex min-h-11 min-w-11 items-center" to="/">Voltar ao DCOU</Link><div><h1>{editor.document.metadata.title}</h1><span className="pid-mode-chip" data-mode={editorEnabled ? "editing" : "readonly"}>{editorEnabled ? "Editando" : "Somente leitura"}</span></div></div>
       <EditorToolbar editable={editorEnabled} capabilities={selectionCapabilities} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} canPaste={editorEnabled && clipboardRef.current !== null} canExport={canExport} exporting={exporting !== null} exportErrors={exportErrors} onExportSvg={() => { void exportDocument("svg"); }} onExportPng={() => { void exportDocument("png"); }} connectionClass={connectionClass} actions={toolbarActions} signalLegendOpen={signalLegendOpen} onToggleSignalLegend={toggleSignalLegend} utilityCategoriesOpen={utilityCategoriesOpen} onToggleUtilityCategories={toggleUtilityCategories} iconSize={settings.iconSize} />
+      <PidSessionStatus
+        saveState={autosave.state}
+        collaboration={collaborationSnapshot}
+        conflict={autosave.conflict}
+        onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined}
+      />
       <div className="pid-studio-session-controls">
         {capabilityEditable && <div className="pid-studio-document-controls">
+          {editorEnabled && (
+            <Button type="button" variant="ghost" size="icon" aria-label="Configurações" onClick={() => setSettingsOpen(true)}>
+              <Settings className="size-4" aria-hidden="true" />
+            </Button>
+          )}
           {editorEnabled && <ShareDialog documentPort={documentPort} diagramId={diagramId} editToken={editToken} revision={revision} onRevision={setRevision} onEditToken={setEditToken} onAnnouncement={setAnnouncement} />}
           {documentActionsAvailable && (
             <DocumentDeleteButton
@@ -537,31 +571,25 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
           </div>}
       </div>
     </header>
-    <div className={`pid-studio-workspace ${!editorEnabled ? "pid-workspace-readonly" : ""} ${catalogCollapsed ? "pid-catalog-collapsed" : ""} ${inspectorCollapsed ? "pid-inspector-collapsed" : ""}`}>
+    <PidSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    <div className={cn(
+      "pid-studio-workspace",
+      !editorEnabled && "pid-workspace-readonly",
+      editorEnabled && catalogOpen && "pid-catalog-open",
+      inspectorOpen && "pid-inspector-open",
+    )}>
       {compactReadOnly && <p className="pid-compact-readonly-notice" role="status">Edição disponível em telas a partir de 768 px</p>}
-      {editorEnabled && <aside role="region" aria-label="Catálogo de símbolos" className="pid-studio-panel pid-catalog-panel">
-        {!catalogCollapsed && <>
-          <CatalogPanel headerAction={
-            <Tooltip>
-              <TooltipTrigger render={
-                <Button variant="ghost" size="icon-sm" aria-expanded={!catalogCollapsed} aria-label="Fechar catálogo" onClick={() => setCatalogCollapsed(true)}>
-                  <PanelLeftClose className="size-4" />
-                </Button>
-              } />
-              <TooltipContent>Fechar catálogo</TooltipContent>
-            </Tooltip>
-          } index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} thumbSize={settings.catalogThumbSize} />
-          <CatalogZoomSlider value={settings.catalogThumbSize} onChange={(value) => updateSetting("catalogThumbSize", value)} />
-        </>}
-        {catalogCollapsed && <div className="flex justify-center"><Tooltip>
-          <TooltipTrigger render={
-            <Button variant="ghost" size="icon-sm" aria-label="Abrir catálogo" onClick={() => setCatalogCollapsed(false)}>
-              <PanelLeftOpen className="size-4" />
-            </Button>
-          } />
-          <TooltipContent>Abrir catálogo</TooltipContent>
-        </Tooltip></div>}
-      </aside>}
+      {editorEnabled && <PidDockRail
+        side="left"
+        label="Catálogo de símbolos"
+        openLabel="Abrir catálogo"
+        closeLabel="Fechar catálogo"
+        open={catalogOpen}
+        onToggle={() => toggleDock("catalog")}
+      >
+        <CatalogPanel index={catalogIndex} standard={editor.document.metadata.standard} onInsert={(symbol) => { dispatch(insertSymbol(symbol, canvasCenter(editor.viewport))); }} thumbSize={settings.catalogThumbSize} />
+        <CatalogZoomSlider value={settings.catalogThumbSize} onChange={(value) => updateSetting("catalogThumbSize", value)} />
+      </PidDockRail>}
       <section aria-label="Canvas P&ID" className="pid-studio-canvas">
         {lifecycle !== "active" ? <div className="pid-deleted-blocker" role="alert"><h2>{lifecycle === "deleting" ? "Excluindo diagrama" : "Diagrama excluído"}</h2><p>A edição está bloqueada enquanto o editor retorna para a listagem.</p></div>
           : <PidCanvas document={editor.document} catalog={catalogIndex} editable={editorEnabled} onCommand={dispatch} selection={canvasSelection} onSelectionChange={({ nodeIds, edgeIds, annotationIds = [] }) => {
@@ -599,38 +627,29 @@ function EditorStudio({ diagramId, session, registerNavigationGuard }: {
         {autosave.error && <div role="alert" className="pid-editor-error"><p>{autosave.error}</p>{capabilityEditable && autosave.conflict && <button type="button" onClick={() => void reload()}>Recarregar diagrama</button>}</div>}
         {operationError && <p role="alert" className="pid-editor-error">{operationError}</p>}
       </section>
-      <aside role="region" aria-label="Inspetor" className="pid-studio-panel pid-inspector-panel">
-        {inspectorCollapsed ? <div className="flex justify-center"><Tooltip>
-          <TooltipTrigger render={
-            <Button variant="ghost" size="icon-sm" aria-label="Abrir inspetor" onClick={() => setInspectorCollapsed(false)}>
-              <PanelRightOpen className="size-4" />
-            </Button>
-          } />
-          <TooltipContent>Abrir inspetor</TooltipContent>
-        </Tooltip></div>
-        : <><Tooltip>
-          <TooltipTrigger render={
-            <Button variant="ghost" size="icon-sm" aria-expanded={!inspectorCollapsed} aria-label="Fechar inspetor" onClick={() => {
-              if (prepareInspectorDrafts().hasUnresolvedDrafts) {
-                setAnnouncement("Corrija o rascunho no inspetor antes de fechá-lo.");
-                return;
-              }
-              setInspectorCollapsed(true);
-            }}>
-              <PanelRightClose className="size-4" />
-            </Button>
-          } />
-          <TooltipContent>Fechar inspetor</TooltipContent>
-        </Tooltip></>}
-        {!inspectorCollapsed && <div className="flex-1 min-h-0 overflow-auto pid-scrollable">
+      <PidDockRail
+        side="right"
+        label="Inspetor"
+        openLabel="Abrir inspetor"
+        closeLabel="Fechar inspetor"
+        open={inspectorOpen}
+        onToggle={() => {
+          if (inspectorOpen && prepareInspectorDrafts().hasUnresolvedDrafts) {
+            setAnnouncement("Corrija o rascunho no inspetor antes de fechá-lo.");
+            return;
+          }
+          toggleDock("inspector");
+        }}
+      >
+        <div className="flex-1 min-h-0 overflow-auto pid-scrollable">
           <div className="pid-inspector-content">
             <PropertiesInspector ref={inspectorRef} document={editor.document} selection={editor.selection} editable={editorEnabled} commitAllowed={editLease && lifecycle === "active"} onCommand={dispatchInspector} onDraftStateChange={setHasInspectorDrafts} />
             <ValidationPanel issues={validationIssues} onFocusElement={focusValidationIssue} />
           </div>
-        </div>}
-      </aside>
+        </div>
+      </PidDockRail>
     </div>
-    <StatusBar state={editor} saveState={autosave.state} validationCounts={validationCounts} onRetry={capabilityEditable && !autosave.conflict && !autosave.validationBlocked && autosave.state === "Não salvo" ? autosave.retry : undefined} />
+    <StatusBar state={editor} validationCounts={validationCounts} />
     <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
   </main>
   </PidThemeProvider>;

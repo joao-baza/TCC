@@ -1,6 +1,22 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 
 import { patchElement, type PidCommand } from "../domain/commands";
+import {
+  annotationColorsFromProperties,
+  annotationPropertiesWithColor,
+  annotationPropertiesWithTextAlign,
+  annotationPropertiesWithTextVerticalAlign,
+  annotationTextAlignFromProperties,
+  annotationTextVerticalAlignFromProperties,
+  ANNOTATION_TEXT_ALIGNMENTS,
+  ANNOTATION_TEXT_VERTICAL_ALIGNMENTS,
+  isAnnotationColorField,
+  isAnnotationTextAlign,
+  isAnnotationTextAlignField,
+  isAnnotationTextVerticalAlign,
+  isAnnotationTextVerticalAlignField,
+  isHexColor,
+} from "../domain/annotation-style";
 import type { ConnectionClass, PidDocument, PidJsonValue, PidProperties } from "../domain/model";
 import { LINE_STYLES, LINE_STYLE_INFO, CONNECTION_CLASS_INFO } from "../domain/line-style";
 import type { LineStyle } from "../domain/line-style";
@@ -45,6 +61,7 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
   const draftsRef = useRef<Record<string, FieldDraft>>({});
   const activeFieldRef = useRef<string | null>(null);
   const previousCanonicalRef = useRef<{ selectedId?: string; fields: Record<string, FieldValue> }>({ fields: {} });
+  const optimisticAnnotationPropertiesRef = useRef<{ selectedId: string; properties: PidProperties } | null>(null);
   const selectedId = selection.length === 1 ? selection[0] : undefined;
   const selected = selectedId ? resolveSelectedElement(document, selectedId) : undefined;
   const selectedValue = selected?.value;
@@ -53,6 +70,7 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
     const previous = previousCanonicalRef.current;
     if (previous.selectedId !== selectedId) {
       activeFieldRef.current = null;
+      optimisticAnnotationPropertiesRef.current = null;
       draftsRef.current = {};
       setDrafts({});
       setFieldErrors({});
@@ -62,6 +80,9 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
     }
 
     const activeField = activeFieldRef.current;
+    if (selectedId && selected?.kind === "annotation") {
+      optimisticAnnotationPropertiesRef.current = { selectedId, properties: selected.value.properties };
+    }
     const allFields = new Set([...Object.keys(previous.fields), ...Object.keys(canonicalFields)]);
     const nextDrafts = { ...draftsRef.current };
     let draftsChanged = false;
@@ -116,7 +137,40 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       return true;
     }
     try {
-      const result = onCommand(patchElement(selectedId, { [field]: value }));
+      let nextOptimisticAnnotationProperties: PidProperties | null = null;
+      const patch = selected?.kind === "annotation" && isAnnotationColorField(field)
+        ? (() => {
+          nextOptimisticAnnotationProperties = annotationPropertiesWithColor(
+            optimisticAnnotationPropertiesRef.current?.selectedId === selectedId
+              ? optimisticAnnotationPropertiesRef.current.properties
+              : selected.value.properties,
+            field,
+            String(value),
+          );
+          return { properties: nextOptimisticAnnotationProperties };
+        })()
+        : selected?.kind === "annotation" && isAnnotationTextAlignField(field)
+          ? (() => {
+            nextOptimisticAnnotationProperties = annotationPropertiesWithTextAlign(
+              optimisticAnnotationPropertiesRef.current?.selectedId === selectedId
+                ? optimisticAnnotationPropertiesRef.current.properties
+                : selected.value.properties,
+              String(value),
+            );
+            return { properties: nextOptimisticAnnotationProperties };
+          })()
+          : selected?.kind === "annotation" && isAnnotationTextVerticalAlignField(field)
+            ? (() => {
+              nextOptimisticAnnotationProperties = annotationPropertiesWithTextVerticalAlign(
+                optimisticAnnotationPropertiesRef.current?.selectedId === selectedId
+                  ? optimisticAnnotationPropertiesRef.current.properties
+                  : selected.value.properties,
+                String(value),
+              );
+              return { properties: nextOptimisticAnnotationProperties };
+            })()
+        : { [field]: value };
+      const result = onCommand(patchElement(selectedId, patch));
       if (result?.ok === false) {
         setFieldErrors((current) => ({ ...current, [result.field]: result.message }));
         setAnnouncement(result.message);
@@ -127,6 +181,9 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       replaceDrafts(next);
       setFieldErrors((current) => omitField(current, field));
       setAnnouncement(`${fieldLabel(field)} atualizado.`);
+      if (nextOptimisticAnnotationProperties) {
+        optimisticAnnotationPropertiesRef.current = { selectedId, properties: nextOptimisticAnnotationProperties };
+      }
       return true;
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Não foi possível atualizar o campo.";
@@ -192,25 +249,25 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       <h2 id="pid-inspector-heading">Inspetor</h2>
       {!editable && <span>Somente leitura</span>}
     </div>
+    <div className="pid-inspector-selection-summary" aria-label="Resumo da seleção">
+      <span className="pid-inspector-summary-label">{selectionSummary(selected, selection.length).kind}</span>
+      <strong>{selectionSummary(selected, selection.length).label}</strong>
+      <span>{editable ? "Pronto para editar" : "Modo de leitura"}</span>
+    </div>
     {selection.length === 0 && (
       <div className="pid-inspector-fields">
         <p><strong>{document.metadata.title}</strong></p>
         <p>Livre no documento</p>
-        <p>{Object.keys(document.nodes).length} equipamento(s) · {Object.keys(document.edges).length} linha(s)</p>
+        <p>{Object.keys(document.nodes).length} equipamento(s)</p>
       </div>
     )}
     {selection.length > 1 && <p>{selection.length} elementos selecionados. Selecione apenas um para editar propriedades.</p>}
-    {selected?.kind === "node" && <FieldGroup key={selected.value.id} title="Equipamento" id={selected.value.id}>
+    {selected?.kind === "node" && <FieldGroup key={selected.value.id} title="Equipamento">
       <TextField label="Tag" field="tag" value={selected.value.tag} {...common} />
       <TextField label="Rótulo" field="label" value={selected.value.label} {...common} />
-      <NumberField label="Posição X" field="x" value={selected.value.x} {...common} />
-      <NumberField label="Posição Y" field="y" value={selected.value.y} {...common} />
-      <NumberField label="Largura" field="width" value={selected.value.width} positive {...common} />
-      <NumberField label="Altura" field="height" value={selected.value.height} positive {...common} />
-      <NumberField label="Rotação" field="rotation" value={selected.value.rotation} rotation {...common} />
       <PropertiesField value={selected.value.properties} {...common} />
     </FieldGroup>}
-    {selected?.kind === "port" && <FieldGroup key={selected.value.id} title="Porta" id={selected.value.id}>
+    {selected?.kind === "port" && <FieldGroup key={selected.value.id} title="Porta">
       <p><strong>Template:</strong> {selected.value.templateKey}</p>
       <SelectField label="Direção" field="direction" value={selected.value.direction} options={[
         ["input", "Entrada"], ["output", "Saída"], ["bidirectional", "Bidirecional"],
@@ -220,15 +277,15 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       ]} {...common} />
       <NumberField label="Capacidade" field="capacity" value={selected.value.capacity} positive integer {...common} />
     </FieldGroup>}
-    {selected?.kind === "edge" && <FieldGroup key={selected.value.id} title="Conexão" id={selected.value.id}>
+    {selected?.kind === "edge" && <FieldGroup key={selected.value.id} title="Conexão">
       <TextField label="Tag" field="tag" value={selected.value.tag} {...common} />
       <TextField label="Rótulo" field="label" value={selected.value.label} {...common} />
       <p><strong>Classe:</strong> {CONNECTION_CLASS_INFO[selected.value.connectionClass as ConnectionClass].label}</p>
-      {selected.value.connectionClass === "utility"
-        ? <p><strong>Estilo de linha:</strong> Liso normal</p>
-        : <SelectField label="Estilo de linha" field="lineStyle" value={selected.value.lineStyle}
+      {selected.value.connectionClass === "signal"
+        ? <SelectField label="Estilo de linha" field="lineStyle" value={selected.value.lineStyle}
           title={LINE_STYLE_INFO[selected.value.lineStyle as LineStyle].description}
-          options={LINE_STYLES.map((style) => [style, LINE_STYLE_INFO[style].label] as const)} {...common} />}
+          options={LINE_STYLES.map((style) => [style, LINE_STYLE_INFO[style].label] as const)} {...common} />
+        : selected.value.connectionClass === "utility" && <p><strong>Estilo de linha:</strong> Liso normal</p>}
       {selected.value.connectionClass === "utility" && (
         <SelectField
           label="Categoria"
@@ -243,21 +300,27 @@ export const PropertiesInspector = forwardRef<PropertiesInspectorHandle, Propert
       )}
       <PropertiesField value={selected.value.properties} {...common} />
     </FieldGroup>}
-    {selected?.kind === "group" && <FieldGroup key={selected.value.id} title="Grupo" id={selected.value.id}>
+    {selected?.kind === "group" && <FieldGroup key={selected.value.id} title="Grupo">
       <TextField label="Rótulo" field="label" value={selected.value.label} {...common} />
       <p>{selected.value.memberIds.length} membro(s)</p>
       <PropertiesField value={selected.value.properties} {...common} />
     </FieldGroup>}
-    {selected?.kind === "annotation" && <FieldGroup key={selected.value.id} title="Anotação" id={selected.value.id}>
-      <SelectField label="Tipo" field="kind" value={selected.value.kind} options={[
-        ["text", "Texto"], ["note", "Nota"], ["callout", "Chamada"],
-      ]} {...common} />
+    {selected?.kind === "annotation" && <FieldGroup key={selected.value.id} title="Anotação">
       <TextField label="Texto" field="text" value={selected.value.text} multiline {...common} />
-      <NumberField label="Posição X" field="x" value={selected.value.x} {...common} />
-      <NumberField label="Posição Y" field="y" value={selected.value.y} {...common} />
-      <NumberField label="Largura" field="width" value={selected.value.width} positive {...common} />
-      <NumberField label="Altura" field="height" value={selected.value.height} positive {...common} />
-      <NumberField label="Rotação" field="rotation" value={selected.value.rotation} rotation {...common} />
+      <SelectField label="Alinhamento do texto" field="annotationTextAlign" value={annotationTextAlignFromProperties(selected.value.properties)} options={ANNOTATION_TEXT_ALIGNMENTS.map((alignment) => [alignment, annotationTextAlignLabel(alignment)] as const)} {...common} />
+      <SelectField label="Alinhamento vertical" field="annotationTextVerticalAlign" value={annotationTextVerticalAlignFromProperties(selected.value.properties)} options={ANNOTATION_TEXT_VERTICAL_ALIGNMENTS.map((alignment) => [alignment, annotationTextVerticalAlignLabel(alignment)] as const)} {...common} />
+      <ColorField
+        label="Cor do card"
+        field="annotationFillColor"
+        value={annotationColorsFromProperties(selected.value.properties).fillColor}
+        {...common}
+      />
+      <ColorField
+        label="Cor do texto"
+        field="annotationTextColor"
+        value={annotationColorsFromProperties(selected.value.properties).textColor}
+        {...common}
+      />
       <PropertiesField value={selected.value.properties} {...common} />
     </FieldGroup>}
     {selectedId && !selected && <p role="alert">O elemento selecionado não existe mais.</p>}
@@ -328,6 +391,32 @@ function NumberField({ label, field, value, positive = false, integer = false, r
   </label>;
 }
 
+function ColorField({ label, field, value, editable, errors, drafts, beginDraft, changeDraft, finalizeDraft }: SharedFieldProps & {
+  label: string; field: string; value: string;
+}) {
+  const id = useId();
+  const error = errors[field];
+  return <label className="pid-inspector-field pid-inspector-color-field" htmlFor={id}>
+    <span>{label}</span>
+    <input
+      id={id}
+      aria-label={label}
+      type="color"
+      value={drafts[field]?.raw ?? value}
+      disabled={!editable}
+      aria-invalid={Boolean(error)}
+      aria-describedby={error ? `${id}-error` : undefined}
+      onFocus={() => beginDraft(field)}
+      onChange={(event) => {
+        changeDraft(field, event.currentTarget.value, value);
+        finalizeDraft(field);
+      }}
+      onBlur={() => { finalizeDraft(field); }}
+    />
+    <FieldError id={`${id}-error`} message={error} />
+  </label>;
+}
+
 function SelectField({ label, field, value, options, title, editable, errors, drafts, beginDraft, changeDraft, finalizeDraft }: SharedFieldProps & {
   label: string; field: string; value: string; options: readonly (readonly [string, string])[]; title?: string;
 }) {
@@ -379,8 +468,8 @@ function PropertiesField({ value, editable, errors, drafts, beginDraft, changeDr
   </label>;
 }
 
-function FieldGroup({ title, id, children }: { title: string; id: string; children: ReactNode }) {
-  return <div className="pid-inspector-fields"><h3>{title}</h3><p className="pid-inspector-id">ID: {id}</p>{children}</div>;
+function FieldGroup({ title, children }: { title: string; children: ReactNode }) {
+  return <div className="pid-inspector-fields"><h3>{title}</h3>{children}</div>;
 }
 
 function FieldError({ id, message }: { id: string; message?: string }) {
@@ -396,17 +485,34 @@ function resolveSelectedElement(document: PidDocument, id: string) {
   return undefined;
 }
 
+function selectionSummary(selected: ReturnType<typeof resolveSelectedElement>, selectionLength: number): { kind: string; label: string } {
+  if (selectionLength > 1) return { kind: "Seleção", label: `${selectionLength} elementos` };
+  if (!selected) return { kind: "Documento", label: "Nenhum elemento selecionado" };
+  const kind = {
+    node: "Equipamento",
+    port: "Porta",
+    edge: "Conexão",
+    group: "Grupo",
+    annotation: "Anotação",
+  }[selected.kind];
+  const label = selected.kind === "node"
+    ? selected.value.tag || selected.value.label || "Equipamento sem rótulo"
+    : selected.kind === "edge"
+      ? selected.value.tag || selected.value.label || "Conexão sem rótulo"
+      : selected.kind === "annotation"
+        ? selected.value.text || "Anotação sem texto"
+        : selected.kind === "group"
+          ? selected.value.label || "Grupo sem rótulo"
+          : "Porta selecionada";
+  return { kind, label };
+}
+
 function selectedFieldValues(selected: NonNullable<ReturnType<typeof resolveSelectedElement>>): Record<string, FieldValue> {
   switch (selected.kind) {
     case "node":
       return {
         tag: selected.value.tag,
         label: selected.value.label,
-        x: selected.value.x,
-        y: selected.value.y,
-        width: selected.value.width,
-        height: selected.value.height,
-        rotation: selected.value.rotation,
         properties: selected.value.properties,
       };
     case "port":
@@ -420,14 +526,13 @@ function selectedFieldValues(selected: NonNullable<ReturnType<typeof resolveSele
     case "group":
       return { label: selected.value.label, properties: selected.value.properties };
     case "annotation":
+      const colors = annotationColorsFromProperties(selected.value.properties);
       return {
-        kind: selected.value.kind,
         text: selected.value.text,
-        x: selected.value.x,
-        y: selected.value.y,
-        width: selected.value.width,
-        height: selected.value.height,
-        rotation: selected.value.rotation,
+        annotationTextAlign: annotationTextAlignFromProperties(selected.value.properties),
+        annotationTextVerticalAlign: annotationTextVerticalAlignFromProperties(selected.value.properties),
+        annotationFillColor: colors.fillColor,
+        annotationTextColor: colors.textColor,
         properties: selected.value.properties,
       };
   }
@@ -454,8 +559,22 @@ function parseDraftValue(
       return { ok: false, message: "Informe um objeto JSON válido." };
     }
   }
-  const numeric = field === "x" || field === "y" || field === "width" || field === "height"
-    || field === "rotation" || field === "capacity";
+  if (isAnnotationColorField(field)) {
+    return isHexColor(raw)
+      ? { ok: true, value: raw.toLowerCase() }
+      : { ok: false, message: "Informe uma cor hexadecimal válida." };
+  }
+  if (isAnnotationTextAlignField(field)) {
+    return isAnnotationTextAlign(raw)
+      ? { ok: true, value: raw }
+      : { ok: false, message: "Informe um alinhamento de texto válido." };
+  }
+  if (isAnnotationTextVerticalAlignField(field)) {
+    return isAnnotationTextVerticalAlign(raw)
+      ? { ok: true, value: raw }
+      : { ok: false, message: "Informe um alinhamento vertical válido." };
+  }
+  const numeric = field === "capacity";
   if (!numeric) return { ok: true, value: raw };
   const trimmed = raw.trim();
   if (trimmed === "") return { ok: false, message: "Informe um número." };
@@ -463,9 +582,6 @@ function parseDraftValue(
   if (!Number.isFinite(value)) return { ok: false, message: "Informe um número finito." };
   if (field === "capacity" && (value <= 0 || !Number.isInteger(value))) {
     return { ok: false, message: "Informe um inteiro positivo." };
-  }
-  if ((field === "width" || field === "height") && value <= 0) {
-    return { ok: false, message: "Informe um número positivo." };
   }
   if (!selected) return { ok: false, message: "O elemento selecionado não existe mais." };
   return { ok: true, value };
@@ -481,5 +597,37 @@ function omitField(source: Record<string, string>, field: string): Record<string
 }
 
 function fieldLabel(field: string): string {
-  return field === "tag" ? "Tag" : field === "label" ? "Rótulo" : field === "text" ? "Texto" : "Campo";
+  return field === "tag"
+    ? "Tag"
+    : field === "label"
+      ? "Rótulo"
+      : field === "text"
+        ? "Texto"
+        : field === "annotationTextAlign"
+          ? "Alinhamento do texto"
+          : field === "annotationTextVerticalAlign"
+            ? "Alinhamento vertical"
+            : field === "annotationFillColor"
+              ? "Cor do card"
+              : field === "annotationTextColor"
+                ? "Cor do texto"
+                : "Campo";
+}
+
+function annotationTextAlignLabel(alignment: string): string {
+  return alignment === "left"
+    ? "Esquerda"
+    : alignment === "center"
+      ? "Centralizado"
+      : alignment === "right"
+        ? "Direita"
+        : "Justificado";
+}
+
+function annotationTextVerticalAlignLabel(alignment: string): string {
+  return alignment === "top"
+    ? "Superior"
+    : alignment === "middle"
+      ? "Centralizado"
+      : "Inferior";
 }

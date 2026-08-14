@@ -110,7 +110,7 @@ export const pidEdgeSchema: z.ZodType<PidEdge> = z.object({
 
 export const pidAnnotationSchema: z.ZodType<PidAnnotation> = z.object({
   id: uuidSchema,
-  kind: z.enum(["text", "note", "callout"]),
+  kind: z.literal("text"),
   text: z.string(),
   x: finiteNumberSchema,
   y: finiteNumberSchema,

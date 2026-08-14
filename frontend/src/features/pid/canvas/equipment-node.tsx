@@ -16,7 +16,7 @@ export type EquipmentNodeData = Record<string, unknown> & {
   readonly interactionGeometry: PidCanvasInteractionGeometry;
   readonly portGeometries: ReadonlyMap<string, PidPortHitTargetGeometry>;
   readonly onPortKey: (portId: string, key: "Enter" | " " | "Escape") => void;
-  readonly onElementPatch: (id: string, patch: Record<string, number>) => void;
+  readonly onElementPatch: (id: string, patch: Record<string, unknown>) => void;
 };
 
 export type EquipmentFlowNode = Node<EquipmentNodeData, "equipment">;

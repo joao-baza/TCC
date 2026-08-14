@@ -79,7 +79,7 @@ function createPopulatedDocument(): PidDocument {
     annotations: {
       [ids.annotation]: {
         id: ids.annotation,
-        kind: "callout",
+        kind: "text",
         text: "Operação normal",
         x: 120,
         y: 30,

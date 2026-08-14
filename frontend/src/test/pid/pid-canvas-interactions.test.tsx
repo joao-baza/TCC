@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { StrictMode, useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -77,6 +80,95 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
     fireEvent.click(annotation);
     expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [], edgeIds: [], annotationIds: [annotationId] });
     expect(annotation).toHaveAttribute("aria-pressed", "true");
+  });
+  it("arrasta card de anotação e emite selection.move canônico", async () => {
+    const initial = documentWithAnnotationAndEdge();
+    const annotationId = "60000000-0000-4000-8000-000000000001";
+    const onCommand = vi.fn();
+    render(<PidCanvas document={initial} catalog={localCatalog} editable onCommand={onCommand} />);
+    const annotation = screen.getByRole("button", { name: "Anotação: Nota operacional" });
+    expect(annotation).toHaveClass("nodrag", "nopan");
+
+    dispatchFlowPointerEvent(annotation, "pointerdown", { button: 0, clientX: 120, clientY: 80 });
+    dispatchFlowPointerEvent(window, "pointermove", { clientX: 152, clientY: 96 });
+    await waitFor(() => {
+      expect(annotation.style.left).toBe("152px");
+      expect(annotation.style.top).toBe("96px");
+    });
+    expect(onCommand).not.toHaveBeenCalled();
+    dispatchFlowPointerEvent(window, "pointerup", { button: 0, clientX: 152, clientY: 96 });
+
+    await waitFor(() => expect(onCommand).toHaveBeenCalledTimes(1));
+    expect(onCommand).toHaveBeenCalledWith({
+      type: "selection.move",
+      ids: [annotationId],
+      delta: { x: 32, y: 16 },
+    });
+  });
+  it("aplica tamanho e cores configuradas no card de anotação", () => {
+    const initial = documentWithAnnotationAndEdge();
+    const annotationId = "60000000-0000-4000-8000-000000000001";
+    initial.annotations[annotationId] = {
+      ...initial.annotations[annotationId],
+      width: 220,
+      height: 72,
+      properties: {
+        annotationFillColor: "#fde68a",
+        annotationTextColor: "#7f1d1d",
+        annotationTextAlign: "right",
+        annotationTextVerticalAlign: "bottom",
+      },
+    };
+    render(<PidCanvas document={initial} catalog={localCatalog} editable onCommand={vi.fn()} />);
+
+    const annotation = screen.getByRole("button", { name: "Anotação: Nota operacional" });
+    expect(annotation).toHaveStyle({
+      width: "220px",
+      height: "72px",
+      backgroundColor: "#fde68a",
+      color: "#7f1d1d",
+      textAlign: "right",
+      justifyContent: "flex-end",
+    });
+    expect(annotation.querySelector(".pid-canvas-annotation__text")).toHaveTextContent("Nota operacional");
+  });
+  it("mantém card de anotação em camada menor que os outros elementos", () => {
+    const initial = documentWithAnnotationAndEdge();
+    render(<PidCanvas document={initial} catalog={localCatalog} editable onCommand={vi.fn()} />);
+
+    const annotation = screen.getByRole("button", { name: "Anotação: Nota operacional" });
+    expect(annotation.closest(".react-flow__viewport-portal")).toBeInTheDocument();
+
+    const globals = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+    expect(globals).toMatch(/\.pid-canvas-flow \.react-flow__viewport-portal \{ z-index: 1; pointer-events: none; \}/);
+    expect(globals).toMatch(/\.pid-canvas-flow \.react-flow__edges \{ z-index: 2; \}/);
+    expect(globals).toMatch(/\.pid-canvas-flow \.react-flow__nodes \{ z-index: 3; \}/);
+    expect(globals).toMatch(/\.pid-canvas-annotations \{ position: absolute; z-index: 0; inset: 0; pointer-events: none; \}/);
+  });
+  it("redimensiona card de anotação selecionado por alça no canvas", async () => {
+    const initial = documentWithAnnotationAndEdge();
+    const annotationId = "60000000-0000-4000-8000-000000000001";
+    const onCommand = vi.fn();
+    render(<PidCanvas document={initial} catalog={localCatalog} editable onCommand={onCommand} />);
+
+    const annotation = screen.getByRole("button", { name: "Anotação: Nota operacional" });
+    fireEvent.click(annotation);
+    const handle = await screen.findByTestId(`annotation-resize-se-${annotationId}`);
+    dispatchFlowPointerEvent(handle, "pointerdown", { button: 0, clientX: 300, clientY: 136 });
+    dispatchFlowPointerEvent(window, "pointermove", { clientX: 332, clientY: 156 });
+
+    await waitFor(() => {
+      expect(annotation.style.width).toBe("212px");
+      expect(annotation.style.height).toBe("76px");
+    });
+    expect(onCommand).not.toHaveBeenCalled();
+
+    dispatchFlowPointerEvent(window, "pointerup", { button: 0, clientX: 332, clientY: 156 });
+    await waitFor(() => expect(onCommand).toHaveBeenCalledWith({
+      type: "element.patch",
+      id: annotationId,
+      patch: { width: 212, height: 76 },
+    }));
   });
   it("limpa anotações na seleção simples de nó ou aresta", async () => {
     const initial = documentWithAnnotationAndEdge();
@@ -238,6 +330,41 @@ describe("integrações acessíveis e transientes do PidCanvas", () => {
       type: "element.patch",
       id: ids.pump,
       patch: { rotation: 117 },
+    }));
+  });
+
+  it("ajusta a espessura da linha de processo pelas alças circulares", async () => {
+    const onCommand = vi.fn();
+    const document = documentWithAnnotationAndEdge();
+    const edgeId = "40000000-0000-4000-8000-000000000001";
+    render(
+      <PidCanvas
+        document={document}
+        catalog={localCatalog}
+        editable
+        onCommand={onCommand}
+        defaultSelection={{ nodeIds: [], edgeIds: [edgeId] }}
+      />,
+    );
+
+    const handle = await screen.findByTestId(`process-line-width-handle-${edgeId}-0`);
+    expect(screen.getAllByRole("slider", { name: /Ajustar espessura da linha de processo/i })).toHaveLength(2);
+    const startX = Number(handle.getAttribute("cx"));
+    const startY = Number(handle.getAttribute("cy"));
+    dispatchFlowMouseEvent(handle, "pointerdown", { clientX: startX, clientY: startY });
+    dispatchFlowMouseEvent(window, "pointermove", { clientX: startX, clientY: startY + 10 });
+    expect(handle).toHaveAttribute("aria-valuenow", "28");
+    dispatchFlowMouseEvent(window, "pointerup", { clientX: startX, clientY: startY + 10 });
+
+    await waitFor(() => expect(onCommand).toHaveBeenCalledWith({
+      type: "element.patch",
+      id: edgeId,
+      patch: {
+        properties: {
+          processLineStrokeWidth: 2,
+          processLineParallelGap: 28,
+        },
+      },
     }));
   });
 
@@ -501,6 +628,12 @@ async function clickConnect(source: HTMLElement, target: HTMLElement) {
 }
 
 function dispatchFlowMouseEvent(target: Element | Window, type: string, init: MouseEventInit) {
+  const event = new MouseEvent(type, { bubbles: true, cancelable: true, ...init });
+  Object.defineProperty(event, "view", { value: document.defaultView });
+  fireEvent(target, event);
+}
+
+function dispatchFlowPointerEvent(target: Element | Window, type: string, init: MouseEventInit) {
   const event = new MouseEvent(type, { bubbles: true, cancelable: true, ...init });
   Object.defineProperty(event, "view", { value: document.defaultView });
   fireEvent(target, event);

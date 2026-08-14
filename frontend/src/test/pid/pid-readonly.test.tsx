@@ -51,7 +51,10 @@ beforeAll(() => { originalInnerWidth = Object.getOwnPropertyDescriptor(window, "
 afterAll(() => {
   if (originalInnerWidth) Object.defineProperty(window, "innerWidth", originalInnerWidth);
 });
-beforeEach(() => setViewportWidth(1024));
+beforeEach(() => {
+  window.sessionStorage.clear();
+  setViewportWidth(1024);
+});
 
 describe("capacidade responsiva de edição", () => {
   it.each([
@@ -122,7 +125,7 @@ describe("capacidade responsiva de edição", () => {
       fireEvent.keyDown(window, { key: "a", ctrlKey: true, shiftKey: true });
       await act(async () => { vi.advanceTimersByTime(400); });
       expect(save).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Salvando");
+      expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Salvando");
       expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeDisabled();
     } finally {
@@ -147,7 +150,7 @@ describe("capacidade responsiva de edição", () => {
 
     resizeViewport(768);
     await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado"));
+    await waitFor(() => expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Sincronizado"));
   });
 
   it("faz flush imediato no shrink e retoma depois de falha que termina após o expand", async () => {
@@ -170,7 +173,7 @@ describe("capacidade responsiva de edição", () => {
       await act(async () => { first.reject(new Error("offline")); await Promise.resolve(); });
       await act(async () => { await vi.runOnlyPendingTimersAsync(); });
       expect(save).toHaveBeenCalledTimes(2);
-      expect(screen.getByRole("status", { name: "Status do documento" })).toHaveTextContent("Sincronizado");
+      expect(screen.getByRole("group", { name: "Estado da sessão" })).toHaveTextContent("Sincronizado");
     } finally {
       vi.useRealTimers();
     }
@@ -225,28 +228,28 @@ describe("capacidade responsiva de edição", () => {
     }), true);
 
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
-    const x = screen.getByLabelText("Posição X");
-    x.focus();
-    fireEvent.change(x, { target: { value: "" } });
+    const properties = screen.getByLabelText("Propriedades (JSON)");
+    properties.focus();
+    fireEvent.change(properties, { target: { value: "{" } });
 
     resizeViewport(375);
-    await waitFor(() => expect(screen.getByLabelText("Posição X")).toHaveAttribute("aria-invalid", "true"));
-    expect(screen.getByLabelText("Posição X")).toBeDisabled();
-    expect(screen.getByLabelText("Posição X")).toHaveValue(null);
-    expect(screen.getByText("Informe um número.")).toBeVisible();
+    await waitFor(() => expect(screen.getByLabelText("Propriedades (JSON)")).toHaveAttribute("aria-invalid", "true"));
+    expect(screen.getByLabelText("Propriedades (JSON)")).toBeDisabled();
+    expect(screen.getByLabelText("Propriedades (JSON)")).toHaveValue("{");
+    expect(screen.getByText("Informe um objeto JSON válido.")).toBeVisible();
     expect(save).not.toHaveBeenCalled();
 
     resizeViewport(768);
-    await waitFor(() => expect(screen.getByLabelText("Posição X")).toBeEnabled());
-    expect(screen.getByLabelText("Posição X")).toHaveValue(null);
-    fireEvent.change(screen.getByLabelText("Posição X"), { target: { value: "42" } });
-    fireEvent.blur(screen.getByLabelText("Posição X"));
+    await waitFor(() => expect(screen.getByLabelText("Propriedades (JSON)")).toBeEnabled());
+    expect(screen.getByLabelText("Propriedades (JSON)")).toHaveValue("{");
+    fireEvent.change(screen.getByLabelText("Propriedades (JSON)"), { target: { value: "{\"status\":\"ok\"}" } });
+    fireEvent.blur(screen.getByLabelText("Propriedades (JSON)"));
     await waitFor(() => expect(save).toHaveBeenCalledWith(
       diagramId,
       "token",
       expect.objectContaining({
         annotations: expect.objectContaining({
-          [annotationId]: expect.objectContaining({ x: 42 }),
+          [annotationId]: expect.objectContaining({ properties: { status: "ok" } }),
         }),
       }),
       1,
@@ -284,10 +287,10 @@ describe("capacidade responsiva de edição", () => {
       await waitFor(() => expect(screen.getByRole("button", { name: "Colar" })).toBeEnabled());
     }
 
-    const x = screen.getByLabelText("Posição X");
-    fireEvent.change(x, { target: { value: "" } });
-    fireEvent.blur(x);
-    expect(x).toHaveAttribute("aria-invalid", "true");
+    const properties = screen.getByLabelText("Propriedades (JSON)");
+    fireEvent.change(properties, { target: { value: "{" } });
+    fireEvent.blur(properties);
+    expect(properties).toHaveAttribute("aria-invalid", "true");
 
     if (trigger === "botão") {
       fireEvent.click(screen.getByRole("button", { name: action === "undo"
@@ -307,9 +310,9 @@ describe("capacidade responsiva de edição", () => {
             : { key: "d", ctrlKey: true });
     }
 
-    await waitFor(() => expect(screen.getByLabelText("Posição X")).toHaveValue(null));
-    expect(screen.getByLabelText("Posição X")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByText("Informe um número.")).toBeVisible();
+    await waitFor(() => expect(screen.getByLabelText("Propriedades (JSON)")).toHaveValue("{"));
+    expect(screen.getByLabelText("Propriedades (JSON)")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Informe um objeto JSON válido.")).toBeVisible();
     expect(screen.getByTestId("pid-canvas")).toHaveAttribute("data-annotation-count", "1");
     expect(screen.getByLabelText("Texto")).toHaveValue(action === "undo" ? "Texto confirmado" : "Texto persistido");
   });
@@ -340,16 +343,16 @@ describe("capacidade responsiva de edição", () => {
     }), true);
 
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
-    const x = screen.getByLabelText("Posição X");
-    fireEvent.change(x, { target: { value: "" } });
-    fireEvent.blur(x);
+    const properties = screen.getByLabelText("Propriedades (JSON)");
+    fireEvent.change(properties, { target: { value: "{" } });
+    fireEvent.blur(properties);
 
     fireEvent.change(screen.getByLabelText("Tipo de linha de conexão"), { target: { value: "utility" } });
     expect(screen.getByLabelText("Tipo de linha de conexão")).toHaveValue("process");
 
     fireEvent.click(screen.getByRole("button", { name: "Limpar seleção" }));
-    expect(screen.getByLabelText("Posição X")).toHaveValue(null);
-    expect(screen.getByLabelText("Posição X")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Propriedades (JSON)")).toHaveValue("{");
+    expect(screen.getByLabelText("Propriedades (JSON)")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("exporta uma projeção SVG real também em view mobile", async () => {
@@ -515,7 +518,7 @@ function documentWithAnnotation(annotationId: string): PidDocument {
   const document = structuredClone(documentFixture);
   document.annotations[annotationId] = {
     id: annotationId,
-    kind: "note",
+    kind: "text",
     text: "Texto persistido",
     x: 10,
     y: 20,

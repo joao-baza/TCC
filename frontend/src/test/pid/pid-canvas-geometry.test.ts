@@ -230,6 +230,43 @@ describe("geometria canônica compartilhada do canvas P&ID", () => {
     }
   });
 
+  it("não cria um segmento de retorno quando portas horizontais estão próximas", () => {
+    const points = orthogonalPoints(
+      { x: 799, y: 422 },
+      [],
+      { x: 842, y: 436 },
+      Position.Right,
+      Position.Left,
+    );
+
+    expect(points).toEqual([
+      { x: 799, y: 422 },
+      { x: 823, y: 422 },
+      { x: 823, y: 436 },
+      { x: 842, y: 436 },
+    ]);
+  });
+
+  it("mantém a rota ortogonal quando portas verticais se sobrepõem", () => {
+    const points = orthogonalPoints(
+      { x: 688, y: 460 },
+      [],
+      { x: 898, y: 432 },
+      Position.Bottom,
+      Position.Top,
+    );
+
+    expect(points).toEqual([
+      { x: 688, y: 460 },
+      { x: 688, y: 484 },
+      { x: 898, y: 484 },
+      { x: 898, y: 432 },
+    ]);
+    for (let index = 1; index < points.length; index += 1) {
+      expect(points[index].x === points[index - 1].x || points[index].y === points[index - 1].y).toBe(true);
+    }
+  });
+
   it("reutiliza o índice fornecido na validação quente", () => {
     const document = validationDocument();
     const index = buildGraphIndex(document);

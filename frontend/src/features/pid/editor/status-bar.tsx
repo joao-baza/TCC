@@ -1,18 +1,13 @@
 import type { EditorState } from "./editor-store";
-import type { EditorSaveState } from "./use-editor-autosave";
 
-export function StatusBar({ state, saveState, validationCounts, onRetry }: {
+export function StatusBar({ state, validationCounts }: {
   readonly state: EditorState;
-  readonly saveState: EditorSaveState;
   readonly validationCounts: { errors: number; warnings: number };
-  readonly onRetry?: () => void;
 }) {
   const { document, viewport } = state;
   const elements = Object.keys(document.nodes).length + Object.keys(document.edges).length
     + Object.keys(document.annotations).length + Object.keys(document.groups).length;
   return <footer aria-label="Status do documento" role="status" className="pid-status-bar">
-    <span>{saveState}</span>
-    {saveState === "Não salvo" && onRetry && <button type="button" onClick={onRetry}>Tentar salvar novamente</button>}
     <span>Posição {Math.round(viewport.x)}, {Math.round(viewport.y)}</span>
     <span>Zoom {Math.round(viewport.zoom * 100)}%</span>
     <span>{elements} elementos</span>
