@@ -60,8 +60,8 @@ export function HeatExchangerThermalCharts({
   const enthalpySummary =
     inletEnthalpy == null && outletEnthalpy == null
       ? "Aguardando entalpias"
-      : `${inletEnthalpy == null ? "—" : toFixedLabel(inletEnthalpy)} → ${
-          outletEnthalpy == null ? "—" : toFixedLabel(outletEnthalpy)
+      : `${inletEnthalpy == null ? "-" : toFixedLabel(inletEnthalpy)} → ${
+          outletEnthalpy == null ? "-" : toFixedLabel(outletEnthalpy)
         } J/kg`;
   const pressureSummary = `${toFixedLabel(safeInletPressure)} → ${toFixedLabel(safeOutletPressure)} Pa`;
   const flowSummary =
@@ -69,8 +69,8 @@ export function HeatExchangerThermalCharts({
   const qualitySpan =
     inletQuality == null && outletQuality == null
       ? null
-      : `${inletQuality == null ? "—" : toFixedLabel(inletQuality)} → ${
-          outletQuality == null ? "—" : toFixedLabel(outletQuality)
+      : `${inletQuality == null ? "-" : toFixedLabel(inletQuality)} → ${
+          outletQuality == null ? "-" : toFixedLabel(outletQuality)
         }`;
 
   return (

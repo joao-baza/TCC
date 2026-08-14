@@ -42,7 +42,7 @@ function renderTermRow(term: HeadBreakdownTerm, denominator: number) {
         <InlineMath math={formatTableNumber(term.value)} />
       </td>
       <td className="px-4 py-3 text-right font-medium tabular-nums text-slate-900">
-        <InlineMath math={percentage == null ? "\\text{—}" : formatPercentageLatex(percentage)} />
+        <InlineMath math={percentage == null ? "\\text{-}" : formatPercentageLatex(percentage)} />
       </td>
     </tr>
   );

@@ -509,8 +509,8 @@ describe("FlowPage", () => {
     const frictionRow = getRowContaining(/^Fator de atrito$/i);
     expect(reynoldsRow).toBeDefined();
     expect(frictionRow).toBeDefined();
-    expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
-    expect(frictionRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
+    expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("-");
+    expect(frictionRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("-");
     expect(screen.queryByText(/Regime do escoamento/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Como funciona - Ponto operacional no Diagrama de Moody/i }),
@@ -551,7 +551,7 @@ describe("FlowPage", () => {
     await waitFor(() => {
       const reynoldsRow = getRowContaining(/^Número de Reynolds$/i);
       expect(reynoldsRow).toBeDefined();
-      expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
+      expect(reynoldsRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("-");
       expect(screen.queryByText(/Regime do escoamento/i)).not.toBeInTheDocument();
     });
   });
@@ -600,7 +600,7 @@ describe("FlowPage", () => {
 
     const hydraulicRow = getRowContaining(/^Diâmetro hidráulico$/i);
     expect(hydraulicRow).toBeDefined();
-    expect(hydraulicRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("—");
+    expect(hydraulicRow?.querySelector("td:nth-child(2)")?.textContent ?? "").toContain("-");
   });
 
   it("blocks Reynolds submission when diameter or velocity is missing", async () => {

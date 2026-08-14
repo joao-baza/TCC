@@ -3,29 +3,29 @@
 \makeatother
 
 \documentclass[
-	12pt,				% tamanho da fonte
-	openright,			% capítulos começam em pág ímpar (insere página vazia se preciso)
-	twoside,			% para impressão em recto e verso. Oposto a oneside
-	a4paper,			% tamanho do papel. 
-	english,			% idioma adicional para hifenização
-	brazil				% o último idioma é o principal do documento
-	]{abntex2}
+  12pt,        % tamanho da fonte
+  openright,      % capítulos começam em pág ímpar (insere página vazia se preciso)
+  twoside,      % para impressão em recto e verso. Oposto a oneside
+  a4paper,      % tamanho do papel.
+  english,      % idioma adicional para hifenização
+  brazil        % o último idioma é o principal do documento
+  ]{abntex2}
 
 % ---
 % PACOTES
 % ---
-\usepackage{lmodern}			% Usa a fonte Latin Modern			
-\usepackage[T1]{fontenc}		% Selecao de codigos de fonte.
-\usepackage[utf8]{inputenc}		% Codificacao do documento (conversão automática dos acentos)
-\usepackage{indentfirst}		% Indenta o primeiro parágrafo de cada seção.
-\usepackage{color}				% Controle das cores
-\usepackage{graphicx}			% Inclusão de gráficos
-\usepackage{microtype} 			% para melhorias de justificação
+\usepackage{lmodern}      % Usa a fonte Latin Modern
+\usepackage[T1]{fontenc}    % Selecao de codigos de fonte.
+\usepackage[utf8]{inputenc}    % Codificacao do documento (conversão automática dos acentos)
+\usepackage{indentfirst}    % Indenta o primeiro parágrafo de cada seção.
+\usepackage{color}        % Controle das cores
+\usepackage{graphicx}      % Inclusão de gráficos
+\usepackage{microtype}       % para melhorias de justificação
 \usepackage{amsmath,amssymb}    % Pacotes matemáticos
 \usepackage{pdfpages}           % Incluir PDFs externos se necessário
 \usepackage{float}              % Para posicionamento exato de figuras [H]
 \usepackage{longtable}          % Para tabelas que quebram páginas
-\usepackage[alf]{abntex2cite}	% Citações padrão ABNT (alfabético) -> Mudei para ALF pois é o padrão ouro.
+\usepackage[alf]{abntex2cite}  % Citações padrão ABNT (alfabético) -> Mudei para ALF pois é o padrão ouro.
 % Se o usuário realmente quiser numérico, basta mudar para [num]
 
 % ---
@@ -62,18 +62,18 @@
 % Configurações de aparência do PDF final
 \definecolor{blue}{RGB}{41,5,195}
 \makeatletter
-	\hypersetup{
-		pdftitle={\@title}, 
-		pdfauthor={\@author},
-    	pdfsubject={Trabalho de Conclusão de Curso},
-	    pdfcreator={LaTeX with abnTeX2},
-		colorlinks=true,       		% false: box links; true: colored links
-    	linkcolor=blue,          	% color of internal links
-    	citecolor=blue,        		% color of links to bibliography
-    	filecolor=magenta,      		% color of file links
-		urlcolor=blue,
-		bookmarksdepth=4
-	}
+  \hypersetup{
+    pdftitle={\@title},
+    pdfauthor={\@author},
+      pdfsubject={Trabalho de Conclusão de Curso},
+      pdfcreator={LaTeX with abnTeX2},
+    colorlinks=true,           % false: box links; true: colored links
+      linkcolor=blue,            % color of internal links
+      citecolor=blue,            % color of links to bibliography
+      filecolor=magenta,          % color of file links
+    urlcolor=blue,
+    bookmarksdepth=4
+  }
 \makeatother
 % ---
 
@@ -110,7 +110,7 @@
 \hypersetup{pageanchor=false}
 
 % Retira espaço extra obsoleto entre as frases.
-\frenchspacing 
+\frenchspacing
 
 % ----------------------------------------------------------
 % ELEMENTOS PRÉ-TEXTUAIS
@@ -138,21 +138,21 @@
       \ABNTEXchapterfont\bfseries\Large\imprimirtitulo
     \end{center}
     \vspace*{\fill}
-    
+
     \hspace{.45\textwidth}
     \begin{minipage}{.5\textwidth}
         \imprimirpreambulo
     \end{minipage}%
     \vspace*{\fill}
-   
+
    \end{center}
-        
+
    Trabalho aprovado. \imprimirlocal, 13 de julho de 2026:
 
-   \assinatura{\textbf{\imprimirorientador} \\ Docente Orientador} 
+   \assinatura{\textbf{\imprimirorientador} \\ Docente Orientador}
    \assinatura{\textbf{Danieli Cristine Anversa} \\ Docente Doutora}
    \assinatura{\textbf{Vinícius Basso de Godoy} \\ Mestre}
-      
+
    \begin{center}
     \vspace*{0.5cm}
     {\large\imprimirlocal}
@@ -160,7 +160,7 @@
     {\large\imprimirdata}
     \vspace*{1cm}
   \end{center}
-  
+
 \end{folhadeaprovacao}
 % ---
 
@@ -186,12 +186,12 @@ Aos meus pais, Cassiano e Jacquecislene, por me darem não apenas a vida, mas ta
 % ---
 \begin{epigrafe}
     \vspace*{\fill}
-	\begin{flushright}
-		\textit{``Não deseje que seja mais fácil, deseje ser melhor.\\
-		Não deseje menos problemas, deseje mais habilidades.\\
-		Não deseje menos desafios, deseje mais sabedoria.''\\
-		(Jim Rohn)}
-	\end{flushright}
+  \begin{flushright}
+    \textit{``Não deseje que seja mais fácil, deseje ser melhor.\\
+    Não deseje menos problemas, deseje mais habilidades.\\
+    Não deseje menos desafios, deseje mais sabedoria.''\\
+    (Jim Rohn)}
+  \end{flushright}
 \end{epigrafe}
 % ---
 
@@ -234,7 +234,7 @@ This work presents the development of DCOU (\textit{Computational Sizing of Unit
   \item[\textit{API}] \textit{Application Programming Interface}
   \item[\textit{ASGI}] \textit{Asynchronous Server Gateway Interface}
   \item[\textit{BEP}] \textit{Best Efficiency Point}
-  \item[\textit{CD}] \textit{Continuous Delivery} / \textit{Continuous Deployment}
+  \item[\textit{CD}] \textit{Continuous Deployment}
   \item[\textit{CI}] \textit{Continuous Integration}
   \item[\textit{CSS}] \textit{Cascading Style Sheets}
   \item[\textit{CSTR}] \textit{Continuous Stirred Tank Reactor}
@@ -248,6 +248,7 @@ This work presents the development of DCOU (\textit{Computational Sizing of Unit
   \item[\textit{NPSHr}] \textit{Net Positive Suction Head} requerido
   \item[\textit{REST}] \textit{Representational State Transfer}
   \item[\textit{RHS}] \textit{Right-Hand Side}
+  \item[\textit{SI}] \textit{Sistema Internacional de Unidades}
   \item[\textit{SVG}] \textit{Scalable Vector Graphics}
   \item[\textit{UI}] \textit{User Interface}
   \item[\textit{UX}] \textit{User Experience}
@@ -379,6 +380,11 @@ This work presents the development of DCOU (\textit{Computational Sizing of Unit
 % ----------------------------------------------------------
 % Referências bibliográficas
 % ----------------------------------------------------------
+% Permite que as referências comecem na página seguinte às conclusões,
+% sem inserir a folha em branco exigida por openright nesta transição.
+\let\origclearforchapter\clearforchapter
+\let\clearforchapter\clearpage
 \bibliography{bibliografia}
+\let\clearforchapter\origclearforchapter
 
 \end{document}

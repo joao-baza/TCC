@@ -219,7 +219,7 @@ function formatResultRow(
     return { value };
   }
 
-  return { value: "—" };
+  return { value: "-" };
 }
 
 function buildConcentrationRows(label: string, value: unknown): PropertyRow[] {

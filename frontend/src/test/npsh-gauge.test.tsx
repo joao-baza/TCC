@@ -84,7 +84,7 @@ describe("NpshGauge", () => {
           safe_threshold: { value: 3.5, units: "meter" },
           status: {
             tone: "risk",
-            label: "Risco de cavitação — NPSHd insuficiente ✗",
+            label: "Risco de cavitação - NPSHd insuficiente ✗",
             message: "NPSHd abaixo da margem segura; há risco de cavitação.",
           },
           axis: {
@@ -102,7 +102,7 @@ describe("NpshGauge", () => {
       />,
     );
 
-    expect(screen.getByText("Risco de cavitação — NPSHd insuficiente ✗")).toBeInTheDocument();
+    expect(screen.getByText("Risco de cavitação - NPSHd insuficiente ✗")).toBeInTheDocument();
     expect(screen.getByText("NPSHd abaixo da margem segura; há risco de cavitação.")).toBeInTheDocument();
   });
 

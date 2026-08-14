@@ -309,6 +309,7 @@ describe("BalancePage", () => {
     expect(screen.getByRole("table", { name: /Tabela de correntes calculadas/i })).toBeInTheDocument();
     expect(screen.getAllByText(/u\. cons\. = unidades consistentes/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Composições por corrente/i)).not.toBeInTheDocument();
+    expect(await screen.findByTestId("recycle-purge-map")).toBeInTheDocument();
     expect(await screen.findByTestId("mass-balance-chart")).toBeInTheDocument();
     expect(screen.getByRole("table", { name: /Matriz de rendimentos/i })).toBeInTheDocument();
     expect(screen.getByText(/81.25%/i)).toBeInTheDocument();

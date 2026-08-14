@@ -155,7 +155,7 @@ def _build_npsh_status(available: float, required: float | None) -> NpshGaugeSta
 
     return NpshGaugeStatusModel(
         tone="risk",
-        label="Risco de cavitação — NPSHd insuficiente ✗",
+        label="Risco de cavitação - NPSHd insuficiente ✗",
         message="NPSHd abaixo da margem segura; há risco de cavitação.",
     )
 

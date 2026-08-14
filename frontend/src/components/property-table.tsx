@@ -34,7 +34,7 @@ function escapeLatexText(value: string) {
 
 function formatValueLatex(value: number | string | null) {
   if (value === null) {
-    return "\\text{—}";
+    return "\\text{-}";
   }
 
   if (typeof value === "number") {
@@ -70,7 +70,7 @@ function normalizeRowsFromData(data: PropertyRecord): PropertyRow[] {
       return [
         {
           label: formatLabel(key),
-          value: value ?? "—",
+          value: value ?? "-",
         },
       ];
     }
@@ -79,7 +79,7 @@ function normalizeRowsFromData(data: PropertyRecord): PropertyRow[] {
       return [
         {
           label: formatLabel(key),
-          value: "—",
+          value: "-",
           children: normalizeRowsFromData(value as PropertyRecord),
         },
       ];
@@ -88,7 +88,7 @@ function normalizeRowsFromData(data: PropertyRecord): PropertyRow[] {
     return [
       {
         label: formatLabel(key),
-        value: "—",
+        value: "-",
       },
     ];
   });

@@ -61,21 +61,27 @@ export function TernaryDiagram({
   const vertexLabels = [
     {
       label: componentLabels[0] ?? "Componente A",
-      anchor: "end" as const,
-      x: boundary[0] ? scaleX(boundary[0].x) - 12 : padding.left,
-      y: boundary[0] ? scaleY(boundary[0].y) + 4 : padding.top,
+      anchor: "start" as const,
+      pointX: boundary[0] ? scaleX(boundary[0].x) : padding.left,
+      pointY: boundary[0] ? scaleY(boundary[0].y) : padding.top,
+      textX: boundary[0] ? scaleX(boundary[0].x) + 14 : padding.left,
+      textY: boundary[0] ? scaleY(boundary[0].y) + 4 : padding.top,
     },
     {
       label: componentLabels[1] ?? "Componente B",
-      anchor: "start" as const,
-      x: boundary[1] ? scaleX(boundary[1].x) + 12 : width - padding.right,
-      y: boundary[1] ? scaleY(boundary[1].y) + 4 : padding.top,
+      anchor: "end" as const,
+      pointX: boundary[1] ? scaleX(boundary[1].x) : width - padding.right,
+      pointY: boundary[1] ? scaleY(boundary[1].y) : padding.top,
+      textX: boundary[1] ? scaleX(boundary[1].x) - 14 : width - padding.right,
+      textY: boundary[1] ? scaleY(boundary[1].y) + 4 : padding.top,
     },
     {
       label: componentLabels[2] ?? "Componente C",
       anchor: "middle" as const,
-      x: boundary[2] ? scaleX(boundary[2].x) : width / 2,
-      y: boundary[2] ? scaleY(boundary[2].y) - 12 : padding.top,
+      pointX: boundary[2] ? scaleX(boundary[2].x) : width / 2,
+      pointY: boundary[2] ? scaleY(boundary[2].y) : padding.top,
+      textX: boundary[2] ? scaleX(boundary[2].x) : width / 2,
+      textY: boundary[2] ? scaleY(boundary[2].y) - 12 : padding.top,
     },
   ];
 
@@ -123,7 +129,7 @@ export function TernaryDiagram({
 
         {vertexLabels.map((vertex, index) => (
           <g key={vertex.label}>
-            <circle cx={vertex.x} cy={vertex.y} fill="#0f172a" r="2.8" />
+            <circle cx={vertex.pointX} cy={vertex.pointY} fill="#0f172a" r="2.8" />
             <text
               fill="#0f172a"
               fontSize="12"
@@ -132,8 +138,8 @@ export function TernaryDiagram({
               stroke="#f8fafc"
               strokeWidth="3"
               textAnchor={vertex.anchor}
-              x={vertex.x}
-              y={vertex.y - (index === 2 ? 2 : 0)}
+              x={vertex.textX}
+              y={vertex.textY - (index === 2 ? 2 : 0)}
             >
               {vertex.label}
             </text>

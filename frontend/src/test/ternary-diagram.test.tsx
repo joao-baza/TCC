@@ -50,4 +50,29 @@ describe("TernaryDiagram", () => {
     ).toBeInTheDocument();
     expect(container.querySelector("svg")).not.toBeNull();
   });
+
+  it("keeps vertex labels inside the SVG viewport for backend-provided boundaries", () => {
+    const { container } = render(
+      <TernaryDiagram
+        title="Diagrama ternário"
+        componentLabels={["Water", "Ethanol", "Methanol"]}
+        boundary={[
+          { x: 0, y: 0 },
+          { x: 1, y: 0 },
+          { x: 0.5, y: 0.8660254037844386 },
+        ]}
+        guideLines={[]}
+        streams={[]}
+      />,
+    );
+
+    const labels = Array.from(container.querySelectorAll("svg text")).filter((node) =>
+      ["Water", "Ethanol", "Methanol"].includes(node.textContent ?? ""),
+    );
+    const horizontalPositions = labels.map((node) => Number(node.getAttribute("x")));
+
+    expect(labels).toHaveLength(3);
+    expect(Math.min(...horizontalPositions)).toBeGreaterThanOrEqual(48);
+    expect(Math.max(...horizontalPositions)).toBeLessThanOrEqual(712);
+  });
 });

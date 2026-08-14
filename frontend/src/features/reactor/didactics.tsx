@@ -111,7 +111,7 @@ export function ArrheniusHowItWorks() {
       </p>
       <p className="text-sm text-slate-700">
         A utilidade do gráfico é comparar cenários térmicos, estimar tendência de
-        aceleração reacional e explicar por que pequenas mudanças de temperatura podem
+        velocidade reacional e explicar por que pequenas mudanças de temperatura podem
         alterar fortemente a taxa de reação.
       </p>
       <TheoryRef>
