@@ -22,7 +22,7 @@ async def test_ws_ticket_returns_ticket_on_valid_token():
 
     with (
         patch("routers.pid._service", return_value=mock_service),
-        patch("routers.pid.TicketStore") as MockStore,
+        patch("pid.tickets.TicketStore") as MockStore,
     ):
         mock_store = AsyncMock()
         mock_store.issue.return_value = "ticket-abc123"

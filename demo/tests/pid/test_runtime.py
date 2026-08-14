@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 import app as app_module
+import pid.config as config_module
 import pid.runtime as runtime_module
 from pid.config import PidSettings
 from pid.runtime import PidRuntime
@@ -27,6 +28,7 @@ PID_ENVIRONMENT = (
 def isolated_pid_environment(monkeypatch):
     for name in PID_ENVIRONMENT:
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(config_module, "load_dotenv", lambda *, override: False)
 
 
 def _enable_pid(monkeypatch, *, origins: str = "https://editor.example.test"):
@@ -42,10 +44,27 @@ def _enable_pid(monkeypatch, *, origins: str = "https://editor.example.test"):
 
 
 @dataclass
+class InstrumentedWsManager:
+    starts: int = 0
+    stops: int = 0
+
+    async def start(self) -> None:
+        self.starts += 1
+
+    async def stop(self) -> None:
+        self.stops += 1
+
+
+@dataclass
 class InstrumentedRuntime:
     ready_error: Exception | None = None
     checks: int = 0
     closes: int = 0
+    ws_manager: InstrumentedWsManager | None = None
+
+    def __post_init__(self) -> None:
+        if self.ws_manager is None:
+            self.ws_manager = InstrumentedWsManager()
 
     async def check_ready(self) -> None:
         self.checks += 1
@@ -160,6 +179,7 @@ def test_runtime_construction_uses_shared_factories_without_network(monkeypatch)
     engine = object()
     session_factory = object()
     redis = object()
+    manager = object()
     calls: list[tuple[str, object]] = []
     settings = PidSettings(
         enabled=True,
@@ -184,16 +204,23 @@ def test_runtime_construction_uses_shared_factories_without_network(monkeypatch)
         "from_url",
         lambda url: calls.append(("redis", url)) or redis,
     )
+    monkeypatch.setattr(
+        runtime_module,
+        "ConnectionManager",
+        lambda value: calls.append(("manager", value)) or manager,
+    )
 
     runtime = PidRuntime.from_settings(settings)
 
     assert runtime.engine is engine
     assert runtime.session_factory is session_factory
     assert runtime.redis is redis
+    assert runtime.ws_manager is manager
     assert calls == [
         ("engine", settings.database_url),
-        ("sessions", engine),
         ("redis", settings.redis_url),
+        ("manager", redis),
+        ("sessions", engine),
     ]
 
 
@@ -252,6 +279,7 @@ def _runtime(engine: InstrumentedEngine, redis: InstrumentedRedis) -> PidRuntime
         engine=cast(AsyncEngine, engine),
         session_factory=cast(async_sessionmaker[AsyncSession], object()),
         redis=cast(Any, redis),
+        ws_manager=cast(Any, object()),
     )
 
 
