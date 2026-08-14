@@ -6,7 +6,7 @@ WORKDIR /app
 
 ARG VITE_PID_ADAPTER
 ENV VITE_PID_ADAPTER=${VITE_PID_ADAPTER}
-RUN test "$VITE_PID_ADAPTER" = "disabled"
+RUN test "$VITE_PID_ADAPTER" = "disabled" -o "$VITE_PID_ADAPTER" = "remote"
 
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci

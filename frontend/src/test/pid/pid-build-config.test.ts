@@ -10,7 +10,7 @@ describe("configuração rastreada do adaptador P&ID", () => {
     expect(read(`frontend/.env.${mode}`)).toMatch(/^VITE_PID_ADAPTER=local\s*$/m);
   });
 
-  it("desabilita explicitamente P&ID no ambiente de produção", () => {
+  it("seleciona o adaptador remoto no ambiente de produção", () => {
     expect(existsSync(resolve(repositoryRoot, "frontend/.env.production"))).toBe(true);
     expect(read("frontend/.env.production")).toMatch(/^VITE_PID_ADAPTER=remote\s*$/m);
   });
@@ -25,11 +25,12 @@ describe("configuração rastreada do adaptador P&ID", () => {
     expect(dockerfile).toContain("ENV VITE_PID_ADAPTER=${VITE_PID_ADAPTER}");
     expect(dockerfile.indexOf("ARG VITE_PID_ADAPTER")).toBeLessThan(dockerfile.indexOf("RUN npm run build"));
     expect(dockerfile).toContain('test "$VITE_PID_ADAPTER" = "disabled"');
+    expect(dockerfile).toContain('test "$VITE_PID_ADAPTER" = "disabled" -o "$VITE_PID_ADAPTER" = "remote"');
   });
 
-  it("desabilita o adaptador local explicitamente no build do compose", () => {
+  it("usa o adaptador remoto no build de produção do compose", () => {
     const compose = read("deploy/docker-compose.yaml");
-    expect(compose).toMatch(/tcc-frontend:[\s\S]*args:\s*\n\s*VITE_PID_ADAPTER: disabled/);
+    expect(compose).toMatch(/tcc-frontend:[\s\S]*args:\s*\n\s*VITE_PID_ADAPTER: remote/);
   });
 
   it("fornece local explicitamente nos builds locais e de CI", () => {
@@ -46,7 +47,7 @@ describe("configuração rastreada do adaptador P&ID", () => {
   it("mantém validação de build sem fallback para valor ausente ou não suportado", () => {
     const viteConfig = read("frontend/vite.config.ts");
     expect(viteConfig).toContain("loadEnv");
-    expect(viteConfig).toContain('["local", "disabled"]');
+    expect(viteConfig).toContain('["local", "remote", "disabled"]');
     expect(viteConfig).toContain("Adaptador P&ID não configurado");
   });
 

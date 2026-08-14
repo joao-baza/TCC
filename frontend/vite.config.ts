@@ -4,13 +4,13 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => {
-  const environment = loadEnv(mode, process.cwd(), "");
-  if (!["local", "disabled"].includes(environment.VITE_PID_ADAPTER)) {
+  const environment = { ...loadEnv(mode, process.cwd(), ""), ...process.env };
+  if (!["local", "remote", "disabled"].includes(environment.VITE_PID_ADAPTER)) {
     throw new Error("Adaptador P&ID não configurado");
   }
-  const pidRouteEntry = environment.VITE_PID_ADAPTER === "local"
-    ? "./src/features/pid/routing/pid-route-local.tsx"
-    : "./src/features/pid/routing/pid-route-disabled.tsx";
+  const pidRouteEntry = environment.VITE_PID_ADAPTER === "disabled"
+    ? "./src/features/pid/routing/pid-route-disabled.tsx"
+    : "./src/features/pid/routing/pid-route-local.tsx";
 
   return {
     plugins: [react(), tailwindcss()],

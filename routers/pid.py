@@ -8,7 +8,7 @@ from pid.models import AccessScope
 from pid.repositories.snapshots import SnapshotRepository, SnapshotDiagramNotFound
 from pid.services.diagram_service import DiagramService
 
-router = APIRouter(prefix="/api/pid", tags=["pid"])
+router = APIRouter(prefix="/pid", tags=["pid"])
 
 
 class CreateDiagramRequest(BaseModel):
