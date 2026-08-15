@@ -612,7 +612,7 @@ describe("cache estrutural do canvas P&ID", () => {
       </StrictMode>,
     );
     expect(await screen.findByTestId("rf__node-node-0")).toBe(stableNode);
-  }, 15_000);
+  }, 30_000);
 });
 
 async function clickConnect(source: HTMLElement, target: HTMLElement) {

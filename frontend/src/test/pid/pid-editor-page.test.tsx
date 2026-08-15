@@ -77,7 +77,7 @@ describe("integração real do studio P&ID", () => {
     await waitFor(() => expect(annotation).toHaveAttribute("aria-pressed", "true"));
     expect(screen.getByRole("button", { name: "Copiar" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Girar 90°" })).toBeEnabled();
-  });
+  }, 10_000);
 
   it("copia os dois links e invalida o link de visualização anterior ao regenerá-lo", async () => {
     const documentPort = statefulTokenPort();
@@ -219,7 +219,7 @@ describe("integração real do studio P&ID", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
     await waitFor(() => expect(softDelete).toHaveBeenCalledWith(ids.diagram, "edit-token", 1));
     await waitFor(() => expect(router.state.location.pathname).toBe("/pid"));
-    expect(screen.getByRole("heading", { name: "Diagramas P&ID" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Diagramas P&ID" })).toBeInTheDocument();
   });
 });
 

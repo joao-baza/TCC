@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it } from "vitest";
 
@@ -23,12 +23,12 @@ it("cria e abre um diagrama pelas rotas reais com o serviço local compartilhado
   );
 
   fireEvent.click(screen.getByRole("checkbox", { name: "Copiei o link de edição" }));
-  await router.navigate(`${parsed.pathname}${parsed.hash}`);
+  await act(async () => { await router.navigate(`${parsed.pathname}${parsed.hash}`); });
 
   expect(await screen.findByRole("heading", { name: "Utilidades" })).toBeInTheDocument();
   expect(screen.getByText("Acesso de edição")).toBeInTheDocument();
 
-  await router.navigate("/pid/meus-diagramas");
+  await act(async () => { await router.navigate("/pid/meus-diagramas"); });
 
   expect(await screen.findByRole("heading", { name: "Meus diagramas" })).toBeInTheDocument();
   expect(screen.getByText("Utilidades")).toBeInTheDocument();

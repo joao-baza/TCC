@@ -426,7 +426,7 @@ describe("studio focado P&ID", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
     await waitFor(() => expect(pidServices.document.softDelete).toHaveBeenCalledWith(diagramId, "edit-token", 1));
     await waitFor(() => expect(router.state.location.pathname).toBe("/pid"));
-    expect(screen.getByRole("heading", { name: "Diagramas P&ID" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Diagramas P&ID" })).toBeInTheDocument();
   });
 
   it("salva a versão pendente antes de excluir e retorna para a listagem", async () => {
