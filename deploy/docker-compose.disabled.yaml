@@ -1,0 +1,61 @@
+services:
+  tcc-api:
+    image: tcc-api:latest
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment:
+      DCOU_ROOT_PATH: /api
+      PID_ENABLED: "false"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/ready', timeout=3).read()
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - SJNet
+    deploy:
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=SJNet"
+        - "traefik.http.routers.tcc-api.rule=Host(`tcc.api.joao.baza.dev.br`)"
+        - "traefik.http.routers.tcc-api.entrypoints=websecure"
+        - "traefik.http.routers.tcc-api.tls=true"
+        - "traefik.http.routers.tcc-api.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.tcc-api-main.rule=Host(`tcc.joao.baza.dev.br`) && PathPrefix(`/api`)"
+        - "traefik.http.routers.tcc-api-main.entrypoints=websecure"
+        - "traefik.http.routers.tcc-api-main.tls=true"
+        - "traefik.http.routers.tcc-api-main.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.tcc-api-main.middlewares=tcc-api-strip"
+        - "traefik.http.middlewares.tcc-api-strip.stripprefix.prefixes=/api"
+        - "traefik.http.services.tcc-api.loadbalancer.server.port=5000"
+
+  tcc-frontend:
+    image: tcc-frontend:latest
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        VITE_PID_ADAPTER: disabled
+    networks:
+      - SJNet
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=SJNet"
+        - "traefik.http.routers.tcc-frontend.rule=Host(`tcc.joao.baza.dev.br`)"
+        - "traefik.http.routers.tcc-frontend.entrypoints=websecure"
+        - "traefik.http.routers.tcc-frontend.tls=true"
+        - "traefik.http.routers.tcc-frontend.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.tcc-frontend.loadbalancer.server.port=80"
+
+networks:
+  SJNet:
+    external: true

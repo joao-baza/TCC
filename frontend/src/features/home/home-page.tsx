@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { PID_EDITOR_ENABLED } from "@/features/pid/routing/active-pid-route";
 
 const trails = [
   {
@@ -20,7 +21,8 @@ const trails = [
   },
 ];
 
-const quickAccess = [
+export function createQuickAccess(includePid: boolean) {
+  return [
   { to: "/piping", group: "Hidráulica", label: "Tubulações" },
   { to: "/sizing", group: "Hidráulica", label: "Dimensionamento" },
   { to: "/flow", group: "Hidráulica", label: "Escoamento" },
@@ -29,9 +31,12 @@ const quickAccess = [
   { to: "/reactor", group: "Reatores", label: "CSTR / PFR" },
   { to: "/balance", group: "Balanço", label: "Balanço de Massa" },
   { to: "/glossary", group: "Ferramentas", label: "Glossário" },
-];
+    ...(includePid ? [{ to: "/pid", group: "Ferramentas", label: "P&ID" }] : []),
+  ];
+}
 
-export function HomePage() {
+export function HomePage({ pidEnabled = PID_EDITOR_ENABLED }: { pidEnabled?: boolean }) {
+  const quickAccess = createQuickAccess(pidEnabled);
   return (
     <section className="space-y-8 p-6 md:p-8">
       <Card>

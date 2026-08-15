@@ -67,6 +67,8 @@ jobs:
         with:
           context: .
           file: deploy/Dockerfile.frontend
+          build-args: |
+            VITE_PID_ADAPTER=disabled
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

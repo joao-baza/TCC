@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="72" viewBox="0 0 88 72" fill="none" role="img" aria-labelledby="title-te-passagem-reta desc-te-passagem-reta">
+  <title id="title-te-passagem-reta">Tê (passagem reta)</title>
+  <desc id="desc-te-passagem-reta">Icone aproximado de Tê (passagem reta) para biblioteca de fittings de tubulacao; desenho preparado para conexao futura no editor P&amp;ID.</desc>
+  <defs>
+    <clipPath id="interior-te-passagem-reta">
+      <path d="M0 35 H88 V49 H0 Z M37 8 H51 V42 H37 Z" />
+    </clipPath>
+  </defs>
+  <g class="fitting-symbol" data-fitting-family="tee">
+    <path class="fitting-hachures" d="M-96 96 L-16 -16 M-80 96 L0 -16 M-64 96 L16 -16 M-48 96 L32 -16 M-32 96 L48 -16 M-16 96 L64 -16 M0 96 L80 -16 M16 96 L96 -16 M32 96 L112 -16 M48 96 L128 -16 M64 96 L144 -16 M80 96 L160 -16 M96 96 L176 -16" fill="none" stroke="#1F2937" stroke-width="1.5" stroke-linecap="butt" clip-path="url(#interior-te-passagem-reta)" vector-effect="non-scaling-stroke" opacity="0.9" />
+    <path d="M0 35 H37 V8 M51 8 V35 H88 M0 49 H88" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+  </g>
+</svg>

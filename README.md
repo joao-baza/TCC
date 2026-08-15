@@ -83,12 +83,16 @@ The backend health check is exposed at `/health` on the selected port, and it st
 ```bash
 cd frontend
 npm install
-npm run dev
+VITE_PID_ADAPTER=local npm run dev
 ```
 
 Default app: `http://localhost:5173`
 
 Vite already proxies `/api` to `http://localhost:5000`.
+
+> **Development only:** `VITE_PID_ADAPTER=local` stores P&ID documents and
+> capability tokens in the browser. It is not the production PostgreSQL/Redis
+> adapter and must not be used as a silent production fallback.
 
 #### Desktop
 
@@ -110,6 +114,101 @@ The macOS `.dmg` is built on macOS runners via `npm run dist`.
 Desktop packaging reuses the compiled frontend and the Python backend frozen as a local executable.
 Build scripts automatically resolve Python, preferring the project `.venv` and falling back to `python3` or `python` when needed.
 
+#### P&ID Foundation
+
+The current P&ID delivery includes a visual editor for equipment, ports,
+connections, annotations, grouping, local collaboration state, and SVG/PNG
+export. The backend foundation also defines persistent diagrams, capability
+tokens, snapshots, one-time tickets, and versioned symbol catalogs. The editor
+does not yet exchange data with engineering calculations; stable UUIDs and API
+contracts keep that later integration possible.
+
+##### Run the foundation locally
+
+Create the local configuration file:
+
+```bash
+cp .env.example .env
+```
+
+Set `POSTGRES_NODE_HOSTNAME` to the Swarm node that owns the local PostgreSQL
+volume. List the available hostnames with `docker node ls`. The deployment
+validates this value before changing the stack and pins PostgreSQL to that node,
+so an unavailable data node leaves the service pending instead of starting with
+an empty volume elsewhere.
+
+Generate a pepper, then replace the `PID_TOKEN_PEPPER` placeholder in `.env`
+with the generated value. Do not commit the resulting file or print a real
+pepper in logs or documentation.
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Start the isolated test dependencies:
+
+```bash
+docker compose -f deploy/docker-compose.test.yaml up -d --wait
+```
+
+The test Compose file exposes PostgreSQL and Redis only on localhost. Export
+its URLs, migrate the test database, and run the backend suite:
+
+```bash
+export DATABASE_URL='postgresql+psycopg://dcou:dcou_test@127.0.0.1:55432/dcou_test'
+export REDIS_URL='redis://127.0.0.1:56379/0'
+export PID_TEST_DATABASE_URL="$DATABASE_URL"
+export PID_TEST_REDIS_URL="$REDIS_URL"
+alembic upgrade head
+pytest -q
+```
+
+The hostnames in `.env.example`, such as `tcc-postgres` and `tcc-redis`, are
+service names for the production Swarm network. They are not substitutes for
+the localhost URLs above.
+
+Validate the free draft catalog manifest:
+
+```bash
+python -m pid.catalog.validator \
+  pid/catalog/manifests/free/foundation.json
+```
+
+##### Configuration and operations reference
+
+- The `GET` `/health` endpoint is a dependency-free liveness check. It confirms that the API
+  process is running even when P&ID is disabled.
+- The `GET` `/ready` endpoint is the P&ID readiness check. When P&ID is enabled,
+  it reports an unavailable state until PostgreSQL and Redis respond.
+- Production PostgreSQL data is durable in the named
+  `tcc_postgres_data` volume on the node selected by
+  `POSTGRES_NODE_HOSTNAME`. This is node-local durability, not high
+  availability. Redis is intentionally ephemeral, with AOF and RDB persistence
+  disabled. This open-source MVP foundation does not configure external
+  backups.
+- `deploy/deploy.sh` sources `.env` with Bash. Wrap values containing shell
+  special characters in single quotes. Passwords embedded in `DATABASE_URL`
+  and `REDIS_URL` must be percent-encoded, and the encoded URL credentials must
+  remain consistent with the corresponding plain password variables. Never
+  place a real secret in committed examples.
+- With `PID_ENABLED=false`, the deploy script selects
+  `deploy/docker-compose.disabled.yaml`; PostgreSQL, Redis, and P&ID secrets are
+  not required or deployed. Enabling P&ID selects the full compose file and
+  validates every infrastructure variable before any Swarm mutation. For
+  compatibility with deployments created before the flag existed, omitting
+  `PID_ENABLED` also selects the full compose file; disable it explicitly when
+  the remote adapter is unavailable.
+- Four sanitized SVG symbols created for this project are redistributed from
+  `frontend/public/pid/symbols/`. Their active catalog metadata, provenance, and
+  license attribution are defined in
+  `frontend/src/features/pid/catalog/fixtures/catalog.ts`. The external Draw.io
+  and Wikimedia references in `pid/catalog/sources.json` record research inputs
+  only; the empty ISA/ISO manifests under `pid/catalog/manifests/` remain drafts
+  and do not claim that external assets are shipped.
+
+This foundation has no link to calculations now; the persisted UUIDs and API
+contracts are deliberately prepared for a future calculation integration.
+
 ## Tests
 
 ### Frontend
@@ -121,33 +220,64 @@ cd frontend
 npm test
 ```
 
-Build the frontend before publishing or validating production output:
+Run the isolated P&ID performance budget after the deterministic unit suite:
 
 ```bash
 cd frontend
-npm run build
+npm run benchmark:pid
 ```
+
+The benchmark performs warmup runs and measures in one worker. Wall-clock
+budgets live there so parallel unit-test load cannot make the default suite
+flaky; unit tests still verify the 500-node/1,000-connection workload,
+correctness, output cardinality, linear structural growth, and the result of a
+100-command workload without depending on elapsed time.
+
+Build the frontend for the current local P&ID stage:
+
+```bash
+cd frontend
+npm run build:local
+```
+
+The local helper supplies `VITE_PID_ADAPTER=local` explicitly. Use the disabled
+adapter for a production web build until a remote frontend adapter is available:
+
+```bash
+VITE_PID_ADAPTER=local npm run build
+VITE_PID_ADAPTER=disabled npm run build
+```
+
+The production Docker and publishing paths use `disabled`, which removes P&ID
+navigation and exposes only an unavailable page at direct P&ID URLs. This avoids
+publishing browser-local documents and capability links as if they were shared.
+Builds remain fail-closed: if `VITE_PID_ADAPTER` is absent or unsupported, Vite
+stops with `Adaptador P&ID não configurado`.
 
 Run the local preview used by Playwright:
 
 ```bash
 cd frontend
-npm run preview -- --host 127.0.0.1
+VITE_PID_ADAPTER=local npm run preview -- --host 127.0.0.1
 ```
 
 Run the end-to-end tests:
 
 ```bash
 cd frontend
-npm run test:e2e
+VITE_PID_ADAPTER=local npm run test:e2e
 ```
 
 Run only the Chromium project configured in Playwright:
 
 ```bash
 cd frontend
-npm run test:e2e -- --project=chromium
+VITE_PID_ADAPTER=local npm run test:e2e -- --project=chromium
 ```
+
+Preview and E2E commands pass the adapter explicitly for the same fail-closed
+reason as builds: an absent or unsupported `VITE_PID_ADAPTER` stops Vite instead
+of silently selecting browser storage.
 
 ### Backend
 
@@ -197,7 +327,7 @@ The installer build flow is:
 
 ```bash
 cd frontend
-npm run build
+npm run build:local
 
 cd ../desktop
 npm run dist:local

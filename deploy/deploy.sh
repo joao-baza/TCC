@@ -4,6 +4,7 @@
 # Ciclo completo: derruba a stack, remove imagens, rebuild e sobe novamente.
 #
 # Variáveis opcionais:
+#   ENV_FILE               arquivo de ambiente relativo à raiz do projeto (padrão: .env)
 #   STACK_NAME              nome da stack (padrão: tcc)
 #   IMAGE_NAME              imagem da API (padrão: tcc-api:latest)
 #   FRONTEND_IMAGE_NAME     imagem do frontend (padrão: tcc-frontend:latest)
@@ -15,15 +16,73 @@
 #   SKIP_BUILD              1 para pular build/remoção de imagens (usa imagens já carregadas no host)
 set -euo pipefail
 
-STACK_NAME="${STACK_NAME:-tcc}"
-IMAGE_NAME="${IMAGE_NAME:-tcc-api:latest}"
-FRONTEND_IMAGE_NAME="${FRONTEND_IMAGE_NAME:-tcc-frontend:latest}"
-COMPOSE_FILE="${COMPOSE_FILE:-deploy/docker-compose.yaml}"
-NETWORK_NAME="${NETWORK_NAME:-SJNet}"
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${PROJECT_ROOT}"
+
+ENV_FILE="${ENV_FILE:-.env}"
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "Arquivo de ambiente ${ENV_FILE} não encontrado." >&2
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
+
+pid_enabled="$(
+  printf '%s' "${PID_ENABLED:-}" \
+    | LC_ALL=C sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+    | LC_ALL=C tr '[:upper:]' '[:lower:]'
+)"
+case "$pid_enabled" in
+  ""|1|true|yes|on) pid_enabled="true" ;;
+  0|false|no|off) pid_enabled="false" ;;
+  *)
+    echo "PID_ENABLED deve ser um valor booleano reconhecido." >&2
+    exit 1
+    ;;
+esac
+export PID_ENABLED="$pid_enabled"
+
+if [[ "$pid_enabled" == "true" ]]; then
+  required_environment=(
+    POSTGRES_DB
+    POSTGRES_USER
+    POSTGRES_PASSWORD
+    POSTGRES_NODE_HOSTNAME
+    DATABASE_URL
+    REDIS_PASSWORD
+    REDIS_URL
+    PID_TOKEN_PEPPER
+    PID_ALLOWED_ORIGINS
+    PID_WS_PUBLIC_URL
+  )
+
+  missing_environment=()
+  for name in "${required_environment[@]}"; do
+    value="${!name:-}"
+    if [[ -z "${value//[[:space:]]/}" ]]; then
+      missing_environment+=("$name")
+    fi
+  done
+
+  if (( ${#missing_environment[@]} > 0 )); then
+    echo "Variáveis obrigatórias ausentes ou vazias: ${missing_environment[*]}" >&2
+    exit 1
+  fi
+fi
+
+STACK_NAME="${STACK_NAME:-tcc}"
+IMAGE_NAME="${IMAGE_NAME:-tcc-api:latest}"
+FRONTEND_IMAGE_NAME="${FRONTEND_IMAGE_NAME:-tcc-frontend:latest}"
+if [[ "$pid_enabled" == "true" ]]; then
+  COMPOSE_FILE="${COMPOSE_FILE:-deploy/docker-compose.yaml}"
+else
+  COMPOSE_FILE="${COMPOSE_FILE:-deploy/docker-compose.disabled.yaml}"
+fi
+NETWORK_NAME="${NETWORK_NAME:-SJNet}"
 
 if [[ ! -f "$COMPOSE_FILE" ]]; then
   echo "Arquivo ${COMPOSE_FILE} não encontrado." >&2
@@ -32,9 +91,23 @@ fi
 
 command -v docker >/dev/null 2>&1 || { echo "Docker não encontrado." >&2; exit 1; }
 
-if ! docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -q "active"; then
+if ! docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -Fxq "active"; then
   echo "Docker Swarm não está ativo. Execute 'docker swarm init' primeiro." >&2
   exit 1
+fi
+
+if [[ "$pid_enabled" == "true" ]]; then
+  postgres_node_found=0
+  while IFS= read -r swarm_node_hostname; do
+    if [[ "$swarm_node_hostname" == "$POSTGRES_NODE_HOSTNAME" ]]; then
+      postgres_node_found=1
+      break
+    fi
+  done < <(docker node ls --format '{{.Hostname}}')
+  if [[ "$postgres_node_found" -ne 1 ]]; then
+    echo "POSTGRES_NODE_HOSTNAME não corresponde a um nó do Swarm." >&2
+    exit 1
+  fi
 fi
 
 if ! docker network ls --format '{{.Name}}' | grep -q "^${NETWORK_NAME}$"; then
@@ -89,14 +162,18 @@ else
   fi
 
   echo "==> Buildando imagem ${IMAGE_NAME}..."
-  # Sem --pull: usa python:3.10-slim já em cache se Docker Hub estiver lento/indisponível
+  # Sem --pull: usa python:3.12-slim já em cache se Docker Hub estiver lento/indisponível
   # (--pull=never exige Docker recente; buildx antigo só aceita bool em --pull)
   docker build -t "$IMAGE_NAME" -f deploy/Dockerfile.api .
 
   echo "==> Buildando imagem ${FRONTEND_IMAGE_NAME}..."
   # Sem --no-cache o Docker pode reutilizar camadas antigas mesmo após
   # sincronização/deploy com a mesma tag :latest.
-  docker build --no-cache -t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .
+  frontend_pid_adapter="disabled"
+  if [[ "$pid_enabled" == "true" ]]; then
+    frontend_pid_adapter="remote"
+  fi
+  docker build --no-cache --build-arg VITE_PID_ADAPTER="$frontend_pid_adapter" -t "$FRONTEND_IMAGE_NAME" -f deploy/Dockerfile.frontend .
 fi
 
 echo "==> Subindo stack ${STACK_NAME}..."

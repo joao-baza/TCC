@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="48" viewBox="0 0 96 48" fill="none" role="img" aria-labelledby="title-valvula-retencao-leve desc-valvula-retencao-leve">
+  <title id="title-valvula-retencao-leve">Válvula retenção, leve</title>
+  <desc id="desc-valvula-retencao-leve">Simbolo P&amp;ID simplificado de Válvula retenção leve integrado a tubulacao hachurada.</desc>
+  <defs>
+    <clipPath id="interior-valvula-retencao-leve">
+      <path d="M0 17 H34 V31 H0 Z M64 17 H96 V31 H64 Z" />
+    </clipPath>
+  </defs>
+  <g class="fitting-symbol" data-fitting-family="valve">
+    <path class="fitting-hachures" d="M-96 96 L-16 -16 M-80 96 L0 -16 M-64 96 L16 -16 M-48 96 L32 -16 M-32 96 L48 -16 M-16 96 L64 -16 M0 96 L80 -16 M16 96 L96 -16 M32 96 L112 -16 M48 96 L128 -16 M64 96 L144 -16 M80 96 L160 -16 M96 96 L176 -16" fill="none" stroke="#1F2937" stroke-width="1.5" stroke-linecap="butt" clip-path="url(#interior-valvula-retencao-leve)" vector-effect="non-scaling-stroke" opacity="0.9" />
+    <path d="M0 17 H34 M0 31 H34 M64 17 H96 M64 31 H96" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="butt" vector-effect="non-scaling-stroke" />
+    <polygon points="34,10 62,24 34,38" fill="#F8FAFC" stroke="#1F2937" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+    <path d="M64 10 V38" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+  </g>
+</svg>

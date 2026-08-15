@@ -1,0 +1,60 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="160"
+  height="32"
+  viewBox="0 0 160 32"
+  fill="none"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">Tubulação modular com preenchimento diagonal</title>
+  <desc id="desc">
+    Trecho de tubulação com margem vertical, sem margem lateral e hachuras
+    diagonais repetidas a cada 16 unidades.
+  </desc>
+
+  <defs>
+    <!-- A área interna impede que as diagonais ultrapassem a tubulação. -->
+    <clipPath id="interior-tubulacao">
+      <rect x="0" y="5" width="160" height="22" />
+    </clipPath>
+
+    <!--
+      Módulo visual de 16 unidades.
+      Como a largura total (160) é múltipla de 16, cópias lado a lado
+      preservam a continuidade e o espaçamento das diagonais.
+    -->
+    <pattern
+      id="hachura-diagonal"
+      width="16"
+      height="32"
+      patternUnits="userSpaceOnUse"
+    >
+      <path
+        d="M-8 32 L16 0 M8 32 L32 0"
+        stroke="#1F2937"
+        stroke-width="2"
+        vector-effect="non-scaling-stroke"
+      />
+    </pattern>
+  </defs>
+
+  <!-- Preenchimento diagonal interno. -->
+  <rect
+    x="0"
+    y="5"
+    width="160"
+    height="22"
+    fill="url(#hachura-diagonal)"
+    clip-path="url(#interior-tubulacao)"
+  />
+
+  <!-- Bordas horizontais chegam exatamente às laterais do SVG. -->
+  <path
+    d="M0 5 H160 M0 27 H160"
+    stroke="#1F2937"
+    stroke-width="2"
+    stroke-linecap="butt"
+    vector-effect="non-scaling-stroke"
+  />
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72" fill="none" role="img" aria-labelledby="title-cotovelo-90-raio-longo desc-cotovelo-90-raio-longo">
+  <title id="title-cotovelo-90-raio-longo">Cotovelo 90° raio longo</title>
+  <desc id="desc-cotovelo-90-raio-longo">Icone aproximado de Cotovelo 90° raio longo para biblioteca de fittings de tubulacao; desenho preparado para conexao futura no editor P&amp;ID.</desc>
+  <defs>
+    <clipPath id="interior-cotovelo-90-raio-longo">
+      <path d="M6 49 H38 Q57 49 57 38 V6 H71 V38 Q71 63 38 63 H6 Z" />
+    </clipPath>
+  </defs>
+  <g class="fitting-symbol" data-fitting-family="bend">
+    <path class="fitting-hachures" d="M-96 96 L-16 -16 M-80 96 L0 -16 M-64 96 L16 -16 M-48 96 L32 -16 M-32 96 L48 -16 M-16 96 L64 -16 M0 96 L80 -16 M16 96 L96 -16 M32 96 L112 -16 M48 96 L128 -16 M64 96 L144 -16 M80 96 L160 -16 M96 96 L176 -16" fill="none" stroke="#1F2937" stroke-width="1.5" stroke-linecap="butt" clip-path="url(#interior-cotovelo-90-raio-longo)" vector-effect="non-scaling-stroke" opacity="0.9" />
+    <path d="M6 49 H38 Q57 49 57 38 V6 M6 63 H38 Q71 63 71 38 V6" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+  </g>
+</svg>

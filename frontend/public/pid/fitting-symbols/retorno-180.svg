@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="64" viewBox="0 0 80 64" fill="none" role="img" aria-labelledby="title-retorno-180 desc-retorno-180">
+  <title id="title-retorno-180">Retorno 180°</title>
+  <desc id="desc-retorno-180">Icone aproximado de Retorno 180° para biblioteca de fittings de tubulacao; desenho preparado para conexao futura no editor P&amp;ID.</desc>
+  <defs>
+    <clipPath id="interior-retorno-180">
+      <path d="M14 7 H58 Q79 7 79 28 Q79 57 50 57 H14 V43 H50 Q65 43 65 28 Q65 21 58 21 H14 Z" />
+    </clipPath>
+  </defs>
+  <g class="fitting-symbol" data-fitting-family="bend">
+    <path class="fitting-hachures" d="M-96 96 L-16 -16 M-80 96 L0 -16 M-64 96 L16 -16 M-48 96 L32 -16 M-32 96 L48 -16 M-16 96 L64 -16 M0 96 L80 -16 M16 96 L96 -16 M32 96 L112 -16 M48 96 L128 -16 M64 96 L144 -16 M80 96 L160 -16 M96 96 L176 -16" fill="none" stroke="#1F2937" stroke-width="1.5" stroke-linecap="butt" clip-path="url(#interior-retorno-180)" vector-effect="non-scaling-stroke" opacity="0.9" />
+    <path d="M14 7 H58 Q79 7 79 28 Q79 57 50 57 H14 M14 21 H58 Q65 21 65 28 Q65 43 50 43 H14" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+  </g>
+</svg>

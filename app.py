@@ -1,6 +1,8 @@
 import logging
 import os
 import socket
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -16,8 +18,19 @@ from routers import (
     reactor,
     components_router,
     mass_balance,
+    pid as pid_router,
 )
 from routers.i18n import translate_error_message, translate_validation_errors
+from pid.config import PidSettings
+from pid.runtime import PidRuntime
+from pid.ws.handler import pid_websocket_handler
+
+
+DEFAULT_CORS_ORIGINS = (
+    "https://tcc.joao.baza.dev.br",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+)
 
 
 def get_root_path() -> str:
@@ -27,25 +40,6 @@ def get_root_path() -> str:
 
     return "/" + root_path.strip("/")
 
-
-app = FastAPI(
-    title="Chemical Engineering API",
-    description="API for chemical engineering calculations",
-    version="1.0.0",
-    root_path=get_root_path(),
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://tcc.joao.baza.dev.br",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 logger = logging.getLogger("uvicorn")
 
@@ -76,22 +70,26 @@ def find_available_port(host: str, start_port: int, max_attempts: int = 50) -> i
         f"Could not find an available port for {host} starting at {start_port}"
     )
 
-# Include routers
-app.include_router(piping.router)
-app.include_router(sizing.router)
-app.include_router(flow.router)
-app.include_router(pump.router)
-app.include_router(reactor.router)
-app.include_router(components_router.router)
-app.include_router(mass_balance.router)
-
-
-@app.get("/health")
 def health():
     return {"status": "ok"}
 
 
-@app.exception_handler(HTTPException)
+async def ready(request: Request):
+    settings: PidSettings = request.app.state.pid_settings
+    if not settings.enabled:
+        return {"status": "ok", "pid": "disabled"}
+
+    runtime: PidRuntime = request.app.state.pid_runtime
+    try:
+        await runtime.check_ready()
+    except Exception as error:
+        raise HTTPException(
+            status_code=503,
+            detail="PID dependencies unavailable",
+        ) from error
+    return {"status": "ok", "pid": "ready"}
+
+
 async def http_exception_handler(_: Request, exc: HTTPException):
     detail = exc.detail
     if isinstance(detail, str):
@@ -99,12 +97,70 @@ async def http_exception_handler(_: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"detail": detail})
 
 
-@app.exception_handler(RequestValidationError)
 async def request_validation_exception_handler(_: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=422,
         content={"detail": translate_validation_errors(exc.errors())},
     )
+
+
+def create_app() -> FastAPI:
+    settings = PidSettings.from_env()
+
+    @asynccontextmanager
+    async def lifespan(created_app: FastAPI):
+        if not settings.enabled:
+            yield
+            return
+
+        runtime = PidRuntime.from_settings(settings)
+        created_app.state.pid_ws_manager = runtime.ws_manager
+        await runtime.ws_manager.start()
+        created_app.state.pid_runtime = runtime
+        try:
+            yield
+        finally:
+            await runtime.ws_manager.stop()
+            await runtime.close()
+
+    created_app = FastAPI(
+        title="Chemical Engineering API",
+        description="API for chemical engineering calculations",
+        version="1.0.0",
+        root_path=get_root_path(),
+        lifespan=lifespan,
+    )
+    created_app.state.pid_settings = settings
+    custom_origins = (
+        origin for origin in settings.allowed_origins if origin != "*"
+    )
+    allowed_origins = list(dict.fromkeys((*DEFAULT_CORS_ORIGINS, *custom_origins)))
+    created_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    created_app.include_router(piping.router)
+    created_app.include_router(sizing.router)
+    created_app.include_router(flow.router)
+    created_app.include_router(pump.router)
+    created_app.include_router(reactor.router)
+    created_app.include_router(components_router.router)
+    created_app.include_router(mass_balance.router)
+    created_app.include_router(pid_router.router)
+    created_app.add_api_route("/health", health, methods=["GET"])
+    created_app.add_api_route("/ready", ready, methods=["GET"])
+    created_app.add_api_websocket_route("/pid/ws/{diagram_id}", pid_websocket_handler)
+    created_app.add_exception_handler(HTTPException, http_exception_handler)
+    created_app.add_exception_handler(
+        RequestValidationError, request_validation_exception_handler
+    )
+    return created_app
+
+
+app = create_app()
 
 
 if __name__ == "__main__":

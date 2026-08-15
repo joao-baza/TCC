@@ -1,5 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
-import { Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 
 import { App } from "@/app/app";
 import { AppShell } from "@/components/app-shell";
@@ -7,6 +6,7 @@ import { ComponentsPage } from "@/features/components/components-page";
 import { FlowPage } from "@/features/flow/flow-page";
 import { GlossaryPage } from "@/features/glossary/glossary-page";
 import { HomePage } from "@/features/home/home-page";
+import { pidFocusedEditorRoute, pidRoute } from "@/features/pid/routing/active-pid-route";
 import {
   PipingConnectionsTab,
   PipingPage,
@@ -35,6 +35,7 @@ export const routes = [
         element: <AppShell />,
         children: [
           { index: true, element: <HomePage /> },
+          pidRoute,
           {
             path: "piping",
             element: <PipingPage />,
@@ -125,6 +126,7 @@ export const routes = [
           },
         ],
       },
+      pidFocusedEditorRoute,
     ],
   }
 ];

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="48" viewBox="0 0 80 48" fill="none" role="img" aria-labelledby="title-entrada-normal desc-entrada-normal">
+  <title id="title-entrada-normal">Entrada normal</title>
+  <desc id="desc-entrada-normal">Icone aproximado de Entrada normal para biblioteca de fittings de tubulacao; desenho preparado para conexao futura no editor P&amp;ID.</desc>
+  <defs>
+    <clipPath id="interior-entrada-normal">
+      <rect x="24" y="17" width="56" height="14" />
+    </clipPath>
+  </defs>
+  <g class="fitting-symbol" data-fitting-family="entry">
+    <polygon points="6,10 24,17 24,31 6,38" fill="#E5E7EB" />
+    <path d="M24 17 L6 10 V38 L24 31" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+    <path class="fitting-hachures" d="M-96 96 L-16 -16 M-80 96 L0 -16 M-64 96 L16 -16 M-48 96 L32 -16 M-32 96 L48 -16 M-16 96 L64 -16 M0 96 L80 -16 M16 96 L96 -16 M32 96 L112 -16 M48 96 L128 -16 M64 96 L144 -16 M80 96 L160 -16 M96 96 L176 -16" fill="none" stroke="#1F2937" stroke-width="1.5" stroke-linecap="butt" clip-path="url(#interior-entrada-normal)" vector-effect="non-scaling-stroke" opacity="0.9" />
+    <path d="M24 17 H80 M24 31 H80" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+  </g>
+</svg>

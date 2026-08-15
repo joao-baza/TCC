@@ -1,0 +1,27 @@
+{
+  "drawio": {
+    "repository": "https://github.com/jgraph/drawio",
+    "commit": "a1f615b7f5a5237da71de2ce2f057b5fa70b0aeb",
+    "paths": [
+      "src/main/webapp/stencils/pid",
+      "src/main/webapp/shapes/pid2"
+    ],
+    "authorizationReference": "project-private-authorization"
+  },
+  "wikimedia": [
+    {
+      "category": "P&ID symbols",
+      "url": "https://commons.wikimedia.org/wiki/Category:P%26ID_symbols",
+      "revision": "1007862109",
+      "observedRootFiles": 82,
+      "observedSubcategories": 26
+    },
+    {
+      "category": "Chemical engineering symbols",
+      "url": "https://commons.wikimedia.org/wiki/Category:Chemical_engineering_symbols",
+      "revision": "1254967890",
+      "observedRootFiles": 12,
+      "observedSubcategories": 1
+    }
+  ]
+}

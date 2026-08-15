@@ -1,0 +1,129 @@
+import type {
+  ConnectionClass,
+  PidStandard,
+  Point,
+  PortDirection,
+} from "./model";
+
+export type ReadonlyPidJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly ReadonlyPidJsonValue[]
+  | { readonly [key: string]: ReadonlyPidJsonValue };
+
+export type ReadonlyPidProperties = Readonly<Record<string, ReadonlyPidJsonValue>>;
+
+export interface CatalogPortTemplate {
+  readonly key: string;
+  readonly direction: PortDirection;
+  readonly connectionClass: ConnectionClass;
+  readonly capacity: number;
+  /** Normalized Draw.io connection constraint within the unrotated symbol. */
+  readonly anchor?: Readonly<Point>;
+}
+
+export interface CatalogSymbol {
+  readonly key: string;
+  readonly standards: readonly PidStandard[];
+  readonly catalogVersion: string;
+  readonly name: string;
+  readonly defaultSize: Readonly<{ readonly width: number; readonly height: number }>;
+  readonly portTemplates: readonly CatalogPortTemplate[];
+  readonly tag?: string;
+  readonly label?: string;
+  readonly properties?: ReadonlyPidProperties;
+}
+
+export interface AddUtilityCategoryCommand {
+  type: "utility.addCategory";
+  name: string;
+  color: string;
+}
+
+export interface RemoveUtilityCategoryCommand {
+  type: "utility.removeCategory";
+  categoryId: string;
+}
+
+export type PidCommand =
+  | { type: "symbol.insert"; symbol: CatalogSymbol; position: Point }
+  | { type: "annotation.insert"; text: string; position: Point }
+  | { type: "selection.move"; ids: string[]; delta: Point }
+  | { type: "selection.align"; ids: string[]; axis: "left" | "center-x" | "right" | "top" | "center-y" | "bottom" }
+  | { type: "ports.connect"; sourcePortId: string; targetPortId: string; connectionClass?: string }
+  | { type: "selection.rotate"; ids: string[]; degrees: 90 | -90 }
+  | { type: "selection.group"; ids: string[] }
+  | { type: "selection.duplicate"; ids: string[]; offset: Point }
+  | { type: "selection.delete"; ids: string[] }
+  | { type: "element.patch"; id: string; patch: Record<string, unknown> }
+  | { type: "document.rename"; title: string }
+  | AddUtilityCategoryCommand
+  | RemoveUtilityCategoryCommand;
+
+export interface CommandContext {
+  generateId?: () => string;
+  now?: () => Date;
+}
+
+export type InvariantSeverity = "error" | "warning";
+
+export interface DocumentInvariantIssue {
+  readonly code: string;
+  readonly severity: InvariantSeverity;
+  readonly path: readonly (string | number)[];
+  readonly message: string;
+}
+
+export class DomainCommandError extends Error {
+  readonly issues: readonly DocumentInvariantIssue[];
+
+  constructor(
+    message: string,
+    issues: readonly DocumentInvariantIssue[] = [],
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "DomainCommandError";
+    this.issues = freezeIssues(issues);
+  }
+}
+
+export function invariantIssue(
+  code: string,
+  severity: InvariantSeverity,
+  path: readonly (string | number)[],
+  message: string,
+): DocumentInvariantIssue {
+  return Object.freeze({
+    code,
+    severity,
+    path: Object.freeze([...path]),
+    message,
+  });
+}
+
+export function commandError(
+  code: string,
+  message: string,
+  path: readonly (string | number)[] = [],
+  cause?: unknown,
+): DomainCommandError {
+  return new DomainCommandError(
+    message,
+    [invariantIssue(code, "error", path, message)],
+    cause === undefined ? undefined : { cause },
+  );
+}
+
+export function freezeIssues(
+  issues: readonly DocumentInvariantIssue[],
+): readonly DocumentInvariantIssue[] {
+  return Object.freeze(issues.map((issue) => invariantIssue(
+    issue.code,
+    issue.severity,
+    issue.path,
+    issue.message,
+  )));
+}
