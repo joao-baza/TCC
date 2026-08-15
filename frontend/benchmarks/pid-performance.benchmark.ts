@@ -3,7 +3,6 @@ import { performance } from "node:perf_hooks";
 import { describe, expect, it } from "vitest";
 
 import { projectPidCanvasDocument } from "@/features/pid/canvas/flow-projection";
-import { localCatalog } from "@/features/pid/catalog/fixtures/catalog";
 import { validateDocument } from "@/features/pid/domain/validation";
 import { applyCommand, moveSelection, renameDocument, type CommandContext } from "@/features/pid/domain/commands";
 import { renderPidSvg } from "@/features/pid/export/render-svg";
@@ -12,6 +11,7 @@ import {
   createPidPerformanceDocument,
   onPidPerformancePortKey,
   pidPerformanceAssets,
+  pidPerformanceCatalog,
   pidPerformanceSymbols,
 } from "@/test/pid/pid-performance-fixture";
 
@@ -59,7 +59,7 @@ async function measure(): Promise<Measurement> {
   const projection = performance.now() - projectionStart;
 
   const validationStart = performance.now();
-  const issues = validateDocument(document, { catalog: localCatalog });
+  const issues = validateDocument(document, { catalog: pidPerformanceCatalog });
   const validation = performance.now() - validationStart;
 
   const svgStart = performance.now();
