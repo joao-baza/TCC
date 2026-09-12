@@ -20,8 +20,8 @@ function candidatePaths(repoRoot, platform) {
 
   if (platform === "win32") {
     candidates.push(path.join(repoRoot, ".venv", "Scripts", "python.exe"));
-    candidates.push("py");
     candidates.push("python");
+    candidates.push("py");
   } else {
     candidates.push(path.join(repoRoot, ".venv", "bin", "python"));
     candidates.push(path.join(repoRoot, ".venv", "bin", "python3"));
@@ -73,4 +73,3 @@ export function resolvePythonExecutable({
     "No usable Python interpreter found. Set PYTHON or install python3/python in PATH.",
   );
 }
-
