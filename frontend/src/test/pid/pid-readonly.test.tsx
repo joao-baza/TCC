@@ -195,7 +195,7 @@ describe("capacidade responsiva de edição", () => {
     const first = mount(pidServices, true);
 
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
-    const text = screen.getByLabelText("Texto");
+    const text = await screen.findByLabelText("Texto");
     text.focus();
     fireEvent.change(text, { target: { value: "Rascunho sem blur" } });
 
@@ -216,7 +216,7 @@ describe("capacidade responsiva de edição", () => {
     setViewportWidth(768);
     mount(pidServices, true);
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
-    expect(screen.getByLabelText("Texto")).toHaveValue("Rascunho sem blur");
+    expect(await screen.findByLabelText("Texto")).toHaveValue("Rascunho sem blur");
   });
 
   it("preserva um rascunho inválido no modo somente leitura e permite corrigi-lo ao expandir", async () => {
@@ -228,7 +228,7 @@ describe("capacidade responsiva de edição", () => {
     }), true);
 
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
-    const properties = screen.getByLabelText("Propriedades (JSON)");
+    const properties = await screen.findByLabelText("Propriedades (JSON)");
     properties.focus();
     fireEvent.change(properties, { target: { value: "{" } });
 
@@ -272,7 +272,7 @@ describe("capacidade responsiva de edição", () => {
     }), true);
 
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
-    const text = screen.getByLabelText("Texto");
+    const text = await screen.findByLabelText("Texto");
     if (action === "undo" || action === "redo") {
       fireEvent.change(text, { target: { value: "Texto confirmado" } });
       fireEvent.blur(text);
@@ -287,7 +287,7 @@ describe("capacidade responsiva de edição", () => {
       await waitFor(() => expect(screen.getByRole("button", { name: "Colar" })).toBeEnabled());
     }
 
-    const properties = screen.getByLabelText("Propriedades (JSON)");
+    const properties = await screen.findByLabelText("Propriedades (JSON)");
     fireEvent.change(properties, { target: { value: "{" } });
     fireEvent.blur(properties);
     expect(properties).toHaveAttribute("aria-invalid", "true");
@@ -324,7 +324,7 @@ describe("capacidade responsiva de edição", () => {
     }), true);
 
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
-    const text = screen.getByLabelText("Texto");
+    const text = await screen.findByLabelText("Texto");
     text.focus();
     fireEvent.change(text, { target: { value: "Rascunho válido" } });
     fireEvent.click(screen.getByRole("button", { name: "Duplicar" }));
@@ -343,7 +343,7 @@ describe("capacidade responsiva de edição", () => {
     }), true);
 
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar anotação" }));
-    const properties = screen.getByLabelText("Propriedades (JSON)");
+    const properties = await screen.findByLabelText("Propriedades (JSON)");
     fireEvent.change(properties, { target: { value: "{" } });
     fireEvent.blur(properties);
 
