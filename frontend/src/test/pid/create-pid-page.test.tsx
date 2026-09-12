@@ -230,16 +230,20 @@ describe("CreatePidPage", () => {
       fireEvent.click(screen.getByRole("button", { name: "Criar diagrama" }));
       await screen.findByLabelText("Link de edição");
 
-      const beforeUnload = new Event("beforeunload", { cancelable: true });
-      window.dispatchEvent(beforeUnload);
-      expect(beforeUnload.defaultPrevented).toBe(true);
+      await waitFor(() => {
+        const beforeUnload = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(beforeUnload);
+        expect(beforeUnload.defaultPrevented).toBe(true);
+      });
       fireEvent.click(screen.getByRole("button", { name: "Copiar edição" }));
       expect(await screen.findByRole("alert")).toHaveTextContent("Selecione o link e copie manualmente");
 
       fireEvent.click(screen.getByRole("checkbox", { name: "Copiei o link de edição" }));
-      const afterConfirmation = new Event("beforeunload", { cancelable: true });
-      window.dispatchEvent(afterConfirmation);
-      expect(afterConfirmation.defaultPrevented).toBe(false);
+      await waitFor(() => {
+        const afterConfirmation = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(afterConfirmation);
+        expect(afterConfirmation.defaultPrevented).toBe(false);
+      });
     } finally {
       if (previousClipboard) Object.defineProperty(navigator, "clipboard", previousClipboard);
       else Reflect.deleteProperty(navigator, "clipboard");
@@ -250,7 +254,7 @@ describe("CreatePidPage", () => {
     const router = renderCreateDataRouter();
     await createDiagram();
 
-    await router.navigate(-1);
+    await act(async () => { await router.navigate(-1); });
     expect(router.state.location.pathname).toBe("/pid");
     expect(await screen.findByRole("alertdialog", { name: "Link de edição ainda não confirmado" }))
       .toBeInTheDocument();
@@ -258,7 +262,7 @@ describe("CreatePidPage", () => {
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(router.state.location.pathname).toBe("/pid");
 
-    await router.navigate(-1);
+    await act(async () => { await router.navigate(-1); });
     fireEvent.click(await screen.findByRole("button", { name: "Sair desta página" }));
     expect(await screen.findByRole("heading", { name: "Início" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/");
@@ -269,7 +273,7 @@ describe("CreatePidPage", () => {
     await createDiagram();
     fireEvent.click(screen.getByRole("checkbox", { name: "Copiei o link de edição" }));
 
-    await router.navigate(-1);
+    await act(async () => { await router.navigate(-1); });
 
     expect(await screen.findByRole("heading", { name: "Início" })).toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
@@ -355,7 +359,7 @@ describe("PidEditorPage", () => {
       url: `/pid/${diagramId}#access=read-token`,
     });
 
-    await router.navigate(`/pid/${diagramId}#access=revoked`);
+    await act(async () => { await router.navigate(`/pid/${diagramId}#access=revoked`); });
     expect(await screen.findByRole("alert")).toHaveTextContent("Acesso ao diagrama negado.");
     await waitFor(() => expect(open).toHaveBeenNthCalledWith(2, diagramId, "revoked"));
   });
